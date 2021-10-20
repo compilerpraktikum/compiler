@@ -1,0 +1,26 @@
+buildscript {
+    ext {
+        kotlin_version = '1.5.+'
+        jvm_target = 16
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
+    }
+}
+
+apply plugin: 'kotlin'
+
+repositories {
+    mavenCentral()
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = project.jvm_target
+    }
+}
