@@ -2,7 +2,7 @@
 .idea/
 
 # Gradle outputs
-build/
+out/
 .gradle/
 
 # General build output

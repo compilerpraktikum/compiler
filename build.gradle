@@ -15,10 +15,14 @@ buildscript {
 
 apply plugin: 'kotlin'
 
+// change build output to avoid name clashes with shell script 'build'
+buildDir('out')
+
 repositories {
     mavenCentral()
 }
 
+// define JVM target version
 compileKotlin {
     kotlinOptions {
         jvmTarget = project.jvm_target
