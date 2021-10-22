@@ -1,3 +1,5 @@
+package edu.kit.compiler
+
 import java.io.File
 
 class Compiler(

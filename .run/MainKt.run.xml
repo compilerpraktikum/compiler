@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="MainKt" type="JetRunConfigurationType" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="MainKt" />
-    <module name="compiler.main" />
+    <module name="compiler.edu.kit.compiler.main" />
     <option name="PROGRAM_PARAMETERS" value="--echo LICENSE" />
     <shortenClasspath name="NONE" />
     <method v="2">
