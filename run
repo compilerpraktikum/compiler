@@ -1,4 +1,4 @@
 #!/bin/bash
 
 ORIGIN=$(dirname "$(readlink -f "$0")")
-"$ORIGIN"/gradlew shadowJar
+java -jar "$ORIGIN"/out/libs/compiler-all.jar "$@"
