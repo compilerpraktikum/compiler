@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ORIGIN=$(dirname "$(readlink -f "$0")")
+"$ORIGIN"/gradlew shadowJar

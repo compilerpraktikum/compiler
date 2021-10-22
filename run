@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ORIGIN=$(dirname "$(readlink -f "$0")")
+java -jar "$ORIGIN"/out/libs/compiler-all.jar "$@"
