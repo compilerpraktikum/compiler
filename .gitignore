@@ -9,3 +9,6 @@ out/
 **.class
 **.jar
 !gradle/wrapper/*.jar
+
+#MacOs Finder
+.DS_Store
