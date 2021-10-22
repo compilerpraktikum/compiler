@@ -21,6 +21,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
+}
+
 // define JVM target version
 compileKotlin {
     kotlinOptions {
