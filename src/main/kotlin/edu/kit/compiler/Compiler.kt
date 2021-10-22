@@ -10,4 +10,8 @@ class Compiler(
 			file.useLines { lines -> lines.forEach { println(it) } }
 		}
 	}
+
+	interface Config {
+		val isEcho: Boolean
+	}
 }
