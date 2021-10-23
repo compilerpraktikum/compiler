@@ -4,6 +4,7 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import java.io.File
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     val parser = ArgParser("mjavac")
@@ -19,7 +20,7 @@ fun main(args: Array<String>) {
     val file = File(filePath).apply {
         if (!isFile) {
             System.err.println("Error: file does not exist or is a directory")
-            return@main
+            exitProcess(1)
         }
     }
 
