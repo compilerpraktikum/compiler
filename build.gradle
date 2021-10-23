@@ -25,6 +25,9 @@ apply plugin: 'com.github.johnrengelman.shadow'
 // change build output to avoid name clashes with shell script 'build'
 buildDir('out')
 
+group = 'edu.kit.compiler'
+version = '1.0'
+
 repositories {
     mavenCentral()
 }
@@ -46,9 +49,10 @@ java {
 
 jar {
     archivesBaseName = "compiler"
+
     manifest {
         attributes 'Implementation-Title': 'MiniJavaCompiler',
-                'Implementation-Version': archiveVersion,
+                'Implementation-Version': project.version,
                 'Main-Class': 'edu.kit.compiler.MainKt'
     }
 }
