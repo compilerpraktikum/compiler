@@ -56,3 +56,7 @@ jar {
                 'Main-Class': 'edu.kit.compiler.MainKt'
     }
 }
+
+shadowJar {
+    archiveName("compiler-all.jar")
+}
