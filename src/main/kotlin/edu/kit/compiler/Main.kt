@@ -12,9 +12,16 @@ fun main(args: Array<String>) {
         override val isEcho by parser.option(ArgType.Boolean, fullName = "echo", description = "Write input file to stdout").default(false)
     }
 
-    val file by parser.argument(ArgType.String, fullName = "file", description = "input file")
+    val filePath by parser.argument(ArgType.String, fullName = "file", description = "input file")
 
     parser.parse(args)
 
-    Compiler(config).compile(File(file))
+    val file = File(filePath).apply {
+        if (!isFile) {
+            System.err.println("Error: file does not exist or is a directory")
+            return@main
+        }
+    }
+
+    Compiler(config).compile(file)
 }
