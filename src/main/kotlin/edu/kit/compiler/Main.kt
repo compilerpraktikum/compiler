@@ -1,29 +1,29 @@
 package edu.kit.compiler
 
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.default
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.switch
+import com.github.ajalt.clikt.parameters.types.file
 import kotlin.system.exitProcess
 
-fun main(args: Array<String>) {
-    val parser = ArgParser("mjavac")
-
-    val config = object : Compiler.Config {
-        override val isEcho by parser.option(
-            ArgType.Boolean,
-            fullName = "echo",
-            description = "Write input file to stdout"
-        ).default(false)
-        override val targetParallelization by parser.option(
-            ArgTypes.UInt, fullName = "parallelization",
-            shortName = "p",
-            description = "Target parallelization level. Defaults to 0, which uses all available cores."
-        ).default(0u)
+class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
+    
+    override val mode by option(help = "execution mode").switch(
+            "--compile" to Compiler.Mode.Compile,
+            "--echo" to Compiler.Mode.Echo,
+    ).default(Compiler.Mode.Compile)
+    
+    override val parallelization by option("-p", "--parallelization", help = "Target parallelization level. Defaults to 0, which uses all available cores.").uint().default(0u)
+    
+    override val sourceFile by argument(name = "file", help = "source file").file()
+    
+    override fun run() {
+        val compiler = Compiler(this)
+        exitProcess(compiler.compile())
     }
-
-    val filePath by parser.argument(ArgType.String, fullName = "file", description = "input file")
-
-    parser.parse(args)
-
-    exitProcess(Compiler(config, filePath).compile())
+    
 }
+
+fun main(args: Array<String>) = Cli().main(args)
