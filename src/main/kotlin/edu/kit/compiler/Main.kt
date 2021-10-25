@@ -3,7 +3,6 @@ package edu.kit.compiler
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
-import java.io.File
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -17,12 +16,5 @@ fun main(args: Array<String>) {
 
     parser.parse(args)
 
-    val file = File(filePath).apply {
-        if (!isFile) {
-            System.err.println("Error: file does not exist or is a directory")
-            exitProcess(1)
-        }
-    }
-
-    Compiler(config).compile(file)
+    exitProcess(Compiler(config, filePath).compile())
 }
