@@ -4,9 +4,14 @@ import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ERROR_FILE_SYSTEM
 import edu.kit.compiler.lex.RingBuffer
 import edu.kit.compiler.lex.StringTable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Main compiler pipeline. Stores state specific to one compilation unit and defines the strategy with which all
@@ -19,6 +24,11 @@ class Compiler(
     private val config: Config,
     private val inputPath: String
 ) {
+    /**
+     * A fixed-size threadPool for target parallelism
+     */
+    private lateinit var threadPool: ExecutorService
+
     /**
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
@@ -33,6 +43,9 @@ class Compiler(
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
     fun compile(): Int {
+        // prepare a thread-pool for parallelization
+        threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+
         val input = prepareCompilationUnit().unwrap {
             reportError(System.err)
             return ERROR_FILE_SYSTEM
@@ -41,12 +54,16 @@ class Compiler(
         // echo mode
         if (config.isEcho) {
             runBlocking {
-                var c = input.nextChar()
-                while (c != null) {
-                    print(c)
-                    c = input.nextChar()
+                withContext(CoroutineScope(threadPool.asCoroutineDispatcher()).coroutineContext) {
+                    var c = input.nextChar()
+                    while (c != null) {
+                        print(c)
+                        c = input.nextChar()
+                    }
                 }
             }
+
+            return 0
         }
 
         return 0
