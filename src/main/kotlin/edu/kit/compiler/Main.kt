@@ -4,10 +4,10 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import java.io.File
-import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     val parser = ArgParser("mjavac")
+    val consoleOutputManager = ConsoleOutputManager("Main")
 
     val config = object : Compiler.Config {
         override val isEcho by parser.option(ArgType.Boolean, fullName = "echo", description = "Write input file to stdout").default(false)
@@ -18,10 +18,7 @@ fun main(args: Array<String>) {
     parser.parse(args)
 
     val file = File(filePath).apply {
-        if (!isFile) {
-            System.err.println("Error: file does not exist or is a directory")
-            exitProcess(1)
-        }
+        if (!isFile) consoleOutputManager.error("File does not exist or is a directory")
     }
 
     Compiler(config).compile(file)
