@@ -9,7 +9,16 @@ fun main(args: Array<String>) {
     val parser = ArgParser("mjavac")
 
     val config = object : Compiler.Config {
-        override val isEcho by parser.option(ArgType.Boolean, fullName = "echo", description = "Write input file to stdout").default(false)
+        override val isEcho by parser.option(
+            ArgType.Boolean,
+            fullName = "echo",
+            description = "Write input file to stdout"
+        ).default(false)
+        override val targetParallelization by parser.option(
+            ArgType.Int, fullName = "parallelization",
+            shortName = "p",
+            description = "Target parallelization level. Defaults to -1, which uses all available cores."
+        ).default(-1)
     }
 
     val filePath by parser.argument(ArgType.String, fullName = "file", description = "input file")

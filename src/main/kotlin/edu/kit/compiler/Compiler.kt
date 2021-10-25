@@ -1,6 +1,7 @@
 package edu.kit.compiler
 
 import edu.kit.compiler.error.CompilerResult
+import edu.kit.compiler.error.ERROR_ARGUMENTS
 import edu.kit.compiler.error.ERROR_FILE_SYSTEM
 import edu.kit.compiler.lex.RingBuffer
 import edu.kit.compiler.lex.StringTable
@@ -27,7 +28,7 @@ class Compiler(
     /**
      * A fixed-size threadPool for target parallelism
      */
-    private lateinit var threadPool: ExecutorService
+    private var threadPool: ExecutorService? = null
 
     /**
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
@@ -43,30 +44,46 @@ class Compiler(
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
     fun compile(): Int {
-        // prepare a thread-pool for parallelization
-        threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-
-        val input = openCompilationUnit().unwrap {
-            reportError(System.err)
-            return ERROR_FILE_SYSTEM
-        }
-
-        // echo mode
-        if (config.isEcho) {
-            runBlocking {
-                withContext(CoroutineScope(threadPool.asCoroutineDispatcher()).coroutineContext) {
-                    var c = input.nextChar()
-                    while (c != null) {
-                        print(c)
-                        c = input.nextChar()
-                    }
+        try {
+            // prepare a thread-pool for parallelization
+            threadPool = when (config.targetParallelization) {
+                0 -> {
+                    System.err.println("invalid parallelization level: 0")
+                    return ERROR_ARGUMENTS
                 }
+                -1 -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+                1 -> Executors.newSingleThreadExecutor()
+                else -> Executors.newFixedThreadPool(config.targetParallelization)
             }
 
-            return 0
-        }
+            // open the input file
+            val input = openCompilationUnit().unwrap {
+                reportError(System.err)
+                return ERROR_FILE_SYSTEM
+            }
 
-        return 0
+            // echo mode
+            if (config.isEcho) {
+                runBlocking {
+                    withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
+                        var c = input.nextChar()
+                        while (c != null) {
+                            print(c)
+                            c = input.nextChar()
+                        }
+                    }
+                }
+
+                return 0
+            }
+
+            // here compiling and stuff
+
+            // success!
+            return 0
+        } finally {
+            threadPool?.shutdown()
+        }
     }
 
     /**
@@ -99,5 +116,7 @@ class Compiler(
 
     interface Config {
         val isEcho: Boolean
+
+        val targetParallelization: Int
     }
 }
