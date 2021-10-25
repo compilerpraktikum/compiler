@@ -33,7 +33,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.3'
+    implementation "org.jetbrains.kotlinx:kotlinx-cli:0.3.3"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$project.kotlin_version"
 }
 
 // define JVM target version
