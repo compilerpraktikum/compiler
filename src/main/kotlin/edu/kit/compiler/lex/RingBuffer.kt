@@ -1,9 +1,6 @@
 package edu.kit.compiler.lex
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.ScatteringByteChannel
@@ -19,7 +16,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
     }
 
     /**
-     * A ring buffer where one half is loaded from file, while the other half is read
+     * A ring buffer with one buffer to read from, one to peek into and one to load in the background.
      */
     private val ring = arrayOf(LoadableBuffer(BUFFER_SIZE), LoadableBuffer(BUFFER_SIZE), LoadableBuffer(BUFFER_SIZE))
 
@@ -48,10 +45,10 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
     /**
      * Obtain the next character and advance the current buffer position by one
      */
-    suspend fun nextChar(): Char? {
+    suspend fun nextChar(): Char? = coroutineScope {
         // if we already exceed the maximum amount of possible blocks, return null
         if (currentRingIndex >= totalLoadedBlocks && endOfInput)
-            return null
+            return@coroutineScope null
 
         while (!ring[currentRingIndex % ring.size].ready) {
             // if we wait, its most certainly for a character device, so we can afford to wait a full millisecond
@@ -64,7 +61,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         // because otherwise we would have switched to the next buffer
         if (remainingInCurrentBuffer == 0) {
             assert(endOfInput)
-            return null
+            return@coroutineScope  null
         }
 
         // get current byte
@@ -73,14 +70,18 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         // if the buffer is now exhausted, and we have more data, schedule a new read and swap buffer
         if (remainingInCurrentBuffer == 1) {
             if (!endOfInput) {
-                ring[currentRingIndex % ring.size].dispatchLoad()
+                // don't capture `currentRingIndex` in the closure, as this would create a race condition
+                val reloadedRingIndex = currentRingIndex
+                launch {
+                    ring[reloadedRingIndex % ring.size].dispatchLoad()
+                }
             }
 
             // swap to next buffer
             currentRingIndex += 1
         }
 
-        return Char(currentByte.toUByte().toInt())
+        return@coroutineScope  Char(currentByte.toUByte().toInt())
     }
 
     /**
@@ -145,8 +146,8 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         /**
          * Dispatch a loading cycle for this buffer
          */
-        suspend fun dispatchLoad() {
-            this.markEmpty()
+        suspend fun dispatchLoad() = coroutineScope {
+            markEmpty()
             withContext(Dispatchers.IO) {
                 // fill exhausted buffer with new data
                 byteBuffer.clear()
