@@ -103,9 +103,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
             return null
 
         // if the corresponding buffer isn't available yet, but EOF has not been reached, wait for it
-        if (bufferIndex >= totalLoadedBlocks) {
-            while (!ring[bufferIndex % ring.size].ready) delay(1)
-        }
+        while (!ring[bufferIndex % ring.size].ready) delay(1)
 
         // check how many bytes are in current buffer
         val remainingInCurrentBuffer = ring[bufferIndex % ring.size].byteBuffer.remaining()
