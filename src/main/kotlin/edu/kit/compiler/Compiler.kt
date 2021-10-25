@@ -38,8 +38,9 @@ class Compiler(
             return ERROR_FILE_SYSTEM
         }
 
-        runBlocking {
-            if (config.isEcho) {
+        // echo mode
+        if (config.isEcho) {
+            runBlocking {
                 var c = input.nextChar()
                 while (c != null) {
                     print(c)
