@@ -46,7 +46,7 @@ class Compiler(
         // prepare a thread-pool for parallelization
         threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
 
-        val input = prepareCompilationUnit().unwrap {
+        val input = openCompilationUnit().unwrap {
             reportError(System.err)
             return ERROR_FILE_SYSTEM
         }
@@ -73,7 +73,7 @@ class Compiler(
      * Sanity-check the input parameter and then prepare a reader that can be used by the lexer to generate a token
      * stream
      */
-    private fun prepareCompilationUnit(): CompilerResult<RingBuffer> {
+    private fun openCompilationUnit(): CompilerResult<RingBuffer> {
         val inputFile = File(this.inputPath)
 
         try {
