@@ -19,17 +19,13 @@ import java.util.concurrent.Executors
  * compiler phases are called.
  *
  * @param config compilation configuration parameters
- * @param inputPath input path. No sanity checks have been performed yet
  */
-class Compiler(
-    private val config: Config,
-    private val inputPath: String
-) {
+class Compiler(private val config: Config) {
     /**
      * A fixed-size threadPool for target parallelism
      */
     private var threadPool: ExecutorService? = null
-
+    
     /**
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
@@ -46,10 +42,10 @@ class Compiler(
     fun compile(): Int {
         try {
             // prepare a thread-pool for parallelization
-            threadPool = when (config.targetParallelization) {
+            threadPool = when (config.parallelization) {
                 0u -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
                 1u -> Executors.newSingleThreadExecutor()
-                else -> Executors.newFixedThreadPool(config.targetParallelization.toInt())
+                else -> Executors.newFixedThreadPool(config.parallelization.toInt())
             }
 
             // open the input file
@@ -58,30 +54,28 @@ class Compiler(
                 return ExitCode.ERROR_FILE_SYSTEM
             }
 
-            // echo mode
-            if (config.isEcho) {
-                return runBlocking {
-                    withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
-                        try {
-                            var c = input.nextChar()
-                            while (c != null) {
-                                print(c)
-                                c = input.nextChar()
+            when (config.mode) {
+                Mode.Compile -> {
+                    throw NotImplementedError("Compile mode not yet implemented.")
+                }
+                Mode.Echo -> {
+                    return runBlocking {
+                        withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
+                            try {
+                                var c = input.nextChar()
+                                while (c != null) {
+                                    print(c)
+                                    c = input.nextChar()
+                                }
+                                return@withContext ExitCode.SUCCESS
+                            } catch (e: IOException) {
+                                System.err.println("Unexpected IOException: ${e.message}")
+                                return@withContext ExitCode.ERROR_FILE_SYSTEM
                             }
-                            return@withContext 0
-                        } catch (e: IOException) {
-                            System.err.println("Unexpected IOException: ${e.message}")
-                            return@withContext ExitCode.ERROR_FILE_SYSTEM
                         }
-
                     }
                 }
             }
-
-            // here compiling and stuff
-
-            // success!
-            return ExitCode.SUCCESS
         } finally {
             threadPool?.shutdown()
         }
@@ -92,32 +86,34 @@ class Compiler(
      * stream
      */
     private fun openCompilationUnit(): CompilerResult<RingBuffer> {
-        val inputFile = File(this.inputPath)
-
+        val sourceFile = config.sourceFile
+    
         try {
-            if (!inputFile.exists()) {
+            if (!sourceFile.exists()) {
                 return CompilerResult.failure("File does not exist")
             }
-
-            if (inputFile.isDirectory) {
+        
+            if (sourceFile.isDirectory) {
                 return CompilerResult.failure("Input path is not a file")
             }
-
-            if (!inputFile.canRead()) {
+        
+            if (!sourceFile.canRead()) {
                 return CompilerResult.failure("Cannot read input file")
             }
         } catch (e: SecurityException) {
             return CompilerResult.failure("Access to input file denied: ${e.message}")
         }
+    
+        return CompilerResult.success(RingBuffer(FileInputStream(sourceFile).channel))
+    }
 
-        return CompilerResult.success(
-            RingBuffer(FileInputStream(inputFile).channel)
-        )
+    enum class Mode {
+        Compile, Echo,
     }
 
     interface Config {
-        val isEcho: Boolean
-
-        val targetParallelization: UInt
+        val sourceFile: File
+        val mode: Mode
+        val parallelization: UInt
     }
 }
