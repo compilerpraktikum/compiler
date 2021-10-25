@@ -26,6 +26,8 @@ class Compiler(
     private val config: Config,
     private val inputPath: String
 ) {
+	private val consoleOutputManager = ConsoleOutputManager(this.javaClass)
+
     /**
      * A fixed-size threadPool for target parallelism
      */
