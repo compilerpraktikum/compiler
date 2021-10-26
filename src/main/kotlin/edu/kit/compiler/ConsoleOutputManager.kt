@@ -1,47 +1,38 @@
 package edu.kit.compiler
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import kotlin.system.exitProcess
 
 /**
- * Handle errors, warnings etc..
- *
+ * Handle user-directed output.
  */
-class ConsoleOutputManager {
-    private val logger: Logger
+class ConsoleOutputManager(
+    private val phase: String
+) {
 
-    constructor(clazz: Class<*>) {
-        this.logger = LoggerFactory.getLogger(clazz)
-    }
-
-    constructor(name: String) {
-        this.logger = LoggerFactory.getLogger(name)
+    companion object {
+        private val errorColor: String = "\u001b[31m"
+        private val warnColor: String = "\u001b[33m"
+        private val resetColor = "\u001b[0m"
     }
 
     public fun warn(message: String) {
-        logger.warn(message)
+        formatAndPrint(warnColor, message, "Warning")
     }
 
     /**
-     * Log messages and exists.
+     * Log messages and exist if specified.
      */
-    public fun error(message: String) {
-        logger.error(message)
-        exitProcess(1)
-    }
-
-    public fun error(message: String, cause: Throwable) {
-        logger.error(message, cause)
-        exitProcess(1)
+    public fun error(message: String, exit:Boolean) {
+        formatAndPrint(errorColor, message, "Error")
+        if (exit) exitProcess(1)
     }
 
     public fun info(message: String) {
-        logger.info(message)
+        formatAndPrint(resetColor, message, "Info")
     }
 
-    public fun debug(message: String) {
-        logger.debug(message)
+    private fun formatAndPrint(color: String, message: String, messagePrefix: String) {
+        println("[$phase] $color$messagePrefix: $message$resetColor")
     }
 
     /**

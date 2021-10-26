@@ -7,7 +7,7 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     val parser = ArgParser("mjavac")
-    val consoleOutputManager = ConsoleOutputManager("Main")
+    val consoleOutputManager = ConsoleOutputManager("STARTUP")
 
     val config = object : Compiler.Config {
         override val isEcho by parser.option(
