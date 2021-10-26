@@ -51,7 +51,7 @@ class Compiler(
             // prepare a thread-pool for parallelization
             threadPool = when (config.targetParallelization) {
                 0 -> {
-                    System.err.println("invalid parallelization level: 0")
+                    consoleOutputManager.error("invalid parallelization level: 0")
                     return ERROR_ARGUMENTS
                 }
                 -1 -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
@@ -77,7 +77,7 @@ class Compiler(
                             }
                             return@withContext 0
                         } catch (e: IOException) {
-                            System.err.println("Unexpected IOException: ${e.message}")
+                            consoleOutputManager.error("Unexpected IOException: ${e.message}")
                             return@withContext ERROR_FILE_SYSTEM
                         }
 

@@ -1,6 +1,6 @@
 package edu.kit.compiler
 
-import kotlin.system.exitProcess
+import java.io.PrintStream
 
 /**
  * Handle user-directed output.
@@ -16,30 +16,21 @@ class ConsoleOutputManager(
     }
 
     public fun warn(message: String) {
-        formatAndPrint(warnColor, message, "Warning")
+        formatAndPrint(System.out, warnColor, message, "Warning")
     }
 
     /**
      * Log messages and exist if specified.
      */
-    public fun error(message: String, exit:Boolean) {
-        formatAndPrint(errorColor, message, "Error")
-        if (exit) exitProcess(1)
+    public fun error(message: String) {
+        formatAndPrint(System.err, errorColor, message, "Error")
     }
 
     public fun info(message: String) {
-        formatAndPrint(resetColor, message, "Info")
+        formatAndPrint(System.out, resetColor, message, "Info")
     }
 
-    private fun formatAndPrint(color: String, message: String, messagePrefix: String) {
-        println("[$phase] $color$messagePrefix: $message$resetColor")
+    private fun formatAndPrint(printStream: PrintStream, color: String, message: String, messagePrefix: String) {
+        printStream.println("[$phase] $color$messagePrefix: $message$resetColor")
     }
-
-    /**
-     * Wrap printing to console.
-     */
-    public fun println(line: String) {
-        kotlin.io.println(line)
-    }
-
 }
