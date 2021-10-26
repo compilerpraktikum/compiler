@@ -15,10 +15,10 @@ fun main(args: Array<String>) {
             description = "Write input file to stdout"
         ).default(false)
         override val targetParallelization by parser.option(
-            ArgType.Int, fullName = "parallelization",
+            ArgTypes.UInt, fullName = "parallelization",
             shortName = "p",
-            description = "Target parallelization level. Defaults to -1, which uses all available cores."
-        ).default(-1)
+            description = "Target parallelization level. Defaults to 0, which uses all available cores."
+        ).default(0u)
     }
 
     val filePath by parser.argument(ArgType.String, fullName = "file", description = "input file")

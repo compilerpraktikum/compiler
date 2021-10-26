@@ -14,7 +14,7 @@ sealed class CompilerResult<R> {
         /**
          * Report the error of a failed result to an [OutputStreamWriter].
          */
-        fun reportError(outputStream: PrintStream) {
+        fun reportError(outputStream: PrintStream = System.err) {
             outputStream.print(this.message)
             if (this.reporter != null) {
                 outputStream.println(":")
@@ -42,7 +42,7 @@ sealed class CompilerResult<R> {
     }
 
     inline fun unwrap(onError: Failure<R>.() -> Nothing): R =
-        when(this) {
+        when (this) {
             is Success -> this.result
             is Failure -> onError.invoke(this)
         }
