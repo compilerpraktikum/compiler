@@ -1,25 +1,19 @@
 package edu.kit.compiler
 
 sealed class Token {
-    class Identifier(val name: String)
-    class Literal(val value: Int)
-    class Operator(val op: Op)
-
-    class Comment(val content: String)
-    class Whitespace()
+    class Identifier(val name: String) : Token()
+    class Literal(val value: Int) : Token()
+    class Operator(val op: Op) : Token()
     
-    class Eof()
-
+    class Comment(val content: String) : Token()
+    class Whitespace() : Token()
+    
+    class Eof() : Token()
+    
+    class ErrorToken(val error: String) : Token()
+    
     enum class Op(val repr: String) {
-        Neq("!="), Not("!"), LParen("("), RParen(")"), MulAssign("*="),
-        Mul("*"), PlusPlus("++"), PlusAssign("+="), Plus("+"), Comma(","),
-        MinusAssign("-="), MinusMinus("--"), Minus("-"), Dot("."), DivEq("/="),
-        Div("/"), Colon(":"), Semicolon(";"), LeftShiftAssign("<<="), LeftShift("<<"),
-        LEq("<="), Lt("<"), Eq("=="), Assign("="), GtEq(">="), RightShiftAssign(">>="),
-        RightSiftRotAssign(">>>="), RightShiftRot(">>>"), RightShift(">>"), Gt(">"),
-        QuestionMark("?"), ModEq("%="), Mod("%"), AndAssign("&="), And("&&"), BitAnd("&"),
-        LeftBracket("["), RightBracket("]"), XorEq("^="), Xor("^"),
-        LeftBrace("{"), RightBrace("}"), BitNot("~"), OrAssign("|="), Or("||"), BitOr("|")
+        Neq("!="), Not("!"), LParen("("), RParen(")"), MulAssign("*="), Mul("*"), PlusPlus("++"), PlusAssign("+="), Plus("+"), Comma(","), MinusAssign("-="), MinusMinus("--"), Minus("-"), Dot("."), DivEq("/="), Div("/"), Colon(":"), Semicolon(";"), LeftShiftAssign("<<="), LeftShift("<<"), LEq("<="), Lt("<"), Eq("=="), Assign("="), GtEq(">="), RightShiftAssign(">>="), RightSiftRotAssign(">>>="), RightShiftRot(">>>"), RightShift(">>"), Gt(">"), QuestionMark("?"), ModEq("%="), Mod("%"), AndAssign("&="), And("&&"), BitAnd("&"), LeftBracket("["), RightBracket("]"), XorEq("^="), Xor("^"), LeftBrace("{"), RightBrace("}"), BitNot("~"), OrAssign("|="), Or("||"), BitOr("|")
     }
     
     enum class Key(val repr: String) {
