@@ -20,13 +20,13 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
     /**
      * A ring buffer with one buffer to read from, one to peek into and one to load in the background.
      */
-    private val ring = arrayOf(LoadableBuffer(BUFFER_SIZE), LoadableBuffer(BUFFER_SIZE), LoadableBuffer(BUFFER_SIZE))
+    private val ring = arrayOf(LoadableBuffer(), LoadableBuffer(), LoadableBuffer())
 
     /**
-     * Index of the currently active buffer in the ring
+     * Index of the currently active block
      */
     @Volatile
-    private var currentRingIndex: Int = 0
+    private var currentBlockIndex: Int = 0
 
     /**
      * Whether the end of the input channel has been reached
@@ -41,7 +41,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
     private var totalLoadedBlocks = 0
 
     init {
-        ring.forEach { runBlocking { it.dispatchLoad() } }
+        ring.forEach { runBlocking { it.load() } }
     }
 
     /**
@@ -49,20 +49,19 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
      */
     suspend fun nextChar(): Char? = coroutineScope {
         // if we already exceed the maximum amount of possible blocks, return null
-        if (currentRingIndex >= totalLoadedBlocks && endOfInput)
+        if (currentBlockIndex >= totalLoadedBlocks && endOfInput)
             return@coroutineScope null
 
-        while (!ring[currentRingIndex % ring.size].ready) {
-            // if we wait, its most certainly for a character device, so we can afford to wait a full millisecond
-            delay(1)
-        }
+        val currentBuffer = ring[currentBlockIndex % ring.size]
+
+        currentBuffer.waitUntilReady()
 
         // throw exception to caller, if previous load failed
-        if (ring[currentRingIndex % ring.size].failed) {
-            throw ring[currentRingIndex % ring.size].failure!!
+        if (currentBuffer.failed) {
+            throw currentBuffer.failure!!
         }
 
-        val remainingInCurrentBuffer = ring[currentRingIndex % ring.size].byteBuffer.remaining()
+        val remainingInCurrentBuffer = currentBuffer.byteBuffer.remaining()
 
         // check if current buffer is empty. If it is, we must have reached end of input,
         // because otherwise we would have switched to the next buffer
@@ -72,20 +71,18 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         }
 
         // get current byte
-        val currentByte = ring[currentRingIndex % ring.size].byteBuffer.get()
+        val currentByte = currentBuffer.byteBuffer.get()
 
         // if the buffer is now exhausted, and we have more data, schedule a new read and swap buffer
         if (remainingInCurrentBuffer == 1) {
             if (!endOfInput) {
-                // don't capture `currentRingIndex` in the closure, as this would create a race condition
-                val reloadedRingIndex = currentRingIndex
                 launch {
-                    ring[reloadedRingIndex % ring.size].dispatchLoad()
+                    currentBuffer.load()
                 }
             }
 
             // swap to next buffer
-            currentRingIndex += 1
+            currentBlockIndex += 1
         }
 
         return@coroutineScope Char(currentByte.toUByte().toInt())
@@ -97,49 +94,45 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
      * Returns `null` if no character is available in the input.
      */
     suspend fun peek(offset: Int = 0): Char? {
-        check(offset < BUFFER_SIZE) { "look-ahead cannot exceed buffer size of $BUFFER_SIZE bytes" }
-        return peekInBuffer(currentRingIndex, offset)
+        require(offset < BUFFER_SIZE) { "look-ahead cannot exceed buffer size of $BUFFER_SIZE bytes" }
+        return peekInBlock(currentBlockIndex, offset)
     }
 
     /**
-     * Recursive function that peeks into buffers once they are laoded, or calls the function again to load the next
+     * Recursive function that peeks into buffers once they are loaded, or calls the function again to load the next
      * buffer
      */
-    private tailrec suspend fun peekInBuffer(bufferIndex: Int, offset: Int): Char? {
+    private tailrec suspend fun peekInBlock(blockIndex: Int, offset: Int): Char? {
         // if we exceed the number of loaded blocks and have reached EOF yet, we can return null
-        if (bufferIndex >= totalLoadedBlocks && endOfInput)
+        if (blockIndex >= totalLoadedBlocks && endOfInput)
             return null
 
-        // if the corresponding buffer isn't available yet, but EOF has not been reached, wait for it
-        while (!ring[bufferIndex % ring.size].ready) delay(1)
+        val currentBuffer = ring[blockIndex % ring.size]
+        currentBuffer.waitUntilReady()
 
         // check how many bytes are in current buffer
-        val remainingInCurrentBuffer = ring[bufferIndex % ring.size].byteBuffer.remaining()
+        val remainingInCurrentBuffer = currentBuffer.byteBuffer.remaining()
         return if (offset < remainingInCurrentBuffer) {
-            val peekedByte = ring[bufferIndex % ring.size].byteBuffer
-                .get(ring[bufferIndex % ring.size].byteBuffer.position() + offset)
+            val peekedByte = currentBuffer.byteBuffer
+                .get(currentBuffer.byteBuffer.position() + offset)
 
             Char(peekedByte.toUByte().toInt())
         } else {
-            peekInBuffer(bufferIndex + 1, offset - remainingInCurrentBuffer)
+            peekInBlock(blockIndex + 1, offset - remainingInCurrentBuffer)
         }
     }
 
     /**
      * A buffer that can be loaded with data from [inputChannel] asynchronously
      */
-    private inner class LoadableBuffer(size: Int) {
+    private inner class LoadableBuffer() {
         @Volatile
         var ready: Boolean = false
             private set
 
         @Volatile
         var failed: Boolean = false
-
-        /**
-         * Fixed size [ByteBuffer] holding data of the [inputChannel]
-         */
-        val byteBuffer: ByteBuffer
+            private set
 
         /**
          * Error if anything gone wrong (null if [failed] is false). This exception is not thrown, because it happens
@@ -147,11 +140,13 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
          * calculation, because this would create an enormous amount of allocations. So we need to deal with this
          * failure manually
          */
+        @Volatile
         var failure: IOException? = null
 
-        init {
-            this.byteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.LITTLE_ENDIAN)
-        }
+        /**
+         * Fixed size [ByteBuffer] holding data of the [inputChannel]
+         */
+        val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.LITTLE_ENDIAN)
 
         fun markEmpty() {
             this.ready = false
@@ -179,7 +174,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         /**
          * Dispatch a loading cycle for this buffer
          */
-        suspend fun dispatchLoad() {
+        suspend fun load() {
             if (endOfInput) {
                 // nothing to do
                 return
@@ -208,6 +203,16 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
                     // mark that buffer is now ready to be read again
                     markReady()
                 }
+            }
+        }
+
+        /**
+         * Wait until the buffer is ready.
+         */
+        suspend fun waitUntilReady() {
+            while (!ready) {
+                // if we wait, its most certainly for a character device, so we can afford to wait a full millisecond
+                delay(1)
             }
         }
     }

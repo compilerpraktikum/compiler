@@ -1,8 +1,7 @@
 package edu.kit.compiler
 
 import edu.kit.compiler.error.CompilerResult
-import edu.kit.compiler.error.ERROR_ARGUMENTS
-import edu.kit.compiler.error.ERROR_FILE_SYSTEM
+import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.RingBuffer
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
@@ -48,19 +47,15 @@ class Compiler(
         try {
             // prepare a thread-pool for parallelization
             threadPool = when (config.targetParallelization) {
-                0 -> {
-                    System.err.println("invalid parallelization level: 0")
-                    return ERROR_ARGUMENTS
-                }
-                -1 -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-                1 -> Executors.newSingleThreadExecutor()
-                else -> Executors.newFixedThreadPool(config.targetParallelization)
+                0u -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+                1u -> Executors.newSingleThreadExecutor()
+                else -> Executors.newFixedThreadPool(config.targetParallelization.toInt())
             }
 
             // open the input file
             val input = openCompilationUnit().unwrap {
                 reportError(System.err)
-                return ERROR_FILE_SYSTEM
+                return ExitCode.ERROR_FILE_SYSTEM
             }
 
             // echo mode
@@ -76,7 +71,7 @@ class Compiler(
                             return@withContext 0
                         } catch (e: IOException) {
                             System.err.println("Unexpected IOException: ${e.message}")
-                            return@withContext ERROR_FILE_SYSTEM
+                            return@withContext ExitCode.ERROR_FILE_SYSTEM
                         }
 
                     }
@@ -86,7 +81,7 @@ class Compiler(
             // here compiling and stuff
 
             // success!
-            return 0
+            return ExitCode.SUCCESS
         } finally {
             threadPool?.shutdown()
         }
@@ -123,6 +118,6 @@ class Compiler(
     interface Config {
         val isEcho: Boolean
 
-        val targetParallelization: Int
+        val targetParallelization: UInt
     }
 }
