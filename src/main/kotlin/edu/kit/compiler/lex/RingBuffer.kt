@@ -1,8 +1,10 @@
 package edu.kit.compiler.lex
 
 import kotlinx.coroutines.*
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.channels.ClosedChannelException
 import java.nio.channels.ScatteringByteChannel
 
 /**
@@ -55,13 +57,18 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
             delay(1)
         }
 
+        // throw exception to caller, if previous load failed
+        if (ring[currentRingIndex % ring.size].failed) {
+            throw ring[currentRingIndex % ring.size].failure!!
+        }
+
         val remainingInCurrentBuffer = ring[currentRingIndex % ring.size].byteBuffer.remaining()
 
         // check if current buffer is empty. If it is, we must have reached end of input,
         // because otherwise we would have switched to the next buffer
         if (remainingInCurrentBuffer == 0) {
             assert(endOfInput)
-            return@coroutineScope  null
+            return@coroutineScope null
         }
 
         // get current byte
@@ -81,7 +88,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
             currentRingIndex += 1
         }
 
-        return@coroutineScope  Char(currentByte.toUByte().toInt())
+        return@coroutineScope Char(currentByte.toUByte().toInt())
     }
 
     /**
@@ -126,10 +133,21 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         var ready: Boolean = false
             private set
 
+        @Volatile
+        var failed: Boolean = false
+
         /**
          * Fixed size [ByteBuffer] holding data of the [inputChannel]
          */
         val byteBuffer: ByteBuffer
+
+        /**
+         * Error if anything gone wrong (null if [failed] is false). This exception is not thrown, because it happens
+         * asynchronously to [nextChar] and we cannot return the read buffer as a result to the asynchronous
+         * calculation, because this would create an enormous amount of allocations. So we need to deal with this
+         * failure manually
+         */
+        var failure: IOException? = null
 
         init {
             this.byteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.LITTLE_ENDIAN)
@@ -140,28 +158,53 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         }
 
         fun markReady() {
+            // increase the total amount of blocks to be processed
+            totalLoadedBlocks += 1
+
             this.ready = true
+        }
+
+        fun setFailed(exception: IOException) {
+            this.failed = true
+            this.failure = exception
+            setEOF()
+            markReady()
+        }
+
+        fun setEOF() {
+            endOfInput = true
+            inputChannel.close()
         }
 
         /**
          * Dispatch a loading cycle for this buffer
          */
         suspend fun dispatchLoad() = coroutineScope {
+            if (endOfInput) {
+                // nothing to do
+                return@coroutineScope
+            }
+
             markEmpty()
             withContext(Dispatchers.IO) {
                 // fill exhausted buffer with new data
                 byteBuffer.clear()
-                val readBytes = inputChannel.read(byteBuffer)
+
+                val readBytes = try {
+                    inputChannel.read(byteBuffer)
+                } catch (e: ClosedChannelException) {
+                    setEOF()
+                } catch (e: IOException) {
+                    setFailed(e)
+                    return@withContext
+                }
+
                 byteBuffer.flip()
 
                 // if we reached EOF, mark that no more dispatches should happen
                 if (readBytes == -1) {
-                    inputChannel.close()
-                    endOfInput = true
+                    setEOF()
                 } else {
-                    // increase the total amount of blocks to be processed
-                    totalLoadedBlocks += 1
-
                     // mark that buffer is now ready to be read again
                     markReady()
                 }

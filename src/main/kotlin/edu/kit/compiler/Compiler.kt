@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
+import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -64,17 +65,22 @@ class Compiler(
 
             // echo mode
             if (config.isEcho) {
-                runBlocking {
+                return runBlocking {
                     withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
-                        var c = input.nextChar()
-                        while (c != null) {
-                            print(c)
-                            c = input.nextChar()
+                        try {
+                            var c = input.nextChar()
+                            while (c != null) {
+                                print(c)
+                                c = input.nextChar()
+                            }
+                            return@withContext 0
+                        } catch (e: IOException) {
+                            System.err.println("Unexpected IOException: ${e.message}")
+                            return@withContext ERROR_FILE_SYSTEM
                         }
+
                     }
                 }
-
-                return 0
             }
 
             // here compiling and stuff
