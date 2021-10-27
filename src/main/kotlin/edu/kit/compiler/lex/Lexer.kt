@@ -3,6 +3,7 @@ package edu.kit.compiler.lex
 import edu.kit.compiler.Token
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flow
+import java.lang.StringBuilder
 
 /**
  * lexicographic analysis and tokenization of an input stream.
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.flow
  * @param input input abstracted in a ring buffer
  * @param stringTable string table of current compilation run
  */
-class Lexer(private val input: InputProvider, private val stringTable: StringTable) {
+class Lexer(private val input: RingBuffer, private val stringTable: StringTable
+) {
     companion object {
         val keywordTokenValues: HashSet<Token.Key> = Token.Key.values().toHashSet()
     }
