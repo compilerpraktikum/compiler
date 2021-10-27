@@ -179,12 +179,12 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
         /**
          * Dispatch a loading cycle for this buffer
          */
-        suspend fun dispatchLoad() = coroutineScope {
+        suspend fun dispatchLoad() {
             if (endOfInput) {
                 // nothing to do
-                return@coroutineScope
+                return
             }
-
+    
             markEmpty()
             withContext(Dispatchers.IO) {
                 // fill exhausted buffer with new data

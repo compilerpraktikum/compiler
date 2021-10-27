@@ -1,0 +1,116 @@
+digraph G {
+
+
+    start -> Whitespace [label="<space>\\n\\c\\t"];
+    
+    
+    start -> Div [label="/"];
+    Div -> CommentStart [label="*"];
+    
+    CommentStart -> CommentStart [label="[^*]"];
+    
+    CommentStart -> CommentEnd1 [label="*"];
+    
+    CommentEnd1 -> CommentStart [label="[^/]"];
+    
+    CommentEnd1 -> CommentEnd [label="/"];
+    
+    start -> Not [label="!"];
+    
+    Not -> Neq [label="="];
+    
+    start -> LParen [label="("];
+    
+    start -> RParen [label=")"];
+    
+    start -> Mul [label="*"];
+    
+    Mul -> MulAssign [label="="];
+    
+    start -> Plus [label="+"];
+    
+    Plus -> Inc [label="+"];
+    
+    Plus -> PlusAssign [label="="];
+    
+    start -> Comma [label=","];
+    
+    start -> Minus [label="-"];
+    
+    Minus -> MinusAssign [label="="];
+    
+    Minus -> Dec [label="-"];
+    
+    start -> Dot [label="."];
+    
+    Div -> DivAssign [label="="];
+    
+    start -> Colon [label=":"];
+    
+    start -> Semicolon [label=";"];
+    
+    start -> Lt [label="<"];
+    
+    Lt -> ShiftLeft [label="<"];
+    
+    Lt -> LtEq [label="="];
+    
+    ShiftLeft -> ShiftLeftAssign [label="="];
+    
+    start -> Assign [label="="];
+    
+    Assign -> Eq [label="="];
+    
+    start -> Gt [label=">"];
+    
+    Gt -> ShiftRight [label=">"];
+    
+    Gt -> GtEq [label="="];
+    
+    ShiftRight -> ShiftRightRot [label=">"];
+    
+    ShiftRight -> ShiftRightAssign [label="="];
+    
+    ShiftRightRot -> ShiftRightRotAssign [label="="];
+    
+    start -> QuestionMark [label="?"];
+    
+    start -> Modulo [label="%"];
+    
+    Modulo -> ModuloAssign [label="="];
+    
+    start -> BitAnd [label="&"];
+    
+    BitAnd -> And [label="&"];
+    
+    BitAnd -> AndAssign [label="="];
+    
+    start -> LBracket [label="["];
+    
+    start -> RBracket [label="]"];
+    
+    start -> Xor [label="^"];
+    
+    Xor -> XorAssign [label="="];
+    
+    start -> LCurly [label="{"];
+    
+    start -> RCurly [label="}"];
+    
+    start -> BitNot [label="~"];
+    
+    start -> BitOr [label="|"];
+    
+    BitOr -> Or [label="|"];
+    
+    BitOr -> OrAssign [label="="];
+    
+    start -> Ident [label="[_a-Z]"];
+    
+    Ident -> Ident [label="[_a-Z0-9]"];
+    
+    start -> Literal [label="1-9"];
+    
+    Literal -> Literal [label="0-9"];
+    
+}
