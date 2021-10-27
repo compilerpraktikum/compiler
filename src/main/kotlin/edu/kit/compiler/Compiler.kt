@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -27,6 +28,7 @@ class Compiler(
     private val inputPath: String
 ) {
 	private val consoleOutputManager = ConsoleOutputManager("COMPILER")
+    private val logger = LoggerFactory.getLogger(this.javaClass)
 
     /**
      * A fixed-size threadPool for target parallelism
@@ -77,7 +79,7 @@ class Compiler(
                             }
                             return@withContext 0
                         } catch (e: IOException) {
-                            consoleOutputManager.error("Unexpected IOException: ${e.message}")
+                            logger.error("Unexpected IOException: ${e.message}")
                             return@withContext ERROR_FILE_SYSTEM
                         }
 

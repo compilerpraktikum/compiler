@@ -5,9 +5,16 @@ import java.io.PrintStream
 /**
  * Handle user-directed output.
  */
-class ConsoleOutputManager(
+class ConsoleOutputManager {
     private val phase: String
-) {
+    private val standardPrintStream: PrintStream
+    private val errorPrintStream: PrintStream
+    
+    constructor(phase: String, standardPrintStream: PrintStream = System.out, errorPrintStream: PrintStream = System.err) {
+        this.phase = phase
+        this.standardPrintStream = standardPrintStream
+        this.errorPrintStream = errorPrintStream
+    }
 
     companion object {
         private val errorColor: String = "\u001b[31m"
@@ -16,18 +23,18 @@ class ConsoleOutputManager(
     }
 
     public fun warn(message: String) {
-        formatAndPrint(System.out, warnColor, message, "Warning")
+        formatAndPrint(standardPrintStream, warnColor, message, "Warning")
     }
 
     /**
      * Log messages and exist if specified.
      */
     public fun error(message: String) {
-        formatAndPrint(System.err, errorColor, message, "Error")
+        formatAndPrint(errorPrintStream, errorColor, message, "Error")
     }
 
     public fun info(message: String) {
-        formatAndPrint(System.out, resetColor, message, "Info")
+        formatAndPrint(standardPrintStream, resetColor, message, "Info")
     }
 
     private fun formatAndPrint(printStream: PrintStream, color: String, message: String, messagePrefix: String) {

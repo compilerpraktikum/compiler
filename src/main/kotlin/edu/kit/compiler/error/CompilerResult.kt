@@ -1,5 +1,6 @@
 package edu.kit.compiler.error
 
+import edu.kit.compiler.ConsoleOutputManager
 import java.io.OutputStreamWriter
 import java.io.PrintStream
 
@@ -10,18 +11,12 @@ import java.io.PrintStream
 sealed class CompilerResult<R> {
     class Success<R>(val result: R) : CompilerResult<R>()
 
-    class Failure<R>(private val message: String, private val reporter: ((PrintStream) -> Unit)? = null) : CompilerResult<R>() {
+    class Failure<R>(private val message: String, private val compilerPhase: String = "COMPILER") : CompilerResult<R>() {
         /**
          * Report the error of a failed result to an [OutputStreamWriter].
          */
         fun reportError(outputStream: PrintStream) {
-            outputStream.print(this.message)
-            if (this.reporter != null) {
-                outputStream.println(":")
-                this.reporter.invoke(outputStream)
-            }
-
-            outputStream.println()
+            ConsoleOutputManager(compilerPhase, outputStream, outputStream).error(this.message)
         }
     }
 
@@ -36,8 +31,8 @@ sealed class CompilerResult<R> {
         /**
          * Constructs a result indicating an erroneous state and providing a strategy to report the error to the user.
          */
-        fun <R> failure(message: String, report: ((PrintStream) -> Unit)? = null): CompilerResult<R> {
-            return Failure<R>(message, report)
+        fun <R> failure(message: String, compilerPhase: String = "COMPILER"): CompilerResult<R> {
+            return Failure<R>(message, compilerPhase)
         }
     }
 
