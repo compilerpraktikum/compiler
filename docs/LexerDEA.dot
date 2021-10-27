@@ -1,7 +1,7 @@
 digraph G {
 
 
-    start -> Whitespace [label="<space>\\n\\c\\t"];
+    start -> Whitespace [label="<space>\\n\\r\\t"];
     
     
     start -> Div [label="/"];
@@ -9,11 +9,11 @@ digraph G {
     
     CommentStart -> CommentStart [label="[^*]"];
     
-    CommentStart -> CommentEnd1 [label="*"];
+    CommentStart -> CommentMaybeEnd [label="*"];
     
-    CommentEnd1 -> CommentStart [label="[^/]"];
+    CommentMaybeEnd -> CommentStart [label="[^/]"];
     
-    CommentEnd1 -> CommentEnd [label="/"];
+    CommentMaybeEnd -> CommentEnd [label="/"];
     
     start -> Not [label="!"];
     
