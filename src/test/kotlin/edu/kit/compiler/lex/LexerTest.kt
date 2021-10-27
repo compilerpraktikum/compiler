@@ -89,16 +89,40 @@ internal class LexerTest {
     
     @Test
     fun testEvilInput() {
-        FixedInputProvider.input = "class class classname throws >>>>\u0000||||/*class/**/>>>==01234.1_012protected\u0004"
-        
+        FixedInputProvider.input =
+                "class class classname throws >>>>\u0000||||/*class/**/>>>==01234.1_012protected\u0004"
+    
         val tokens = runBlocking {
             lexer.tokenStream().toCollection(mutableListOf())
         }
-        
-        val expectedTokens = listOf(Token.Identifier("class"), Token.Whitespace(), Token.Identifier("class"), Token.Whitespace(), Token.Identifier("classname"), Token.Whitespace(), Token.Identifier("throws"), Token.Whitespace(), Token.Operator(Token.Op.RightShiftRot), Token.Operator(Token.Op.Gt), Token.ErrorToken("ignore error message for test case"), Token.Operator(Token.Op.Or), Token.Operator(Token.Op.Or), Token.Comment("/*class/**/"), Token.Operator(Token.Op.RightShiftRot), Token.Operator(Token.Op.Eq), Token.Literal(0), Token.Literal(1234), Token.Operator(Token.Op.Dot), Token.Literal(1), Token.Identifier("_12protected"), Token.ErrorToken("ignore error message for test case"), Token.Eof())
-        
+    
+        val expectedTokens =
+                listOf(Token.Identifier("class"),
+                        Token.Whitespace(),
+                        Token.Identifier("class"),
+                        Token.Whitespace(),
+                        Token.Identifier("classname"),
+                        Token.Whitespace(),
+                        Token.Identifier("throws"),
+                        Token.Whitespace(),
+                        Token.Operator(Token.Op.RightShiftRot),
+                        Token.Operator(Token.Op.Gt),
+                        Token.ErrorToken("ignore error message for test case"),
+                        Token.Operator(Token.Op.Or),
+                        Token.Operator(Token.Op.Or),
+                        Token.Comment("/*class/**/"),
+                        Token.Operator(Token.Op.RightShiftRot),
+                        Token.Operator(Token.Op.Eq),
+                        Token.Literal(0),
+                        Token.Literal(1234),
+                        Token.Operator(Token.Op.Dot),
+                        Token.Literal(1),
+                        Token.Identifier("_012protected"),
+                        Token.ErrorToken("ignore error message for test case"),
+                        Token.Eof())
+    
         JUnit5Asserter.assertEquals(null, expectedTokens.size, tokens.size)
-        
+    
         tokens.forEachIndexed { index, token ->
             val expectedToken = expectedTokens[index]
             if (expectedToken is Token.ErrorToken) {
