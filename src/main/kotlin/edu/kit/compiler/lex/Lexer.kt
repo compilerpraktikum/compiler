@@ -17,6 +17,10 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
         val keywordTokenMap: Map<String, Token.Key> =
                 Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token) }.toMap()
+        
+        val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
+        val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
+        val literalCharRegex: Regex = Regex("[0-9]")
     }
     
     fun tokenStream() = flow {
@@ -65,19 +69,18 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
     
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
         val literalBuilder: StringBuilder = StringBuilder().append(startDigit)
-        while (Regex("[0-9]").matches(input.peek().toString()) ) {
+        while (literalCharRegex.matches(input.peek().toString()) ) {
             literalBuilder.append(input.nextChar())
         }
         return Token.Literal(literalBuilder.toString().toInt())
     }
     
     private suspend inline fun scanIdent(startChar: Char): Token {
-        
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
-        if (!Regex("[_a-zA-Z]").matches(startChar.toString())) {
+        if (!identFirstCharRegex.matches(startChar.toString())) {
             return Token.ErrorToken("unexpected character: $startChar")
         }
-        while(Regex("[_a-zA-Z0-9]").matches(input.peek().toString())) {
+        while(identRestCharsRegex.matches(input.peek().toString())) {
             identBuilder.append(input.nextChar())
         }
         
