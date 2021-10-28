@@ -1,34 +1,83 @@
 package edu.kit.compiler
 
 sealed class Token {
-    class Identifier(val name: String) : Token() {
-        override fun toString(): String = "identifier $name"
-    }
     
-    class Literal(val value: Int) : Token() {
-        override fun toString(): String = "integer literal $value"
-    }
+    val debugRepr: String?
+        get() =
+            when (this) {
+                is Comment -> null
+                is Eof -> "EOF"
+                is ErrorToken -> "error $error"
+                is Identifier -> "identifier $name"
+                is Keyword -> key.repr
+                is Literal -> "integer literal $value"
+                is Operator -> op.repr
+                is Whitespace -> null
+            }
     
-    class Operator(val op: Op) : Token() {
-        override fun toString(): String = op.repr
-    }
-    class Keyword(val key: Key) : Token() {
-        override fun toString(): String = key.repr
-    }
+    data class Identifier(val name: String) : Token()
     
-    class Comment(val content: String) : Token() {
-        override fun toString(): String = this.content
-    }
-    class Whitespace() : Token()
+    data class Literal(val value: Int) : Token()
     
-    class Eof() : Token() {
-        override fun toString(): String = "EOF"
-    }
+    data class Operator(val op: Op) : Token()
+    
+    data class Keyword(val key: Key) : Token()
+    
+    data class Comment(val content: String) : Token()
+    
+    data class Whitespace(val content: String) : Token()
+    
+    object Eof : Token()
     
     class ErrorToken(val error: String) : Token()
     
     enum class Op(val repr: String) {
-        Neq("!="), Not("!"), LParen("("), RParen(")"), MulAssign("*="), Mul("*"), PlusPlus("++"), PlusAssign("+="), Plus("+"), Comma(","), MinusAssign("-="), MinusMinus("--"), Minus("-"), Dot("."), DivAssign("/="), Div("/"), Colon(":"), Semicolon(";"), LeftShiftAssign("<<="), LeftShift("<<"), LtEq("<="), Lt("<"), Eq("=="), Assign("="), GtEq(">="), RightShiftSEAssign(">>="), RightShiftAssign(">>>="), RightShift(">>>"), RightShiftSE(">>"), Gt(">"), QuestionMark("?"), ModAssign("%="), Mod("%"), AndAssign("&="), And("&&"), BitAnd("&"), LeftBracket("["), RightBracket("]"), XorAssign("^="), Xor("^"), LeftBrace("{"), RightBrace("}"), BitNot("~"), OrAssign("|="), Or("||"), BitOr("|")
+        Neq("!="),
+        Not("!"),
+        LParen("("),
+        RParen(")"),
+        MulAssign("*="),
+        Mul("*"),
+        PlusPlus("++"),
+        PlusAssign("+="),
+        Plus("+"),
+        Comma(","),
+        MinusAssign("-="),
+        MinusMinus("--"),
+        Minus("-"),
+        Dot("."),
+        DivAssign("/="),
+        Div("/"),
+        Colon(":"),
+        Semicolon(";"),
+        LeftShiftAssign("<<="),
+        LeftShift("<<"),
+        LtEq("<="),
+        Lt("<"),
+        Eq("=="),
+        Assign("="),
+        GtEq(">="),
+        RightShiftSEAssign(">>="),
+        RightShiftAssign(">>>="),
+        RightShift(">>>"),
+        RightShiftSE(">>"),
+        Gt(">"),
+        QuestionMark("?"),
+        ModAssign("%="),
+        Mod("%"),
+        AndAssign("&="),
+        And("&&"),
+        BitAnd("&"),
+        LeftBracket("["),
+        RightBracket("]"),
+        XorAssign("^="),
+        Xor("^"),
+        LeftBrace("{"),
+        RightBrace("}"),
+        BitNot("~"),
+        OrAssign("|="),
+        Or("||"),
+        BitOr("|")
     }
     
     enum class Key(val repr: String) {
