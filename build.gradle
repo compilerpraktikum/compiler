@@ -48,6 +48,12 @@ compileKotlin {
     }
 }
 
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = '16'
+    }
+}
+
 java {
     targetCompatibility = JavaVersion.VERSION_16
 }
