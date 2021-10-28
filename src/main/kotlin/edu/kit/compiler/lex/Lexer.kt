@@ -11,7 +11,7 @@ import java.lang.StringBuilder
  * @param input input abstracted in a ring buffer
  * @param stringTable string table of current compilation run
  */
-class Lexer(private val input: InputProvider, private val stringTable: StringTable
+class Lexer(private val input: InputProvider, private val stringTable: StringTable, private val printWarnings: Boolean = true
 ) {
     companion object {
         val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
@@ -264,7 +264,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         
         // not exactly the automat but no need for recursion that way.
         while (!(c == '*' && input.peek() == '/')) {
-            if (c == '/' && input.peek() == '*') println("[Warning]: No nested comments!")
+            if (c == '/' && input.peek() == '*') printWarning("No nested comments!")
             c = input.nextChar()
             if (c == null) return Token.ErrorToken("reached EOF while parsing comment.")
             commentAcc.append(c)
@@ -273,6 +273,10 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         // so we advance, safely assuming input.nextChar() to be '/'
         commentAcc.append(input.nextChar())
         return Token.Comment(commentAcc.toString())
+    }
+    
+    private suspend fun printWarning(message: String) {
+        if (printWarnings) System.err.println("[Warning]: $message")
     }
     
 }

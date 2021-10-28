@@ -76,7 +76,7 @@ class Compiler(private val config: Config) {
                     }
                 }
                 Mode.LexTest -> runBlocking {
-                    Lexer(input, StringTable()).tokenStream().lexTestRepr.collect {
+                    Lexer(input, StringTable(), printWarnings = false).tokenStream().lexTestRepr.collect {
                         println(it)
                     }
                 }
