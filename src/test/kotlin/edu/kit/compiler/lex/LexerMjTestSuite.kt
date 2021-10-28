@@ -1,19 +1,15 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.debugRepr
-import kotlinx.coroutines.flow.collect
+import edu.kit.compiler.lexTestRepr
 import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.FileInputStream
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Stream
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 import kotlin.io.path.readLines
@@ -59,8 +55,8 @@ internal class LexerMjTestSuite {
             assertTrue("Expected an invalid token") { tokens.any { it is Token.ErrorToken } }
         } else {
             val expected = outputFile.readLines()
-        
-            assertEquals(expected, tokens.debugRepr)
+    
+            assertEquals(expected, tokens.lexTestRepr)
         }
     
     

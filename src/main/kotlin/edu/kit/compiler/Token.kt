@@ -1,5 +1,8 @@
 package edu.kit.compiler
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.mapNotNull
+
 sealed class Token {
     
     val debugRepr: String?
@@ -96,5 +99,9 @@ sealed class Token {
     }
 }
 
-val Iterable<Token>.debugRepr: List<String>
+val Flow<Token>.lexTestRepr: Flow<String>
+    get() = this.mapNotNull { it.debugRepr }
+
+// yeah.. I know. Ugly, but they Flow and Iterable don't share an interface
+val Iterable<Token>.lexTestRepr: List<String>
     get() = this.mapNotNull { it.debugRepr }

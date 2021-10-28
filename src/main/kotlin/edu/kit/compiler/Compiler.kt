@@ -7,7 +7,6 @@ import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.take
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -77,18 +76,9 @@ class Compiler(private val config: Config) {
                     }
                 }
                 Mode.LexTest -> runBlocking {
-                    println("lexlex")
-                    var myKeywordTokenMap: Map<String, Token.Key> = Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token) }.toMap()
-        
-                    println(Token.Keyword(myKeywordTokenMap.getValue("class")))
-        
-                    println("lexlex START")
-                    runBlocking {
-                        Lexer(input, StringTable()).tokenStream().collect { token ->
-                            if (token !is Token.Whitespace && token !is Token.Comment) println(token)
-                        }
+                    Lexer(input, StringTable()).tokenStream().lexTestRepr.collect {
+                        println(it)
                     }
-                    println("lexlex END")
                 }
             }
     
