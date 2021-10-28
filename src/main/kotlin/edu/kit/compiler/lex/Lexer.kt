@@ -239,7 +239,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
         }
     }
     
-    private suspend fun scanDiv(): Token {
+    private suspend inline fun scanDiv(): Token {
         return when (input.peek()) {
             '*' -> {
                 input.nextChar()
@@ -253,7 +253,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
         }
     }
     
-    private suspend fun scanCommentToken(commentAcc: StringBuilder): Token {
+    private suspend inline fun scanCommentToken(commentAcc: StringBuilder): Token {
         // At the start, we're on the first '*' of "/* myComment */"
         var c = input.nextChar()
         commentAcc.append(c)
