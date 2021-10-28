@@ -32,7 +32,7 @@ sealed class Token {
     
     object Eof : Token()
     
-    class ErrorToken(val error: String) : Token()
+    data class ErrorToken(val error: String) : Token()
     
     enum class Op(val repr: String) {
         Neq("!="),
