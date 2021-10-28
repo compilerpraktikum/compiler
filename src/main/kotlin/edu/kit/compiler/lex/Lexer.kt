@@ -11,7 +11,7 @@ import java.lang.StringBuilder
  * @param input input abstracted in a ring buffer
  * @param stringTable string table of current compilation run
  */
-class Lexer(private val input: RingBuffer, private val stringTable: StringTable
+class Lexer(private val input: InputProvider, private val stringTable: StringTable
 ) {
     companion object {
         val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
