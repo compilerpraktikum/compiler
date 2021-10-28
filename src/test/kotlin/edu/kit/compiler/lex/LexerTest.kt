@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
-import kotlin.test.junit5.JUnit5Asserter
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 internal class LexerTest {
     
@@ -40,70 +41,96 @@ internal class LexerTest {
     }
     
     @Test
+    fun testNoInput() {
+        expectTokenSequence("", listOf(Token.Eof))
+    }
+    
+    @Test
     fun testSimpleInput() {
-        FixedInputProvider.input = "class ++HelloWorld{1234"
-        
-        val tokens = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
-        }
-        
-        JUnit5Asserter.assertEquals(null, 7, tokens.size)
-        JUnit5Asserter.assertTrue(null, tokens[0] is Token.Identifier)
-        JUnit5Asserter.assertEquals(null, Token.Whitespace(" "), tokens[1])
-        JUnit5Asserter.assertEquals(null, Token.Operator(Token.Op.PlusPlus), tokens[2])
-        JUnit5Asserter.assertTrue(null, tokens[3] is Token.Identifier)
-        JUnit5Asserter.assertEquals(null, Token.Operator(Token.Op.LeftBrace), tokens[4])
-        JUnit5Asserter.assertTrue(null, tokens[5] is Token.Literal && (tokens[5] as Token.Literal).value == 1234)
-        JUnit5Asserter.assertTrue(null, tokens[6] is Token.Eof)
+        expectTokenSequence("class ++HelloWorld{1234", listOf(
+                Token.Keyword(Token.Key.Class),
+                Token.Whitespace(" "),
+                Token.Operator(Token.Op.PlusPlus),
+                Token.Identifier("HelloWorld"),
+                Token.Operator(Token.Op.LeftBrace),
+                Token.Literal(1234),
+                Token.Eof
+        ))
+    }
+    
+    @Test
+    fun testWhitespace() {
+        expectTokenSequence(" \n\r\t\b\u000C", listOf(
+                Token.Whitespace(" \n\r\t"),
+                Token.ErrorToken(""),
+                Token.ErrorToken(""),
+                Token.Eof
+        ))
+    }
+    
+    @Test
+    fun testKeywordAggregation() {
+        expectTokenSequence("classthrowsabstract", listOf(
+                Token.Identifier("classthrowsabstract"),
+                Token.Eof
+        ))
+    }
+    
+    @Test
+    fun testLongestToken() {
+        expectTokenSequence("<<<<<<<<<<>>>====::", listOf(
+                Token.Operator(Token.Op.LeftShift),
+                Token.Operator(Token.Op.LeftShift),
+                Token.Operator(Token.Op.LeftShift),
+                Token.Operator(Token.Op.LeftShift),
+                Token.Operator(Token.Op.LeftShift),
+                Token.Operator(Token.Op.RightShiftAssign),
+                Token.Operator(Token.Op.Eq),
+                Token.Operator(Token.Op.Assign),
+                Token.Operator(Token.Op.Colon),
+                Token.Operator(Token.Op.Colon),
+                Token.Eof
+        ))
+    }
+    
+    @Test
+    fun testBrokenComment() {
+        expectTokenSequence("/*/", listOf(
+                Token.ErrorToken(""),
+                Token.Eof
+        ))
     }
     
     @Test
     fun testIllegalComment() {
-        FixedInputProvider.input = "/*/***/*/"
-        
-        val tokens = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
-        }
-        
-        JUnit5Asserter.assertEquals(null, 4, tokens.size)
-        JUnit5Asserter.assertTrue(null, tokens[0] is Token.Comment)
-        JUnit5Asserter.assertTrue(null, (tokens[1] as? Token.Operator)?.op == Token.Op.Mul)
-        JUnit5Asserter.assertTrue(null, (tokens[2] as? Token.Operator)?.op == Token.Op.Div)
-        JUnit5Asserter.assertTrue(null, tokens[3] is Token.Eof)
+        expectTokenSequence("/*/***/*/", listOf(
+                Token.Comment("/*/***/"),
+                Token.Operator(Token.Op.Mul),
+                Token.Operator(Token.Op.Div),
+                Token.Eof
+        ))
     }
     
     @Test
     fun testIllegalCharacters() {
-        FixedInputProvider.input = "\u0000\u0001ä"
-    
-        val tokens = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
-        }
-    
-        JUnit5Asserter.assertEquals(null, 4, tokens.size)
-        JUnit5Asserter.assertTrue(null, tokens[0] is Token.ErrorToken)
-        JUnit5Asserter.assertTrue(null, tokens[1] is Token.ErrorToken)
-        JUnit5Asserter.assertTrue(null, tokens[2] is Token.ErrorToken)
-        JUnit5Asserter.assertTrue(null, tokens[3] is Token.Eof)
+        expectTokenSequence("\u0000\u0001ä", listOf(
+                Token.ErrorToken(""),
+                Token.ErrorToken(""),
+                Token.ErrorToken(""),
+                Token.Eof
+        ))
     }
     
     @Test
     fun testEvilInput() {
-        FixedInputProvider.input =
-                "class class classname throws >>>>\u0000||||/*class/**/>>>==01234.1_012protected\u0004"
-    
-        val tokens = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
-        }
-    
-        val expectedTokens =
-                listOf(Token.Identifier("class"),
+        expectTokenSequence("class class classname throws >>>>\u0000||||/*class/**/>>>==01234.1_012protected\u0004",
+                listOf(Token.Keyword(Token.Key.Class),
                         Token.Whitespace(" "),
-                        Token.Identifier("class"),
+                        Token.Keyword(Token.Key.Class),
                         Token.Whitespace(" "),
                         Token.Identifier("classname"),
                         Token.Whitespace(" "),
-                        Token.Identifier("throws"),
+                        Token.Keyword(Token.Key.Throws),
                         Token.Whitespace(" "),
                         Token.Operator(Token.Op.RightShift),
                         Token.Operator(Token.Op.Gt),
@@ -119,16 +146,26 @@ internal class LexerTest {
                         Token.Literal(1),
                         Token.Identifier("_012protected"),
                         Token.ErrorToken("ignore error message for test case"),
-                        Token.Eof)
+                        Token.Eof))
+    }
     
-        JUnit5Asserter.assertEquals(null, expectedTokens.size, tokens.size)
-    
-        tokens.forEachIndexed { index, token ->
-            val expectedToken = expectedTokens[index]
-            if (expectedToken is Token.ErrorToken) {
-                JUnit5Asserter.assertTrue(null, token is Token.ErrorToken)
+    /**
+     * Parse an input string and assert the exact resulting token sequence matches a given sequence
+     */
+    private fun expectTokenSequence(input: String, expectedTokens: List<Token>) {
+        FixedInputProvider.input = input
+        
+        val tokens = runBlocking {
+            lexer.tokenStream().toCollection(mutableListOf())
+        }
+        
+        assertEquals(expectedTokens.size, tokens.size);
+        
+        expectedTokens.zip(tokens).forEach { (expected, lexed) ->
+            if (expected is Token.ErrorToken) {
+                assertTrue(lexed is Token.ErrorToken)
             } else {
-                JUnit5Asserter.assertEquals(null, expectedToken, token)
+                assertEquals(expected, lexed)
             }
         }
     }
