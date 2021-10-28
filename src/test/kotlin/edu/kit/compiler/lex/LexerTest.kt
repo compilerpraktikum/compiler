@@ -49,7 +49,7 @@ internal class LexerTest {
         
         JUnit5Asserter.assertEquals(null, 7, tokens.size)
         JUnit5Asserter.assertTrue(null, tokens[0] is Token.Identifier)
-        JUnit5Asserter.assertEquals(null, Token.Whitespace(), tokens[1])
+        JUnit5Asserter.assertEquals(null, Token.Whitespace(" "), tokens[1])
         JUnit5Asserter.assertEquals(null, Token.Operator(Token.Op.PlusPlus), tokens[2])
         JUnit5Asserter.assertTrue(null, tokens[3] is Token.Identifier)
         JUnit5Asserter.assertEquals(null, Token.Operator(Token.Op.LeftBrace), tokens[4])
@@ -98,13 +98,13 @@ internal class LexerTest {
     
         val expectedTokens =
                 listOf(Token.Identifier("class"),
-                        Token.Whitespace(),
+                        Token.Whitespace(" "),
                         Token.Identifier("class"),
-                        Token.Whitespace(),
+                        Token.Whitespace(" "),
                         Token.Identifier("classname"),
-                        Token.Whitespace(),
+                        Token.Whitespace(" "),
                         Token.Identifier("throws"),
-                        Token.Whitespace(),
+                        Token.Whitespace(" "),
                         Token.Operator(Token.Op.RightShift),
                         Token.Operator(Token.Op.Gt),
                         Token.ErrorToken("ignore error message for test case"),
@@ -119,7 +119,7 @@ internal class LexerTest {
                         Token.Literal(1),
                         Token.Identifier("_012protected"),
                         Token.ErrorToken("ignore error message for test case"),
-                        Token.Eof())
+                        Token.Eof)
     
         JUnit5Asserter.assertEquals(null, expectedTokens.size, tokens.size)
     

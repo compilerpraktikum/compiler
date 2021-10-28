@@ -95,3 +95,6 @@ sealed class Token {
         True("true"), Try("try"), Void("void"), Volatile("volatile"), While("while")
     }
 }
+
+val Iterable<Token>.debugRepr: List<String>
+    get() = this.mapNotNull { it.debugRepr }

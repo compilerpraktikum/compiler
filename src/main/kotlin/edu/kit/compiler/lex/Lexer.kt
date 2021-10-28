@@ -15,7 +15,8 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
 ) {
     companion object {
         val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
-        val keywordTokenMap: Map<String, Token.Key> = Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token)}.toMap()
+        val keywordTokenMap: Map<String, Token.Key> =
+                Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token) }.toMap()
     }
     
     fun tokenStream() = flow {
@@ -23,7 +24,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         
         while (c != null) {
             when (c) {
-                ' ', '\n', '\r', '\t' -> emit(Token.Whitespace())
+                ' ', '\n', '\r', '\t' -> emit(Token.Whitespace(c.toString()))
                 '/' -> emit(scanDiv())
                 '!' -> emit(scanNot())
                 '(' -> emit(Token.Operator(Token.Op.LParen))
@@ -58,8 +59,8 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
             }
             c = input.nextChar()
         }
-        
-        emit(Token.Eof())
+    
+        emit(Token.Eof)
     }.buffer()
     
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
