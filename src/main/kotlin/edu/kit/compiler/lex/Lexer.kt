@@ -21,6 +21,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
         val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
         val literalCharRegex: Regex = Regex("[0-9]")
+        val whitespaceCharRegex: Regex = Regex("[ \n\r\t]")
     }
     
     fun tokenStream() = flow {
@@ -28,7 +29,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         
         while (c != null) {
             when (c) {
-                ' ', '\n', '\r', '\t' -> emit(Token.Whitespace(c.toString()))
+                ' ', '\n', '\r', '\t' -> emit(scanWhitespace(c))
                 '/' -> emit(scanDiv())
                 '!' -> emit(scanNot())
                 '(' -> emit(Token.Operator(Token.Op.LParen))
@@ -66,6 +67,15 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
     
         emit(Token.Eof)
     }.buffer()
+    
+    private suspend inline fun scanWhitespace(startChar: Char): Token {
+        val whitespaceBuilder: StringBuilder = StringBuilder().append(startChar)
+        
+        while (whitespaceCharRegex.matches(input.peek().toString())) {
+            whitespaceBuilder.append(input.nextChar())
+        }
+        return Token.Whitespace(whitespaceBuilder.toString())
+    }
     
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
         val literalBuilder: StringBuilder = StringBuilder().append(startDigit)
