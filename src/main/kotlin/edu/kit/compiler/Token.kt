@@ -1,15 +1,29 @@
 package edu.kit.compiler
 
 sealed class Token {
-    class Identifier(val name: String) : Token()
-    class Literal(val value: Int) : Token()
-    class Operator(val op: Op) : Token()
-    class Keyword(val key: Key) : Token()
+    class Identifier(val name: String) : Token() {
+        override fun toString(): String = "identifier $name"
+    }
     
-    class Comment(val content: String) : Token()
+    class Literal(val value: Int) : Token() {
+        override fun toString(): String = "integer literal $value"
+    }
+    
+    class Operator(val op: Op) : Token() {
+        override fun toString(): String = op.repr
+    }
+    class Keyword(val key: Key) : Token() {
+        override fun toString(): String = key.repr
+    }
+    
+    class Comment(val content: String) : Token() {
+        override fun toString(): String = this.content
+    }
     class Whitespace() : Token()
     
-    class Eof() : Token()
+    class Eof() : Token() {
+        override fun toString(): String = "EOF"
+    }
     
     class ErrorToken(val error: String) : Token()
     
@@ -31,6 +45,4 @@ sealed class Token {
         This("this"), Throws("throws"), Throw("throw"), Transient("transient"),
         True("true"), Try("try"), Void("void"), Volatile("volatile"), While("while")
     }
-
-
 }

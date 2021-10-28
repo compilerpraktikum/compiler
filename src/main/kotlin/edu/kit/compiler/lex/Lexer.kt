@@ -14,7 +14,8 @@ import java.lang.StringBuilder
 class Lexer(private val input: RingBuffer, private val stringTable: StringTable
 ) {
     companion object {
-        val keywordTokenValues: HashSet<Token.Key> = Token.Key.values().toHashSet()
+        val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
+        val keywordTokenMap: Map<String, Token.Key> = Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token)}.toMap()
     }
     
     fun tokenStream() = flow {
@@ -63,7 +64,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
         val literalBuilder: StringBuilder = StringBuilder().append(startDigit)
-        while (Regex("[0-9]").matches(input.peek(1).toString()) ) {
+        while (Regex("[0-9]").matches(input.peek().toString()) ) {
             literalBuilder.append(input.nextChar())
         }
         return Token.Literal(literalBuilder.toString().toInt())
@@ -75,20 +76,19 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
         if (!Regex("[_a-zA-Z]").matches(startChar.toString())) {
             return Token.ErrorToken("unexpected character: $startChar")
         }
-        
-        while(Regex("[_a-zA-Z0-9]").matches(input.peek(1).toString())) {
+        while(Regex("[_a-zA-Z0-9]").matches(input.peek().toString())) {
             identBuilder.append(input.nextChar())
         }
         
         val identifier = identBuilder.toString()
         if (identifier in keywordTokenValues) {
-            return Token.Keyword(Token.Key.valueOf(identifier))
+            return Token.Keyword(keywordTokenMap.getValue(identifier))
         }
         return Token.Identifier(identBuilder.toString())
     }
     
     private suspend inline fun scanBitOr(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.OrAssign)
@@ -102,7 +102,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanBitAnd(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.AndAssign)
@@ -116,7 +116,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanXor(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.XorAssign)
@@ -126,7 +126,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanModulo(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.ModAssign)
@@ -136,21 +136,21 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanGt(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.GtEq)
             }
             '>' -> {
                 input.nextChar()
-                when (input.peek(1)) {
+                when (input.peek()) {
                     '=' -> {
                         input.nextChar()
                         Token.Operator(Token.Op.RightShiftSEAssign)
                     }
                     '>' -> {
                         input.nextChar()
-                        if (input.peek(1) == '=') {
+                        if (input.peek() == '=') {
                             input.nextChar()
                             Token.Operator(Token.Op.RightShiftAssign)
                         } else Token.Operator(Token.Op.RightShift)
@@ -165,7 +165,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanAssign(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.Eq)
@@ -175,14 +175,14 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanLt(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.LtEq)
             }
             '<' -> {
                 input.nextChar()
-                if (input.peek(1) == '=') {
+                if (input.peek() == '=') {
                     input.nextChar()
                     Token.Operator(Token.Op.LeftShiftAssign)
                 } else Token.Operator(Token.Op.LeftShift)
@@ -192,7 +192,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanMinus(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.MinusAssign)
@@ -206,7 +206,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanPlus(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.PlusAssign)
@@ -220,7 +220,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanMul(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.MulAssign)
@@ -230,7 +230,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend inline fun scanNot(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '=' -> {
                 input.nextChar()
                 Token.Operator(Token.Op.Neq)
@@ -240,7 +240,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
     }
     
     private suspend fun scanDiv(): Token {
-        return when (input.peek(1)) {
+        return when (input.peek()) {
             '*' -> {
                 input.nextChar()
                 scanCommentToken(StringBuilder("/*"))
@@ -259,7 +259,7 @@ class Lexer(private val input: RingBuffer, private val stringTable: StringTable
         commentAcc.append(c)
         
         // not exactly the automat but no need for recursion that way.
-        while (!(c == '*' && input.peek(1) == '/')) {
+        while (!(c == '*' && input.peek() == '/')) {
             c = input.nextChar()
             if (c == null) return Token.ErrorToken("reached EOF while parsing comment.")
             commentAcc.append(c)

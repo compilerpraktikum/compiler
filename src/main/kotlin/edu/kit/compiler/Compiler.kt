@@ -3,11 +3,11 @@ package edu.kit.compiler
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.BufferedInputProvider
+import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.take
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -76,7 +76,24 @@ class Compiler(private val config: Config) {
 
                     }
                 }
+                Mode.LexTest -> runBlocking {
+                    println("lexlex")
+                    var myKeywordTokenMap: Map<String, Token.Key> = Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token) }.toMap()
+        
+                    println(Token.Keyword(myKeywordTokenMap.getValue("class")))
+        
+                    println("lexlex START")
+                    runBlocking {
+                        Lexer(input, StringTable()).tokenStream().collect { token ->
+                            if (token !is Token.Whitespace && token !is Token.Comment) println(token)
+                        }
+                    }
+                    println("lexlex END")
+                }
             }
+    
+            // success!
+            return ExitCode.SUCCESS
         } finally {
             threadPool?.shutdown()
         }
@@ -109,7 +126,7 @@ class Compiler(private val config: Config) {
     }
     
     enum class Mode {
-        Compile, Echo,
+        Compile, Echo, LexTest,
     }
     
     interface Config {
