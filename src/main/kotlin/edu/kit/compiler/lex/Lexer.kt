@@ -261,6 +261,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         
         // not exactly the automat but no need for recursion that way.
         while (!(c == '*' && input.peek() == '/')) {
+            if (c == '/' && input.peek() == '*') println("[Warning]: No nested comments!")
             c = input.nextChar()
             if (c == null) return Token.ErrorToken("reached EOF while parsing comment.")
             commentAcc.append(c)
