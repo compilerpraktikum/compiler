@@ -19,7 +19,6 @@ import java.util.concurrent.Executors
  * compiler phases are called.
  *
  * @param config compilation configuration parameters
- * @param inputPath input path. No sanity checks have been performed yet
  */
 class Compiler(private val config: Config) {
     /**
@@ -87,7 +86,7 @@ class Compiler(private val config: Config) {
      * Sanity-check the input parameter and then prepare a reader that can be used by the lexer to generate a token
      * stream
      */
-    private fun openCompilationUnit(): CompilerResult<RingBuffer> {
+    private fun openCompilationUnit(): CompilerResult<BufferedInputProvider> {
         val sourceFile = config.sourceFile
     
         try {
@@ -105,9 +104,8 @@ class Compiler(private val config: Config) {
         } catch (e: SecurityException) {
             return CompilerResult.failure("Access to input file denied: ${e.message}")
         }
-
-        return CompilerResult.success(BufferedInputProvider(FileInputStream(inputFile))
-        )
+    
+        return CompilerResult.success(BufferedInputProvider(FileInputStream(sourceFile)))
     }
     
     enum class Mode {
