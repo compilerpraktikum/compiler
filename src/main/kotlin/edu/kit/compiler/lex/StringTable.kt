@@ -14,12 +14,12 @@ class StringTable {
     
     /**
      * Tries to register a new identifier if not already known.
-     *  @return the internalized identifier name
+     *  @return the internalized identifier name and associated [Entry]
      */
-    fun tryRegisterIdentifier(name: String): String {
+    fun tryRegisterIdentifier(name: String): Pair<String, Entry> {
         val internName = name.intern()
-        table.putIfAbsent(internName, Entry(isKeyword = false))
-        return internName
+        val entry = table.computeIfAbsent(internName) { Entry(isKeyword = false) }
+        return internName to entry
     }
     
     /**

@@ -1,35 +1,124 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.lex.StringTable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.mapNotNull
+
 sealed class Token {
-    class Identifier(val name: String) : Token()
-    class Literal(val value: Int) : Token()
-    class Operator(val op: Op) : Token()
     
-    class Comment(val content: String) : Token()
-    class Whitespace() : Token()
+    val debugRepr: String?
+        get() =
+            when (this) {
+                is Comment -> null
+                is Eof -> "EOF"
+                is ErrorToken -> "error $error"
+                is Identifier -> "identifier $name"
+                is Keyword -> type.repr
+                is Literal -> "integer literal $value"
+                is Operator -> type.repr
+                is Whitespace -> null
+            }
     
-    class Eof() : Token()
+    data class Identifier(val name: String) : Token()
     
-    class ErrorToken(val error: String) : Token()
+    data class Literal(val value: Int) : Token()
     
-    enum class Op(val repr: String) {
-        Neq("!="), Not("!"), LParen("("), RParen(")"), MulAssign("*="), Mul("*"), PlusPlus("++"), PlusAssign("+="), Plus("+"), Comma(","), MinusAssign("-="), MinusMinus("--"), Minus("-"), Dot("."), DivEq("/="), Div("/"), Colon(":"), Semicolon(";"), LeftShiftAssign("<<="), LeftShift("<<"), LEq("<="), Lt("<"), Eq("=="), Assign("="), GtEq(">="), RightShiftAssign(">>="), RightSiftRotAssign(">>>="), RightShiftRot(">>>"), RightShift(">>"), Gt(">"), QuestionMark("?"), ModEq("%="), Mod("%"), AndAssign("&="), And("&&"), BitAnd("&"), LeftBracket("["), RightBracket("]"), XorEq("^="), Xor("^"), LeftBrace("{"), RightBrace("}"), BitNot("~"), OrAssign("|="), Or("||"), BitOr("|")
+    data class Operator(val type: Type) : Token() {
+        
+        enum class Type(val repr: String) {
+            Neq("!="),
+            Not("!"),
+            LParen("("),
+            RParen(")"),
+            MulAssign("*="),
+            Mul("*"),
+            PlusPlus("++"),
+            PlusAssign("+="),
+            Plus("+"),
+            Comma(","),
+            MinusAssign("-="),
+            MinusMinus("--"),
+            Minus("-"),
+            Dot("."),
+            DivAssign("/="),
+            Div("/"),
+            Colon(":"),
+            Semicolon(";"),
+            LeftShiftAssign("<<="),
+            LeftShift("<<"),
+            LtEq("<="),
+            Lt("<"),
+            Eq("=="),
+            Assign("="),
+            GtEq(">="),
+            RightShiftSEAssign(">>="),
+            RightShiftAssign(">>>="),
+            RightShift(">>>"),
+            RightShiftSE(">>"),
+            Gt(">"),
+            QuestionMark("?"),
+            ModAssign("%="),
+            Mod("%"),
+            AndAssign("&="),
+            And("&&"),
+            BitAnd("&"),
+            LeftBracket("["),
+            RightBracket("]"),
+            XorAssign("^="),
+            Xor("^"),
+            LeftBrace("{"),
+            RightBrace("}"),
+            BitNot("~"),
+            OrAssign("|="),
+            Or("||"),
+            BitOr("|")
+        }
+        
     }
     
-    enum class Key(val repr: String) {
-        Abstract("abstract"), Assert("assert"), Boolean("boolean"), Break("break"),
-        Byte("byte"), Case("case"), Catch("catch"), Char("char"), Class("class"),
-        Const("const"), Continue("continue"), Default("default"), Double("double"),
-        Do("do"), Else("else"), Enum("enum"), Extends("extends"), False("false"),
-        Finally("finally"), Final("final"), Float("float"), For("for"), Goto("goto"),
-        If("if"), Implements("implements"), Import("import"), InstanceOf("instanceof"),
-        Interface("interface"), Int("int"), Long("long"), Native("native"), New("new"),
-        Null("null"), Package("package"), Private("private"), Protected("protected"),
-        Public("public"), Return("return"), Short("short"), Static("static"),
-        StrictFp("strictfp"), Super("super"), Switch("switch"), Synchronized("synchronized"),
-        This("this"), Throws("throws"), Throw("throw"), Transient("transient"),
-        True("true"), Try("try"), Void("void"), Volatile("volatile"), While("while")
+    data class Keyword(val type: Type) : Token() {
+        
+        enum class Type(val repr: String) {
+            Abstract("abstract"), Assert("assert"), Boolean("boolean"), Break("break"),
+            Byte("byte"), Case("case"), Catch("catch"), Char("char"), Class("class"),
+            Const("const"), Continue("continue"), Default("default"), Double("double"),
+            Do("do"), Else("else"), Enum("enum"), Extends("extends"), False("false"),
+            Finally("finally"), Final("final"), Float("float"), For("for"), Goto("goto"),
+            If("if"), Implements("implements"), Import("import"), InstanceOf("instanceof"),
+            Interface("interface"), Int("int"), Long("long"), Native("native"), New("new"),
+            Null("null"), Package("package"), Private("private"), Protected("protected"),
+            Public("public"), Return("return"), Short("short"), Static("static"),
+            StrictFp("strictfp"), Super("super"), Switch("switch"), Synchronized("synchronized"),
+            This("this"), Throws("throws"), Throw("throw"), Transient("transient"),
+            True("true"), Try("try"), Void("void"), Volatile("volatile"), While("while");
+            
+            companion object {
+                private val reprToType = values().associateBy { token -> token.repr }
+                
+                fun from(repr: String): Type? {
+                    return reprToType[repr]
+                }
+            }
+        }
+        
     }
-
-
+    
+    data class Comment(val content: String) : Token()
+    
+    data class Whitespace(val content: String) : Token()
+    
+    object Eof : Token()
+    
+    data class ErrorToken(val error: String) : Token()
+    
 }
+
+fun StringTable.initializeKeywords() {
+    Token.Keyword.Type.values().forEach { registerKeyword(it.repr) }
+}
+
+val Flow<Token>.lexTestRepr: Flow<String>
+    get() = this.mapNotNull { it.debugRepr }
+
+val Iterable<Token>.lexTestRepr: List<String>
+    get() = this.mapNotNull { it.debugRepr }

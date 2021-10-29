@@ -3,9 +3,12 @@ package edu.kit.compiler
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.BufferedInputProvider
+import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -30,7 +33,9 @@ class Compiler(private val config: Config) {
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
      */
-    private val stringTable = StringTable()
+    private val stringTable = StringTable().apply {
+        initializeKeywords()
+    }
 
     /**
      * Overall convenience method to fully invoke the compilation of one compile unit. All error logging has already
@@ -47,33 +52,45 @@ class Compiler(private val config: Config) {
                 1u -> Executors.newSingleThreadExecutor()
                 else -> Executors.newFixedThreadPool(config.parallelization.toInt())
             }
-
+    
             // open the input file
             val input = openCompilationUnit().unwrap {
                 reportError(System.err)
                 return ExitCode.ERROR_FILE_SYSTEM
             }
-
-            when (config.mode) {
+    
+            return when (config.mode) {
                 Mode.Compile -> {
                     throw NotImplementedError("Compile mode not yet implemented.")
                 }
-                Mode.Echo -> {
-                    return runBlocking {
-                        withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
-                            try {
-                                var c = input.next()
-                                while (c != null) {
-                                    print(c)
-                                    c = input.next()
-                                }
-                                return@withContext ExitCode.SUCCESS
-                            } catch (e: IOException) {
-                                System.err.println("Unexpected IOException: ${e.message}")
+                Mode.Echo -> runBlocking {
+                    withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
+                        try {
+                            var c = input.next()
+                            while (c != null) {
+                                print(c)
+                                c = input.next()
+                            }
+                            return@withContext ExitCode.SUCCESS
+                        } catch (e: IOException) {
+                            System.err.println("Unexpected IOException: ${e.message}")
                                 return@withContext ExitCode.ERROR_FILE_SYSTEM
                             }
                         }
 
+                    }
+                Mode.LexTest -> runBlocking {
+                    var hasInvalidToken = false
+                    Lexer(input, stringTable, printWarnings = false).tokenStream().map {
+                        hasInvalidToken = hasInvalidToken || (it is Token.ErrorToken)
+                        it
+                    }.lexTestRepr.collect {
+                        println(it)
+                    }
+                    if (hasInvalidToken) {
+                        ExitCode.ERROR_INVALID_TOKEN
+                    } else {
+                        ExitCode.SUCCESS
                     }
                 }
             }
@@ -109,7 +126,7 @@ class Compiler(private val config: Config) {
     }
     
     enum class Mode {
-        Compile, Echo,
+        Compile, Echo, LexTest,
     }
     
     interface Config {
