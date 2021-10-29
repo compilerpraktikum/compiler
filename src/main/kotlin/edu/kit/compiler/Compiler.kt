@@ -8,6 +8,7 @@ import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -51,44 +52,48 @@ class Compiler(private val config: Config) {
                 1u -> Executors.newSingleThreadExecutor()
                 else -> Executors.newFixedThreadPool(config.parallelization.toInt())
             }
-
+    
             // open the input file
             val input = openCompilationUnit().unwrap {
                 reportError(System.err)
                 return ExitCode.ERROR_FILE_SYSTEM
             }
-
-            when (config.mode) {
+    
+            return when (config.mode) {
                 Mode.Compile -> {
                     throw NotImplementedError("Compile mode not yet implemented.")
                 }
-                Mode.Echo -> {
-                    return runBlocking {
-                        withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
-                            try {
-                                var c = input.next()
-                                while (c != null) {
-                                    print(c)
-                                    c = input.next()
-                                }
-                                return@withContext ExitCode.SUCCESS
-                            } catch (e: IOException) {
-                                System.err.println("Unexpected IOException: ${e.message}")
+                Mode.Echo -> runBlocking {
+                    withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
+                        try {
+                            var c = input.next()
+                            while (c != null) {
+                                print(c)
+                                c = input.next()
+                            }
+                            return@withContext ExitCode.SUCCESS
+                        } catch (e: IOException) {
+                            System.err.println("Unexpected IOException: ${e.message}")
                                 return@withContext ExitCode.ERROR_FILE_SYSTEM
                             }
                         }
 
                     }
-                }
                 Mode.LexTest -> runBlocking {
-                    Lexer(input, stringTable, printWarnings = false).tokenStream().lexTestRepr.collect {
+                    var hasInvalidToken = false
+                    Lexer(input, stringTable, printWarnings = false).tokenStream().map {
+                        hasInvalidToken = hasInvalidToken || (it is Token.ErrorToken)
+                        it
+                    }.lexTestRepr.collect {
                         println(it)
+                    }
+                    if (hasInvalidToken) {
+                        ExitCode.ERROR_INVALID_TOKEN
+                    } else {
+                        ExitCode.SUCCESS
                     }
                 }
             }
-    
-            // success!
-            return ExitCode.SUCCESS
         } finally {
             threadPool?.shutdown()
         }

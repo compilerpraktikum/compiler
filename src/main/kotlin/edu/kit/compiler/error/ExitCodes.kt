@@ -15,4 +15,9 @@ object ExitCode {
      * Erroneous command line arguments were given, preventing compilation
      */
     const val ERROR_ARGUMENTS = 2
+    
+    /**
+     * Tokenizing failed, because of an unexpected token, preventing compilation
+     */
+    const val ERROR_INVALID_TOKEN = 3
 }
