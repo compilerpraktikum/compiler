@@ -10,10 +10,10 @@ interface InputProvider {
      * character that would be returned by the next [nextChar] call.
      * Returns `null`, if the end of input has been reached.
      */
-    suspend fun peek(offset: Int = 0): Char?
+    suspend fun peek(offset: Int = 0): Char
     
     /**
      * Provide the next input character or `null`, if the end of input has been reached.
      */
-    suspend fun nextChar(): Char?
+    suspend fun nextChar(): Char
 }

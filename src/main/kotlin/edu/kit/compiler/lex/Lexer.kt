@@ -22,7 +22,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
     fun tokenStream() = flow {
         var c = input.nextChar()
         
-        while (c != null) {
+        while (c != BufferedInputProvider.END_OF_FILE) {
             when (c) {
                 ' ', '\n', '\r', '\t' -> emit(scanWhitespace(c))
                 '/' -> emit(scanDiv())
@@ -271,7 +271,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         while (!(c == '*' && input.peek() == '/')) {
             if (c == '/' && input.peek() == '*') printWarning("No nested comments!")
             c = input.nextChar()
-            if (c == null) return Token.ErrorToken("reached EOF while parsing comment.")
+            if (c == BufferedInputProvider.END_OF_FILE) return Token.ErrorToken("reached EOF while parsing comment.")
             commentAcc.append(c)
         }
         // Not yet end of comment token, we're on the latter '*' of "/* myComment */"),

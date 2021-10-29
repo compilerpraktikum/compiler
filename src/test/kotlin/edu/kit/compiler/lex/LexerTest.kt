@@ -23,14 +23,14 @@ internal class LexerTest {
         
         private var cursor: Int = 0
         
-        override suspend fun peek(offset: Int): Char? {
+        override suspend fun peek(offset: Int): Char {
             return if ((cursor + offset) < input.length) input[cursor + offset]
-            else null
+            else BufferedInputProvider.END_OF_FILE
         }
-        
-        override suspend fun nextChar(): Char? {
+    
+        override suspend fun nextChar(): Char {
             return if (cursor < input.length) input[cursor++]
-            else null
+            else BufferedInputProvider.END_OF_FILE
         }
     }
     
