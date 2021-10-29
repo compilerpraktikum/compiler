@@ -3,7 +3,6 @@ package edu.kit.compiler.lex
 import kotlinx.coroutines.*
 import java.io.IOException
 import java.io.InputStream
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A ring-buffered
@@ -18,7 +17,8 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
     /**
      * Current position in the buffer. It points at the character that will be returned by the next [next]-call.
      */
-    private val cursor = AtomicInteger(0)
+    @Volatile
+    private var cursor = 0
     
     /**
      * Amount of bytes ready in the buffer (exclusive bound). Does not wrap around the buffer capacity (i.e. it requires
@@ -44,7 +44,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
      * Currently available amount of data in bytes
      */
     private val available: Int
-        get() = limit - cursor.get()
+        get() = limit - cursor
     
     /**
      * Whether more data is available in the internal buffer
@@ -69,7 +69,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
         }
         
         val currentCharacter = if (hasMoreData) {
-            cyclicBuffer[cursor.getAndIncrement().mod(capacity)].decode()
+            cyclicBuffer[cursor++ % capacity].decode()
         } else {
             assert(endOfFile)
             null
@@ -100,8 +100,8 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
      */
     suspend fun peek(offset: Int = 0): Char? {
         check(offset < capacity) { "offset cannot exceed buffer capacity" }
-        
-        val index = cursor.get() + offset
+    
+        val index = cursor + offset
         
         // load until enough data has been loaded or no more data can be loaded
         while (index > limit && !endOfFile) {
