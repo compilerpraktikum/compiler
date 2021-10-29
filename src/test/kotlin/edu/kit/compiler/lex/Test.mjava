@@ -1,8 +1,0 @@
-class MyTestClass {
-
-    public static void main(String[] args) {
-        /*
-        Testcomment
-         */
-    }
-}
