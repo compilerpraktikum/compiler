@@ -64,20 +64,22 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
     }.buffer()
     
     private suspend inline fun scanWhitespace(startChar: Char): Token {
-        val whitespaceBuilder: StringBuilder = StringBuilder().append(startChar)
-        
-        while (whitespaceCharRegex.matches(input.peek().toString())) {
-            whitespaceBuilder.append(input.nextChar())
-        }
-        return Token.Whitespace(whitespaceBuilder.toString())
+        return Token.Whitespace(buildString {
+            append(startChar)
+    
+            while (whitespaceCharRegex.matches(input.peek().toString())) {
+                append(input.nextChar())
+            }
+        })
     }
     
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
-        val literalBuilder: StringBuilder = StringBuilder().append(startDigit)
-        while (literalCharRegex.matches(input.peek().toString()) ) {
-            literalBuilder.append(input.nextChar())
-        }
-        return Token.Literal(literalBuilder.toString().toInt())
+        return Token.Literal(buildString {
+            append(startDigit)
+            while (literalCharRegex.matches(input.peek().toString()) ) {
+                append(input.nextChar())
+            }
+        }.toInt())
     }
     
     private suspend inline fun scanIdent(startChar: Char): Token {
