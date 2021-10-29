@@ -171,9 +171,15 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
                 // fill exhausted buffer with new data
                 byteBuffer.clear()
                 
-                val readBytes = try {
+                try {
                     withContext(Dispatchers.IO) {
-                        inputChannel.read(byteBuffer)
+                        do {
+                            val bytesRead = inputChannel.read(byteBuffer)
+                            if (bytesRead == -1) { // end-of-input
+                                setEOF()
+                                break
+                            }
+                        } while (byteBuffer.remaining() > 0)
                     }
                 } catch (e: ClosedChannelException) {
                     setEOF()
@@ -183,12 +189,7 @@ class RingBuffer(private val inputChannel: ScatteringByteChannel) {
                 }
                 
                 byteBuffer.flip()
-                
-                if (readBytes == -1) {
-                    setEOF()
-                } else {
-                    markReady()
-                }
+                markReady()
             }
             state = LoadableBufferState.Loading(job)
             job.start() // start job here to prevent it from finishing before we set the state to loading
