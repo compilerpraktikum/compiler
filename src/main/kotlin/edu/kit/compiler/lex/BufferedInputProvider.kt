@@ -104,7 +104,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
         val index = cursor + offset
         
         // load until enough data has been loaded or no more data can be loaded
-        while (index > limit && !endOfFile) {
+        while (index >= limit && !endOfFile) {
             currentJob?.join() ?: tryDispatchLoad(ignoreCapacity = true)
         }
         
