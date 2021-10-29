@@ -18,7 +18,7 @@ class Lexer(private val input: InputProvider,
         val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
         val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
         val literalCharRegex: Regex = Regex("[0-9]")
-        val whitespaceCharRegex: Regex = Regex("[ \n\r\t]")
+        val whitespaceCharRegex: Regex = Regex("[ \\n\\r\\t]")
     }
     
     fun tokenStream() = flow {
