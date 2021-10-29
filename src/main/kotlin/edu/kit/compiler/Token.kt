@@ -15,7 +15,7 @@ sealed class Token {
                 is Identifier -> "identifier $name"
                 is Keyword -> key.repr
                 is Literal -> "integer literal $value"
-                is Operator -> op.repr
+                is Operator -> type.repr
                 is Whitespace -> null
             }
     
@@ -23,7 +23,7 @@ sealed class Token {
     
     data class Literal(val value: Int) : Token()
     
-    data class Operator(val op: Type) : Token() {
+    data class Operator(val type: Type) : Token() {
         
         enum class Type(val repr: String) {
             Neq("!="),
