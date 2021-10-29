@@ -1,6 +1,7 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
@@ -45,7 +46,11 @@ internal class LexerMjTestSuite {
     
         val input = RingBuffer(FileInputStream(inputFile.toFile()).channel)
     
-        val lexer = Lexer(input, StringTable())
+    
+        val stringTable = StringTable().apply {
+            initializeKeywords()
+        }
+        val lexer = Lexer(input, stringTable)
     
         val tokens: List<Token> = runBlocking {
             lexer.tokenStream().toCollection(mutableListOf())
