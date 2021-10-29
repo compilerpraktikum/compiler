@@ -3,7 +3,6 @@ package edu.kit.compiler.lex
 import edu.kit.compiler.Token
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flow
-import java.lang.StringBuilder
 
 /**
  * lexicographic analysis and tokenization of an input stream.
@@ -14,10 +13,6 @@ import java.lang.StringBuilder
 class Lexer(private val input: InputProvider, private val stringTable: StringTable, private val printWarnings: Boolean = true
 ) {
     companion object {
-        val keywordTokenValues: HashSet<String> = Token.Key.values().map { tokenKey -> tokenKey.repr }.toHashSet()
-        val keywordTokenMap: Map<String, Token.Key> =
-                Token.Key.values().map { token -> Pair<String, Token.Key>(token.repr, token) }.toMap()
-        
         val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
         val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
         val literalCharRegex: Regex = Regex("[0-9]")
@@ -32,27 +27,27 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
                 ' ', '\n', '\r', '\t' -> emit(scanWhitespace(c))
                 '/' -> emit(scanDiv())
                 '!' -> emit(scanNot())
-                '(' -> emit(Token.Operator(Token.Op.LParen))
-                ')' -> emit(Token.Operator(Token.Op.RParen))
+                '(' -> emit(Token.Operator(Token.Operator.Type.LParen))
+                ')' -> emit(Token.Operator(Token.Operator.Type.RParen))
                 '*' -> emit(scanMul())
                 '+' -> emit(scanPlus())
-                ',' -> emit(Token.Operator(Token.Op.Comma))
+                ',' -> emit(Token.Operator(Token.Operator.Type.Comma))
                 '-' -> emit(scanMinus())
-                '.' -> emit(Token.Operator(Token.Op.Dot))
-                ':' -> emit(Token.Operator(Token.Op.Colon))
-                ';' -> emit(Token.Operator(Token.Op.Semicolon))
+                '.' -> emit(Token.Operator(Token.Operator.Type.Dot))
+                ':' -> emit(Token.Operator(Token.Operator.Type.Colon))
+                ';' -> emit(Token.Operator(Token.Operator.Type.Semicolon))
                 '<' -> emit(scanLt())
                 '=' -> emit(scanAssign())
                 '>' -> emit(scanGt())
-                '?' -> emit(Token.Operator(Token.Op.QuestionMark))
+                '?' -> emit(Token.Operator(Token.Operator.Type.QuestionMark))
                 '%' -> emit(scanModulo())
                 '&' -> emit(scanBitAnd())
-                '[' -> emit(Token.Operator(Token.Op.LeftBracket))
-                ']' -> emit(Token.Operator(Token.Op.RightBracket))
+                '[' -> emit(Token.Operator(Token.Operator.Type.LeftBracket))
+                ']' -> emit(Token.Operator(Token.Operator.Type.RightBracket))
                 '^' -> emit(scanXor())
-                '{' -> emit(Token.Operator(Token.Op.LeftBrace))
-                '}' -> emit(Token.Operator(Token.Op.RightBrace))
-                '~' -> emit(Token.Operator(Token.Op.BitNot))
+                '{' -> emit(Token.Operator(Token.Operator.Type.LeftBrace))
+                '}' -> emit(Token.Operator(Token.Operator.Type.RightBrace))
+                '~' -> emit(Token.Operator(Token.Operator.Type.BitNot))
                 '|' -> emit(scanBitOr())
                 else -> {
                     when (c) {
@@ -90,28 +85,30 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         if (!identFirstCharRegex.matches(startChar.toString())) {
             return Token.ErrorToken("unexpected character: $startChar")
         }
-        while(identRestCharsRegex.matches(input.peek().toString())) {
+        while (identRestCharsRegex.matches(input.peek().toString())) {
             identBuilder.append(input.nextChar())
         }
-        
-        val identifier = identBuilder.toString()
-        if (identifier in keywordTokenValues) {
-            return Token.Keyword(keywordTokenMap.getValue(identifier))
+    
+        val (identifier, stringTableEntry) = stringTable.tryRegisterIdentifier(identBuilder.toString())
+    
+        return if (stringTableEntry.isKeyword) {
+            Token.Keyword(Token.Keyword.Type.from(identifier)!!)
+        } else {
+            Token.Identifier(identifier)
         }
-        return Token.Identifier(identBuilder.toString())
     }
     
     private suspend inline fun scanBitOr(): Token {
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.OrAssign)
+                Token.Operator(Token.Operator.Type.OrAssign)
             }
             '|' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.Or)
+                Token.Operator(Token.Operator.Type.Or)
             }
-            else -> Token.Operator(Token.Op.BitOr)
+            else -> Token.Operator(Token.Operator.Type.BitOr)
         }
     }
     
@@ -119,13 +116,13 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.AndAssign)
+                Token.Operator(Token.Operator.Type.AndAssign)
             }
             '&' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.And)
+                Token.Operator(Token.Operator.Type.And)
             }
-            else -> Token.Operator(Token.Op.BitAnd)
+            else -> Token.Operator(Token.Operator.Type.BitAnd)
         }
     }
     
@@ -133,9 +130,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.XorAssign)
+                Token.Operator(Token.Operator.Type.XorAssign)
             }
-            else -> Token.Operator(Token.Op.Xor)
+            else -> Token.Operator(Token.Operator.Type.Xor)
         }
     }
     
@@ -143,9 +140,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.ModAssign)
+                Token.Operator(Token.Operator.Type.ModAssign)
             }
-            else -> Token.Operator(Token.Op.Mod)
+            else -> Token.Operator(Token.Operator.Type.Mod)
         }
     }
     
@@ -153,28 +150,28 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.GtEq)
+                Token.Operator(Token.Operator.Type.GtEq)
             }
             '>' -> {
                 input.nextChar()
                 when (input.peek()) {
                     '=' -> {
                         input.nextChar()
-                        Token.Operator(Token.Op.RightShiftSEAssign)
+                        Token.Operator(Token.Operator.Type.RightShiftSEAssign)
                     }
                     '>' -> {
                         input.nextChar()
                         if (input.peek() == '=') {
                             input.nextChar()
-                            Token.Operator(Token.Op.RightShiftAssign)
-                        } else Token.Operator(Token.Op.RightShift)
+                            Token.Operator(Token.Operator.Type.RightShiftAssign)
+                        } else Token.Operator(Token.Operator.Type.RightShift)
                     }
                     else -> {
-                        Token.Operator(Token.Op.RightShiftSE)
+                        Token.Operator(Token.Operator.Type.RightShiftSE)
                     }
                 }
             }
-            else -> Token.Operator(Token.Op.Gt)
+            else -> Token.Operator(Token.Operator.Type.Gt)
         }
     }
     
@@ -182,9 +179,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.Eq)
+                Token.Operator(Token.Operator.Type.Eq)
             }
-            else -> Token.Operator(Token.Op.Assign)
+            else -> Token.Operator(Token.Operator.Type.Assign)
         }
     }
     
@@ -192,16 +189,16 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.LtEq)
+                Token.Operator(Token.Operator.Type.LtEq)
             }
             '<' -> {
                 input.nextChar()
                 if (input.peek() == '=') {
                     input.nextChar()
-                    Token.Operator(Token.Op.LeftShiftAssign)
-                } else Token.Operator(Token.Op.LeftShift)
+                    Token.Operator(Token.Operator.Type.LeftShiftAssign)
+                } else Token.Operator(Token.Operator.Type.LeftShift)
             }
-            else -> Token.Operator(Token.Op.Lt)
+            else -> Token.Operator(Token.Operator.Type.Lt)
         }
     }
     
@@ -209,13 +206,13 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.MinusAssign)
+                Token.Operator(Token.Operator.Type.MinusAssign)
             }
             '-' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.MinusMinus)
+                Token.Operator(Token.Operator.Type.MinusMinus)
             }
-            else -> Token.Operator(Token.Op.Minus)
+            else -> Token.Operator(Token.Operator.Type.Minus)
         }
     }
     
@@ -223,13 +220,13 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.PlusAssign)
+                Token.Operator(Token.Operator.Type.PlusAssign)
             }
             '+' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.PlusPlus)
+                Token.Operator(Token.Operator.Type.PlusPlus)
             }
-            else -> Token.Operator(Token.Op.Plus)
+            else -> Token.Operator(Token.Operator.Type.Plus)
         }
     }
     
@@ -237,9 +234,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.MulAssign)
+                Token.Operator(Token.Operator.Type.MulAssign)
             }
-            else -> Token.Operator(Token.Op.Mul)
+            else -> Token.Operator(Token.Operator.Type.Mul)
         }
     }
     
@@ -247,9 +244,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return when (input.peek()) {
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.Neq)
+                Token.Operator(Token.Operator.Type.Neq)
             }
-            else -> Token.Operator(Token.Op.Not)
+            else -> Token.Operator(Token.Operator.Type.Not)
         }
     }
     
@@ -261,9 +258,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
             }
             '=' -> {
                 input.nextChar()
-                Token.Operator(Token.Op.DivAssign)
+                Token.Operator(Token.Operator.Type.DivAssign)
             }
-            else -> Token.Operator(Token.Op.Div)
+            else -> Token.Operator(Token.Operator.Type.Div)
         }
     }
     
@@ -285,7 +282,7 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
         return Token.Comment(commentAcc.toString())
     }
     
-    private suspend fun printWarning(message: String) {
+    private fun printWarning(message: String) {
         if (printWarnings) System.err.println("[Warning]: $message")
     }
     

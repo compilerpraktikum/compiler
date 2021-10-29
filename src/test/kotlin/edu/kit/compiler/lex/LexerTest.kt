@@ -1,6 +1,7 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.initializeKeywords
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
@@ -37,7 +38,10 @@ internal class LexerTest {
     
     @BeforeEach
     internal fun setUp() {
-        lexer = Lexer(FixedInputProvider, StringTable())
+        val stringTable = StringTable().apply {
+            initializeKeywords()
+        }
+        lexer = Lexer(FixedInputProvider, stringTable)
     }
     
     @Test
@@ -48,11 +52,11 @@ internal class LexerTest {
     @Test
     fun testSimpleInput() {
         expectTokenSequence("class ++HelloWorld{1234", listOf(
-                Token.Keyword(Token.Key.Class),
+                Token.Keyword(Token.Keyword.Type.Class),
                 Token.Whitespace(" "),
-                Token.Operator(Token.Op.PlusPlus),
+                Token.Operator(Token.Operator.Type.PlusPlus),
                 Token.Identifier("HelloWorld"),
-                Token.Operator(Token.Op.LeftBrace),
+                Token.Operator(Token.Operator.Type.LeftBrace),
                 Token.Literal(1234),
                 Token.Eof
         ))
@@ -79,16 +83,16 @@ internal class LexerTest {
     @Test
     fun testLongestToken() {
         expectTokenSequence("<<<<<<<<<<>>>====::", listOf(
-                Token.Operator(Token.Op.LeftShift),
-                Token.Operator(Token.Op.LeftShift),
-                Token.Operator(Token.Op.LeftShift),
-                Token.Operator(Token.Op.LeftShift),
-                Token.Operator(Token.Op.LeftShift),
-                Token.Operator(Token.Op.RightShiftAssign),
-                Token.Operator(Token.Op.Eq),
-                Token.Operator(Token.Op.Assign),
-                Token.Operator(Token.Op.Colon),
-                Token.Operator(Token.Op.Colon),
+                Token.Operator(Token.Operator.Type.LeftShift),
+                Token.Operator(Token.Operator.Type.LeftShift),
+                Token.Operator(Token.Operator.Type.LeftShift),
+                Token.Operator(Token.Operator.Type.LeftShift),
+                Token.Operator(Token.Operator.Type.LeftShift),
+                Token.Operator(Token.Operator.Type.RightShiftAssign),
+                Token.Operator(Token.Operator.Type.Eq),
+                Token.Operator(Token.Operator.Type.Assign),
+                Token.Operator(Token.Operator.Type.Colon),
+                Token.Operator(Token.Operator.Type.Colon),
                 Token.Eof
         ))
     }
@@ -105,8 +109,8 @@ internal class LexerTest {
     fun testIllegalComment() {
         expectTokenSequence("/*/***/*/", listOf(
                 Token.Comment("/*/***/"),
-                Token.Operator(Token.Op.Mul),
-                Token.Operator(Token.Op.Div),
+                Token.Operator(Token.Operator.Type.Mul),
+                Token.Operator(Token.Operator.Type.Div),
                 Token.Eof
         ))
     }
@@ -124,25 +128,25 @@ internal class LexerTest {
     @Test
     fun testEvilInput() {
         expectTokenSequence("class class classname throws >>>>\u0000||||/*class/**/>>>==01234.1_012protected\u0004",
-                listOf(Token.Keyword(Token.Key.Class),
+                listOf(Token.Keyword(Token.Keyword.Type.Class),
                         Token.Whitespace(" "),
-                        Token.Keyword(Token.Key.Class),
+                        Token.Keyword(Token.Keyword.Type.Class),
                         Token.Whitespace(" "),
                         Token.Identifier("classname"),
                         Token.Whitespace(" "),
-                        Token.Keyword(Token.Key.Throws),
+                        Token.Keyword(Token.Keyword.Type.Throws),
                         Token.Whitespace(" "),
-                        Token.Operator(Token.Op.RightShift),
-                        Token.Operator(Token.Op.Gt),
+                        Token.Operator(Token.Operator.Type.RightShift),
+                        Token.Operator(Token.Operator.Type.Gt),
                         Token.ErrorToken("ignore error message for test case"),
-                        Token.Operator(Token.Op.Or),
-                        Token.Operator(Token.Op.Or),
+                        Token.Operator(Token.Operator.Type.Or),
+                        Token.Operator(Token.Operator.Type.Or),
                         Token.Comment("/*class/**/"),
-                        Token.Operator(Token.Op.RightShiftAssign),
-                        Token.Operator(Token.Op.Assign),
+                        Token.Operator(Token.Operator.Type.RightShiftAssign),
+                        Token.Operator(Token.Operator.Type.Assign),
                         Token.Literal(0),
                         Token.Literal(1234),
-                        Token.Operator(Token.Op.Dot),
+                        Token.Operator(Token.Operator.Type.Dot),
                         Token.Literal(1),
                         Token.Identifier("_012protected"),
                         Token.ErrorToken("ignore error message for test case"),
@@ -158,8 +162,8 @@ internal class LexerTest {
         val tokens = runBlocking {
             lexer.tokenStream().toCollection(mutableListOf())
         }
-        
-        assertEquals(expectedTokens.size, tokens.size);
+    
+        assertEquals(expectedTokens.size, tokens.size)
         
         expectedTokens.zip(tokens).forEach { (expected, lexed) ->
             if (expected is Token.ErrorToken) {

@@ -5,8 +5,11 @@ import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -29,7 +32,9 @@ class Compiler(private val config: Config) {
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
      */
-    private val stringTable = StringTable()
+    private val stringTable = StringTable().apply {
+        initializeKeywords()
+    }
 
     /**
      * Overall convenience method to fully invoke the compilation of one compile unit. All error logging has already
@@ -76,7 +81,7 @@ class Compiler(private val config: Config) {
                     }
                 }
                 Mode.LexTest -> runBlocking {
-                    Lexer(input, StringTable(), printWarnings = false).tokenStream().lexTestRepr.collect {
+                    Lexer(input, stringTable, printWarnings = false).tokenStream().lexTestRepr.collect {
                         println(it)
                     }
                 }
