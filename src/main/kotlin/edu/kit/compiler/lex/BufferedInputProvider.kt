@@ -7,7 +7,7 @@ import java.io.InputStream
 /**
  * A ring-buffered
  */
-class BufferedInputProvider(private val inputStream: InputStream, private val capacity: Int = 128) {
+class BufferedInputProvider(private val inputStream: InputStream, private val capacity: Int = 128) : InputProvider {
     
     /**
      * A fixed-size buffer which is reused once data has been processed
@@ -98,7 +98,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
      *
      * @throws IllegalArgumentException if the offset exceeds the buffer's capacity
      */
-    suspend fun peek(offset: Int = 0): Char? {
+    override suspend fun peek(offset: Int): Char? {
         check(offset < capacity) { "offset cannot exceed buffer capacity" }
     
         val index = cursor + offset
@@ -114,6 +114,10 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
             assert(endOfFile)
             null
         }
+    }
+    
+    override suspend fun nextChar(): Char? {
+        return this.next()
     }
     
     private var currentJob: Job? = null

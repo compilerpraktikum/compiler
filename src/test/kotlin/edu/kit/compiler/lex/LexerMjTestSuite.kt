@@ -54,7 +54,7 @@ internal class LexerMjTestSuite {
         
         println("For input $inputFile expect $outputFile")
         
-        val input = RingBuffer(FileInputStream(inputFile.toFile()).channel)
+        val input = BufferedInputProvider(FileInputStream(inputFile.toFile()))
         
         
         val stringTable = StringTable().apply {
