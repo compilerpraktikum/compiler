@@ -13,7 +13,7 @@ sealed class Token {
                 is Eof -> "EOF"
                 is ErrorToken -> "error $error"
                 is Identifier -> "identifier $name"
-                is Keyword -> key.repr
+                is Keyword -> type.repr
                 is Literal -> "integer literal $value"
                 is Operator -> type.repr
                 is Whitespace -> null
@@ -76,7 +76,7 @@ sealed class Token {
         
     }
     
-    data class Keyword(val key: Type) : Token() {
+    data class Keyword(val type: Type) : Token() {
         
         enum class Type(val repr: String) {
             Abstract("abstract"), Assert("assert"), Boolean("boolean"), Break("break"),
