@@ -49,13 +49,9 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
                 '}' -> emit(Token.Operator(Token.Operator.Type.RightBrace))
                 '~' -> emit(Token.Operator(Token.Operator.Type.BitNot))
                 '|' -> emit(scanBitOr())
-                else -> {
-                    when (c) {
-                        '0' -> emit(Token.Literal(0))
-                        '1', '2', '3', '4', '5', '6', '7', '8', '9' -> emit(scanNonZeroLiteral(c))
-                        else -> emit(scanIdent(c))
-                    }
-                }
+                '0' -> emit(Token.Literal(0))
+                '1', '2', '3', '4', '5', '6', '7', '8', '9' -> emit(scanNonZeroLiteral(c))
+                else -> emit(scanIdent(c))
             }
             c = input.nextChar()
         }
