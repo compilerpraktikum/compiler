@@ -120,6 +120,5 @@ fun StringTable.initializeKeywords() {
 val Flow<Token>.lexTestRepr: Flow<String>
     get() = this.mapNotNull { it.debugRepr }
 
-// yeah.. I know. Ugly, but they Flow and Iterable don't share an interface
 val Iterable<Token>.lexTestRepr: List<String>
     get() = this.mapNotNull { it.debugRepr }
