@@ -67,7 +67,7 @@ class Compiler(private val config: Config) {
                     withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
                         try {
                             var c = input.next()
-                            while (c != null) {
+                            while (c != BufferedInputProvider.END_OF_FILE) {
                                 print(c)
                                 c = input.next()
                             }
