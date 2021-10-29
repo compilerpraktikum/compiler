@@ -57,7 +57,7 @@ internal class LexerTest {
                 Token.Operator(Token.Operator.Type.PlusPlus),
                 Token.Identifier("HelloWorld"),
                 Token.Operator(Token.Operator.Type.LeftBrace),
-                Token.Literal(1234),
+                Token.Literal("1234"),
                 Token.Eof
         ))
     }
@@ -144,10 +144,10 @@ internal class LexerTest {
                         Token.Comment("/*class/**/"),
                         Token.Operator(Token.Operator.Type.RightShiftAssign),
                         Token.Operator(Token.Operator.Type.Assign),
-                        Token.Literal(0),
-                        Token.Literal(1234),
+                        Token.Literal("0"),
+                        Token.Literal("1234"),
                         Token.Operator(Token.Operator.Type.Dot),
-                        Token.Literal(1),
+                        Token.Literal("1"),
                         Token.Identifier("_012protected"),
                         Token.ErrorToken("ignore error message for test case"),
                         Token.Eof))

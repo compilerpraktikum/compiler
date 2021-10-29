@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.flow
  * @param input input abstracted in a ring buffer
  * @param stringTable string table of current compilation run
  */
-class Lexer(private val input: InputProvider, private val stringTable: StringTable, private val printWarnings: Boolean = true
+class Lexer(private val input: InputProvider,
+            private val stringTable: StringTable,
+            private val printWarnings: Boolean = true
 ) {
     companion object {
         val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
@@ -49,13 +51,13 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
                 '}' -> emit(Token.Operator(Token.Operator.Type.RightBrace))
                 '~' -> emit(Token.Operator(Token.Operator.Type.BitNot))
                 '|' -> emit(scanBitOr())
-                '0' -> emit(Token.Literal(0))
+                '0' -> emit(Token.Literal("0"))
                 '1', '2', '3', '4', '5', '6', '7', '8', '9' -> emit(scanNonZeroLiteral(c))
                 else -> emit(scanIdent(c))
             }
             c = input.nextChar()
         }
-    
+        
         emit(Token.Eof)
     }.buffer()
     
@@ -72,10 +74,10 @@ class Lexer(private val input: InputProvider, private val stringTable: StringTab
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
         return Token.Literal(buildString {
             append(startDigit)
-            while (literalCharRegex.matches(input.peek().toString()) ) {
+            while (literalCharRegex.matches(input.peek().toString())) {
                 append(input.nextChar())
             }
-        }.toInt())
+        })
     }
     
     private suspend inline fun scanIdent(startChar: Char): Token {

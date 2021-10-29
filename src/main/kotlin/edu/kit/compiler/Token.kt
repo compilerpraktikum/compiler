@@ -21,7 +21,7 @@ sealed class Token {
     
     data class Identifier(val name: String) : Token()
     
-    data class Literal(val value: Int) : Token()
+    data class Literal(val value: String) : Token()
     
     data class Operator(val type: Type) : Token() {
         
