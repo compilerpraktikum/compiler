@@ -2,7 +2,7 @@ package edu.kit.compiler
 
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lex.RingBuffer
+import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -19,13 +19,14 @@ import java.util.concurrent.Executors
  * compiler phases are called.
  *
  * @param config compilation configuration parameters
+ * @param inputPath input path. No sanity checks have been performed yet
  */
 class Compiler(private val config: Config) {
     /**
      * A fixed-size threadPool for target parallelism
      */
     private var threadPool: ExecutorService? = null
-    
+
     /**
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
@@ -62,10 +63,10 @@ class Compiler(private val config: Config) {
                     return runBlocking {
                         withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
                             try {
-                                var c = input.nextChar()
+                                var c = input.next()
                                 while (c != null) {
                                     print(c)
-                                    c = input.nextChar()
+                                    c = input.next()
                                 }
                                 return@withContext ExitCode.SUCCESS
                             } catch (e: IOException) {
@@ -73,6 +74,7 @@ class Compiler(private val config: Config) {
                                 return@withContext ExitCode.ERROR_FILE_SYSTEM
                             }
                         }
+
                     }
                 }
             }
@@ -103,14 +105,15 @@ class Compiler(private val config: Config) {
         } catch (e: SecurityException) {
             return CompilerResult.failure("Access to input file denied: ${e.message}")
         }
-    
-        return CompilerResult.success(RingBuffer(FileInputStream(sourceFile).channel))
-    }
 
+        return CompilerResult.success(BufferedInputProvider(FileInputStream(inputFile))
+        )
+    }
+    
     enum class Mode {
         Compile, Echo,
     }
-
+    
     interface Config {
         val sourceFile: File
         val mode: Mode
