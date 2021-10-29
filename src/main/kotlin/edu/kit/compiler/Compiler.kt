@@ -8,7 +8,7 @@ import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -81,12 +81,18 @@ class Compiler(private val config: Config) {
                     }
                 Mode.LexTest -> runBlocking {
                     var hasInvalidToken = false
-                    Lexer(input, stringTable, printWarnings = false).tokenStream().map {
+    
+                    Lexer(
+                        config.sourceFile.absolutePath,
+                        input,
+                        stringTable,
+                        printWarnings = false
+                    ).tokens().onEach {
                         hasInvalidToken = hasInvalidToken || (it is Token.ErrorToken)
-                        it
                     }.lexTestRepr.collect {
                         println(it)
                     }
+    
                     if (hasInvalidToken) {
                         ExitCode.ERROR_INVALID_TOKEN
                     } else {

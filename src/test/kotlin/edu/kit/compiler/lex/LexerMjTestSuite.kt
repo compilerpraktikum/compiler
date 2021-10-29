@@ -12,6 +12,7 @@ import java.io.FileInputStream
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Stream
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 import kotlin.io.path.readLines
@@ -55,15 +56,15 @@ internal class LexerMjTestSuite {
         println("For input $inputFile expect $outputFile")
         
         val input = BufferedInputProvider(FileInputStream(inputFile.toFile()))
-        
-        
+    
+    
         val stringTable = StringTable().apply {
             initializeKeywords()
         }
-        val lexer = Lexer(input, stringTable)
+        val lexer = Lexer(inputFile.absolutePathString(), input, stringTable)
         
         val tokens: List<Token> = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
+            lexer.tokens().toCollection(mutableListOf())
         }
         
         if (testConfig.name.endsWith("invalid.mj")) {

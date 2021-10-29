@@ -1,10 +1,12 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
 
 sealed class Token {
+    lateinit var position: SourcePosition
     
     val debugRepr: String?
         get() =

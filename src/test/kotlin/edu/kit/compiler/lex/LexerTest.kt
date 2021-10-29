@@ -41,7 +41,7 @@ internal class LexerTest {
         val stringTable = StringTable().apply {
             initializeKeywords()
         }
-        lexer = Lexer(FixedInputProvider, stringTable)
+        lexer = Lexer("/path/to/file", FixedInputProvider, stringTable)
     }
     
     @Test
@@ -160,7 +160,7 @@ internal class LexerTest {
         FixedInputProvider.input = input
         
         val tokens = runBlocking {
-            lexer.tokenStream().toCollection(mutableListOf())
+            lexer.tokens().toCollection(mutableListOf())
         }
     
         assertEquals(expectedTokens.size, tokens.size)
