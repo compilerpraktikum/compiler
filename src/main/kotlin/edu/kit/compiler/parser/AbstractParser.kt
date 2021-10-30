@@ -3,6 +3,7 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.SourceCodeWindow
 import edu.kit.compiler.Token
 import edu.kit.compiler.lex.AbstractLexer
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 
@@ -18,14 +19,27 @@ private val Token.isRelevantForSyntax
 abstract class AbstractParser(private val tokens: Flow<Token>) {
     
     /**
-     * The lookahead buffer that provides the token stream and preloads them, when a lookahead is required
+     * The lookahead buffer that provides the token stream and preloads tokens, when a lookahead is required
      */
     private lateinit var lookaheadBuffer: LookaheadBuffer<Token>
     
+    /**
+     * The source code window saves a line of tokens (terminated by whitespace containing any form of newline), to
+     * provide reasonable error messages.
+     */
     private lateinit var sourceCodeWindow: SourceCodeWindow
     
+    /**
+     * Reconstruct the line of source code that is currently being parsed.
+     *
+     * @return a string representation of the current line of code
+     */
     protected suspend fun getCurrentSourceLine() = sourceCodeWindow.buildLine()
     
+    /**
+     * Take the foremost token within the token stream (that isn't whitespace or a comment) and advance the token stream
+     * behind it.
+     */
     protected suspend fun next(): Token {
         var token: Token
         do {
@@ -35,6 +49,10 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         return token
     }
     
+    /**
+     * Peek into the parser-relevant token stream and return the token at the given offset (starting at 0 for the token
+     * that a call to [next] would return next). Does not mutate the token stream.
+     */
     protected suspend fun peek(offset: Int = 0) = lookaheadBuffer.peekFlow()
         .filter { it.isRelevantForSyntax }
         .take(offset).last()
@@ -42,6 +60,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
+    @OptIn(FlowPreview::class)
     suspend fun parse(): ASTNode = coroutineScope {
         lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
         sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
@@ -49,6 +68,9 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         return@coroutineScope parseAST()
     }
     
+    /**
+     * Construct the AST from the token stream
+     */
     protected abstract suspend fun parseAST(): ASTNode
     
     /**
