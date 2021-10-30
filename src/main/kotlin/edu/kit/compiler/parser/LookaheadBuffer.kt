@@ -34,7 +34,7 @@ class LookaheadBuffer<T>(
     }
 }
 
-fun <T> LookaheadBuffer<T>.peakFlow() = flow {
+fun <T> LookaheadBuffer<T>.peekFlow() = flow {
     loop {
         emit(peek(it))
     }
