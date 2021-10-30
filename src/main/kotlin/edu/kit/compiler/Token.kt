@@ -111,7 +111,7 @@ sealed class Token {
     
     object Eof : Token()
     
-    data class ErrorToken(val error: String) : Token()
+    data class ErrorToken(val content: String, val error: String) : Token()
     
 }
 
