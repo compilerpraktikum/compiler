@@ -11,14 +11,27 @@ sealed class Token {
     val debugRepr: String?
         get() =
             when (this) {
-                is Comment -> null
-                is Eof -> "EOF"
-                is ErrorToken -> "error $error"
                 is Identifier -> "identifier $name"
-                is Keyword -> type.repr
                 is Literal -> "integer literal $value"
                 is Operator -> type.repr
+                is Keyword -> type.repr
+                is Comment -> null
                 is Whitespace -> null
+                is Eof -> "EOF"
+                is ErrorToken -> "error $error"
+            }
+    
+    val sourceCode: String
+        get() =
+            when (this) {
+                is Identifier -> name
+                is Literal -> value
+                is Operator -> type.repr
+                is Keyword -> type.repr
+                is Comment -> content
+                is Whitespace -> content
+                is Eof -> ""
+                is ErrorToken -> content
             }
     
     data class Identifier(val name: String) : Token()
