@@ -1,0 +1,3 @@
+/gradlew eol=lf
+/build   eol=lf
+/run     eol=lf
