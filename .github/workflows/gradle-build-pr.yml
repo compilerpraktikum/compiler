@@ -41,3 +41,9 @@ jobs:
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: ktlint
+      - uses: jwgmeligmeyling/checkstyle-github-action@v1.2
+        if: always() # always run even if the previous step fails
+        with:
+          path: '**/out/ktlint.xml'
+          name: ktlint report
+          title: ktlint report
