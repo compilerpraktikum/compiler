@@ -7,14 +7,14 @@ $ $                                 | $ $   | $ $
 $Program$                           | $\to$ | $ClassDeclaration^ \ast$
 $ClassDeclaration$                  | $\to$ | **`class IDENT {`** $ClassMember^ \ast$ **`}`**
 $ClassMember$                       | $\to$ | $Field$ $\|$ $Method$ $\|$ $MainMethod$
-$Field$                             | $\to$ | $todo$
-$MainMethod$                        | $\to$ | $todo$
-$Method$                            | $\to$ | $todo$
-$MethodRest$                        | $\to$ | $todo$
-$Parameters$                        | $\to$ | $todo$
-$Parameter$                         | $\to$ | $todo$
-$Type$                              | $\to$ | $todo$
-$BasicType$                         | $\to$ | $todo$
+$Field$                             | $\to$ | **`public`** $Type$ **`IDENT`** **`;`**
+$MainMethod$                        | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
+$Method$                            | $\to$ | **`public`** $Type$ **`IDENT (`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
+$MethodRest$                        | $\to$ | **`throws IDENT`**
+$Parameters$                        | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
+$Parameter$                         | $\to$ | $Type$ **`IDENT`**
+$Type$                              | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
+$BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\|$ 
 $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
 $Block$                             | $\to$ | **`{`** $BlockStatement^ \ast$ **`}`**
@@ -29,12 +29,13 @@ $ $                                 | $ $   | $ $
 $Expression$                        | $\to$ | <span style="color:green">*See Precedence Table*</span>
 $\dots$                             | $\dots$   | $\dots$
 $ $                                 | $ $   | $ $
-$MethodInvocation$                  | $\to$ | $todo$
-$FieldAccess$                       | $\to$ | $todo$
-$ArrayAccess$                       | $\to$ | $todo$
-$Arguments$                         | $\to$ | $todo$
-$PrimaryExpression$                 | $\to$ | $todo$
-$NewObjectExpression$               | $\to$ | $todo$
+$MethodInvocation$                  | $\to$ | **`. IDENT (`** $Arguments$ **`)`**
+$FieldAccess$                       | $\to$ | **`. IDENT`**
+$ArrayAccess$                       | $\to$ | **`[`** $Expression$ **`]`**
+$Arguments$                         | $\to$ | $( Expression$ $($ **`,`** $Expression)^ \ast)?$
+$PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <br/>$\|$ **`true`** <br/>$\|$ **`INTEGER_LITERAL`** <br/>$\|$ **`IDENT`** <br/>$\|$ **`IDENT (`** $Arguments$ **`)`** <br/>$\|$  **`this`** <br/>$\|$  **`(`** $Expression$ **`)`** <br/>$\|$ $NewObjectExpression$ <br/>$\|$ $NewArrayExpression$
+$NewObjectExpression$               | $\to$ | **`new IDENT ( )`**
+$NewArrayExpression$                | $\to$ | **`new`** $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
 
 
 ## Operator Precedences
@@ -49,4 +50,4 @@ $Relational$                        | **`<`** $\|$ **`<=`** $\|$ **`>`** $\|$ **
 $Additive$                          | **`+`** $\|$ **`-`**                              | $6$          | todo
 $Multiplicative$                    | **`*`** $\|$ **`/`** $\|$ **`%`**               | $7$          | todo
 $Unary$                             | **`!`** $\|$ **`-`**                            | $8$          | Right to Left
-$Postfix$                           | **`.`** $\|$ **`[-]`**                          | $8$          | todo
+$Postfix$                           | **`.`** $\|$ **`[ ]`**                          | $9$          | todo
