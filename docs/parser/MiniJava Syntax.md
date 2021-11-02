@@ -32,7 +32,7 @@ $BlockStatement$                    | $\to$ | $Statement$ $\|$ $LocalVariableDec
 $LocalVariableDeclarationStatement$ | $\to$ | $Type$ **`IDENT`** $($ **`=`** $Expression )?$ **`;`**
 $EmptyStatement$                    | $\to$ | **`;`**
 $WhileStatement$                    | $\to$ | **`while (`** $Expression$ **`)`** $Statement$
-$IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)$ 
+$IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)?    $ 
 $ExpressionStatement$               | $\to$ | $Expression$ **`;`**
 $ReturnStatement$                   | $\to$ | **`return`** $Expression ?$ **`;`**
 $ $                                 | $ $   | $ $
