@@ -66,8 +66,8 @@ internal class LexerTest {
     fun testWhitespace() {
         expectTokenSequence(" \n\r\t\b\u000C", listOf(
                 Token.Whitespace(" \n\r\t"),
-                Token.ErrorToken(""),
-                Token.ErrorToken(""),
+                Token.ErrorToken("", ""),
+                Token.ErrorToken("", ""),
                 Token.Eof
         ))
     }
@@ -100,7 +100,7 @@ internal class LexerTest {
     @Test
     fun testBrokenComment() {
         expectTokenSequence("/*/", listOf(
-                Token.ErrorToken(""),
+                Token.ErrorToken("", ""),
                 Token.Eof
         ))
     }
@@ -118,9 +118,9 @@ internal class LexerTest {
     @Test
     fun testIllegalCharacters() {
         expectTokenSequence("\u0000\u0001ä", listOf(
-                Token.ErrorToken(""),
-                Token.ErrorToken(""),
-                Token.ErrorToken(""),
+                Token.ErrorToken("", ""),
+                Token.ErrorToken("", ""),
+                Token.ErrorToken("", ""),
                 Token.Eof
         ))
     }
@@ -138,7 +138,7 @@ internal class LexerTest {
                         Token.Whitespace(" "),
                         Token.Operator(Token.Operator.Type.RightShift),
                         Token.Operator(Token.Operator.Type.Gt),
-                        Token.ErrorToken("ignore error message for test case"),
+                        Token.ErrorToken("", "ignore error message for test case"),
                         Token.Operator(Token.Operator.Type.Or),
                         Token.Operator(Token.Operator.Type.Or),
                         Token.Comment("/*class/**/"),
@@ -149,7 +149,7 @@ internal class LexerTest {
                         Token.Operator(Token.Operator.Type.Dot),
                         Token.Literal("1"),
                         Token.Identifier("_012protected"),
-                        Token.ErrorToken("ignore error message for test case"),
+                        Token.ErrorToken("", "ignore error message for test case"),
                         Token.Eof))
     }
     

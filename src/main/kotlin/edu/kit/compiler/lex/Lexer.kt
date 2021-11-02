@@ -72,7 +72,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
     private suspend inline fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
         if (!identFirstCharRegex.matches(startChar.toString())) {
-            return Token.ErrorToken("unexpected character: $startChar")
+            return Token.ErrorToken(startChar.toString(), "unexpected character: $startChar")
         }
         while (identRestCharsRegex.matches(peek().toString())) {
             identBuilder.append(next())
@@ -262,7 +262,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
         while (!(c == '*' && peek() == '/')) {
             if (c == '/' && peek() == '*') printWarning("nested comments are not supported")
             c = next()
-            if (c == BufferedInputProvider.END_OF_FILE) return Token.ErrorToken("reached EOF while parsing comment.")
+            if (c == BufferedInputProvider.END_OF_FILE) return Token.ErrorToken("", "reached EOF while parsing comment.")
             commentAcc.append(c)
         }
         // Not yet end of comment token, we're on the latter '*' of "/* myComment */"),
