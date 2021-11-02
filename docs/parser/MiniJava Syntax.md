@@ -8,10 +8,14 @@ $ $                                 | $ $   | $ $
 ---:                                | :---: |:---
 $Program$                           | $\to$ | $ClassDeclaration^ \ast$
 $ClassDeclaration$                  | $\to$ | **`class IDENT {`** $ClassMember^ \ast$ **`}`**
-$ClassMember$                       | $\to$ | $Field$ $\|$ $Method$ $\|$ $MainMethod$
-$Field$                             | $\to$ | **`public`** $Type$ **`IDENT`** **`;`**
+$ClassMember$                       | $\to$ | $FieldMethodPrefix$ $\|$ $MainMethod$
+<span style="color:red">--</span>$Field$ | $\to$ | **`public`** $Type$ **`IDENT`** **`;`**
+<span style="color:red">--</span>$Method$ | $\to$ | **`public`** $Type$ **`IDENT (`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
+<span style="color:green">++</span>$FieldMethodPrefix$ | $\to$ | **`public`** $Type$ **`IDENT`** $FieldMethodRest$
+<span style="color:green">++</span>$FieldMethodRest$ | $\to$ | $Field$ $\|$ $Method$
+<span style="color:green">++</span>$Field$ | $\to$ | **`;`**
+<span style="color:green">++</span>$Method$ | $\to$ | **`(`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
 $MainMethod$                        | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
-$Method$                            | $\to$ | **`public`** $Type$ **`IDENT (`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
 $MethodRest$                        | $\to$ | **`throws IDENT`**
 <span style="color:red">--</span>$Parameters$ | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
 <span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $ParameterListTail$
