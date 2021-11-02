@@ -1,5 +1,5 @@
 # MiniJava 4.0 - Syntax
-
+*View this file in vscode or some markdown viewer capable of inline Latex!*
 ## Base Grammar
 
 *Änderungen zur Grammatik im Sprachbericht sind mit grün und rot markiert.*
