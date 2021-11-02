@@ -24,7 +24,7 @@ $MethodRest$                        | $\to$ | **`throws IDENT`**
 $Parameter$                         | $\to$ | $Type$ **`IDENT`**
 <span style="color:red">--</span>$Type$ | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
 <span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $($ **`[ ]`** $BasicType$ $)*$
-$BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\|$ 
+$BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`**
 $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
 $Block$                             | $\to$ | **`{`** $BlockStatement^ \ast$ **`}`**
@@ -43,7 +43,7 @@ $MethodInvocation$                  | $\to$ | **`. IDENT (`** $Arguments$ **`)`*
 $FieldAccess$                       | $\to$ | **`. IDENT`**
 $ArrayAccess$                       | $\to$ | **`[`** $Expression$ **`]`**
 $Arguments$                         | $\to$ | $( Expression$ $($ **`,`** $Expression)^ \ast)?$
-$PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <br/>$\|$ **`true`** <br/>$\|$ **`INTEGER_LITERAL`** <br/>$\|$ **`IDENT`** <br/>$\|$ **`IDENT (`** $Arguments$ **`)`** <br/>$\|$  **`this`** <br/>$\|$  **`(`** $Expression$ **`)`** <br/>$\|$ <span style="color:red">--</span> $NewObjectExpression$ <br/>$\|$ <span style="color:red">--</span> $NewArrayExpression$ <br/>$\|$ <span style="color:green">++</span> **`new`** $NewObjectArrayExpression$
+$PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <br/>$\|$ **`true`** <br/>$\|$ **`INTEGER_LITERAL`** <br/>$\|$ <span style="color:red">--</span> **`IDENT`** <br/>$\|$ <span style="color:red">--</span> **`IDENT (`** $Arguments$ **`)`**<br/>$\|$ <span style="color:green">++</span> **`IDENT`** $($ **`(`** $Arguments$ **`)`**$)?$ <br/>$\|$  **`this`** <br/>$\|$  **`(`** $Expression$ **`)`** <br/>$\|$ <span style="color:red">--</span> $NewObjectExpression$ <br/>$\|$ <span style="color:red">--</span> $NewArrayExpression$ <br/>$\|$ <span style="color:green">++</span> **`new`** $NewObjectArrayExpression$
 <span style="color:red">--</span>$NewObjectExpression$ | $\to$ | **`new IDENT ( )`**
 <span style="color:red">--</span>$NewArrayExpression$ | $\to$ | **`new`** $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
 <span style="color:green">++</span>$NewObjectArrayExpression$ | $\to$ | $NewObjectExpression$ $\|$ $NewArrayExpression$
@@ -69,7 +69,7 @@ $Postfix$                           | **`.`** $\|$ **`[ ]`**                    
 
 ## First & Follow Sets
 
-*k=2?*
+### $First_2$-Sets
 
 $ $                                 | $ $   | $ $
 ---:                                | :---: |:---
@@ -83,3 +83,38 @@ $First_2(Field)$ | $=$ | $\{$ **`;#`** $\}$
 $First_2(Method)$ | $=$ | $\{$ **`(`** $\} \times_2 First_2(Parameters) \times_2 \{$ **`)`** $\}$
 $First_2(MainMethod)$ | $=$ | $\{$ **`static void`** $\}$
 $First_2(MethodRest)$ | $=$ | $\{$ **`throws IDENT`** $\}$
+
+### Cheap Trick for Basic Recursive Descent Implementation (not sure if enough for everything!)
+
+Use $First_k(\chi Follow_k(X))$ with<br/>
+* $(k=1)$ for almost all Nonterminals<br/>
+* $(k=2)$ for $X = NewObjectArrayExpression$
+
+$X$                         | $\chi$                                | $First_k(\chi Follow_k(X))$
+:---                        | :---                                  |:---
+$Program$                   | $ClassDeclaration$                    | $\{$ **`class`** $\}$
+$ClassDeclaration$          | $ClassMember$                         | $\{$ **`public`** $\}$
+$MethodPrefix$              | $FieldMethodPrefix$                   | $=First_1(Type)$
+$MethodPrefix$              | $MainMethod$                          | $\{$ **`static`** $\}$
+$FieldMethodRest$           | $Field$                               | $\{$ **`;`** $\}$
+$FieldMethodRest$           | $Method$                              | $\{$ **`(`** $\}$
+$MainMethod$                | $MethodRest$                          | $\{$ **`throws`** $\}$
+$MainMethod$                | $Block$                               | $\{$ **`{`** $\}$
+$Statement$                 | $Block$                               | $\{$ **`{`** $\}$
+$Statement$                 | $EmptyStatement$                      | $\{$ **`;`** $\}$
+$Statement$                 | $IfStatement$                         | $\{$ **`if`** $\}$
+$Statement$                 | $ExpressionStatement$                 | $=First_1(PrimaryExpression)$
+$Statement$                 | $WhileStatement$                      | $\{$ **`while`** $\}$
+$Statement$                 | $ReturnStatement$                     | $\{$ **`return`** $\}$
+$BlockStatement$            | $Statement$                           | $=First_1(Statement)$
+$BlockStatement$            | $LocalVariableDeclarationStatement$   | $=First_1(Type)$
+$Arguments$                 | $Expression$                          | $=First_1(PrimaryExpression)$
+$NewObjectArrayExpression$  | $NewObjectExpression$                 | $\{$ **`IDENT (`** $\}$
+$BlockStatement$            | $NewArrayExpression$                  | $\{$ **`int [`** $\|$ **`boolean [`** $\|$ **`void [`** $\|$ **`IDENT [`** $\}$
+
+
+$X$                 | $First_1(X)$
+:---                |:---
+$Type$              | $\{$ **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\}$
+$Statement$         | $\{$ **`{`** $\|$ **`;`** $\|$ **`if`** $\|$ $First_1(PrimaryExpression)$ $\|$ **`IDENT`** $\}$
+$PrimaryExpression$ | $\{$ **`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`** $\|$ **`IDENT`** $\|$ **`true`** $\}$
