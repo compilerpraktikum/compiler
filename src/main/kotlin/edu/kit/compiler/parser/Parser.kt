@@ -1,6 +1,7 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.ast.ASTNode
 import edu.kit.compiler.lex.AbstractLexer
 import kotlinx.coroutines.flow.Flow
 
