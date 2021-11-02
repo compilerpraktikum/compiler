@@ -18,12 +18,10 @@ $ClassMember$                       | $\to$ | $FieldMethodPrefix$ $\|$ $MainMeth
 $MainMethod$                        | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
 $MethodRest$                        | $\to$ | **`throws IDENT`**
 <span style="color:red">--</span>$Parameters$ | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
-<span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $ParameterListTail$
-<span style="color:green">++</span>$ParameterListTail$ | $\to$ | $\varepsilon$ $\|$ $Parameters$
+<span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $($ **`,`** $Parameter$ $)*$
 $Parameter$                         | $\to$ | $Type$ **`IDENT`**
 <span style="color:red">--</span>$Type$ | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
-<span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $ArrayTypeSuffix$
-<span style="color:green">++</span>$ArrayTypeSuffix$ | $\to$ | $\varepsilon$ $\|$ **`[ ]`** $ArrayTypeSuffix$
+<span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $($ **`[ ]`** $BasicType$ $)*$
 $BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\|$ 
 $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
