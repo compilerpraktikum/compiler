@@ -43,9 +43,12 @@ $MethodInvocation$                  | $\to$ | **`. IDENT (`** $Arguments$ **`)`*
 $FieldAccess$                       | $\to$ | **`. IDENT`**
 $ArrayAccess$                       | $\to$ | **`[`** $Expression$ **`]`**
 $Arguments$                         | $\to$ | $( Expression$ $($ **`,`** $Expression)^ \ast)?$
-$PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <br/>$\|$ **`true`** <br/>$\|$ **`INTEGER_LITERAL`** <br/>$\|$ **`IDENT`** <br/>$\|$ **`IDENT (`** $Arguments$ **`)`** <br/>$\|$  **`this`** <br/>$\|$  **`(`** $Expression$ **`)`** <br/>$\|$ $NewObjectExpression$ <br/>$\|$ $NewArrayExpression$
-$NewObjectExpression$               | $\to$ | **`new IDENT ( )`**
-$NewArrayExpression$                | $\to$ | **`new`** $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
+$PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <br/>$\|$ **`true`** <br/>$\|$ **`INTEGER_LITERAL`** <br/>$\|$ **`IDENT`** <br/>$\|$ **`IDENT (`** $Arguments$ **`)`** <br/>$\|$  **`this`** <br/>$\|$  **`(`** $Expression$ **`)`** <br/>$\|$ <span style="color:red">--</span> $NewObjectExpression$ <br/>$\|$ <span style="color:red">--</span> $NewArrayExpression$ <br/>$\|$ <span style="color:green">++</span> **`new`** $NewObjectArrayExpression$
+<span style="color:red">--</span>$NewObjectExpression$ | $\to$ | **`new IDENT ( )`**
+<span style="color:red">--</span>$NewArrayExpression$ | $\to$ | **`new`** $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
+<span style="color:green">++</span>$NewObjectArrayExpression$ | $\to$ | $NewObjectExpression$ $\|$ $NewArrayExpression$
+<span style="color:green">++</span>$NewObjectExpression$ | $\to$ | **`IDENT ( )`**
+<span style="color:green">++</span>$NewArrayExpression$ | $\to$ | $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
 
 
 ## Operator Precedences
