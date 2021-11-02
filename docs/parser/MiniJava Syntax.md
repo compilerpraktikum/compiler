@@ -66,3 +66,20 @@ $Additive$                          | **`+`** $\|$ **`-`**                      
 $Multiplicative$                    | **`*`** $\|$ **`/`** $\|$ **`%`**               | $7$          | Left to Right
 $Unary$                             | **`!`** $\|$ **`-`**                            | $8$          | Right to Left
 $Postfix$                           | **`.`** $\|$ **`[ ]`**                          | $9$          | Left to Right
+
+## First & Follow Sets
+
+*k=2?*
+
+$ $                                 | $ $   | $ $
+---:                                | :---: |:---
+$First_2(Programm)$ | $=$ | $First_2(ClassDeclaration)$*
+$First_2(ClassDeclaration)$ | $=$ | $\{$ **`class IDENT`** $\}$
+$First_2(ClassMember)$ | $=$ | $\{$ **`public`** $\} \times_2 First_2(MethodPrefix)$ 
+$First_2(MethodPrefix)$ | $=$ | $First_2(FieldMethodPrefix) \cup First_2(MainMethod)$ 
+$First_2(FieldMethodPrefix)$ | $=$ | $First_2(Type) \times_2 \{$ **`IDENT`** $\}$
+$First_2(FieldMethodRest)$ | $=$ | $First_2(Field) \cup First_2(Method)$
+$First_2(Field)$ | $=$ | $\{$ **`;#`** $\}$
+$First_2(Method)$ | $=$ | $\{$ **`(`** $\} \times_2 First_2(Parameters) \times_2 \{$ **`)`** $\}$
+$First_2(MainMethod)$ | $=$ | $\{$ **`static void`** $\}$
+$First_2(MethodRest)$ | $=$ | $\{$ **`throws IDENT`** $\}$
