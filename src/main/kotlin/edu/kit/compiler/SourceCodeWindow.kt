@@ -10,32 +10,32 @@ import kotlinx.coroutines.flow.takeWhile
 class SourceCodeWindow(
     private val lookaheadBuffer: LookaheadBuffer<Token>
 ) {
-    
+
     companion object {
         private val DUMMY_WHITESPACE = Token.Whitespace("").apply {
             position = SourcePosition("", 0, 0)
         }
     }
-    
+
     private val history = ArrayList<Token>(32).apply {
         add(DUMMY_WHITESPACE) // invariant: history always contains a whitespace / comment token at the beginning
     }
-    
+
     fun notice(token: Token) {
         if (token.containsNewLine()) {
             history.clear()
         }
-        
+
         history.add(token)
     }
-    
+
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun buildLine(): String = buildString {
         append(history.first().getContentOrNull()!!.substringAfterLast('\n'))
         history.asSequence().drop(1).forEach {
             append(it.sourceCode)
         }
-        
+
         lookaheadBuffer.peekFlow().takeWhile {
             val content = it.getContentOrNull()
             return@takeWhile if (content == null) {
@@ -52,7 +52,6 @@ class SourceCodeWindow(
             }
         }.collect()
     }
-    
 }
 
 // get content that can possibly contain newlines (only whitespace and comments)

@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.mapNotNull
 
 sealed class Token {
     lateinit var position: SourcePosition
-    
+
     val debugRepr: String?
         get() =
             when (this) {
@@ -20,7 +20,7 @@ sealed class Token {
                 is Eof -> "EOF"
                 is ErrorToken -> "error $error"
             }
-    
+
     val sourceCode: String
         get() =
             when (this) {
@@ -33,13 +33,13 @@ sealed class Token {
                 is Eof -> ""
                 is ErrorToken -> content
             }
-    
+
     data class Identifier(val name: String) : Token()
-    
+
     data class Literal(val value: String) : Token()
-    
+
     data class Operator(val type: Type) : Token() {
-        
+
         enum class Type(val repr: String) {
             Neq("!="),
             Not("!"),
@@ -88,11 +88,10 @@ sealed class Token {
             Or("||"),
             BitOr("|")
         }
-        
     }
-    
+
     data class Keyword(val type: Type) : Token() {
-        
+
         enum class Type(val repr: String) {
             Abstract("abstract"), Assert("assert"), Boolean("boolean"), Break("break"),
             Byte("byte"), Case("case"), Catch("catch"), Char("char"), Class("class"),
@@ -106,26 +105,24 @@ sealed class Token {
             StrictFp("strictfp"), Super("super"), Switch("switch"), Synchronized("synchronized"),
             This("this"), Throws("throws"), Throw("throw"), Transient("transient"),
             True("true"), Try("try"), Void("void"), Volatile("volatile"), While("while");
-            
+
             companion object {
                 private val reprToType = values().associateBy { token -> token.repr }
-                
+
                 fun from(repr: String): Type? {
                     return reprToType[repr]
                 }
             }
         }
-        
     }
-    
+
     data class Comment(val content: String) : Token()
-    
+
     data class Whitespace(val content: String) : Token()
-    
+
     object Eof : Token()
-    
+
     data class ErrorToken(val content: String, val error: String) : Token()
-    
 }
 
 fun StringTable.initializeKeywords() {

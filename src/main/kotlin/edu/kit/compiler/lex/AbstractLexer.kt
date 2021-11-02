@@ -15,7 +15,7 @@ abstract class AbstractLexer(
 ) {
     var position = SourcePosition(fileName, 1, 0)
         private set
-    
+
     /**
      * Get the next character and update the internal position.
      *
@@ -23,16 +23,16 @@ abstract class AbstractLexer(
      */
     protected suspend fun next(): Char {
         val c = input.nextChar()
-        
+
         position = when (c) {
             '\n' -> position.nextLine()
             '\r' -> position // invisible characters
             else -> position.nextColumn()
         }
-        
+
         return c
     }
-    
+
     /**
      * Lookahead in the input by a given [offset].
      *
@@ -42,24 +42,24 @@ abstract class AbstractLexer(
      * @return the character [offset] bytes behind the current position in the input.
      */
     protected suspend fun peek(offset: Int = 0): Char = input.peek(offset)
-    
+
     /**
      * Lexes the given input.
      * @return [Flow] of [Tokens][Token]
      */
     fun tokens(): Flow<Token> = flow {
         var c = peek()
-        
+
         while (c != BufferedInputProvider.END_OF_FILE) {
             val token = scanToken()
             token.position = position
             emit(token)
             c = peek()
         }
-        
+
         emit(Token.Eof)
     }.buffer()
-    
+
     /**
      * Lex the next token.
      *

@@ -16,7 +16,7 @@ class LookaheadBuffer<T>(
     private val receiveChannel: ReceiveChannel<T>
 ) {
     private val buffer = ArrayDeque<T>(initialCapacity = 16)
-    
+
     /**
      * Get the current foremost element of the channel and advance the channel by one.
      *
@@ -31,7 +31,7 @@ class LookaheadBuffer<T>(
             receiveChannel.receive()
         }
     }
-    
+
     /**
      * Peek into the channel skipping [offset] elements behind the current first element.
      *
@@ -48,7 +48,7 @@ class LookaheadBuffer<T>(
         require(offset < buffer.size) { "tried to peek past the end of the channel" }
         return buffer[offset]
     }
-    
+
     /**
      * Try to peek into the channel skipping [offset] elements behind the current first element.
      * If the channel is not long enough, `null` is returned.
@@ -60,14 +60,14 @@ class LookaheadBuffer<T>(
      */
     suspend fun tryPeek(offset: Int = 0): T? {
         require(offset >= 0)
-        
+
         return if (ensureBufferFilled(offset + 1)) {
             buffer[offset]
         } else {
             null
         }
     }
-    
+
     /**
      * Ensure that the internal [buffer] is filled with at least [numElements] items.
      *
@@ -79,14 +79,14 @@ class LookaheadBuffer<T>(
         if (buffer.size >= numElements) {
             return true
         }
-        
+
         repeat(numElements - buffer.size) {
             if (receiveChannel.isClosedForReceive) {
                 return false
             }
             buffer.add(receiveChannel.receive())
         }
-        
+
         return true
     }
 }
