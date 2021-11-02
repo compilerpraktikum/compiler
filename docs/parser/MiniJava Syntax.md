@@ -29,7 +29,7 @@ $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
 $Block$                             | $\to$ | **`{`** $BlockStatement^ \ast$ **`}`**
 $BlockStatement$                    | $\to$ | $Statement$ $\|$ $LocalVariableDeclarationStatement$ $\|$
-$LocalVariableDeclarationStatement$ | $\to$ | $Expression$ **`;`**
+$LocalVariableDeclarationStatement$ | $\to$ | $Type$ **`IDENT`** $($ **`=`** $Expression )?$ **`;`**
 $EmptyStatement$                    | $\to$ | **`;`**
 $WhileStatement$                    | $\to$ | **`while (`** $Expression$ **`)`** $Statement$
 $IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)$ 
