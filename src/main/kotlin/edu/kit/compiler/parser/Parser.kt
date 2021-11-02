@@ -18,7 +18,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         val classDeclarations = parseClassDeclarations()
         TODO("return constructProgramNode(classDeclarations)")
     }
-    
+
     suspend fun parseClassDeclarations(): List<ASTNode> {
         while (peek(0) != Token.Eof) {
             expectKeyword(Token.Keyword.Type.Class)
@@ -26,35 +26,35 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             expectOperator(Token.Operator.Type.LeftBrace)
             val classMembers = parseClassMembers()
             expectOperator(Token.Operator.Type.RightBrace)
-            
+
             // val classNode constructClassNode(ident, classMembers)
         }
-        
+
         expect<Token.Eof>()
-        
+
         return TODO()
     }
-    
+
     suspend fun parseClassMembers(): List<ASTNode> {
         TODO()
     }
-    
+
     private suspend inline fun expectOperator(type: Token.Operator.Type): Token.Operator {
         val token = next()
         if (token !is Token.Operator)
             enterPanicMode()
-        
+
         if (token.type == type)
             return token
         else
             enterPanicMode()
     }
-    
+
     private suspend inline fun expectKeyword(type: Token.Keyword.Type): Token.Keyword {
         val token = next()
         if (token !is Token.Keyword)
             enterPanicMode()
-        
+
         if (token.type == type)
             return token
         else

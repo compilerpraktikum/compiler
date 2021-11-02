@@ -52,13 +52,13 @@ class Compiler(private val config: Config) {
                 1u -> Executors.newSingleThreadExecutor()
                 else -> Executors.newFixedThreadPool(config.parallelization.toInt())
             }
-    
+
             // open the input file
             val input = openCompilationUnit().unwrap {
                 reportError(System.err)
                 return ExitCode.ERROR_FILE_SYSTEM
             }
-    
+
             return when (config.mode) {
                 Mode.Compile -> {
                     throw NotImplementedError("Compile mode not yet implemented.")
@@ -74,14 +74,13 @@ class Compiler(private val config: Config) {
                             return@withContext ExitCode.SUCCESS
                         } catch (e: IOException) {
                             System.err.println("Unexpected IOException: ${e.message}")
-                                return@withContext ExitCode.ERROR_FILE_SYSTEM
-                            }
+                            return@withContext ExitCode.ERROR_FILE_SYSTEM
                         }
-
                     }
+                }
                 Mode.LexTest -> runBlocking {
                     var hasInvalidToken = false
-    
+
                     Lexer(
                         config.sourceFile.absolutePath,
                         input,
@@ -92,7 +91,7 @@ class Compiler(private val config: Config) {
                     }.lexTestRepr.collect {
                         println(it)
                     }
-    
+
                     if (hasInvalidToken) {
                         ExitCode.ERROR_INVALID_TOKEN
                     } else {
@@ -111,30 +110,30 @@ class Compiler(private val config: Config) {
      */
     private fun openCompilationUnit(): CompilerResult<BufferedInputProvider> {
         val sourceFile = config.sourceFile
-    
+
         try {
             if (!sourceFile.exists()) {
                 return CompilerResult.failure("File does not exist")
             }
-        
+
             if (sourceFile.isDirectory) {
                 return CompilerResult.failure("Input path is not a file")
             }
-        
+
             if (!sourceFile.canRead()) {
                 return CompilerResult.failure("Cannot read input file")
             }
         } catch (e: SecurityException) {
             return CompilerResult.failure("Access to input file denied: ${e.message}")
         }
-    
+
         return CompilerResult.success(BufferedInputProvider(FileInputStream(sourceFile)))
     }
-    
+
     enum class Mode {
         Compile, Echo, LexTest,
     }
-    
+
     interface Config {
         val sourceFile: File
         val mode: Mode

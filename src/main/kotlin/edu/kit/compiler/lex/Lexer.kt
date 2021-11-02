@@ -9,16 +9,20 @@ import edu.kit.compiler.Token
  * @param stringTable string table of current compilation run
  */
 @Suppress("BlockingMethodInNonBlockingContext")
-class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
-            private val printWarnings: Boolean = true) : AbstractLexer(fileName, input, stringTable) {
-    
+class Lexer(
+    fileName: String,
+    input: InputProvider,
+    stringTable: StringTable,
+    private val printWarnings: Boolean = true
+) : AbstractLexer(fileName, input, stringTable) {
+
     companion object {
         val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
         val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
         val literalCharRegex: Regex = Regex("[0-9]")
         val whitespaceCharRegex: Regex = Regex("[ \\n\\r\\t]")
     }
-    
+
     override suspend fun scanToken(): Token = when (val c = next()) {
         ' ', '\n', '\r', '\t' -> scanWhitespace(c)
         '/' -> scanDiv()
@@ -49,26 +53,30 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
         '1', '2', '3', '4', '5', '6', '7', '8', '9' -> scanNonZeroLiteral(c)
         else -> scanIdent(c)
     }
-    
+
     private suspend inline fun scanWhitespace(startChar: Char): Token {
-        return Token.Whitespace(buildString {
-            append(startChar)
-            
-            while (whitespaceCharRegex.matches(peek().toString())) {
-                append(next())
+        return Token.Whitespace(
+            buildString {
+                append(startChar)
+
+                while (whitespaceCharRegex.matches(peek().toString())) {
+                    append(next())
+                }
             }
-        })
+        )
     }
-    
+
     private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
-        return Token.Literal(buildString {
-            append(startDigit)
-            while (literalCharRegex.matches(peek().toString())) {
-                append(next())
+        return Token.Literal(
+            buildString {
+                append(startDigit)
+                while (literalCharRegex.matches(peek().toString())) {
+                    append(next())
+                }
             }
-        })
+        )
     }
-    
+
     private suspend inline fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
         if (!identFirstCharRegex.matches(startChar.toString())) {
@@ -77,16 +85,16 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
         while (identRestCharsRegex.matches(peek().toString())) {
             identBuilder.append(next())
         }
-    
+
         val (identifier, stringTableEntry) = stringTable.tryRegisterIdentifier(identBuilder.toString())
-    
+
         return if (stringTableEntry.isKeyword) {
             Token.Keyword(Token.Keyword.Type.from(identifier)!!)
         } else {
             Token.Identifier(identifier)
         }
     }
-    
+
     private suspend inline fun scanBitOr(): Token {
         return when (peek()) {
             '=' -> {
@@ -100,7 +108,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.BitOr)
         }
     }
-    
+
     private suspend inline fun scanBitAnd(): Token {
         return when (peek()) {
             '=' -> {
@@ -114,7 +122,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.BitAnd)
         }
     }
-    
+
     private suspend inline fun scanXor(): Token {
         return when (peek()) {
             '=' -> {
@@ -124,7 +132,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Xor)
         }
     }
-    
+
     private suspend inline fun scanModulo(): Token {
         return when (peek()) {
             '=' -> {
@@ -134,7 +142,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Mod)
         }
     }
-    
+
     private suspend inline fun scanGt(): Token {
         return when (peek()) {
             '=' -> {
@@ -163,7 +171,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Gt)
         }
     }
-    
+
     private suspend inline fun scanAssign(): Token {
         return when (peek()) {
             '=' -> {
@@ -173,7 +181,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Assign)
         }
     }
-    
+
     private suspend inline fun scanLt(): Token {
         return when (peek()) {
             '=' -> {
@@ -190,7 +198,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Lt)
         }
     }
-    
+
     private suspend inline fun scanMinus(): Token {
         return when (peek()) {
             '=' -> {
@@ -204,7 +212,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Minus)
         }
     }
-    
+
     private suspend inline fun scanPlus(): Token {
         return when (peek()) {
             '=' -> {
@@ -218,7 +226,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Plus)
         }
     }
-    
+
     private suspend inline fun scanMul(): Token {
         return when (peek()) {
             '=' -> {
@@ -228,7 +236,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Mul)
         }
     }
-    
+
     private suspend inline fun scanNot(): Token {
         return when (peek()) {
             '=' -> {
@@ -238,7 +246,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Not)
         }
     }
-    
+
     private suspend inline fun scanDiv(): Token {
         return when (peek()) {
             '*' -> {
@@ -252,12 +260,12 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             else -> Token.Operator(Token.Operator.Type.Div)
         }
     }
-    
+
     private suspend inline fun scanCommentToken(commentAcc: StringBuilder): Token {
         // At the start, we're on the first '*' of "/* myComment */"
         var c = next()
         commentAcc.append(c)
-    
+
         // not exactly the automat but no need for recursion that way.
         while (!(c == '*' && peek() == '/')) {
             if (c == '/' && peek() == '*') printWarning("nested comments are not supported")
@@ -270,7 +278,7 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
         commentAcc.append(next())
         return Token.Comment(commentAcc.toString())
     }
-    
+
     private fun printWarning(message: String) {
         if (printWarnings) {
             System.err.apply {
@@ -279,5 +287,4 @@ class Lexer(fileName: String, input: InputProvider, stringTable: StringTable,
             }
         }
     }
-    
 }

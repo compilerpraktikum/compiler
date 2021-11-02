@@ -5,9 +5,8 @@ class SourcePosition(
     val line: Int,
     val column: Int,
 ) {
-    
+
     override fun toString(): String = "$path:$line:$column"
-    
 }
 
 fun SourcePosition.nextLine() = SourcePosition(

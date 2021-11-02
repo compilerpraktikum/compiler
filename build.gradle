@@ -70,3 +70,35 @@ shadowJar {
 test {
     useJUnitPlatform()
 }
+
+
+// ktlint (https://github.com/pinterest/ktlint)
+
+configurations {
+    ktlint
+}
+
+dependencies {
+    ktlint("com.pinterest:ktlint:0.42.1") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
+        }
+    }
+}
+
+task ktlint(type: JavaExec, group: "verification") {
+    description = "Check Kotlin code style."
+    classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
+    args "--reporter=plain", "--reporter=checkstyle,output=${buildDir}/ktlint.xml", "src/**/*.kt"
+}
+check.dependsOn ktlint
+
+// does not work with java 16 yet (https://github.com/pinterest/ktlint/issues/1195), switch to java 11 for running this task
+task ktlintFormat(type: JavaExec, group: "formatting") {
+    description = "Fix Kotlin code style deviations."
+    classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
+    args "-F", "src/**/*.kt"
+}
+
