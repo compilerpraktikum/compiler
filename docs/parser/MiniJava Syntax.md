@@ -2,6 +2,8 @@
 
 ## Base Grammar
 
+*Änderungen zur Grammatik im Sprachbericht sind mit grün und rot markiert.*
+
 $ $                                 | $ $   | $ $
 ---:                                | :---: |:---
 $Program$                           | $\to$ | $ClassDeclaration^ \ast$
@@ -11,9 +13,13 @@ $Field$                             | $\to$ | **`public`** $Type$ **`IDENT`** **
 $MainMethod$                        | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
 $Method$                            | $\to$ | **`public`** $Type$ **`IDENT (`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
 $MethodRest$                        | $\to$ | **`throws IDENT`**
-$Parameters$                        | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
+<span style="color:red">--</span>$Parameters$ | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
+<span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $ParameterListTail$
+<span style="color:green">++</span>$ParameterListTail$ | $\to$ | $\varepsilon$ $\|$ $Parameters$
 $Parameter$                         | $\to$ | $Type$ **`IDENT`**
-$Type$                              | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
+<span style="color:red">--</span>$Type$ | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
+<span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $ArrayTypeSuffix$
+<span style="color:green">++</span>$ArrayTypeSuffix$ | $\to$ | $\varepsilon$ $\|$ **`[ ]`** $ArrayTypeSuffix$
 $BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\|$ 
 $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
