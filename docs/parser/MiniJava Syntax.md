@@ -8,14 +8,16 @@ $ $                                 | $ $   | $ $
 ---:                                | :---: |:---
 $Program$                           | $\to$ | $ClassDeclaration^ \ast$
 $ClassDeclaration$                  | $\to$ | **`class IDENT {`** $ClassMember^ \ast$ **`}`**
-$ClassMember$                       | $\to$ | $FieldMethodPrefix$ $\|$ $MainMethod$
+$ClassMember$                       | $\to$ | **`public`** $MethodPrefix$
 <span style="color:red">--</span>$Field$ | $\to$ | **`public`** $Type$ **`IDENT`** **`;`**
 <span style="color:red">--</span>$Method$ | $\to$ | **`public`** $Type$ **`IDENT (`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
-<span style="color:green">++</span>$FieldMethodPrefix$ | $\to$ | **`public`** $Type$ **`IDENT`** $FieldMethodRest$
+<span style="color:green">++</span>$MethodPrefix$ | $\to$ | $FieldMethodPrefix$ $\|$ $MainMethod$
+<span style="color:green">++</span>$FieldMethodPrefix$ | $\to$ | $Type$ **`IDENT`** $FieldMethodRest$
 <span style="color:green">++</span>$FieldMethodRest$ | $\to$ | $Field$ $\|$ $Method$
 <span style="color:green">++</span>$Field$ | $\to$ | **`;`**
 <span style="color:green">++</span>$Method$ | $\to$ | **`(`** $Parameters?$ **`)`** $MethodRest ?$ $Block$
-$MainMethod$                        | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
+<span style="color:red">--</span>$MainMethod$ | $\to$ | **`public static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
+<span style="color:green">++</span>$MainMethod$ | $\to$ | **`static void IDENT (`** $Type$ **`IDENT )`** $MethodRest ?$ $Block$
 $MethodRest$                        | $\to$ | **`throws IDENT`**
 <span style="color:red">--</span>$Parameters$ | $\to$ | $Parameter$ $\|$ $Parameter$ **`,`** $Parameters$
 <span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $($ **`,`** $Parameter$ $)*$
@@ -48,6 +50,8 @@ $PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <
 <span style="color:green">++</span>$NewObjectExpression$ | $\to$ | **`IDENT ( )`**
 <span style="color:green">++</span>$NewArrayExpression$ | $\to$ | $BasicType$ **`[`** $Expression$ **`]`** $($ **`[ ]`** $)^ \ast$
 
+
+*Vermutung: Wegen NewObjectArrayExpression ist das ganze SLL(2) (beide fangen mit **`IDENT`** an)*
 
 ## Operator Precedences
 
