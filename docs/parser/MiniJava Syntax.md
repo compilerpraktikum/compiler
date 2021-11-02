@@ -19,8 +19,8 @@ $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
 $Block$                             | $\to$ | **`{`** $BlockStatement^ \ast$ **`}`**
 $BlockStatement$                    | $\to$ | $Statement$ $\|$ $LocalVariableDeclarationStatement$ $\|$
-$LocalVariableDeclarationStatement$ | $\to$ | $todo$
-$EmptyStatement$                    | $\to$ | $todo$
+$LocalVariableDeclarationStatement$ | $\to$ | $Expression$ **`;`**
+$EmptyStatement$                    | $\to$ | **`;`**
 $WhileStatement$                    | $\to$ | **`while (`** $Expression$ **`)`** $Statement$
 $IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)$ 
 $ExpressionStatement$               | $\to$ | $Expression$ **`;`**
@@ -42,12 +42,12 @@ $NewArrayExpression$                | $\to$ | **`new`** $BasicType$ **`[`** $Exp
 
 **Name**                            | **Token(s)**                                      | *Precedence* | *Associativity*
 :---                                |:---                                               | :---         | :---
-$Assignment$                        | **`=`**                                           | $1$          | todo
-$LogicalOr$                         | **`\|\|`**                                        | $2$          | todo
-$LogicalAnd$                        | **`&&`**                                          | $3$          | todo
-$Equality$                          | **`==`** $\|$ **`!=`**                            | $4$          | todo
-$Relational$                        | **`<`** $\|$ **`<=`** $\|$ **`>`** $\|$ **`>=`**  | $5$          | todo
-$Additive$                          | **`+`** $\|$ **`-`**                              | $6$          | todo
-$Multiplicative$                    | **`*`** $\|$ **`/`** $\|$ **`%`**               | $7$          | todo
+$Assignment$                        | **`=`**                                           | $1$          | Right to Left
+$LogicalOr$                         | **`\|\|`**                                        | $2$          | Left to Right
+$LogicalAnd$                        | **`&&`**                                          | $3$          | Left to Right
+$Equality$                          | **`==`** $\|$ **`!=`**                            | $4$          | Left to Right
+$Relational$                        | **`<`** $\|$ **`<=`** $\|$ **`>`** $\|$ **`>=`**  | $5$          | Left to Right
+$Additive$                          | **`+`** $\|$ **`-`**                              | $6$          | Left to Right
+$Multiplicative$                    | **`*`** $\|$ **`/`** $\|$ **`%`**               | $7$          | Left to Right
 $Unary$                             | **`!`** $\|$ **`-`**                            | $8$          | Right to Left
-$Postfix$                           | **`.`** $\|$ **`[ ]`**                          | $9$          | todo
+$Postfix$                           | **`.`** $\|$ **`[ ]`**                          | $9$          | Left to Right
