@@ -1,23 +1,18 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.parser
 
 import edu.kit.compiler.TestUtils
-import edu.kit.compiler.Token
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lexTestRepr
-import kotlinx.coroutines.flow.toCollection
+import edu.kit.compiler.lex.BufferedInputProvider
+import edu.kit.compiler.lex.Lexer
+import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.FileInputStream
 import java.util.stream.Stream
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.name
-import kotlin.io.path.readLines
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-internal class LexerMjTestSuite {
-
+internal class ParserMjTestSuite {
     companion object {
         /** this is used to run multiple instances of the test:
          * see: https://blog.oio.de/2018/11/13/how-to-use-junit-5-methodsource-parameterized-tests-with-kotlin/
@@ -26,16 +21,15 @@ internal class LexerMjTestSuite {
          *         shouldn't be verbose
          */
         @JvmStatic
-        fun provideValidTests(): Stream<TestUtils.TestFileArgument> = TestUtils.getTestSuiteFilesFor("lexer")
+        fun provideTests(): Stream<TestUtils.TestFileArgument> = TestUtils.getTestSuiteFilesFor("syntax")
     }
 
     @ParameterizedTest
-    @MethodSource("provideValidTests")
-    fun test_lexer(testConfig: TestUtils.TestFileArgument) {
+    @MethodSource("provideTests")
+    fun test_parser(testConfig: TestUtils.TestFileArgument) {
         val inputFile = testConfig.path
-        val outputFile = testConfig.path.parent.resolve(testConfig.name + ".out")
 
-        println("For input $inputFile expect $outputFile")
+        println("Running parser on $inputFile")
 
         val input = BufferedInputProvider(FileInputStream(inputFile.toFile()))
 
@@ -44,16 +38,17 @@ internal class LexerMjTestSuite {
         }
         val lexer = Lexer(inputFile.absolutePathString(), input, stringTable)
 
-        val tokens: List<Token> = runBlocking {
-            lexer.tokens().toCollection(mutableListOf())
+        val parser = Parser(lexer.tokens())
+
+        val ast: ASTNode = runBlocking {
+            parser.parse()
         }
 
+        // TODO: proper error detection by inspecting the AST for Error
         if (testConfig.name.endsWith("invalid.mj")) {
-            assertTrue("Expected an invalid token") { tokens.any { it is Token.ErrorToken } }
+            kotlin.test.assertTrue("Expected an invalid token, but ended successfully") { false }
         } else {
-            val expected = outputFile.readLines()
-
-            assertEquals(expected, tokens.lexTestRepr)
+            kotlin.test.assertTrue("succeeded") { true }
         }
     }
 }
