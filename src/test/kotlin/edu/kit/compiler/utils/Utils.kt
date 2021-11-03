@@ -1,7 +1,6 @@
 package edu.kit.compiler.utils
 
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
@@ -12,14 +11,14 @@ import edu.kit.compiler.lex.StringTable
 class InlineInputProvider(private val input: String) : InputProvider {
     private var cursor: Int = 0
 
-    override suspend fun nextChar(): Char {
+    override suspend fun next(): Char {
         return if (cursor < input.length) input[cursor++]
-        else BufferedInputProvider.END_OF_FILE
+        else InputProvider.END_OF_FILE
     }
 
     override suspend fun peek(offset: Int): Char {
         return if (cursor + offset < input.length) input[cursor + offset]
-        else BufferedInputProvider.END_OF_FILE
+        else InputProvider.END_OF_FILE
     }
 }
 

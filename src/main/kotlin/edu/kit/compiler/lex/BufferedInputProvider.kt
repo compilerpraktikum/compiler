@@ -13,10 +13,6 @@ import java.io.InputStream
  */
 class BufferedInputProvider(private val inputStream: InputStream, private val capacity: Int = 128) : InputProvider {
 
-    companion object {
-        const val END_OF_FILE: Char = 0x20E0.toChar()
-    }
-
     /**
      * A fixed-size buffer which is reused once data has been processed
      */
@@ -67,7 +63,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
      *
      * @throws IOException if an error occurred during processing of the input stream
      */
-    suspend fun next(): Char {
+    override suspend fun next(): Char {
         while (!hasMoreData && !endOfFile && failure == null) {
             currentJob?.join() ?: tryDispatchLoad()
         }
@@ -80,7 +76,7 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
             cyclicBuffer[cursor++ % capacity].decode()
         } else {
             assert(endOfFile)
-            END_OF_FILE
+            InputProvider.END_OF_FILE
         }
 
         tryDispatchLoad()
@@ -120,12 +116,8 @@ class BufferedInputProvider(private val inputStream: InputStream, private val ca
             cyclicBuffer[index % capacity].decode()
         } else {
             assert(endOfFile)
-            END_OF_FILE
+            InputProvider.END_OF_FILE
         }
-    }
-
-    override suspend fun nextChar(): Char {
-        return this.next()
     }
 
     private var currentJob: Job? = null

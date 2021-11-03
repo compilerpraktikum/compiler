@@ -285,7 +285,7 @@ class Lexer(
         while (!(c == '*' && peek() == '/')) {
             if (c == '/' && peek() == '*') printWarning("nested comments are not supported")
             c = next()
-            if (c == BufferedInputProvider.END_OF_FILE) return Token.ErrorToken("", "reached EOF while parsing comment.")
+            if (c == InputProvider.END_OF_FILE) return Token.ErrorToken("", "reached EOF while parsing comment.")
             commentAcc.append(c)
         }
         // Not yet end of comment token, we're on the latter '*' of "/* myComment */"),
