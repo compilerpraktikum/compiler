@@ -2,6 +2,28 @@ package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
 
+private fun Char.isIdentifierStartChar() = when (this) {
+    in 'a'..'z' -> true
+    in 'A'..'Z' -> true
+    '_' -> true
+    else -> false
+}
+
+private fun Char.isIdentifierRestChar() = when (this) {
+    in 'a'..'z' -> true
+    in 'A'..'Z' -> true
+    in '0'..'9' -> true
+    '_' -> true
+    else -> false
+}
+
+private fun Char.isNumberLiteralChar() = this in '0'..'9'
+
+private fun Char.isWhitespace() = when (this) {
+    ' ', '\n', '\r', '\t' -> true
+    else -> false
+}
+
 /**
  * lexicographic analysis and tokenization of an input stream.
  *
@@ -15,13 +37,6 @@ class Lexer(
     stringTable: StringTable,
     private val printWarnings: Boolean = true
 ) : AbstractLexer(fileName, input, stringTable) {
-
-    companion object {
-        val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
-        val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
-        val literalCharRegex: Regex = Regex("[0-9]")
-        val whitespaceCharRegex: Regex = Regex("[ \\n\\r\\t]")
-    }
 
     override suspend fun scanToken(): Token = when (val c = next()) {
         ' ', '\n', '\r', '\t' -> scanWhitespace(c)
@@ -59,7 +74,7 @@ class Lexer(
             buildString {
                 append(startChar)
 
-                while (whitespaceCharRegex.matches(peek().toString())) {
+                while (peek().isWhitespace()) {
                     append(next())
                 }
             }
@@ -70,7 +85,7 @@ class Lexer(
         return Token.Literal(
             buildString {
                 append(startDigit)
-                while (literalCharRegex.matches(peek().toString())) {
+                while (peek().isNumberLiteralChar()) {
                     append(next())
                 }
             }
@@ -79,10 +94,10 @@ class Lexer(
 
     private suspend inline fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
-        if (!identFirstCharRegex.matches(startChar.toString())) {
+        if (!startChar.isIdentifierStartChar()) {
             return Token.ErrorToken(startChar.toString(), "unexpected character: $startChar")
         }
-        while (identRestCharsRegex.matches(peek().toString())) {
+        while (peek().isIdentifierRestChar()) {
             identBuilder.append(next())
         }
 
