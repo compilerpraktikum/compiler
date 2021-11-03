@@ -53,6 +53,9 @@ abstract class AbstractLexer(
         while (c != BufferedInputProvider.END_OF_FILE) {
             val token = scanToken()
             token.position = position
+            if (token is Token.ErrorToken) {
+                printError(token)
+            }
             emit(token)
             c = peek()
         }
@@ -66,4 +69,11 @@ abstract class AbstractLexer(
      * @return the next [token][Token]
      */
     protected abstract suspend fun scanToken(): Token
+
+    private fun printError(token: Token.ErrorToken) {
+        System.err.apply {
+            println("[error] ${token.error}")
+            println("  ${token.position}")
+        }
+    }
 }
