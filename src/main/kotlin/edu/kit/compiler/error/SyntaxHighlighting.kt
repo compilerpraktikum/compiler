@@ -32,7 +32,7 @@ data class ColorScheme(
 
 fun Terminal.printToken(token: Token, colorScheme: ColorScheme = ColorScheme.solarized): Unit = when (token) {
     is Token.Comment -> this.print(colorScheme.comment("/*$token.content)*/"))
-    is Token.Eof -> this.print("")
+    is Token.Eof -> {}
     is Token.ErrorToken -> this.print(colorScheme.error(token.error))
     is Token.Identifier -> this.print(colorScheme.identifier(token.name))
     is Token.Keyword -> this.print(colorScheme.keyword(token.type.repr))
