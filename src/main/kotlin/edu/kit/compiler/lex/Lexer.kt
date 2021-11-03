@@ -2,6 +2,28 @@ package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
 
+private fun Char.isIdentifierStartChar() = when (this) {
+    in 'a'..'z' -> true
+    in 'A'..'Z' -> true
+    '_' -> true
+    else -> false
+}
+
+private fun Char.isIdentifierRestChar() = when (this) {
+    in 'a'..'z' -> true
+    in 'A'..'Z' -> true
+    in '0'..'9' -> true
+    '_' -> true
+    else -> false
+}
+
+private fun Char.isNumberLiteralChar() = this in '0'..'9'
+
+private fun Char.isWhitespace() = when (this) {
+    ' ', '\n', '\r', '\t' -> true
+    else -> false
+}
+
 /**
  * lexicographic analysis and tokenization of an input stream.
  *
@@ -15,13 +37,6 @@ class Lexer(
     stringTable: StringTable,
     private val printWarnings: Boolean = true
 ) : AbstractLexer(fileName, input, stringTable) {
-
-    companion object {
-        val identFirstCharRegex: Regex = Regex("[_a-zA-Z]")
-        val identRestCharsRegex: Regex = Regex("[_a-zA-Z0-9]")
-        val literalCharRegex: Regex = Regex("[0-9]")
-        val whitespaceCharRegex: Regex = Regex("[ \\n\\r\\t]")
-    }
 
     override suspend fun scanToken(): Token = when (val c = next()) {
         ' ', '\n', '\r', '\t' -> scanWhitespace(c)
@@ -54,35 +69,35 @@ class Lexer(
         else -> scanIdent(c)
     }
 
-    private suspend inline fun scanWhitespace(startChar: Char): Token {
+    private suspend fun scanWhitespace(startChar: Char): Token {
         return Token.Whitespace(
             buildString {
                 append(startChar)
 
-                while (whitespaceCharRegex.matches(peek().toString())) {
+                while (peek().isWhitespace()) {
                     append(next())
                 }
             }
         )
     }
 
-    private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
+    private suspend fun scanNonZeroLiteral(startDigit: Char): Token {
         return Token.Literal(
             buildString {
                 append(startDigit)
-                while (literalCharRegex.matches(peek().toString())) {
+                while (peek().isNumberLiteralChar()) {
                     append(next())
                 }
             }
         )
     }
 
-    private suspend inline fun scanIdent(startChar: Char): Token {
+    private suspend fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
-        if (!identFirstCharRegex.matches(startChar.toString())) {
+        if (!startChar.isIdentifierStartChar()) {
             return Token.ErrorToken(startChar.toString(), "unexpected character: $startChar")
         }
-        while (identRestCharsRegex.matches(peek().toString())) {
+        while (peek().isIdentifierRestChar()) {
             identBuilder.append(next())
         }
 
@@ -95,7 +110,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanBitOr(): Token {
+    private suspend fun scanBitOr(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -109,7 +124,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanBitAnd(): Token {
+    private suspend fun scanBitAnd(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -123,7 +138,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanXor(): Token {
+    private suspend fun scanXor(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -133,7 +148,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanModulo(): Token {
+    private suspend fun scanModulo(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -143,7 +158,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanGt(): Token {
+    private suspend fun scanGt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -172,7 +187,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanAssign(): Token {
+    private suspend fun scanAssign(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -182,7 +197,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanLt(): Token {
+    private suspend fun scanLt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -199,7 +214,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanMinus(): Token {
+    private suspend fun scanMinus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -213,7 +228,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanPlus(): Token {
+    private suspend fun scanPlus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -227,7 +242,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanMul(): Token {
+    private suspend fun scanMul(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -237,7 +252,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanNot(): Token {
+    private suspend fun scanNot(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -247,7 +262,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanDiv(): Token {
+    private suspend fun scanDiv(): Token {
         return when (peek()) {
             '*' -> {
                 next()
@@ -261,7 +276,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanCommentToken(commentAcc: StringBuilder): Token {
+    private suspend fun scanCommentToken(commentAcc: StringBuilder): Token {
         // At the start, we're on the first '*' of "/* myComment */"
         var c = next()
         commentAcc.append(c)

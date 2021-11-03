@@ -5,6 +5,7 @@ import edu.kit.compiler.initializeKeywords
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -178,15 +179,55 @@ internal class LexerTest {
         )
     }
 
+    @Test
+    @Ignore
+    fun testVeryLongIdentifiers() {
+        val NUM_IDENTIFIERS = 1000
+        val IDENTIFIER_LENGTH = 100000
+        val input = buildString {
+            repeat(NUM_IDENTIFIERS) {
+                append("a".repeat(IDENTIFIER_LENGTH))
+                append(" ")
+            }
+        }
+        val IDENTIFIER = Token.Identifier("a".repeat(IDENTIFIER_LENGTH))
+        val expectedTokens = mutableListOf<Token>().apply {
+            repeat(NUM_IDENTIFIERS) {
+                add(IDENTIFIER)
+                add(Token.Whitespace(" "))
+            }
+            add(Token.Eof)
+        }
+
+        expectTokenSequence(input, expectedTokens, measureDuration = true)
+    }
+
+    @Test
+    @Ignore
+    fun testVeryLongIdentifiersMulti() {
+        timings.clear()
+        repeat(21) {
+            testVeryLongIdentifiers()
+            print(".")
+            System.out.flush()
+        }
+        println()
+        timings.removeFirst() // warmup
+        println("Average: ${timings.average()}ms")
+        println("Difference (max - min): ${timings.maxOrNull()!! - timings.minOrNull()!!}ms")
+    }
+
     /**
      * Parse an input string and assert the exact resulting token sequence matches a given sequence
      */
-    private fun expectTokenSequence(input: String, expectedTokens: List<Token>) {
+    private fun expectTokenSequence(input: String, expectedTokens: List<Token>, measureDuration: Boolean = false) {
         FixedInputProvider.input = input
 
+        val start = System.currentTimeMillis()
         val tokens = runBlocking {
             lexer.tokens().toCollection(mutableListOf())
         }
+        val duration = System.currentTimeMillis() - start
 
         assertEquals(expectedTokens.size, tokens.size)
 
@@ -197,5 +238,10 @@ internal class LexerTest {
                 assertEquals(expected, lexed)
             }
         }
+
+        if (measureDuration)
+            timings.add(duration)
     }
+
+    private val timings = mutableListOf<Long>()
 }
