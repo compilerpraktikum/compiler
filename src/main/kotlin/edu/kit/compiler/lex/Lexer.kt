@@ -69,7 +69,7 @@ class Lexer(
         else -> scanIdent(c)
     }
 
-    private suspend inline fun scanWhitespace(startChar: Char): Token {
+    private suspend fun scanWhitespace(startChar: Char): Token {
         return Token.Whitespace(
             buildString {
                 append(startChar)
@@ -81,7 +81,7 @@ class Lexer(
         )
     }
 
-    private suspend inline fun scanNonZeroLiteral(startDigit: Char): Token {
+    private suspend fun scanNonZeroLiteral(startDigit: Char): Token {
         return Token.Literal(
             buildString {
                 append(startDigit)
@@ -92,7 +92,7 @@ class Lexer(
         )
     }
 
-    private suspend inline fun scanIdent(startChar: Char): Token {
+    private suspend fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
         if (!startChar.isIdentifierStartChar()) {
             return Token.ErrorToken(startChar.toString(), "unexpected character: $startChar")
@@ -110,7 +110,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanBitOr(): Token {
+    private suspend fun scanBitOr(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -124,7 +124,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanBitAnd(): Token {
+    private suspend fun scanBitAnd(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -138,7 +138,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanXor(): Token {
+    private suspend fun scanXor(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -148,7 +148,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanModulo(): Token {
+    private suspend fun scanModulo(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -158,7 +158,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanGt(): Token {
+    private suspend fun scanGt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -187,7 +187,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanAssign(): Token {
+    private suspend fun scanAssign(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -197,7 +197,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanLt(): Token {
+    private suspend fun scanLt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -214,7 +214,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanMinus(): Token {
+    private suspend fun scanMinus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -228,7 +228,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanPlus(): Token {
+    private suspend fun scanPlus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -242,7 +242,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanMul(): Token {
+    private suspend fun scanMul(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -252,7 +252,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanNot(): Token {
+    private suspend fun scanNot(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -262,7 +262,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanDiv(): Token {
+    private suspend fun scanDiv(): Token {
         return when (peek()) {
             '*' -> {
                 next()
@@ -276,7 +276,7 @@ class Lexer(
         }
     }
 
-    private suspend inline fun scanCommentToken(commentAcc: StringBuilder): Token {
+    private suspend fun scanCommentToken(commentAcc: StringBuilder): Token {
         // At the start, we're on the first '*' of "/* myComment */"
         var c = next()
         commentAcc.append(c)
