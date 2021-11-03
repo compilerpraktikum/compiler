@@ -3,6 +3,7 @@ package edu.kit.compiler
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
 import com.github.ajalt.clikt.parameters.types.file
@@ -17,6 +18,8 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
     ).default(Compiler.Mode.Compile)
 
     override val parallelization by option("-p", "--parallelization", help = "Target parallelization level. Defaults to 0, which uses all available cores.").uint().default(0u)
+
+    override val async by option("-a", "--async", help = "Enable async mode").flag(default = false)
 
     override val sourceFile by argument(name = "file", help = "source file").file()
 

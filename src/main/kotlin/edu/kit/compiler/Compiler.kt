@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lex.SyncInputProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
@@ -128,7 +129,15 @@ class Compiler(private val config: Config) {
             return CompilerResult.failure("Access to input file denied: ${e.message}")
         }
 
-        return CompilerResult.success(BufferedInputProvider(FileInputStream(sourceFile)))
+        return CompilerResult.success(
+            FileInputStream(sourceFile).let {
+                if (config.async) {
+                    BufferedInputProvider(it)
+                } else {
+                    SyncInputProvider(it)
+                }
+            }
+        )
     }
 
     enum class Mode {
@@ -139,5 +148,6 @@ class Compiler(private val config: Config) {
         val sourceFile: File
         val mode: Mode
         val parallelization: UInt
+        val async: Boolean
     }
 }
