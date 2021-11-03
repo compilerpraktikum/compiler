@@ -22,7 +22,7 @@ abstract class AbstractLexer(
      * @return next character from the input
      */
     protected suspend fun next(): Char {
-        val c = input.nextChar()
+        val c = input.next()
 
         position = when (c) {
             '\n' -> position.nextLine()
@@ -50,7 +50,7 @@ abstract class AbstractLexer(
     fun tokens(): Flow<Token> = flow {
         var c = peek()
 
-        while (c != BufferedInputProvider.END_OF_FILE) {
+        while (c != InputProvider.END_OF_FILE) {
             val token = scanToken()
             token.position = position
             if (token is Token.ErrorToken) {

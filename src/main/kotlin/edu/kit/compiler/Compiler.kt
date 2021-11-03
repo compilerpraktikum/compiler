@@ -3,6 +3,7 @@ package edu.kit.compiler
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.BufferedInputProvider
+import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
 import kotlinx.coroutines.CoroutineScope
@@ -67,7 +68,7 @@ class Compiler(private val config: Config) {
                     withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
                         try {
                             var c = input.next()
-                            while (c != BufferedInputProvider.END_OF_FILE) {
+                            while (c != InputProvider.END_OF_FILE) {
                                 print(c)
                                 c = input.next()
                             }
@@ -108,7 +109,7 @@ class Compiler(private val config: Config) {
      * Sanity-check the input parameter and then prepare a reader that can be used by the lexer to generate a token
      * stream
      */
-    private fun openCompilationUnit(): CompilerResult<BufferedInputProvider> {
+    private fun openCompilationUnit(): CompilerResult<InputProvider> {
         val sourceFile = config.sourceFile
 
         try {
