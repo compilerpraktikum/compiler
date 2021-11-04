@@ -62,15 +62,20 @@ abstract class AbstractParser<T>(private val tokens: Flow<Token>) {
         .filter { it.isRelevantForSyntax }
         .take(offset + 1).last()
 
+
+    suspend fun initialize()  = coroutineScope {
+        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
+        sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
+
+    }
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
     @OptIn(FlowPreview::class)
     suspend fun parse(): T = coroutineScope {
-        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
-        sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
+        initialize()
 
-        return@coroutineScope parseAST()
+        parseAST()
     }
 
     /**

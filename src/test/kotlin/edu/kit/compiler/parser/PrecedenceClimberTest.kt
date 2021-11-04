@@ -1,25 +1,20 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.LexerTest
-import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.ast.AST
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import edu.kit.compiler.parser.PrecedenceClimber.*
-import edu.kit.compiler.utils.InlineInputProvider
 import edu.kit.compiler.utils.setupLexer
-import kotlin.math.exp
 
 internal class PrecedenceClimberTest {
 
-    private fun expectAST(input: String, expectedAST: Expr) {
+    private fun expectAst(input: String, expectedAST: AST.Expression) {
         val lexer = setupLexer(input)
         val res = runBlocking {
-            PrecedenceClimber(lexer.tokens()).parse()
+            Parser(lexer.tokens()).also { it.initialize() }.parseExpr()
         }
         assertEquals(expectedAST, res)
     }
@@ -45,63 +40,87 @@ internal class PrecedenceClimberTest {
 
     @Test
     fun testLeftAssoc() {
-        expectAST("1+2+3",
-            Expr.BinOp(Expr.BinOp(Expr.Literal(1),
-                Expr.Literal(2), BinOp.Add), Expr.Literal(3), BinOp.Add)
+        expectAst("1+2+3",
+            AST.BinaryExpression(AST.BinaryExpression(AST.LiteralExpression(1),
+                AST.LiteralExpression(2), AST.BinaryExpression.Operation.ADDITION),
+                AST.LiteralExpression(3),
+                AST.BinaryExpression.Operation.ADDITION)
         )
     }
 
     @Test
     fun testMultipleAssoc() {
-        expectAST("1+2*3",
-            Expr.BinOp(Expr.Literal(1), Expr.BinOp(Expr.Literal(2), Expr.Literal(3), BinOp.Mul), BinOp.Add)
+        expectAst("1+2*3",
+            AST.BinaryExpression(AST.LiteralExpression(1),
+                AST.BinaryExpression(AST.LiteralExpression(2),
+                    AST.LiteralExpression(3),
+                    AST.BinaryExpression.Operation.MULTIPLICATION),
+                AST.BinaryExpression.Operation.ADDITION)
         )
     }
 
     @Test
     fun testMultipleNested() {
-        expectAST(
+        expectAst(
             "1+2*3+4",
-            Expr.BinOp(
-                Expr.BinOp(
-                    Expr.Literal(1),
-                    Expr.BinOp(
-                        Expr.Literal(2),
-                        Expr.Literal(3),
-                        BinOp.Mul
+            AST.BinaryExpression(
+                AST.BinaryExpression(
+                    AST.LiteralExpression(1),
+                    AST.BinaryExpression(
+                        AST.LiteralExpression(2),
+                        AST.LiteralExpression(3),
+                        AST.BinaryExpression.Operation.MULTIPLICATION
                     ),
-                    BinOp.Add
+                    AST.BinaryExpression.Operation.ADDITION
                 ),
-                Expr.Literal(4),
-                BinOp.Add
+                AST.LiteralExpression(4),
+                AST.BinaryExpression.Operation.ADDITION
             )
         )
     }
 
     @Test
+    fun testAssignmentAssociativity() {
+        expectAst("2 = 3",
+            AST.BinaryExpression(AST.LiteralExpression(2),
+                AST.LiteralExpression(3),
+                AST.BinaryExpression.Operation.ASSIGNMENT))
+    }
+
+    @Test
+    fun testAssignmentAssociativityMultiple() {
+        expectAst("2 = 3 = 4",
+            AST.BinaryExpression(AST.LiteralExpression(2),
+                AST.BinaryExpression(AST.LiteralExpression(3),
+                    AST.LiteralExpression(4),
+                    AST.BinaryExpression.Operation.ASSIGNMENT),
+                AST.BinaryExpression.Operation.ASSIGNMENT))
+    }
+
+    @Test
     fun testDifferenceAssociativity() {
-        expectAST(
-            "2 + 3 ^ 2 ^ 2 * 3 + 4",
-            Expr.BinOp(
-                Expr.BinOp(
-                    Expr.Literal(2),
-                    Expr.BinOp(
-                        Expr.BinOp(
-                            Expr.Literal(3),
-                            Expr.BinOp(
-                                Expr.Literal(2),
-                                Expr.Literal(2),
-                                BinOp.Xor
+        expectAst(
+            "2 + (3 = 2 = 2) * 3 + 4",
+            AST.BinaryExpression(
+                AST.BinaryExpression(
+                    AST.LiteralExpression(2),
+                    AST.BinaryExpression(
+                        AST.BinaryExpression(
+                            AST.LiteralExpression(3),
+                            AST.BinaryExpression(
+                                AST.LiteralExpression(2),
+                                AST.LiteralExpression(2),
+                                AST.BinaryExpression.Operation.ASSIGNMENT
                             ),
-                            BinOp.Xor
+                            AST.BinaryExpression.Operation.ASSIGNMENT
                         ),
-                        Expr.Literal(3),
-                        BinOp.Mul
+                        AST.LiteralExpression(3),
+                        AST.BinaryExpression.Operation.MULTIPLICATION
                     ),
-                    BinOp.Add
+                    AST.BinaryExpression.Operation.ADDITION
                 ),
-                Expr.Literal(4),
-                BinOp.Add
+                AST.LiteralExpression(4),
+                AST.BinaryExpression.Operation.ADDITION
             )
         )
     }
