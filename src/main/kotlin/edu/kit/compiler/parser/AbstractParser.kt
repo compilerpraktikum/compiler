@@ -61,7 +61,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
      */
     protected suspend fun peek(offset: Int = 0) = lookaheadBuffer.peekFlow()
         .filter { it.isRelevantForSyntax }
-        .take(offset + 1).last()
+        .take(offset).last()
 
     suspend fun initialize() = coroutineScope {
         lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
