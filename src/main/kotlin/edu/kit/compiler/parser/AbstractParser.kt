@@ -60,7 +60,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
      */
     protected suspend fun peek(offset: Int = 0) = lookaheadBuffer.peekFlow()
         .filter { it.isRelevantForSyntax }
-        .take(offset).last()
+        .take(offset + 1).last()
 
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
