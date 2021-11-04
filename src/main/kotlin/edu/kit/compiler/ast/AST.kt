@@ -29,11 +29,11 @@ object AST {
      ** Class
      ************************************************/
 
-    class Program(
+    data class Program(
         val classes: List<ClassDeclaration>,
     )
 
-    class ClassDeclaration(
+    data class ClassDeclaration(
         val name: String,
         val member: List<ClassMember>,
     )
@@ -69,7 +69,7 @@ object AST {
         block
     )
 
-    class Parameter(
+    data class Parameter(
         val name: String,
         val type: Type,
     )
@@ -78,38 +78,38 @@ object AST {
      ** Statement
      ************************************************/
 
-    open class BlockStatement
+    sealed class BlockStatement
 
-    class LocalVariableDeclarationStatement(
+    data class LocalVariableDeclarationStatement(
         val name: String,
         val type: Type,
         val initializer: Expression?,
     ) : BlockStatement()
 
-    open class Statement : BlockStatement()
+    sealed class Statement : BlockStatement()
 
     object EmptyStatement : Statement()
 
-    class Block(
+    data class Block(
         val statements: List<BlockStatement>,
     ) : Statement()
 
-    class IfStatement(
+    data class IfStatement(
         val condition: Expression,
         val trueStatement: Statement,
         val falseStatement: Statement?,
     ) : Statement()
 
-    class WhileStatement(
+    data class WhileStatement(
         val condition: Expression,
         val statement: Statement,
     ) : Statement()
 
-    class ReturnStatement(
+    data class ReturnStatement(
         val expression: Expression?,
     ) : Statement()
 
-    class ExpressionStatement(
+    data class ExpressionStatement(
         val expression: Expression,
     ) : Statement()
 
@@ -117,9 +117,9 @@ object AST {
      ** Expression
      ************************************************/
 
-    open class Expression
+    sealed class Expression
 
-    open class BinaryExpression(
+    data class BinaryExpression(
         val left: Expression,
         val right: Expression,
         val operation: Operation
@@ -159,7 +159,7 @@ object AST {
         }
     }
 
-    class UnaryExpression(
+    data class UnaryExpression(
         val expression: Expression,
         val operation: Operation
     ) {
@@ -169,18 +169,18 @@ object AST {
         }
     }
 
-    class MethodInvocationExpression(
+    data class MethodInvocationExpression(
         val target: Expression?,
         val method: String,
         val arguments: List<Expression>
     ) : Expression()
 
-    class FieldAccessExpression(
+    data class FieldAccessExpression(
         val target: Expression,
         val field: String,
     ) : Expression()
 
-    class ArrayAccessExpression(
+    data class ArrayAccessExpression(
         val target: Expression,
         val index: Expression,
     ) : Expression()
@@ -189,19 +189,19 @@ object AST {
      ** Primary expression
      ************************************************/
 
-    class IdentifierExpression(
+    data class IdentifierExpression(
         val name: String,
     ) : Expression()
 
-    class LiteralExpression<T>(
+    data class LiteralExpression<T>(
         val value: T,
     ) : Expression()
 
-    class NewObjectExpression(
+    data class NewObjectExpression(
         val clazz: String,
     ) : Expression()
 
-    class NewArrayExpression(
+    data class NewArrayExpression(
         val type: Type.Array,
         val length: Expression,
     ) : Expression()
