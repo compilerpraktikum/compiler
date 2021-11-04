@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 private val Token.Operator.Type.asOp: PrecedenceClimber.BinOp?
     get() = when(this) {
-        Neq -> TODO()
+        NoEq -> TODO()
         Not -> TODO()
         LParen -> TODO()
         RParen -> TODO()
