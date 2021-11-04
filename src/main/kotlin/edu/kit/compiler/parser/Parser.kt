@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * @param lexer [AbstractLexer] implementation providing a flow of [edu.kit.compiler.Token]
  */
-class Parser(tokens: Flow<Token>) : AbstractParser<AST.Program>(tokens) {
+class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
@@ -21,8 +21,8 @@ class Parser(tokens: Flow<Token>) : AbstractParser<AST.Program>(tokens) {
         TODO("return constructProgramNode(classDeclarations)")
     }
 
-    private suspend fun parsePrimaryExpression() : AST.Expression =
-        when(val next = peek()) {
+    private suspend fun parsePrimaryExpression(): AST.Expression =
+        when (val next = peek()) {
             is Token.Literal -> {
                 next()
                 AST.LiteralExpression(next.value.toInt())
@@ -44,7 +44,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser<AST.Program>(tokens) {
             else -> throw IllegalArgumentException("unexpected token $next")
         }
 
-    suspend fun parseExpr(minPrecedence: Int = 1) : AST.Expression {
+    suspend fun parseExpr(minPrecedence: Int = 1): AST.Expression {
         var result = parsePrimaryExpression()
         var currentToken = peek()
 

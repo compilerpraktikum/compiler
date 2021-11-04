@@ -2,6 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.SourceCodeWindow
 import edu.kit.compiler.Token
+import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.AbstractLexer
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
@@ -21,7 +22,7 @@ private val Token.isRelevantForSyntax
  *
  * @param lexer [AbstractLexer] implementation providing a flow of [edu.kit.compiler.Token]
  */
-abstract class AbstractParser<T>(private val tokens: Flow<Token>) {
+abstract class AbstractParser(private val tokens: Flow<Token>) {
 
     /**
      * The lookahead buffer that provides the token stream and preloads tokens, when a lookahead is required
@@ -62,17 +63,15 @@ abstract class AbstractParser<T>(private val tokens: Flow<Token>) {
         .filter { it.isRelevantForSyntax }
         .take(offset + 1).last()
 
-
-    suspend fun initialize()  = coroutineScope {
+    suspend fun initialize() = coroutineScope {
         lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
         sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
-
     }
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
     @OptIn(FlowPreview::class)
-    suspend fun parse(): T = coroutineScope {
+    suspend fun parse(): AST.Program = coroutineScope {
         initialize()
 
         parseAST()
@@ -81,7 +80,7 @@ abstract class AbstractParser<T>(private val tokens: Flow<Token>) {
     /**
      * Construct the AST from the token stream
      */
-    protected abstract suspend fun parseAST(): T
+    protected abstract suspend fun parseAST(): AST.Program
 
     /**
      * Expect and return a token of type [T].

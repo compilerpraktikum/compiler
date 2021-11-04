@@ -1,11 +1,9 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.utils.setupLexer
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals

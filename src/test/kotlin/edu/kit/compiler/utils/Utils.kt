@@ -4,7 +4,6 @@ import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.LexerTest
 import edu.kit.compiler.lex.StringTable
 
 /**
@@ -23,7 +22,6 @@ class InlineInputProvider(private val input: String) : InputProvider {
         else BufferedInputProvider.END_OF_FILE
     }
 }
-
 
 fun setupLexer(input: String, fileName: String = "/path/to/file"): Lexer {
     val stringTable = StringTable().apply {
