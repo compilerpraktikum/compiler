@@ -1,7 +1,8 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.ast.ASTNode
+import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.AbstractLexer
 import kotlinx.coroutines.flow.Flow
 
@@ -11,16 +12,63 @@ import kotlinx.coroutines.flow.Flow
  *
  * @param lexer [AbstractLexer] implementation providing a flow of [edu.kit.compiler.Token]
  */
-class Parser(tokens: Flow<Token>) : AbstractParser<ASTNode>(tokens) {
+class Parser(tokens: Flow<Token>) : AbstractParser<AST.Program>(tokens) {
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
-    override suspend fun parseAST(): ASTNode {
+    override suspend fun parseAST(): AST.Program {
         val classDeclarations = parseClassDeclarations()
         TODO("return constructProgramNode(classDeclarations)")
     }
 
-    suspend fun parseClassDeclarations(): List<ASTNode> {
+    private suspend fun parsePrimaryExpression() : AST.Expression =
+        when(val next = peek()) {
+            is Token.Literal -> {
+                next()
+                AST.LiteralExpression(next.value.toInt())
+            }
+            is Token.Operator ->
+                if (next.type == Token.Operator.Type.LParen) {
+                    next()
+                    val innerExpr = parseExpr(1)
+                    val tokenAfterParens = this.next()
+                    if (tokenAfterParens is Token.Operator && tokenAfterParens.type == Token.Operator.Type.RParen) {
+                        innerExpr
+                    } else {
+                        // TODO proper error handling
+                        throw IllegalArgumentException("expected closing RPAREN")
+                    }
+                } else {
+                    throw IllegalArgumentException("unexpected operator: $next")
+                }
+            else -> throw IllegalArgumentException("unexpected token $next")
+        }
+
+    suspend fun parseExpr(minPrecedence: Int = 1) : AST.Expression {
+        var result = parsePrimaryExpression()
+        var currentToken = peek()
+
+        while (
+            currentToken is Token.Operator &&
+            (currentToken.type.toASTOperation()?.precedence?.let { it >= minPrecedence } == true)
+        ) {
+            val op = currentToken.type.toASTOperation()!!
+
+            next()
+
+            val rhs = parseExpr(
+                when (op.associativity) {
+                    AST.BinaryExpression.Operation.Associativity.LEFT -> op.precedence + 1
+                    else -> op.precedence
+                }
+            )
+            result = AST.BinaryExpression(result, rhs, op)
+            currentToken = peek()
+        }
+        return result
+    }
+
+    suspend fun parseClassDeclarations(): List<AST.ClassDeclaration> {
         while (peek(0) != Token.Eof) {
             expectKeyword(Token.Keyword.Type.Class)
             val ident = expect<Token.Identifier>()
@@ -36,7 +84,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser<ASTNode>(tokens) {
         return TODO()
     }
 
-    suspend fun parseClassMembers(): List<ASTNode> {
+    suspend fun parseClassMembers(): List<AST.ClassMember> {
         TODO()
     }
 

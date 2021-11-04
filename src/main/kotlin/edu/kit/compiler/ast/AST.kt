@@ -2,6 +2,8 @@
 
 package edu.kit.compiler.ast
 
+import edu.kit.compiler.Token
+
 sealed class Type {
     object Void : Type()
 
@@ -21,7 +23,7 @@ sealed class Type {
 /**
  * Sealed AST-Node class structure
  */
-sealed class Node {
+object AST {
 
     /************************************************
      ** Class
@@ -29,16 +31,16 @@ sealed class Node {
 
     class Program(
         val classes: List<ClassDeclaration>,
-    ) : Node()
+    )
 
     class ClassDeclaration(
         val name: String,
         val member: List<ClassMember>,
-    ) : Node()
+    )
 
-    open class ClassMember(
+    sealed class ClassMember(
         val name: String
-    ) : Node()
+    )
 
     class Field(
         name: String,
@@ -70,13 +72,13 @@ sealed class Node {
     class Parameter(
         val name: String,
         val type: Type,
-    ) : Node()
+    )
 
     /************************************************
      ** Statement
      ************************************************/
 
-    open class BlockStatement : Node()
+    open class BlockStatement
 
     class LocalVariableDeclarationStatement(
         val name: String,
@@ -115,54 +117,45 @@ sealed class Node {
      ** Expression
      ************************************************/
 
-    open class Expression : Node()
-
-    class AssignmentExpression(
-        val target: Expression, // TODO do we want the type to be Expression?
-        val expression: Expression,
-    ) : Expression()
+    open class Expression
 
     open class BinaryExpression(
         val left: Expression,
         val right: Expression,
-    ) : Expression()
-
-    class LogicalExpression(
-        left: Expression,
-        right: Expression,
         val operation: Operation
-    ) : BinaryExpression(left, right) {
-        enum class Operation {
-            OR,
-            AND,
-        }
-    }
+    ) : Expression() {
+        enum class Operation(
+            val precedence: Int,
+            val associativity: Associativity
+        ) {
+            ASSIGNMENT(1, Associativity.RIGHT),
 
-    class RelationalExpression(
-        left: Expression,
-        right: Expression,
-        val relation: Relation, // TODO maybe separate classes?
-    ) : BinaryExpression(left, right) {
-        enum class Relation {
-            EQUALS,
-            NOT_EQUALS,
-            LESS_THAN,
-            MORE_THAN,
-            LESS_EQUALS,
-            MORE_EQUALS,
-        }
-    }
+            // logical
+            OR(2, Associativity.LEFT),
 
-    class CalculationExpression(
-        left: Expression,
-        right: Expression,
-        val operation: Operation
-    ) : BinaryExpression(left, right) {
-        enum class Operation {
-            ADDITION,
-            SUBTRACTION,
-            MULTIPLICATION,
-            DIVISION,
+            AND(3, Associativity.LEFT),
+
+            // relational
+            EQUALS(4, Associativity.LEFT),
+            NOT_EQUALS(4, Associativity.LEFT),
+
+            LESS_THAN(5, Associativity.LEFT),
+            GREATER_THAN(5, Associativity.LEFT),
+            LESS_EQUALS(5, Associativity.LEFT),
+            GREATER_EQUALS(5, Associativity.LEFT),
+
+            // arithmetical
+            ADDITION(6, Associativity.LEFT),
+            SUBTRACTION(6, Associativity.LEFT),
+
+            MULTIPLICATION(7, Associativity.LEFT),
+            DIVISION(7, Associativity.LEFT),
+            MODULO(7, Associativity.LEFT);
+
+            enum class Associativity {
+                LEFT,
+                RIGHT,
+            }
         }
     }
 
@@ -212,4 +205,22 @@ sealed class Node {
         val type: Type.Array,
         val length: Expression,
     ) : Expression()
+}
+
+fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when (this) {
+    Token.Operator.Type.NoEq -> AST.BinaryExpression.Operation.NOT_EQUALS
+    Token.Operator.Type.Mul -> AST.BinaryExpression.Operation.MULTIPLICATION
+    Token.Operator.Type.Plus -> AST.BinaryExpression.Operation.ADDITION
+    Token.Operator.Type.Minus -> AST.BinaryExpression.Operation.SUBTRACTION
+    Token.Operator.Type.Div -> AST.BinaryExpression.Operation.DIVISION
+    Token.Operator.Type.LtEq -> AST.BinaryExpression.Operation.LESS_EQUALS
+    Token.Operator.Type.Lt -> AST.BinaryExpression.Operation.LESS_THAN
+    Token.Operator.Type.Eq -> AST.BinaryExpression.Operation.EQUALS
+    Token.Operator.Type.Assign -> AST.BinaryExpression.Operation.ASSIGNMENT
+    Token.Operator.Type.GtEq -> AST.BinaryExpression.Operation.GREATER_EQUALS
+    Token.Operator.Type.Gt -> AST.BinaryExpression.Operation.GREATER_THAN
+    Token.Operator.Type.Mod -> AST.BinaryExpression.Operation.MODULO
+    Token.Operator.Type.And -> AST.BinaryExpression.Operation.AND
+    Token.Operator.Type.Or -> AST.BinaryExpression.Operation.OR
+    else -> null
 }

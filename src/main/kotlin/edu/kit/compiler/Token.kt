@@ -41,7 +41,7 @@ sealed class Token {
     data class Operator(val type: Type) : Token() {
 
         enum class Type(val repr: String) {
-            Neq("!="),
+            NoEq("!="),
             Not("!"),
             LParen("("),
             RParen(")"),

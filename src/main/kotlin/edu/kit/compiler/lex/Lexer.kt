@@ -256,7 +256,7 @@ class Lexer(
         return when (peek()) {
             '=' -> {
                 next()
-                Token.Operator(Token.Operator.Type.Neq)
+                Token.Operator(Token.Operator.Type.NoEq)
             }
             else -> Token.Operator(Token.Operator.Type.Not)
         }
