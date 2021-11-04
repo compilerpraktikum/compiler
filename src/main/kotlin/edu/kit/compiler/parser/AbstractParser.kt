@@ -21,7 +21,7 @@ private val Token.isRelevantForSyntax
  *
  * @param lexer [AbstractLexer] implementation providing a flow of [edu.kit.compiler.Token]
  */
-abstract class AbstractParser(private val tokens: Flow<Token>) {
+abstract class AbstractParser<T>(private val tokens: Flow<Token>) {
 
     /**
      * The lookahead buffer that provides the token stream and preloads tokens, when a lookahead is required
@@ -66,7 +66,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
     @OptIn(FlowPreview::class)
-    suspend fun parse(): ASTNode = coroutineScope {
+    suspend fun parse(): T = coroutineScope {
         lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
         sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
 
@@ -76,7 +76,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
     /**
      * Construct the AST from the token stream
      */
-    protected abstract suspend fun parseAST(): ASTNode
+    protected abstract suspend fun parseAST(): T
 
     /**
      * Expect and return a token of type [T].
