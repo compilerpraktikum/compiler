@@ -62,6 +62,7 @@ internal class MixedParseTest {
             }
         )
     }
+
     @ExperimentalStdlibApi
     @Test
     fun testOneClassArrayField() {
@@ -82,6 +83,75 @@ internal class MixedParseTest {
                                 AST.Field(
                                     "myArray2",
                                     Type.Array(Type.Void)
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @ExperimentalStdlibApi
+    @Test
+    fun testOneClassMethod() {
+        expectAst(
+            "class testClass { public void nomain() {} }",
+            buildList<AST.ClassDeclaration> {
+                add(
+                    AST.ClassDeclaration(
+                        "testClass",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.Method(
+                                    "nomain",
+                                    Type.Void,
+                                    emptyList(),
+                                    AST.Block(
+                                        emptyList()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @ExperimentalStdlibApi
+    @Test
+    fun testOneMethodWithParams() {
+        expectAst(
+            "class testClass { public void nomain(boolean ident, myClass ident2) {} }",
+            buildList<AST.ClassDeclaration> {
+                add(
+                    AST.ClassDeclaration(
+                        "testClass",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.Method(
+                                    "nomain",
+                                    Type.Void,
+                                    buildList<AST.Parameter> {
+                                        add(
+                                            AST.Parameter(
+                                                "ident",
+                                                Type.Boolean
+                                            )
+                                        )
+                                        add(
+                                            AST.Parameter(
+                                                "ident2",
+                                                Type.ClassType(
+                                                    "myClass"
+                                                )
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        emptyList()
+                                    )
                                 )
                             )
                         }

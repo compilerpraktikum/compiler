@@ -147,18 +147,77 @@ class Parser(tokens: Flow<Token>) : AbstractParser<ASTNode>(tokens) {
     }
     suspend fun parseMethod(ident: Token.Identifier, type: Type): AST.Method {
         expectOperator(Token.Operator.Type.LParen)
-        TODO("Parse parameters, RParen, MethodRest, Block")
-//        return AST.Method(
-//            ident.name,
-//            type
-//        )
+        val maybeRParenToken = peek(0)
+        val parameters = if (!(maybeRParenToken is Token.Operator && maybeRParenToken.type == Token.Operator.Type.RParen)) {
+            parseParameters()
+        } else emptyList()
+        expectOperator(Token.Operator.Type.RParen)
+
+        val maybeThrowsToken = peek(0)
+        if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+            parseMethodRest()
+        }
+        val block = parseBlock()
+        return AST.Method(
+            ident.name,
+            type,
+            parameters,
+            block
+        )
+    }
+
+    suspend fun parseBlock(): AST.Block {
+        expectOperator(Token.Operator.Type.LeftBrace)
+
+        val maybeRightBrace = peek(0)
+        val resultBlock = AST.Block(
+            if (!(maybeRightBrace is Token.Operator && maybeRightBrace.type == Token.Operator.Type.RightBrace)) {
+                parseBlockStatements()
+            } else emptyList()
+        )
+
+        expectOperator(Token.Operator.Type.RightBrace)
+        return resultBlock
+    }
+
+    suspend fun parseBlockStatements(): List<AST.BlockStatement> {
+        // at least one should exist at this point.
+        TODO("Implement ParseBlockStatements()")
+    }
+
+    /**
+     * TODO this can be ignored since we dont handle exceptions semantically?
+     */
+    suspend fun parseMethodRest() {
+        expectKeyword(Token.Keyword.Type.Throws)
+        expectIdentifier()
+    }
+
+    suspend fun parseParameters(): List<AST.Parameter> {
+
+        return buildList<AST.Parameter> {
+            add(parseParameter())
+            var maybeCommaToken = peek(0)
+            while (maybeCommaToken is Token.Operator && maybeCommaToken.type == Token.Operator.Type.Comma) {
+                expectOperator(Token.Operator.Type.Comma) // never fails
+                add(parseParameter())
+                maybeCommaToken = peek(0)
+            }
+        }
+    }
+
+    suspend fun parseParameter(): AST.Parameter {
+        val type = parseType()
+        val ident = expectIdentifier()
+        return AST.Parameter(
+            ident.name,
+            type
+        )
     }
 
     suspend fun parseType(): Type {
         val basicType = parseBasicType()
-        // TODO parse not only basic types!
         val maybeLeftBracket = peek(0)
-        print("DEBUG parseType")
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
             print(basicType)
             return parseTypeArrayRecurse(basicType)
@@ -169,8 +228,6 @@ class Parser(tokens: Flow<Token>) : AbstractParser<ASTNode>(tokens) {
     suspend fun parseTypeArrayRecurse(basicType: Type): Type {
         expectOperator(Token.Operator.Type.LeftBracket)
         expectOperator(Token.Operator.Type.RightBracket)
-        print("[]")
-
         val maybeAnotherLBracket = peek(0)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             Type.Array(parseTypeArrayRecurse(basicType))

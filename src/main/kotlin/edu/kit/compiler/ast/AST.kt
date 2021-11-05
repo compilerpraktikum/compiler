@@ -21,7 +21,11 @@ sealed class Type {
 
     class ClassType(
         val identifier: String
-    ) : Type()
+    ) : Type() {
+        override fun equals(other: Any?): kotlin.Boolean {
+            return other is Type.ClassType && identifier.equals(other.identifier)
+        }
+    }
 }
 
 /**
@@ -61,7 +65,15 @@ object AST {
         val parameters: List<Parameter>,
         // TODO MethodRest,
         val block: Block,
-    ) : ClassMember(name)
+    ) : ClassMember(name) {
+        override fun equals(other: Any?): kotlin.Boolean {
+            return other is Method
+                && name.equals(other.name)
+                && returnType.equals(other.returnType)
+                && parameters.equals(other.parameters)
+                && block.equals(other.block)
+        }
+    }
 
     class MainMethod(
         block: Block,
@@ -80,7 +92,14 @@ object AST {
     data class Parameter(
         val name: String,
         val type: Type,
-    )
+    ) {
+
+        override fun equals(other: Any?): kotlin.Boolean {
+            return other is Parameter
+                && name.equals(other.name)
+                && type.equals(other.type)
+        }
+    }
 
     /************************************************
      ** Statement
@@ -100,7 +119,12 @@ object AST {
 
     data class Block(
         val statements: List<BlockStatement>,
-    ) : Statement()
+    ) : Statement() {
+
+        override fun equals(other: Any?): kotlin.Boolean {
+            return other is Block && statements.equals(other.statements)
+        }
+    }
 
     data class IfStatement(
         val condition: Expression,
