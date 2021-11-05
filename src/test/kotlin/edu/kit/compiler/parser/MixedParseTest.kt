@@ -2,7 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
-import edu.kit.compiler.utils.setupLexer
+import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -11,7 +11,7 @@ internal class MixedParseTest {
 
     @ExperimentalStdlibApi
     private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) {
-        val lexer = setupLexer(input)
+        val lexer = createLexer(input)
         val res = runBlocking {
             Parser(lexer.tokens()).also { it.initialize() }.parseClassDeclarations()
         }

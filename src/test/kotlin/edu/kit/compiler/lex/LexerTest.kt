@@ -1,6 +1,7 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
