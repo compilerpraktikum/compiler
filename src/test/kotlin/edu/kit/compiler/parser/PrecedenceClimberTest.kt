@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
+@ExperimentalStdlibApi
 internal class PrecedenceClimberTest {
 
     private fun expectAst(input: String, expectedAST: AST.Expression) {

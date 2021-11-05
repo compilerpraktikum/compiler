@@ -13,7 +13,11 @@ sealed class Type {
 
     class Array(
         val elementType: Type
-    ) : Type()
+    ) : Type() {
+        override fun equals(other: Any?): kotlin.Boolean {
+            return other is Type.Array && elementType.equals(other.elementType)
+        }
+    }
 
     class ClassType(
         val identifier: String
@@ -45,7 +49,11 @@ object AST {
     class Field(
         name: String,
         val type: Type,
-    ) : ClassMember(name)
+    ) : ClassMember(name) {
+        override fun equals(other: Any?): Boolean {
+            return other is Field && name.equals(other.name) && type.equals(other.type)
+        }
+    }
 
     open class Method(
         name: String,
