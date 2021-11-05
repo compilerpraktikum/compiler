@@ -119,7 +119,28 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
     }
 
     suspend fun parseMainMethod(): AST.MainMethod {
-        TODO()
+        expectKeyword(Token.Keyword.Type.Static)
+        expectKeyword(Token.Keyword.Type.Void)
+
+        val ident = expectIdentifier()
+
+        expectOperator(Token.Operator.Type.LParen)
+        val parameter = parseParameter()
+        expectOperator(Token.Operator.Type.RParen)
+
+        val maybeThrowsToken = peek(0)
+        if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+            parseMethodRest()
+        }
+
+        val block = parseBlock()
+        return AST.MainMethod(
+            ident.name,
+            Type.Void,
+            listOf(parameter),
+            block
+        )
+
     }
 
     suspend fun parseFieldMethodPrefix(): AST.ClassMember {

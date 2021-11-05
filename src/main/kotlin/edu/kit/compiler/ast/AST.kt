@@ -53,8 +53,14 @@ object AST {
         val throwException: Token.Identifier? = null,
     ) : ClassMember()
 
-    class MainMethod(
-        block: Block,
+    data class MainMethod(
+        // we need not only block but the rest too, for in semantical analysis we need to check exact match on
+        // "public static void main(String[] $SOMEIDENTIFIER)"
+        val name: String,
+        val returnType: Type,
+        val parameters: List<Parameter>,
+        val block: Block,
+        val throwException: Token.Identifier? = null,
     ) : ClassMember()
 
     data class Parameter(

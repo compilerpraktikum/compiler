@@ -160,4 +160,38 @@ internal class MixedParseTest {
             }
         )
     }
+
+    @ExperimentalStdlibApi
+    @Test
+    fun testOneMethodOneMainMethod() {
+        expectAst(
+            "class testClass { public static void mymain(Strig[][] arr ) {} }",
+            buildList<AST.ClassDeclaration> {
+                add(
+                    AST.ClassDeclaration(
+                        "testClass",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "mymain",
+                                    Type.Void,
+                                    buildList<AST.Parameter> {
+                                        add(
+                                            AST.Parameter(
+                                                "arr",
+                                                Type.Array(Type.Array(Type.ClassType("Strig")))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        emptyList()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
 }
