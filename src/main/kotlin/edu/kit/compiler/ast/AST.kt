@@ -11,21 +11,13 @@ sealed class Type {
 
     object Boolean : Type()
 
-    class Array(
+    data class Array(
         val elementType: Type
-    ) : Type() {
-        override fun equals(other: Any?): kotlin.Boolean {
-            return other is Type.Array && elementType.equals(other.elementType)
-        }
-    }
+    ) : Type()
 
-    class ClassType(
+    data class ClassType(
         val identifier: String
-    ) : Type() {
-        override fun equals(other: Any?): kotlin.Boolean {
-            return other is Type.ClassType && identifier.equals(other.identifier)
-        }
-    }
+    ) : Type()
 }
 
 /**
@@ -46,59 +38,29 @@ object AST {
         val member: List<ClassMember>,
     )
 
-    sealed class ClassMember(
-        val name: String
-    )
+    sealed class ClassMember
 
-    class Field(
-        name: String,
+    data class Field(
+        val name: String,
         val type: Type,
-    ) : ClassMember(name) {
-        override fun equals(other: Any?): Boolean {
-            return other is Field && name.equals(other.name) && type.equals(other.type)
-        }
-    }
+    ) : ClassMember()
 
-    open class Method(
-        name: String,
+    data class Method(
+        val name: String,
         val returnType: Type,
         val parameters: List<Parameter>,
-        // TODO MethodRest,
         val block: Block,
-    ) : ClassMember(name) {
-        override fun equals(other: Any?): kotlin.Boolean {
-            return other is Method &&
-                name.equals(other.name) &&
-                returnType.equals(other.returnType) &&
-                parameters.equals(other.parameters) &&
-                block.equals(other.block)
-        }
-    }
+        val throwException: Token.Identifier? = null,
+    ) : ClassMember()
 
     class MainMethod(
         block: Block,
-    ) : Method(
-        "main",
-        Type.Void,
-        listOf(
-            Parameter(
-                "args", // TODO argument name constant? -> doesn't matter, because it cannot be used
-                Type.Array(Type.ClassType("String"))
-            )
-        ),
-        block
-    )
+    ) : ClassMember()
 
     data class Parameter(
         val name: String,
         val type: Type,
-    ) {
-
-        override fun equals(other: Any?): kotlin.Boolean {
-            return other is Parameter &&
-                name.equals(other.name) && type.equals(other.type)
-        }
-    }
+    )
 
     /************************************************
      ** Statement
@@ -118,12 +80,7 @@ object AST {
 
     data class Block(
         val statements: List<BlockStatement>,
-    ) : Statement() {
-
-        override fun equals(other: Any?): kotlin.Boolean {
-            return other is Block && statements.equals(other.statements)
-        }
-    }
+    ) : Statement()
 
     data class IfStatement(
         val condition: Expression,
