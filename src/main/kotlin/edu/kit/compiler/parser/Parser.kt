@@ -140,7 +140,6 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             listOf(parameter),
             block
         )
-
     }
 
     suspend fun parseFieldMethodPrefix(): AST.ClassMember {
