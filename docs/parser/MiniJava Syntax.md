@@ -32,7 +32,7 @@ $BlockStatement$                    | $\to$ | $Statement$ $\|$ $LocalVariableDec
 $LocalVariableDeclarationStatement$ | $\to$ | $Type$ **`IDENT`** $($ **`=`** $Expression )?$ **`;`**
 $EmptyStatement$                    | $\to$ | **`;`**
 $WhileStatement$                    | $\to$ | **`while (`** $Expression$ **`)`** $Statement$
-$IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)?    $ 
+$IfStatement$                       | $\to$ | **`if (`** $Expression$ **`)`** $Statement$ $($ **`else`** $Statement$ $)?    $
 $ExpressionStatement$               | $\to$ | $Expression$ **`;`**
 $ReturnStatement$                   | $\to$ | **`return`** $Expression ?$ **`;`**
 $ $                                 | $ $   | $ $
@@ -58,7 +58,7 @@ $PrimaryExpression$                 | $\to$ | **`null`** <br/>$\|$ **`false`** <
 **Name**                            | **Token(s)**                                      | *Precedence* | *Associativity*
 :---                                |:---                                               | :---         | :---
 $Assignment$                        | **`=`**                                           | $1$          | Right to Left
-$LogicalOr$                         | **`\|\|`**                                        | $2$          | Left to Right
+$LogicalOr$                         | **`||`**                                          | $2$          | Left to Right
 $LogicalAnd$                        | **`&&`**                                          | $3$          | Left to Right
 $Equality$                          | **`==`** $\|$ **`!=`**                            | $4$          | Left to Right
 $Relational$                        | **`<`** $\|$ **`<=`** $\|$ **`>`** $\|$ **`>=`**  | $5$          | Left to Right
@@ -75,8 +75,8 @@ $ $                                 | $ $   | $ $
 ---:                                | :---: |:---
 $First_2(Programm)$ | $=$ | $First_2(ClassDeclaration)$*
 $First_2(ClassDeclaration)$ | $=$ | $\{$ **`class IDENT`** $\}$
-$First_2(ClassMember)$ | $=$ | $\{$ **`public`** $\} \times_2 First_2(MethodPrefix)$ 
-$First_2(MethodPrefix)$ | $=$ | $First_2(FieldMethodPrefix) \cup First_2(MainMethod)$ 
+$First_2(ClassMember)$ | $=$ | $\{$ **`public`** $\} \times_2 First_2(MethodPrefix)$
+$First_2(MethodPrefix)$ | $=$ | $First_2(FieldMethodPrefix) \cup First_2(MainMethod)$
 $First_2(FieldMethodPrefix)$ | $=$ | $First_2(Type) \times_2 \{$ **`IDENT`** $\}$
 $First_2(FieldMethodRest)$ | $=$ | $First_2(Field) \cup First_2(Method)$
 $First_2(Field)$ | $=$ | $\{$ **`;#`** $\}$
