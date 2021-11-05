@@ -23,7 +23,7 @@ class InlineInputProvider(private val input: String) : InputProvider {
     }
 }
 
-fun setupLexer(input: String, fileName: String = "/path/to/file"): Lexer {
+fun createLexer(input: String, fileName: String = "/path/to/file"): Lexer {
     val stringTable = StringTable().apply {
         initializeKeywords()
     }

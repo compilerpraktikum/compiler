@@ -1,7 +1,7 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.utils.setupLexer
+import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Ignore
@@ -187,10 +187,9 @@ internal class LexerTest {
      * Parse an input string and assert the exact resulting token sequence matches a given sequence
      */
     private fun expectTokenSequence(input: String, expectedTokens: List<Token>, measureDuration: Boolean = false) {
-
         val start = System.currentTimeMillis()
         val tokens = runBlocking {
-            setupLexer(input).tokens().toCollection(mutableListOf())
+            createLexer(input).tokens().toCollection(mutableListOf())
         }
         val duration = System.currentTimeMillis() - start
 
