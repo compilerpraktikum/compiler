@@ -11,11 +11,11 @@ sealed class Type {
 
     object Boolean : Type()
 
-    class Array(
+    data class Array(
         val elementType: Type
     ) : Type()
 
-    class ClassType(
+    data class ClassType(
         val identifier: String
     ) : Type()
 }
@@ -38,36 +38,24 @@ object AST {
         val member: List<ClassMember>,
     )
 
-    sealed class ClassMember(
-        val name: String
-    )
+    sealed class ClassMember
 
-    class Field(
-        name: String,
+    data class Field(
+        val name: String,
         val type: Type,
-    ) : ClassMember(name)
+    ) : ClassMember()
 
-    open class Method(
-        name: String,
+    data class Method(
+        val name: String,
         val returnType: Type,
         val parameters: List<Parameter>,
-        // TODO MethodRest,
         val block: Block,
-    ) : ClassMember(name)
+        val throwException: Token.Identifier? = null,
+    ) : ClassMember()
 
     class MainMethod(
         block: Block,
-    ) : Method(
-        "main",
-        Type.Void,
-        listOf(
-            Parameter(
-                "args", // TODO argument name constant? -> doesn't matter, because it cannot be used
-                Type.Array(Type.ClassType("String"))
-            )
-        ),
-        block
-    )
+    ) : ClassMember()
 
     data class Parameter(
         val name: String,

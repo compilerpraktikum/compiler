@@ -2,6 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.AbstractLexer
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +13,9 @@ import kotlinx.coroutines.flow.Flow
  *
  * @param lexer [AbstractLexer] implementation providing a flow of [edu.kit.compiler.Token]
  */
+@ExperimentalStdlibApi
 class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
+
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
@@ -69,23 +72,183 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
     }
 
     suspend fun parseClassDeclarations(): List<AST.ClassDeclaration> {
-        while (peek(0) != Token.Eof) {
-            expectKeyword(Token.Keyword.Type.Class)
-            val ident = expect<Token.Identifier>()
-            expectOperator(Token.Operator.Type.LeftBrace)
-            val classMembers = parseClassMembers()
-            expectOperator(Token.Operator.Type.RightBrace)
+        return buildList<AST.ClassDeclaration> {
+            while (peek(0) != Token.Eof) {
+                expectKeyword(Token.Keyword.Type.Class)
+                val ident = expect<Token.Identifier>()
+                expectOperator(Token.Operator.Type.LeftBrace)
+                val classMembers = parseClassMembers()
+                expectOperator(Token.Operator.Type.RightBrace)
 
-            // val classNode constructClassNode(ident, classMembers)
+                add(AST.ClassDeclaration(ident.name, classMembers))
+                // val classNode constructClassNode(ident, classMembers)
+            }
+            expect<Token.Eof>()
         }
-
-        expect<Token.Eof>()
-
-        return TODO()
     }
 
     suspend fun parseClassMembers(): List<AST.ClassMember> {
+        return buildList<AST.ClassMember> {
+            var peeked = peek(0)
+            while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
+                add(parseClassMember())
+                peeked = peek(0)
+            }
+        }
+    }
+
+    suspend fun parseClassMember(): AST.ClassMember {
+        println("DEBUG parseClassMember: PEEK(0) " + peek(0))
+        expectKeyword(Token.Keyword.Type.Public)
+        val token = peek(0)
+
+        return when (token) {
+            is Token.Keyword -> {
+                return when (token.type) {
+                    Token.Keyword.Type.Static -> parseMainMethod()
+                    Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void, ->
+                        parseFieldMethodPrefix()
+                    else -> enterPanicMode() // todo right?
+                }
+            }
+            is Token.Identifier -> {
+                parseFieldMethodPrefix()
+            }
+            else -> enterPanicMode() // todo right?
+        }
+    }
+
+    suspend fun parseMainMethod(): AST.MainMethod {
         TODO()
+    }
+
+    suspend fun parseFieldMethodPrefix(): AST.ClassMember {
+        val type = parseType()
+        val ident = expectIdentifier()
+        val fieldMethodRestToken = peek(0)
+        return when (fieldMethodRestToken) {
+            is Token.Operator -> {
+                when (fieldMethodRestToken.type) {
+                    Token.Operator.Type.Semicolon -> parseField(ident, type)
+                    Token.Operator.Type.LParen -> parseMethod(ident, type)
+                    else -> enterPanicMode() // todo right?
+                }
+            }
+            else -> enterPanicMode() // todo right?
+        }
+    }
+
+    suspend fun parseField(ident: Token.Identifier, type: Type): AST.Field {
+        expectOperator(Token.Operator.Type.Semicolon)
+        return AST.Field(
+            ident.name,
+            type
+        )
+    }
+    suspend fun parseMethod(ident: Token.Identifier, type: Type): AST.Method {
+        expectOperator(Token.Operator.Type.LParen)
+        val maybeRParenToken = peek(0)
+        val parameters = if (!(maybeRParenToken is Token.Operator && maybeRParenToken.type == Token.Operator.Type.RParen)) {
+            parseParameters()
+        } else emptyList()
+        expectOperator(Token.Operator.Type.RParen)
+
+        val maybeThrowsToken = peek(0)
+        if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+            parseMethodRest()
+        }
+        val block = parseBlock()
+        return AST.Method(
+            ident.name,
+            type,
+            parameters,
+            block
+        )
+    }
+
+    suspend fun parseBlock(): AST.Block {
+        expectOperator(Token.Operator.Type.LeftBrace)
+
+        val maybeRightBrace = peek(0)
+        val resultBlock = AST.Block(
+            if (!(maybeRightBrace is Token.Operator && maybeRightBrace.type == Token.Operator.Type.RightBrace)) {
+                parseBlockStatements()
+            } else emptyList()
+        )
+
+        expectOperator(Token.Operator.Type.RightBrace)
+        return resultBlock
+    }
+
+    suspend fun parseBlockStatements(): List<AST.BlockStatement> {
+        // at least one should exist at this point.
+        TODO("Implement ParseBlockStatements()")
+    }
+
+    /**
+     * TODO this can be ignored since we dont handle exceptions semantically?
+     */
+    suspend fun parseMethodRest() {
+        expectKeyword(Token.Keyword.Type.Throws)
+        expectIdentifier()
+    }
+
+    suspend fun parseParameters(): List<AST.Parameter> {
+
+        return buildList<AST.Parameter> {
+            add(parseParameter())
+            var maybeCommaToken = peek(0)
+            while (maybeCommaToken is Token.Operator && maybeCommaToken.type == Token.Operator.Type.Comma) {
+                expectOperator(Token.Operator.Type.Comma) // never fails
+                add(parseParameter())
+                maybeCommaToken = peek(0)
+            }
+        }
+    }
+
+    suspend fun parseParameter(): AST.Parameter {
+        val type = parseType()
+        val ident = expectIdentifier()
+        return AST.Parameter(
+            ident.name,
+            type
+        )
+    }
+
+    suspend fun parseType(): Type {
+        val basicType = parseBasicType()
+        val maybeLeftBracket = peek(0)
+        if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
+            print(basicType)
+            return parseTypeArrayRecurse(basicType)
+        }
+        return basicType
+    }
+
+    suspend fun parseTypeArrayRecurse(basicType: Type): Type {
+        expectOperator(Token.Operator.Type.LeftBracket)
+        expectOperator(Token.Operator.Type.RightBracket)
+        val maybeAnotherLBracket = peek(0)
+        return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
+            Type.Array(parseTypeArrayRecurse(basicType))
+        } else Type.Array(basicType)
+    }
+
+    suspend fun parseBasicType(): Type {
+        return when (val typeToken = next()) {
+            is Token.Keyword -> {
+                when (typeToken.type) {
+                    Token.Keyword.Type.Int -> Type.Integer
+                    Token.Keyword.Type.Boolean -> Type.Boolean
+                    Token.Keyword.Type.Void -> Type.Void
+                    else -> enterPanicMode()
+                }
+            }
+            is Token.Identifier -> {
+                Type.ClassType(typeToken.name)
+            }
+            else -> enterPanicMode()
+        }
     }
 
     private suspend inline fun expectOperator(type: Token.Operator.Type): Token.Operator {
@@ -97,6 +260,13 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             return token
         else
             enterPanicMode()
+    }
+
+    private suspend inline fun expectIdentifier(): Token.Identifier {
+        val token = next()
+        if (token !is Token.Identifier)
+            enterPanicMode()
+        return token
     }
 
     private suspend inline fun expectKeyword(type: Token.Keyword.Type): Token.Keyword {
