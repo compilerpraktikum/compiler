@@ -67,11 +67,11 @@ object AST {
         val block: Block,
     ) : ClassMember(name) {
         override fun equals(other: Any?): kotlin.Boolean {
-            return other is Method
-                && name.equals(other.name)
-                && returnType.equals(other.returnType)
-                && parameters.equals(other.parameters)
-                && block.equals(other.block)
+            return other is Method &&
+                name.equals(other.name) &&
+                returnType.equals(other.returnType) &&
+                parameters.equals(other.parameters) &&
+                block.equals(other.block)
         }
     }
 
@@ -95,9 +95,8 @@ object AST {
     ) {
 
         override fun equals(other: Any?): kotlin.Boolean {
-            return other is Parameter
-                && name.equals(other.name)
-                && type.equals(other.type)
+            return other is Parameter &&
+                name.equals(other.name) && type.equals(other.type)
         }
     }
 
