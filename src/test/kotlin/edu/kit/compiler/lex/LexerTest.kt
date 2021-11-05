@@ -1,49 +1,15 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.initializeKeywords
+import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 internal class LexerTest {
-
-    /**
-     * An input provider sourcing its input from a fixed string
-     */
-    private object FixedInputProvider : InputProvider {
-        var input: String = ""
-            set(value) {
-                cursor = 0
-                field = value
-            }
-
-        private var cursor: Int = 0
-
-        override suspend fun peek(offset: Int): Char {
-            return if ((cursor + offset) < input.length) input[cursor + offset]
-            else BufferedInputProvider.END_OF_FILE
-        }
-
-        override suspend fun nextChar(): Char {
-            return if (cursor < input.length) input[cursor++]
-            else BufferedInputProvider.END_OF_FILE
-        }
-    }
-
-    private lateinit var lexer: Lexer
-
-    @BeforeEach
-    internal fun setUp() {
-        val stringTable = StringTable().apply {
-            initializeKeywords()
-        }
-        lexer = Lexer("/path/to/file", FixedInputProvider, stringTable)
-    }
 
     @Test
     fun testNoInput() {
@@ -221,11 +187,9 @@ internal class LexerTest {
      * Parse an input string and assert the exact resulting token sequence matches a given sequence
      */
     private fun expectTokenSequence(input: String, expectedTokens: List<Token>, measureDuration: Boolean = false) {
-        FixedInputProvider.input = input
-
         val start = System.currentTimeMillis()
         val tokens = runBlocking {
-            lexer.tokens().toCollection(mutableListOf())
+            createLexer(input).tokens().toCollection(mutableListOf())
         }
         val duration = System.currentTimeMillis() - start
 

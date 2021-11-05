@@ -2,6 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.SourceCodeWindow
 import edu.kit.compiler.Token
+import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.AbstractLexer
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
@@ -62,21 +63,24 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         .filter { it.isRelevantForSyntax }
         .take(offset + 1).last()
 
+    suspend fun initialize() = coroutineScope {
+        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
+        sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
+    }
     /**
      * Parse the lexer stream into an AST. Suspends when the lexer isn't fast enough.
      */
     @OptIn(FlowPreview::class)
-    suspend fun parse(): ASTNode = coroutineScope {
-        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
-        sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
+    suspend fun parse(): AST.Program = coroutineScope {
+        initialize()
 
-        return@coroutineScope parseAST()
+        parseAST()
     }
 
     /**
      * Construct the AST from the token stream
      */
-    protected abstract suspend fun parseAST(): ASTNode
+    protected abstract suspend fun parseAST(): AST.Program
 
     /**
      * Expect and return a token of type [T].
