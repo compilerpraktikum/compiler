@@ -23,7 +23,7 @@ $MethodRest$                        | $\to$ | **`throws IDENT`**
 <span style="color:green">++</span>$Parameters$ | $\to$ | $Parameter$ $($ **`,`** $Parameter$ $)*$
 $Parameter$                         | $\to$ | $Type$ **`IDENT`**
 <span style="color:red">--</span>$Type$ | $\to$ | $Type$ **`[ ]`** $\|$ $BasicType$
-<span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $($ **`[ ]`** $BasicType$ $)*$
+<span style="color:green">++</span>$Type$ | $\to$ | $BasicType$ $($ **`[ ]`** $)*$
 $BasicType$                         | $\to$ | **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`**
 $ $                                 | $ $   | $ $
 $Statement$                         | $\to$ | $Block$ <br/>$\|$ $EmptyStatement$ <br/>$\|$ $IfStatement$ <br/>$\|$ $ExpressionStatement$ <br/>$\|$ $WhileStatement$ <br/>$\|$ $ReturnStatement$
