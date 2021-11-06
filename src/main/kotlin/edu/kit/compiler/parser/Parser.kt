@@ -69,6 +69,16 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             }
             else -> throw IllegalArgumentException("unexpected token $next")
         }
+    suspend fun parseArguments(): List<AST.Expression> {
+        val arguments = mutableListOf<AST.Expression>()
+        var nextToken = peek()
+        while (!(nextToken is Token.Operator && nextToken.type == Token.Operator.Type.RParen)) {
+            if (arguments.isNotEmpty()) expectOperator(Token.Operator.Type.Comma)
+            arguments += parseExpression()
+            nextToken = peek()
+        }
+        return arguments
+    }
 
     suspend fun parseExpression(minPrecedence: Int = 1): AST.Expression {
         var result = parsePrimaryExpression()
@@ -454,19 +464,25 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
 
     private suspend inline fun expectOperator(type: Token.Operator.Type): Token.Operator {
         val token = next()
-        if (token !is Token.Operator)
+        if (token !is Token.Operator) {
+            println("expected operator, but got $token")
             enterPanicMode()
+        }
 
         if (token.type == type)
             return token
-        else
+        else {
+            println("expected operator $type, but got $token")
             enterPanicMode()
+        }
     }
 
     private suspend inline fun expectIdentifier(): Token.Identifier {
         val token = next()
-        if (token !is Token.Identifier)
+        if (token !is Token.Identifier) {
+            println("expected identifier, but found $token")
             enterPanicMode()
+        }
         return token
     }
 

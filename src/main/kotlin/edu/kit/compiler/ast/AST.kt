@@ -3,6 +3,7 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
+import javax.swing.plaf.nimbus.State
 
 sealed class Type {
     object Void : Type()
@@ -218,3 +219,34 @@ fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when
     Token.Operator.Type.Or -> AST.BinaryExpression.Operation.OR
     else -> null
 }
+
+abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
+
+class ClassDeclarationDsl(res: MutableList<AST.ClassDeclaration> = mutableListOf()) : AstDsl<AST.ClassDeclaration>(res) {
+    fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
+        val members = ClassMemberDsl().also { it.block() }
+        this.res.add(AST.ClassDeclaration(name, members.res))
+    }
+}
+
+class ClassMemberDsl(res: MutableList<AST.ClassMember> = mutableListOf()) : AstDsl<AST.ClassMember>(res) {
+    fun method(name: String, returnType: Type, parameters: List<AST.Parameter>, throws: String? = null, block: StatementsDsl.() -> Unit) {
+        this.res.add(AST.Method(name, returnType, parameters, AST.Block(StatementsDsl().also(block).res), if (throws == null) { null } else { Token.Identifier(throws) }))
+    }
+}
+
+object ExprDsl {
+    fun <T> literal(v: T) = AST.LiteralExpression(v)
+    fun binOp(op: AST.BinaryExpression.Operation, left: ExprDsl.() -> AST.Expression, right: ExprDsl.() -> AST.Expression) =
+        AST.BinaryExpression(ExprDsl.left(), ExprDsl.right(), op)
+}
+
+class StatementsDsl(val res: MutableList<AST.Statement> = mutableListOf()) {
+    fun emptyStatement() = res.add(AST.EmptyStatement)
+    fun block(b: StatementsDsl.() -> Unit) {
+        res.add(AST.Block(StatementsDsl().also(b).res))
+    }
+}
+
+fun astOf(block: ClassDeclarationDsl.() -> Unit) =
+    ClassDeclarationDsl().also(block).res
