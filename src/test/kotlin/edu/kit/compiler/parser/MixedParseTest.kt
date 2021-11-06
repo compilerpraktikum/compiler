@@ -219,6 +219,63 @@ internal class MixedParseTest {
     ) { parseAST() }
 
     @Test
+    fun debugParserMJTest_5() = expectNode(
+        """
+        class Foo {
+            public static void main(String[] args) {
+                /*
+                - -a;
+                -(-a);
+                -(-(a));
+
+                !a;
+                !(!a);
+                */
+
+                !!a;
+                !!!!a;
+                -!!!!a;
+
+
+
+                /*
+                */
+            }
+
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.IfStatement(
+                                        AST.LiteralExpression(true),
+                                        AST.ExpressionStatement(
+                                            AST.BinaryExpression(
+                                                AST.IdentifierExpression("x"),
+                                                AST.LiteralExpression("3"),
+                                                AST.BinaryExpression.Operation.ASSIGNMENT
+                                            )
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+    @Test
     fun debugParserMJTest_1() = expectNode(
         """ /* OK */
 

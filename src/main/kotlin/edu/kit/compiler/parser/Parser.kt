@@ -29,15 +29,23 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return when (val next = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(next.value)       //TODO we should further specify ""type""
+                AST.LiteralExpression(next.value) // TODO we should further specify ""type""
             }
             is Token.Operator -> {
-                println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
+                println(
+                    "        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(
+                        2
+                    )
+                )
                 if (next.type == Token.Operator.Type.LParen) {
                     next()
                     val innerExpr = parseExpression(1)
                     println("        debug in parsePrimaryExpression.TokenOperator: innerExpr=$innerExpr")
-                    println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
+                    println(
+                        "        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(
+                            2
+                        )
+                    )
                     val tokenAfterParens = this.next()
                     if (tokenAfterParens is Token.Operator && tokenAfterParens.type == Token.Operator.Type.RParen) {
                         innerExpr
@@ -65,10 +73,10 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             is Token.Keyword -> {
                 next() // TODO put the nexts out of the when?
                 when (next.type) {
-                    Token.Keyword.Type.Null -> AST.LiteralExpression("null")        //TODO better ast stuff
+                    Token.Keyword.Type.Null -> AST.LiteralExpression("null") // TODO better ast stuff
                     Token.Keyword.Type.False -> AST.LiteralExpression(false)
                     Token.Keyword.Type.True -> AST.LiteralExpression(true)
-                    Token.Keyword.Type.This -> AST.LiteralExpression("this")        //TODO better ast stuff
+                    Token.Keyword.Type.This -> AST.LiteralExpression("this") // TODO better ast stuff
                     Token.Keyword.Type.New -> TODO("implement parseNewObjectArrayExpression")
                     else -> throw IllegalArgumentException("unexpected keyword ${next.type}")
                 }
@@ -136,10 +144,11 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         }
     }
 
-    suspend fun parseUnaryExpression(): AST.Expression =
+    suspend fun parseUnaryExpression(): AST.Expression {
         // todo not exhausting first(follow) of parsePrimary!)
         // TODO parsePostifixExpression instead of parsePrimaryExpression !
-        when (val peeked = peek()) {
+        println("IN PARSE_UNARY_EXPRESSION")
+        return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
                     Token.Operator.Type.Not -> {
@@ -154,6 +163,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                 }
             else -> parsePostfixExpression()
         }
+    }
 
     suspend fun parseExpression(minPrecedence: Int = 1): AST.Expression {
         var result = parseUnaryExpression()

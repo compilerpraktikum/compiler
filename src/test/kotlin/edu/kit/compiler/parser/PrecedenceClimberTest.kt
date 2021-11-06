@@ -23,10 +23,10 @@ internal class PrecedenceClimberTest {
             "1+2+3",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression(1),
-                    AST.LiteralExpression(2), AST.BinaryExpression.Operation.ADDITION
+                    AST.LiteralExpression("1"),
+                    AST.LiteralExpression("2"), AST.BinaryExpression.Operation.ADDITION
                 ),
-                AST.LiteralExpression(3),
+                AST.LiteralExpression("3"),
                 AST.BinaryExpression.Operation.ADDITION
             )
         )
@@ -37,10 +37,10 @@ internal class PrecedenceClimberTest {
         expectAst(
             "1+2*3",
             AST.BinaryExpression(
-                AST.LiteralExpression(1),
+                AST.LiteralExpression("1"),
                 AST.BinaryExpression(
-                    AST.LiteralExpression(2),
-                    AST.LiteralExpression(3),
+                    AST.LiteralExpression("2"),
+                    AST.LiteralExpression("3"),
                     AST.BinaryExpression.Operation.MULTIPLICATION
                 ),
                 AST.BinaryExpression.Operation.ADDITION
@@ -54,15 +54,15 @@ internal class PrecedenceClimberTest {
             "1+2*3+4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression(1),
+                    AST.LiteralExpression("1"),
                     AST.BinaryExpression(
-                        AST.LiteralExpression(2),
-                        AST.LiteralExpression(3),
+                        AST.LiteralExpression("2"),
+                        AST.LiteralExpression("3"),
                         AST.BinaryExpression.Operation.MULTIPLICATION
                     ),
                     AST.BinaryExpression.Operation.ADDITION
                 ),
-                AST.LiteralExpression(4),
+                AST.LiteralExpression("4"),
                 AST.BinaryExpression.Operation.ADDITION
             )
         )
@@ -73,8 +73,8 @@ internal class PrecedenceClimberTest {
         expectAst(
             "2 = 3",
             AST.BinaryExpression(
-                AST.LiteralExpression(2),
-                AST.LiteralExpression(3),
+                AST.LiteralExpression("2"),
+                AST.LiteralExpression("3"),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             )
         )
@@ -85,10 +85,10 @@ internal class PrecedenceClimberTest {
         expectAst(
             "2 = 3 = 4",
             AST.BinaryExpression(
-                AST.LiteralExpression(2),
+                AST.LiteralExpression("2"),
                 AST.BinaryExpression(
-                    AST.LiteralExpression(3),
-                    AST.LiteralExpression(4),
+                    AST.LiteralExpression("3"),
+                    AST.LiteralExpression("4"),
                     AST.BinaryExpression.Operation.ASSIGNMENT
                 ),
                 AST.BinaryExpression.Operation.ASSIGNMENT
@@ -102,23 +102,23 @@ internal class PrecedenceClimberTest {
             "2 + (3 = 2 = 2) * 3 + 4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression(2),
+                    AST.LiteralExpression("2"),
                     AST.BinaryExpression(
                         AST.BinaryExpression(
-                            AST.LiteralExpression(3),
+                            AST.LiteralExpression("3"),
                             AST.BinaryExpression(
-                                AST.LiteralExpression(2),
-                                AST.LiteralExpression(2),
+                                AST.LiteralExpression("2"),
+                                AST.LiteralExpression("2"),
                                 AST.BinaryExpression.Operation.ASSIGNMENT
                             ),
                             AST.BinaryExpression.Operation.ASSIGNMENT
                         ),
-                        AST.LiteralExpression(3),
+                        AST.LiteralExpression("3"),
                         AST.BinaryExpression.Operation.MULTIPLICATION
                     ),
                     AST.BinaryExpression.Operation.ADDITION
                 ),
-                AST.LiteralExpression(4),
+                AST.LiteralExpression("4"),
                 AST.BinaryExpression.Operation.ADDITION
             )
         )
