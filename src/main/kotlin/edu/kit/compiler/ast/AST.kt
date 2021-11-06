@@ -156,7 +156,7 @@ object AST {
     data class UnaryExpression(
         val expression: Expression,
         val operation: Operation
-    ) {
+    ) : Expression() {
         enum class Operation {
             NOT,
             MINUS,

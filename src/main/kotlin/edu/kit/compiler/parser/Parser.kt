@@ -81,8 +81,27 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return arguments
     }
 
+    suspend fun parseUnaryExpression(): AST.Expression =
+        // todo not exhausting first(follow) of parsePrimary!)
+        // TODO parsePostifixExpression instead of parsePrimaryExpression !
+        when (val peeked = peek()) {
+            is Token.Operator ->
+                when (peeked.type) {
+                    Token.Operator.Type.Not -> {
+                        expectOperator(Token.Operator.Type.Not)
+                        AST.UnaryExpression(parseUnaryExpression(), AST.UnaryExpression.Operation.NOT)
+                    }
+                    Token.Operator.Type.Minus -> {
+                        expectOperator(Token.Operator.Type.Minus)
+                        AST.UnaryExpression(parseUnaryExpression(), AST.UnaryExpression.Operation.MINUS)
+                    }
+                    else -> parsePrimaryExpression()
+                }
+            else -> parsePrimaryExpression()
+        }
+
     suspend fun parseExpression(minPrecedence: Int = 1): AST.Expression {
-        var result = parsePrimaryExpression()
+        var result = parseUnaryExpression()
         var currentToken = peek()
 
         while (

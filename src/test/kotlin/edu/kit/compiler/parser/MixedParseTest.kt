@@ -130,6 +130,50 @@ internal class MixedParseTest {
     ) { parseStatement() }
 
     @Test
+    fun debugParserMJTest_2() = expectNode(
+        """
+        /* OK , unary minus after binop */
+
+        class Main {
+            public static void main(String[] args) {
+                int i;
+
+                int x = i + -i;
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("i", Type.Integer, null),
+                                    AST.LocalVariableDeclarationStatement(
+                                        "x",
+                                        Type.Integer,
+                                        AST.BinaryExpression(
+                                            AST.IdentifierExpression("i"),
+                                            AST.UnaryExpression(
+                                                AST.IdentifierExpression("i"),
+                                                AST.UnaryExpression.Operation.MINUS
+                                            ),
+                                            AST.BinaryExpression.Operation.ADDITION
+                                        )
+                                    ),
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    ) { parseAST() }
+
+    @Test
     fun debugParserMJTest_1() = expectNode(
         """ /* OK */
 
