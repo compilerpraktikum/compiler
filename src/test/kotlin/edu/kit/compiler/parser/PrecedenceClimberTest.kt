@@ -12,7 +12,7 @@ internal class PrecedenceClimberTest {
     private fun expectAst(input: String, expectedAST: AST.Expression) {
         val lexer = createLexer(input)
         val res = runBlocking {
-            Parser(lexer.tokens()).also { it.initialize() }.parseExpr()
+            Parser(lexer.tokens()).also { it.initialize() }.parseExpression()
         }
         assertEquals(expectedAST, res)
     }

@@ -116,5 +116,5 @@ $BlockStatement$            | $NewArrayExpression$                  | $\{$ **`in
 $X$                 | $First_1(X)$
 :---                |:---
 $Type$              | $\{$ **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\}$
-$Statement$         | $\{$ **`{`** $\|$ **`;`** $\|$ **`if`** $\|$ $First_1(PrimaryExpression)$ $\|$ **`IDENT`** $\}$
-$PrimaryExpression$ | $\{$ **`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`** $\|$ **`IDENT`** $\|$ **`true`** $\}$
+$Statement$         | $\{$ **`{`** $\|$ **`;`** $\|$ **`if`** $\|$ $First_1(PrimaryExpression)$ $\|$ **`while`** $\|$ **`return`** $\}$
+$PrimaryExpression$ | $\{$ **`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`**$\|$ **`(`** $\|$ **`IDENT`**$\|$ **`this`** $\|$ **`new`** $\}$
