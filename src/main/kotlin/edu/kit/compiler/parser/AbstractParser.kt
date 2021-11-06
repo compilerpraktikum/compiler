@@ -80,7 +80,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
     /**
      * Construct the AST from the token stream
      */
-    protected abstract suspend fun parseAST(): AST.Program
+    abstract suspend fun parseAST(): AST.Program
 
     /**
      * Expect and return a token of type [T].

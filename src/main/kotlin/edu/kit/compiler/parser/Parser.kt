@@ -58,6 +58,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                 } else AST.IdentifierExpression(reference.name)
             }
             is Token.Keyword -> {
+                next() // TODO put the nexts out of the when?
                 when (next.type) {
                     Token.Keyword.Type.Null -> TODO()
                     Token.Keyword.Type.False -> AST.LiteralExpression(false)
@@ -105,6 +106,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
     }
 
     suspend fun parseClassDeclarations(): List<AST.ClassDeclaration> {
+        println("Peekstart " + peek())
         return buildList<AST.ClassDeclaration> {
             while (peek(0) != Token.Eof) {
                 expectKeyword(Token.Keyword.Type.Class)

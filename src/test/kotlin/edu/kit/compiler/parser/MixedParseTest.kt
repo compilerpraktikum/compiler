@@ -118,6 +118,60 @@ internal class MixedParseTest {
     ) { parseStatement() }
 
     @Test
+    fun testParseBasicIfElse_bool() = expectNode(
+        "if(true) {} else {};",
+        AST.IfStatement(AST.LiteralExpression(true), AST.Block(listOf()), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicIfElse_ident() = expectNode(
+        "if(myIdent) {} else {};",
+        AST.IfStatement(AST.IdentifierExpression("myIdent"), AST.Block(listOf()), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun debugParserMJTest_1() = expectNode(
+        """ /* OK */
+
+            class Main {
+            public static void main(String[] args) {
+                int x;
+                if (true) x = 3;
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.IfStatement(
+                                        AST.LiteralExpression(true),
+                                        AST.ExpressionStatement(
+                                            AST.BinaryExpression(
+                                                AST.IdentifierExpression("x"),
+                                                AST.LiteralExpression(3),
+                                                AST.BinaryExpression.Operation.ASSIGNMENT
+                                            )
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+    @Test
     fun testBasicBlock() = expectAst(
         "class test { public void test() { } }",
         astOf {
