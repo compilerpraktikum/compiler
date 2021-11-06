@@ -14,7 +14,6 @@ import java.io.FileInputStream
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 import kotlin.io.path.absolutePathString
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 internal class ParserMjTestSuite {
@@ -47,15 +46,15 @@ internal class ParserMjTestSuite {
 
         val parser = Parser(lexer.tokens())
 
-        var exception : Throwable? = null
+        var exception: Throwable? = null
         try {
             val ast: AST.Program = runBlocking {
                 parser.parse()
             }
-        }catch (ex: Throwable) {
+        } catch (ex: Throwable) {
             exception = ex
         }
-        if(testConfig.name.endsWith("invalid.mj")) {
+        if (testConfig.name.endsWith("invalid.mj")) {
             assertTrue("expected failure, but got success") {
                 exception != null
             }
@@ -65,8 +64,6 @@ internal class ParserMjTestSuite {
                 exception == null
             }
             exception?.printStackTrace()
-
         }
-
     }
 }

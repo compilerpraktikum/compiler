@@ -3,7 +3,6 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
-import javax.swing.plaf.nimbus.State
 
 sealed class Type {
     object Void : Type()

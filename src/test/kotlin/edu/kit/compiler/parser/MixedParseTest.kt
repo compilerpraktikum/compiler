@@ -117,8 +117,6 @@ internal class MixedParseTest {
         AST.IfStatement(AST.LiteralExpression(2), AST.Block(listOf()), AST.Block(listOf()))
     ) { parseStatement() }
 
-
-
     @Test
     fun testBasicBlock() = expectAst(
         "class test { public void test() { } }",
