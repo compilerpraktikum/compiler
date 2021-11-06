@@ -21,7 +21,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
      */
     override suspend fun parseAST(): AST.Program {
         val classDeclarations = parseClassDeclarations()
-        TODO("return constructProgramNode(classDeclarations)")
+        return AST.Program(classDeclarations)
     }
 
     private suspend fun parsePrimaryExpression(): AST.Expression =
