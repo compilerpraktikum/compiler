@@ -174,6 +174,51 @@ internal class MixedParseTest {
     ) { parseAST() }
 
     @Test
+    fun debugParserMJTest_4() = expectNode(
+        """
+            class _Klasse {
+                public static void main(String[] args) {
+                    if (null.nothing) if (true.fun()) if (false[472183921789789798798798798798787789738120391203213213]) return;
+                }
+            }
+        """,
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "_Klasse",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.IfStatement(
+                                        AST.FieldAccessExpression(AST.LiteralExpression("null"), "nothing"),
+                                        AST.IfStatement(
+                                            AST.MethodInvocationExpression(AST.LiteralExpression(true), "fun", emptyList()),
+                                            AST.IfStatement(
+                                                AST.ArrayAccessExpression(
+                                                    AST.LiteralExpression(false),
+                                                    AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
+                                                ),
+                                                AST.ReturnStatement(null),
+                                                null
+                                            ),
+                                            null
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+    @Test
     fun debugParserMJTest_3() = expectNode(
         """
             class Test {

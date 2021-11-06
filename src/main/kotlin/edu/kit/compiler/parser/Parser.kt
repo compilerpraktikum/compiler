@@ -29,7 +29,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return when (val next = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(next.value.toInt())
+                AST.LiteralExpression(next.value)
             }
             is Token.Operator -> {
                 println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
@@ -65,11 +65,11 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             is Token.Keyword -> {
                 next() // TODO put the nexts out of the when?
                 when (next.type) {
-                    Token.Keyword.Type.Null -> TODO()
+                    Token.Keyword.Type.Null -> AST.LiteralExpression("null")        //TODO better ast stuff
                     Token.Keyword.Type.False -> AST.LiteralExpression(false)
                     Token.Keyword.Type.True -> AST.LiteralExpression(true)
-                    Token.Keyword.Type.This -> TODO()
-                    Token.Keyword.Type.New -> TODO()
+                    Token.Keyword.Type.This -> AST.LiteralExpression("this")        //TODO better ast stuff
+                    Token.Keyword.Type.New -> TODO("implement parseNewObjectArrayExpression")
                     else -> throw IllegalArgumentException("unexpected keyword ${next.type}")
                 }
             }
