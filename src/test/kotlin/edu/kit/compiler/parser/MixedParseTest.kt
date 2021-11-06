@@ -50,7 +50,7 @@ internal class MixedParseTest {
     ) { parseBlock() }
 
     @Test
-    fun testParseLiteral() = expectNode("1", AST.LiteralExpression(1)) { parseExpression() }
+    fun testParseLiteral() = expectNode("1", AST.LiteralExpression("1")) { parseExpression() }
 
     @Test
     fun testParseIdentInExpr() = expectNode("myident", AST.IdentifierExpression("myident")) { parseExpression() }
@@ -62,7 +62,7 @@ internal class MixedParseTest {
     @Test
     fun testParseLocalInvocationArg() = expectNode(
         "myident(1)",
-        AST.MethodInvocationExpression(null, "myident", listOf(AST.LiteralExpression(1)))
+        AST.MethodInvocationExpression(null, "myident", listOf(AST.LiteralExpression("1")))
     ) { parseExpression() }
 
     @Test
@@ -71,7 +71,7 @@ internal class MixedParseTest {
         AST.MethodInvocationExpression(
             null,
             "myident",
-            listOf(AST.LiteralExpression(1), AST.LiteralExpression(2), AST.LiteralExpression(2))
+            listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2"))
         )
     ) { parseExpression() }
 
@@ -81,7 +81,7 @@ internal class MixedParseTest {
         AST.ExpressionStatement(
             AST.BinaryExpression(
                 AST.IdentifierExpression("myIdent"),
-                AST.LiteralExpression(3),
+                AST.LiteralExpression("3"),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             )
         )
@@ -96,25 +96,25 @@ internal class MixedParseTest {
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
-        AST.ReturnStatement(AST.LiteralExpression(2))
+        AST.ReturnStatement(AST.LiteralExpression("2"))
     ) { parseStatement() }
 
     @Test
     fun testParseBasicWhile() = expectNode(
         "while(2) {};",
-        AST.WhileStatement(AST.LiteralExpression(2), AST.Block(listOf()))
+        AST.WhileStatement(AST.LiteralExpression("2"), AST.Block(listOf()))
     ) { parseStatement() }
 
     @Test
     fun testParseBasicIf() = expectNode(
         "if(2) {};",
-        AST.IfStatement(AST.LiteralExpression(2), AST.Block(listOf()), null)
+        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), null)
     ) { parseStatement() }
 
     @Test
     fun testParseBasicIfElse() = expectNode(
         "if(2) {} else {};",
-        AST.IfStatement(AST.LiteralExpression(2), AST.Block(listOf()), AST.Block(listOf()))
+        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), AST.Block(listOf()))
     ) { parseStatement() }
 
     @Test
@@ -219,46 +219,6 @@ internal class MixedParseTest {
     ) { parseAST() }
 
     @Test
-    fun debugParserMJTest_3() = expectNode(
-        """
-            class Test {
-                public void m() {
-                    a.b.c(x, -z + 1).d.f.g();
-                }
-            }
-        """,
-        AST.Program(
-            listOf(
-                AST.ClassDeclaration(
-                    "Test",
-                    listOf(
-                        AST.Method(
-                            "m", Type.Void, listOf(),
-                            AST.Block(
-                                listOf(
-                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
-                                    AST.IfStatement(
-                                        AST.LiteralExpression(true),
-                                        AST.ExpressionStatement(
-                                            AST.BinaryExpression(
-                                                AST.IdentifierExpression("x"),
-                                                AST.LiteralExpression(3),
-                                                AST.BinaryExpression.Operation.ASSIGNMENT
-                                            )
-                                        ),
-                                        null
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-
-    ) { parseAST() }
-
-    @Test
     fun debugParserMJTest_1() = expectNode(
         """ /* OK */
 
@@ -284,7 +244,7 @@ internal class MixedParseTest {
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x"),
-                                                AST.LiteralExpression(3),
+                                                AST.LiteralExpression("3"),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             )
                                         ),

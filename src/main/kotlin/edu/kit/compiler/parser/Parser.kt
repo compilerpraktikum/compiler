@@ -29,7 +29,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return when (val next = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(next.value)
+                AST.LiteralExpression(next.value)       //TODO we should further specify ""type""
             }
             is Token.Operator -> {
                 println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
