@@ -24,16 +24,20 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return AST.Program(classDeclarations)
     }
 
-    private suspend fun parsePrimaryExpression(): AST.Expression =
-        when (val next = peek()) {
+    private suspend fun parsePrimaryExpression(): AST.Expression {
+        println("    debug in parsePrimaryExpression: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
+        return when (val next = peek()) {
             is Token.Literal -> {
                 next()
                 AST.LiteralExpression(next.value.toInt())
             }
-            is Token.Operator ->
+            is Token.Operator -> {
+                println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
                 if (next.type == Token.Operator.Type.LParen) {
                     next()
                     val innerExpr = parseExpression(1)
+                    println("        debug in parsePrimaryExpression.TokenOperator: innerExpr=$innerExpr")
+                    println("        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
                     val tokenAfterParens = this.next()
                     if (tokenAfterParens is Token.Operator && tokenAfterParens.type == Token.Operator.Type.RParen) {
                         innerExpr
@@ -44,6 +48,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                 } else {
                     throw IllegalArgumentException("unexpected operator: $next")
                 }
+            }
             is Token.Identifier -> {
                 val reference = expectIdentifier()
 
@@ -54,7 +59,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                     arguments = parseArguments()
                     expectOperator(Token.Operator.Type.RParen)
 
-                    AST.MethodInvocationExpression(null, reference.name, arguments)
+                    AST.MethodInvocationExpression(null, reference.name, arguments) // todo ist das richtig?
                 } else AST.IdentifierExpression(reference.name)
             }
             is Token.Keyword -> {
@@ -70,6 +75,8 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             }
             else -> throw IllegalArgumentException("unexpected token $next")
         }
+    }
+
     suspend fun parseArguments(): List<AST.Expression> {
         val arguments = mutableListOf<AST.Expression>()
         var nextToken = peek()
@@ -79,6 +86,54 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             nextToken = peek()
         }
         return arguments
+    }
+
+    suspend fun parsePostfixExpression(): AST.Expression {
+        println(" debug in parsePostfixExpression: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
+        val primaryExpression = parsePrimaryExpression()
+
+        return when (val firstPeekedToken = peek()) {
+            is Token.Operator ->
+                when (firstPeekedToken.type) {
+                    Token.Operator.Type.Dot,
+                    Token.Operator.Type.LeftBracket -> parsePostfixOp(primaryExpression)
+                    else -> return primaryExpression
+                }
+            else -> return primaryExpression
+        }
+    }
+
+    suspend fun parsePostfixOp(target: AST.Expression): AST.Expression {
+        println("PARSE_POSTFIX_OP:" + target + "    peek:" + peek(0) + " " + peek(1) + " " + peek(2))
+        return when (val firstPeekedToken = peek()) {
+            is Token.Operator ->
+                when (firstPeekedToken.type) {
+                    Token.Operator.Type.Dot -> {
+                        expectOperator(Token.Operator.Type.Dot)
+                        val ident = expectIdentifier()
+                        val maybeLParent = peek()
+                        if (maybeLParent is Token.Operator && maybeLParent.type == Token.Operator.Type.LParen) {
+                            // methodInvocation todo recurse
+                            expectOperator(Token.Operator.Type.LParen)
+                            val arguments = parseArguments()
+                            expectOperator(Token.Operator.Type.RParen)
+                            parsePostfixOp(AST.MethodInvocationExpression(target, ident.name, arguments))
+                        } else {
+                            // fieldAccess todo recurse
+                            parsePostfixOp(AST.FieldAccessExpression(target, ident.name))
+                        }
+                        // k=3 because lazy. Maybe change this if needed later on
+                    }
+                    Token.Operator.Type.LeftBracket -> {
+                        expectOperator(Token.Operator.Type.LeftBracket)
+                        val index = parseExpression()
+                        expectOperator(Token.Operator.Type.RightBracket)
+                        parsePostfixOp(AST.ArrayAccessExpression(target, index))
+                    }
+                    else -> target
+                }
+            else -> target
+        }
     }
 
     suspend fun parseUnaryExpression(): AST.Expression =
@@ -95,9 +150,9 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                         expectOperator(Token.Operator.Type.Minus)
                         AST.UnaryExpression(parseUnaryExpression(), AST.UnaryExpression.Operation.MINUS)
                     }
-                    else -> parsePrimaryExpression()
+                    else -> parsePostfixExpression()
                 }
-            else -> parsePrimaryExpression()
+            else -> parsePostfixExpression()
         }
 
     suspend fun parseExpression(minPrecedence: Int = 1): AST.Expression {
@@ -413,6 +468,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
 
     suspend fun parseExpressionStatement(): AST.ExpressionStatement {
         val expr = parseExpression()
+        println("DEBUG in parseExpressionStatement. expr=$expr")
         expectOperator(Token.Operator.Type.Semicolon)
         return AST.ExpressionStatement(expr)
     }
