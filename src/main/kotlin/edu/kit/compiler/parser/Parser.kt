@@ -226,7 +226,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             is Token.Keyword -> {
                 return when (token.type) {
                     Token.Keyword.Type.Static -> parseMainMethod()
-                    Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void, ->
+                    Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                         parseFieldMethodPrefix()
                     else -> enterPanicMode() // todo right?
                 }
@@ -285,24 +285,29 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
             type
         )
     }
+
     suspend fun parseMethod(ident: Token.Identifier, type: Type): AST.Method {
         expectOperator(Token.Operator.Type.LParen)
         val maybeRParenToken = peek(0)
-        val parameters = if (!(maybeRParenToken is Token.Operator && maybeRParenToken.type == Token.Operator.Type.RParen)) {
-            parseParameters()
-        } else emptyList()
+        val parameters =
+            if (!(maybeRParenToken is Token.Operator && maybeRParenToken.type == Token.Operator.Type.RParen)) {
+                parseParameters()
+            } else emptyList()
         expectOperator(Token.Operator.Type.RParen)
 
         val maybeThrowsToken = peek(0)
-        if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+        val methodRest = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
             parseMethodRest()
+        } else {
+            null
         }
         val block = parseBlock()
         return AST.Method(
             ident.name,
             type,
             parameters,
-            block
+            block,
+            methodRest
         )
     }
 
@@ -486,9 +491,9 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
     /**
      * TODO this can be ignored since we dont handle exceptions semantically?
      */
-    suspend fun parseMethodRest() {
+    suspend fun parseMethodRest(): Token.Identifier {
         expectKeyword(Token.Keyword.Type.Throws)
-        expectIdentifier()
+        return expectIdentifier()
     }
 
     suspend fun parseParameters(): List<AST.Parameter> {
