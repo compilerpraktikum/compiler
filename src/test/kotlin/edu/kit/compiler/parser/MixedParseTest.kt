@@ -4,9 +4,6 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.utils.TestUtils.expectNode
-import edu.kit.compiler.utils.createLexer
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
@@ -14,7 +11,6 @@ internal class MixedParseTest {
 
     private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
         expectNode(input, expectedAST) { parseClassDeclarations() }
-
 
     @Test
     fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock() }

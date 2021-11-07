@@ -1,11 +1,11 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.utils.TestUtils
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest

@@ -2,16 +2,12 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.utils.TestUtils.expectNode
-import edu.kit.compiler.utils.createLexer
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
 internal class ExpressionParseTest {
     private fun expectAst(input: String, expectedAST: AST.Expression) =
         expectNode(input, expectedAST) { parseExpression() }
-
 
     @Test
     fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1"))

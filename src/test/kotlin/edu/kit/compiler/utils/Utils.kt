@@ -4,9 +4,6 @@ import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.parser.Parser
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions
 
 /**
  * An input provider sourcing its input from a fixed string
@@ -31,4 +28,3 @@ fun createLexer(input: String, fileName: String = "/path/to/file"): Lexer {
     }
     return Lexer(fileName, InlineInputProvider(input), stringTable)
 }
-
