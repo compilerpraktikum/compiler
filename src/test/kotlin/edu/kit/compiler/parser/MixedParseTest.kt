@@ -514,7 +514,7 @@ internal class MixedParseTest {
                                                     Type.Array(Type.Integer),
                                                     AST.NewArrayExpression(
                                                         Type.Array(Type.Integer),
-                                                        AST.LiteralExpression(22)
+                                                        AST.LiteralExpression("22")
                                                     )
                                                 )
                                             )
