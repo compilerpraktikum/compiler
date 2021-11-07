@@ -183,30 +183,14 @@ internal class MixedParseTest {
     ) { parseAST() }
 
     @Test
-    fun debugParserMJTest_5() = expectNode(
+    fun debugParserMJTest_newArrayWithAccess2() = expectNode(
         """
-        class Foo {
-            public static void main(String[] args) {
-                /*
-                - -a;
-                -(-a);
-                -(-(a));
-
-                !a;
-                !(!a);
-                */
-
-                !!a;
-                !!!!a;
-                -!!!!a;
-
-
-
-                /*
-                */
+        class Test {
+            public void m() {
+                new int[0][0];
             }
-
-        }""",
+        }
+        """,
         AST.Program(
             listOf(
                 AST.ClassDeclaration(

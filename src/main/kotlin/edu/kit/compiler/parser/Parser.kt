@@ -26,10 +26,10 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
 
     private suspend fun parsePrimaryExpression(): AST.Expression {
         println("    debug in parsePrimaryExpression: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
-        return when (val next = peek()) {
+        return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(next.value) // TODO we should further specify ""type""
+                AST.LiteralExpression(peekedToken.value) // TODO we should further specify ""type""
             }
             is Token.Operator -> {
                 println(
@@ -37,7 +37,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                         2
                     )
                 )
-                if (next.type == Token.Operator.Type.LParen) {
+                if (peekedToken.type == Token.Operator.Type.LParen) {
                     next()
                     val innerExpr = parseExpression(1)
                     println("        debug in parsePrimaryExpression.TokenOperator: innerExpr=$innerExpr")
@@ -54,7 +54,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                         throw IllegalArgumentException("expected closing RPAREN")
                     }
                 } else {
-                    throw IllegalArgumentException("unexpected operator: $next")
+                    throw IllegalArgumentException("unexpected operator: $peekedToken")
                 }
             }
             is Token.Identifier -> {
@@ -71,17 +71,79 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                 } else AST.IdentifierExpression(reference.name)
             }
             is Token.Keyword -> {
-                next() // TODO put the nexts out of the when?
-                when (next.type) {
+                next()
+                when (peekedToken.type) {
                     Token.Keyword.Type.Null -> AST.LiteralExpression("null") // TODO better ast stuff
-                    Token.Keyword.Type.False -> AST.LiteralExpression(false)
-                    Token.Keyword.Type.True -> AST.LiteralExpression(true)
-                    Token.Keyword.Type.This -> AST.LiteralExpression("this") // TODO better ast stuff
-                    Token.Keyword.Type.New -> TODO("implement parseNewObjectArrayExpression")
-                    else -> throw IllegalArgumentException("unexpected keyword ${next.type}")
+                    Token.Keyword.Type.False ->
+                        AST.LiteralExpression(false)
+                    Token.Keyword.Type.True ->
+                        AST.LiteralExpression(true)
+                    Token.Keyword.Type.This ->
+                        AST.LiteralExpression("this") // TODO better ast stuff
+                    Token.Keyword.Type.New -> parseNewObjectArrayExpression()
+                    else -> throw IllegalArgumentException("unexpected keyword ${peekedToken.type}")
                 }
             }
-            else -> throw IllegalArgumentException("unexpected token $next")
+            else -> throw IllegalArgumentException("unexpected token $peekedToken")
+        }
+    }
+
+    suspend fun parseNewObjectArrayExpression(): AST.Expression {
+        return when (val firstToken = peek()) {
+            is Token.Keyword -> when (firstToken.type) {
+                Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void -> parseNewArrayExpression()
+                else -> enterPanicMode()
+            }
+            is Token.Identifier -> {
+                // k=2
+                when (val secondToken = peek(1)) {
+                    is Token.Operator -> {
+                        when (secondToken.type) {
+                            Token.Operator.Type.LParen -> parseNewObjectExpression()
+                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression()
+                            else -> enterPanicMode()
+                        }
+                    }
+                    else -> enterPanicMode()
+                }
+            }
+            else -> enterPanicMode()
+        }
+    }
+
+    suspend fun parseNewObjectExpression(): AST.Expression {
+        val ident = expectIdentifier()
+        expectOperator(Token.Operator.Type.LParen)
+        expectOperator(Token.Operator.Type.RParen)
+        return AST.NewObjectExpression(ident.name)
+    }
+
+    suspend fun parseNewArrayExpression(): AST.Expression {
+        val basicType = parseBasicType()
+        expectOperator(Token.Operator.Type.LeftBracket)
+        val indexExpression = parseExpression()
+        expectOperator(Token.Operator.Type.RightBracket)
+
+        println("##debug in parseNewArrayExpression(before): peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
+        val arrayType = parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType))
+        println("##debug in parseNewArrayExpression(after): peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
+
+        return AST.NewArrayExpression(arrayType, indexExpression)
+    }
+
+    suspend fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array): Type.Array {
+        val maybeAnotherLBracket = peek(0)
+        val maybeAnotherRBracket = peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
+        println("####debug in parseNewArrayExpressionTypeArrayRecurse: peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
+        return if (
+            (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
+            (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
+        ) {
+            expectOperator(Token.Operator.Type.LeftBracket)
+            expectOperator(Token.Operator.Type.RightBracket)
+            Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType))
+        } else {
+            basicType
         }
     }
 
@@ -528,7 +590,7 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
         return basicType
     }
 
-    suspend fun parseTypeArrayRecurse(basicType: Type): Type {
+    suspend fun parseTypeArrayRecurse(basicType: Type): Type.Array {
         expectOperator(Token.Operator.Type.LeftBracket)
         expectOperator(Token.Operator.Type.RightBracket)
         val maybeAnotherLBracket = peek(0)
