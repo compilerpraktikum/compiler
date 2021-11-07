@@ -160,7 +160,11 @@ internal class MixedParseTest {
                                     AST.IfStatement(
                                         AST.FieldAccessExpression(AST.LiteralExpression("null"), "nothing"),
                                         AST.IfStatement(
-                                            AST.MethodInvocationExpression(AST.LiteralExpression(true), "fun", emptyList()),
+                                            AST.MethodInvocationExpression(
+                                                AST.LiteralExpression(true),
+                                                "fun",
+                                                emptyList()
+                                            ),
                                             AST.IfStatement(
                                                 AST.ArrayAccessExpression(
                                                     AST.LiteralExpression(false),
@@ -471,6 +475,44 @@ internal class MixedParseTest {
                                     },
                                     AST.Block(
                                         emptyList()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @Test
+    fun testPrimitiveArrayExpr() {
+        expectAst(
+            "class a { public static void main(String[] args) { int[] = new int[22]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.Array(Type.ClassType("String")))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            AST.NewArrayExpression(
+                                                Type.Array(Type.Integer),
+                                                AST.LiteralExpression(22)
+                                            )
+                                        }
                                     )
                                 )
                             )
