@@ -2,8 +2,7 @@ package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.utils.createLexer
-import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.runBlocking
+import edu.kit.compiler.utils.toList
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -188,9 +187,7 @@ internal class LexerTest {
      */
     private fun expectTokenSequence(input: String, expectedTokens: List<Token>, measureDuration: Boolean = false) {
         val start = System.currentTimeMillis()
-        val tokens = runBlocking {
-            createLexer(input).tokens().toCollection(mutableListOf())
-        }
+        val tokens = createLexer(input).tokens().toList()
         val duration = System.currentTimeMillis() - start
 
         assertEquals(expectedTokens.size, tokens.size)

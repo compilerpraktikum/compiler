@@ -1,19 +1,16 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.BufferedInputProvider
 import edu.kit.compiler.lex.Lexer
+import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.utils.TestUtils
-import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.FileInputStream
+import java.nio.charset.MalformedInputException
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
-import kotlin.io.path.absolutePathString
 
 internal class ParserMjTestSuite {
     companion object {
@@ -36,20 +33,23 @@ internal class ParserMjTestSuite {
 
         println("Running parser on $inputFile")
 
-        val input = BufferedInputProvider(FileInputStream(inputFile.toFile()))
+        val input = try {
+            SourceFile.from(inputFile)
+        } catch (e: MalformedInputException) {
+            assert(testConfig.name.endsWith("invalid.mj")) { "supposedly valid test contained invalid ASCII characters" }
+            return
+        }
 
         val stringTable = StringTable().apply {
             initializeKeywords()
         }
-        val lexer = Lexer(inputFile.absolutePathString(), input, stringTable)
+        val lexer = Lexer(input, stringTable)
 
         val parser = Parser(lexer.tokens())
 
         var exception: Throwable? = null
         try {
-            val ast: AST.Program = runBlocking {
-                parser.parse()
-            }
+            parser.parse()
         } catch (ex: Throwable) {
             exception = ex
         }

@@ -6,6 +6,8 @@ import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.RawOption
 import com.github.ajalt.clikt.parameters.options.convert
 
+// TODO remove if not needed
+
 internal fun valueToUInt(it: String): UInt {
     return it.toUIntOrNull() ?: throw BadParameterValue("$it is not a valid unsigned integer")
 }

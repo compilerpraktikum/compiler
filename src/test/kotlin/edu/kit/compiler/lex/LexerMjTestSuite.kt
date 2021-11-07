@@ -1,16 +1,15 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
 import edu.kit.compiler.utils.TestUtils
-import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.runBlocking
+import edu.kit.compiler.utils.toList
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.FileInputStream
+import java.nio.charset.MalformedInputException
 import java.util.stream.Stream
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.readLines
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -34,18 +33,23 @@ internal class LexerMjTestSuite {
         val inputFile = testConfig.path
         val outputFile = testConfig.path.parent.resolve(testConfig.name + ".out")
 
-        println("For input $inputFile expect $outputFile")
+        println("Testing $inputFile")
 
-        val input = BufferedInputProvider(FileInputStream(inputFile.toFile()))
+        val input = try {
+            SourceFile.from(inputFile)
+        } catch (e: MalformedInputException) {
+            assert(testConfig.name.endsWith("invalid.mj")) { "supposedly valid test contained invalid ASCII characters" }
+            return
+        }
 
         val stringTable = StringTable().apply {
             initializeKeywords()
         }
-        val lexer = Lexer(inputFile.absolutePathString(), input, stringTable)
+        val lexer = Lexer(input, stringTable)
 
-        val tokens: List<Token> = runBlocking {
-            lexer.tokens().toCollection(mutableListOf())
-        }
+        val tokens: List<Token> = lexer.tokens().toList()
+
+        input.printAnnotations(AnnotationFormatter.DEFAULT)
 
         if (testConfig.name.endsWith("invalid.mj")) {
             assertTrue("Expected an invalid token") { tokens.any { it is Token.ErrorToken } }

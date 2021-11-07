@@ -2,7 +2,6 @@ package edu.kit.compiler.utils
 
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
-import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
 import java.io.File
 import java.nio.file.Path
@@ -36,11 +35,9 @@ object TestUtils {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun <T> expectNode(input: String, expectedNode: T, runParser: suspend Parser.() -> T) {
+    fun <T> expectNode(input: String, expectedNode: T, runParser: Parser.() -> T) {
         val lexer = createLexer(input)
-        val res = runBlocking {
-            Parser(lexer.tokens()).also { it.initialize() }.runParser()
-        }
+        val res = Parser(lexer.tokens()).runParser()
         Assertions.assertEquals(expectedNode, res)
     }
 }
