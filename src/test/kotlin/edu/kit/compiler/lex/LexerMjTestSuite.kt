@@ -1,6 +1,6 @@
 package edu.kit.compiler.lex
 
-import edu.kit.compiler.TestUtils
+import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.Token
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
@@ -11,7 +11,6 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.io.FileInputStream
 import java.util.stream.Stream
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.name
 import kotlin.io.path.readLines
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

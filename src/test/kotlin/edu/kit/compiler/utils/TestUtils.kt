@@ -1,6 +1,9 @@
-package edu.kit.compiler
+package edu.kit.compiler.utils
 
 import edu.kit.compiler.lex.LexerMjTestSuite
+import edu.kit.compiler.parser.Parser
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,5 +33,14 @@ object TestUtils {
         val projectRootDirectory = Paths.get(testFolderAbsolutePath).parent.parent.parent.parent
         val path = projectRootDirectory.resolve("test-cases").resolve(subdirectory)
         return path.listDirectoryEntries("*.mj").map { TestFileArgument(path.relativize(it).name, it) }.stream()
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun <T> expectNode(input: String, expectedNode: T, runParser: suspend Parser.() -> T) {
+        val lexer = createLexer(input)
+        val res = runBlocking {
+            Parser(lexer.tokens()).also { it.initialize() }.runParser()
+        }
+        Assertions.assertEquals(expectedNode, res)
     }
 }

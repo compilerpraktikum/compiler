@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.TestUtils
+import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.BufferedInputProvider

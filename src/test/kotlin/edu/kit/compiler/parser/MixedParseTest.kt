@@ -3,6 +3,7 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
+import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,13 +15,6 @@ internal class MixedParseTest {
     private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
         expectNode(input, expectedAST) { parseClassDeclarations() }
 
-    private fun <T> expectNode(input: String, expectedNode: T, runParser: suspend Parser.() -> T) {
-        val lexer = createLexer(input)
-        val res = runBlocking {
-            Parser(lexer.tokens()).also { it.initialize() }.runParser()
-        }
-        assertEquals(expectedNode, res)
-    }
 
     @Test
     fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock() }
@@ -48,32 +42,6 @@ internal class MixedParseTest {
             )
         )
     ) { parseBlock() }
-
-    @Test
-    fun testParseLiteral() = expectNode("1", AST.LiteralExpression("1")) { parseExpression() }
-
-    @Test
-    fun testParseIdentInExpr() = expectNode("myident", AST.IdentifierExpression("myident")) { parseExpression() }
-
-    @Test
-    fun testParseLocalInvocation() =
-        expectNode("myident()", AST.MethodInvocationExpression(null, "myident", listOf())) { parseExpression() }
-
-    @Test
-    fun testParseLocalInvocationArg() = expectNode(
-        "myident(1)",
-        AST.MethodInvocationExpression(null, "myident", listOf(AST.LiteralExpression("1")))
-    ) { parseExpression() }
-
-    @Test
-    fun testParseLocalInvocation3Arg() = expectNode(
-        "myident(1,2,2)",
-        AST.MethodInvocationExpression(
-            null,
-            "myident",
-            listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2"))
-        )
-    ) { parseExpression() }
 
     @Test
     fun testParseAssignment() = expectNode(

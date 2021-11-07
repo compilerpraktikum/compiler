@@ -1,21 +1,43 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.createLexer
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
-internal class PrecedenceClimberTest {
+internal class ExpressionParseTest {
+    private fun expectAst(input: String, expectedAST: AST.Expression) =
+        expectNode(input, expectedAST) { parseExpression() }
 
-    private fun expectAst(input: String, expectedAST: AST.Expression) {
-        val lexer = createLexer(input)
-        val res = runBlocking {
-            Parser(lexer.tokens()).also { it.initialize() }.parseExpression()
-        }
-        assertEquals(expectedAST, res)
-    }
+
+    @Test
+    fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1"))
+
+    @Test
+    fun testParseIdentInExpr() = expectAst("myident", AST.IdentifierExpression("myident"))
+
+    @Test
+    fun testParseLocalInvocation() =
+        expectAst("myident()", AST.MethodInvocationExpression(null, "myident", listOf()))
+
+    @Test
+    fun testParseLocalInvocationArg() = expectAst(
+        "myident(1)",
+        AST.MethodInvocationExpression(null, "myident", listOf(AST.LiteralExpression("1")))
+    )
+
+    @Test
+    fun testParseLocalInvocation3Arg() = expectAst(
+        "myident(1,2,2)",
+        AST.MethodInvocationExpression(
+            null,
+            "myident",
+            listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2"))
+        )
+    )
 
     @Test
     fun testLeftAssoc() {
