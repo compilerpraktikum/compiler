@@ -2,36 +2,20 @@ package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.flow
 
 /**
  * Generic base class for lexers.
  */
 abstract class AbstractLexer(
-    fileName: String,
-    private val input: InputProvider,
+    protected val sourceFile: SourceFile,
     protected val stringTable: StringTable,
 ) {
-    var position = SourcePosition(fileName, 1, 0)
-        private set
-
     /**
-     * Get the next character and update the internal position.
+     * Get the next character.
      *
      * @return next character from the input
      */
-    protected suspend fun next(): Char {
-        val c = input.next()
-
-        position = when (c) {
-            '\n' -> position.nextLine()
-            '\r' -> position // invisible characters
-            else -> position.nextColumn()
-        }
-
-        return c
-    }
+    protected fun next(): Char = sourceFile.next()
 
     /**
      * Lookahead in the input by a given [offset].
@@ -41,39 +25,38 @@ abstract class AbstractLexer(
      *
      * @return the character [offset] bytes behind the current position in the input.
      */
-    protected suspend fun peek(offset: Int = 0): Char = input.peek(offset)
+    protected fun peek(offset: Int = 0): Char = sourceFile.peek(offset)
 
     /**
      * Lexes the given input.
      * @return [Flow] of [Tokens][Token]
      */
-    fun tokens(): Flow<Token> = flow {
-        var c = peek()
-
+    fun tokens(): Sequence<Token> = sequence {
+        // need to use next() instead of peek() because otherwise the source position is not correct
+        var c = next()
         while (c != InputProvider.END_OF_FILE) {
-            val token = scanToken()
+            val position = sourceFile.currentPosition
+            val token = scanToken(c)
             token.position = position
+
             if (token is Token.ErrorToken) {
-                printError(token)
+                sourceFile.annotate(AnnotationType.ERROR, position, token.error)
             }
-            emit(token)
-            c = peek()
+
+            yield(token)
+            c = next()
         }
 
-        emit(Token.Eof)
-    }.buffer()
+        while (true) { // TODO maybe remove?
+            yield(Token.Eof)
+        }
+    }
 
     /**
      * Lex the next token.
      *
+     * @param[firstChar] first char of the token
      * @return the next [token][Token]
      */
-    protected abstract suspend fun scanToken(): Token
-
-    private fun printError(token: Token.ErrorToken) {
-        System.err.apply {
-            println("[error] ${token.error}")
-            println("  ${token.position}")
-        }
-    }
+    protected abstract fun scanToken(firstChar: Char): Token
 }

@@ -2,23 +2,15 @@ package edu.kit.compiler
 
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lex.BufferedInputProvider
-import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
+import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.SyncInputProvider
 import edu.kit.compiler.parser.Parser
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.nio.charset.MalformedInputException
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.inputStream
 
 /**
  * Main compiler pipeline. Stores state specific to one compilation unit and defines the strategy with which all
@@ -27,10 +19,6 @@ import java.util.concurrent.Executors
  * @param config compilation configuration parameters
  */
 class Compiler(private val config: Config) {
-    /**
-     * A fixed-size threadPool for target parallelism
-     */
-    private var threadPool: ExecutorService? = null
 
     /**
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
@@ -49,115 +37,112 @@ class Compiler(private val config: Config) {
      */
     @OptIn(ExperimentalStdlibApi::class)
     fun compile(): Int {
-        try {
-            // prepare a thread-pool for parallelization
-            threadPool = when (config.parallelization) {
-                0u -> Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-                1u -> Executors.newSingleThreadExecutor()
-                else -> Executors.newFixedThreadPool(config.parallelization.toInt())
-            }
+        if (config.mode == Mode.Echo) {
+            // needs to be handled separately because SourceFile does only support valid input encodings and
+            // echo needs to support binary files (for whatever reason...)
+            return handleEcho()
+        }
 
+        try {
             // open the input file
-            val input = openCompilationUnit().unwrap {
-                reportError(System.err)
+            val sourceFile = openCompilationUnit().unwrap {
+                reportError()
                 return ExitCode.ERROR_FILE_SYSTEM
             }
 
-            return when (config.mode) {
+            when (config.mode) {
                 Mode.Compile -> {
                     throw NotImplementedError("Compile mode not yet implemented.")
                 }
-                Mode.Echo -> runBlocking {
-                    withContext(CoroutineScope(threadPool!!.asCoroutineDispatcher()).coroutineContext) {
-                        try {
-                            var c = input.next()
-                            while (c != InputProvider.END_OF_FILE) {
-                                print(c)
-                                c = input.next()
-                            }
-                            return@withContext ExitCode.SUCCESS
-                        } catch (e: IOException) {
-                            System.err.println("Unexpected IOException: ${e.message}")
-                            return@withContext ExitCode.ERROR_FILE_SYSTEM
-                        }
-                    }
-                }
-                Mode.LexTest -> runBlocking {
-                    var hasInvalidToken = false
-
+                Mode.LexTest -> {
                     Lexer(
-                        config.sourceFile.absolutePath,
-                        input,
+                        sourceFile,
                         stringTable,
                         printWarnings = false
-                    ).tokens().onEach {
-                        hasInvalidToken = hasInvalidToken || (it is Token.ErrorToken)
-                    }.lexTestRepr.collect {
+                    ).tokens().lexTestRepr.forEach {
                         println(it)
                     }
 
-                    if (hasInvalidToken) {
-                        ExitCode.ERROR_INVALID_TOKEN
-                    } else {
-                        ExitCode.SUCCESS
+                    if (sourceFile.hasError) {
+                        return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
-                Mode.ParseTest -> runBlocking {
-                    var hasInvalidToken = false
-
-                    val tokens = Lexer(
-                        config.sourceFile.absolutePath,
-                        input,
+                Mode.ParseTest -> {
+                    val lexer = Lexer(
+                        sourceFile,
                         stringTable,
                         printWarnings = false
-                    ).tokens()
-                    try {
-                        val program = Parser(tokens).parse()
-                        println(program)
-                    } catch (ex: IllegalArgumentException) {
-                        System.err.println("error: $ex")
-                    }
+                    )
+                    val parser = Parser(lexer.tokens())
+                    parser.parse()
 
-                    ExitCode.SUCCESS
+                    if (sourceFile.hasError) {
+                        return ExitCode.ERROR_COMPILATION_FAILED
+                    }
                 }
+                else -> throw IllegalStateException("unhandled compilation mode")
             }
-        } finally {
-            threadPool?.shutdown()
+        } catch (e: Exception) {
+            System.err.println("Internal error: ${e.message}")
+            e.printStackTrace(System.err)
+            return ExitCode.ERROR_INTERNAL
         }
+
+        return ExitCode.SUCCESS
     }
 
     /**
      * Sanity-check the input parameter and then prepare a reader that can be used by the lexer to generate a token
      * stream
      */
-    private fun openCompilationUnit(): CompilerResult<InputProvider> {
+    private fun openCompilationUnit(): CompilerResult<SourceFile> {
+        val sourceFile = config.sourceFile
+
+        return try {
+            if (!Files.exists(sourceFile)) {
+                return CompilerResult.failure("source file does not exist")
+            }
+
+            if (!Files.isRegularFile(sourceFile)) {
+                return CompilerResult.failure("source file is not a file")
+            }
+
+            CompilerResult.success(
+                SourceFile.from(sourceFile)
+            )
+        } catch (e: SecurityException) {
+            return CompilerResult.failure("access to source file denied: ${e.message}")
+        } catch (e: IOException) {
+            return CompilerResult.failure("failed to read source file: ${e.message}")
+        } catch (e: MalformedInputException) {
+            return CompilerResult.failure("invalid source file encoding: ${e.message}")
+        }
+    }
+
+    private fun handleEcho(): Int {
         val sourceFile = config.sourceFile
 
         try {
-            if (!sourceFile.exists()) {
-                return CompilerResult.failure("File does not exist")
+            if (!Files.exists(sourceFile)) {
+                System.err.println("source file does not exist")
+                return ExitCode.ERROR_FILE_SYSTEM
             }
 
-            if (sourceFile.isDirectory) {
-                return CompilerResult.failure("Input path is not a file")
+            if (!Files.isRegularFile(sourceFile)) {
+                System.err.println("source file is not a file")
+                return ExitCode.ERROR_FILE_SYSTEM
             }
 
-            if (!sourceFile.canRead()) {
-                return CompilerResult.failure("Cannot read input file")
-            }
+            sourceFile.inputStream().transferTo(System.out)
+
+            return ExitCode.SUCCESS
         } catch (e: SecurityException) {
-            return CompilerResult.failure("Access to input file denied: ${e.message}")
+            System.err.println("access to source file denied: ${e.message}")
+            return ExitCode.ERROR_FILE_SYSTEM
+        } catch (e: IOException) {
+            System.err.println("failed to read source file: ${e.message}")
+            return ExitCode.ERROR_FILE_SYSTEM
         }
-
-        return CompilerResult.success(
-            FileInputStream(sourceFile).let {
-                if (config.async) {
-                    BufferedInputProvider(it)
-                } else {
-                    SyncInputProvider(it)
-                }
-            }
-        )
     }
 
     enum class Mode {
@@ -165,9 +150,7 @@ class Compiler(private val config: Config) {
     }
 
     interface Config {
-        val sourceFile: File
+        val sourceFile: Path
         val mode: Mode
-        val parallelization: UInt
-        val async: Boolean
     }
 }

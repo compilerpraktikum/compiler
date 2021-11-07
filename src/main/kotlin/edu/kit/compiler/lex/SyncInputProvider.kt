@@ -6,7 +6,7 @@ class SyncInputProvider(inputStream: InputStream) : InputProvider {
     var bytes: ByteArray = inputStream.readAllBytes()
     var position = 0
 
-    override suspend fun peek(offset: Int): Char {
+    override fun peek(offset: Int): Char {
         if (position + offset >= bytes.size) {
             return InputProvider.END_OF_FILE
         }
@@ -14,7 +14,7 @@ class SyncInputProvider(inputStream: InputStream) : InputProvider {
         return bytes[position + offset].toUByte().toInt().toChar()
     }
 
-    override suspend fun next(): Char {
+    override fun next(): Char {
         if (position >= bytes.size) {
             return InputProvider.END_OF_FILE
         }

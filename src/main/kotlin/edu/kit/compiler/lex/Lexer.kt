@@ -25,21 +25,20 @@ private fun Char.isWhitespace() = when (this) {
 }
 
 /**
- * lexicographic analysis and tokenization of an input stream.
+ * lexicographic analysis and tokenization of the given source file.
  *
- * @param input input abstracted in a ring buffer
+ * @param sourceFile input source file
  * @param stringTable string table of current compilation run
  */
 @Suppress("BlockingMethodInNonBlockingContext")
 class Lexer(
-    fileName: String,
-    input: InputProvider,
+    sourceFile: SourceFile,
     stringTable: StringTable,
     private val printWarnings: Boolean = true
-) : AbstractLexer(fileName, input, stringTable) {
+) : AbstractLexer(sourceFile, stringTable) {
 
-    override suspend fun scanToken(): Token = when (val c = next()) {
-        ' ', '\n', '\r', '\t' -> scanWhitespace(c)
+    override fun scanToken(firstChar: Char): Token = when (firstChar) {
+        ' ', '\n', '\r', '\t' -> scanWhitespace(firstChar)
         '/' -> scanDiv()
         '!' -> scanNot()
         '(' -> Token.Operator(Token.Operator.Type.LParen)
@@ -65,11 +64,11 @@ class Lexer(
         '~' -> Token.Operator(Token.Operator.Type.BitNot)
         '|' -> scanBitOr()
         '0' -> Token.Literal("0")
-        '1', '2', '3', '4', '5', '6', '7', '8', '9' -> scanNonZeroLiteral(c)
-        else -> scanIdent(c)
+        '1', '2', '3', '4', '5', '6', '7', '8', '9' -> scanNonZeroLiteral(firstChar)
+        else -> scanIdent(firstChar)
     }
 
-    private suspend fun scanWhitespace(startChar: Char): Token {
+    private fun scanWhitespace(startChar: Char): Token {
         return Token.Whitespace(
             buildString {
                 append(startChar)
@@ -81,7 +80,7 @@ class Lexer(
         )
     }
 
-    private suspend fun scanNonZeroLiteral(startDigit: Char): Token {
+    private fun scanNonZeroLiteral(startDigit: Char): Token {
         return Token.Literal(
             buildString {
                 append(startDigit)
@@ -92,7 +91,7 @@ class Lexer(
         )
     }
 
-    private suspend fun scanIdent(startChar: Char): Token {
+    private fun scanIdent(startChar: Char): Token {
         val identBuilder: StringBuilder = StringBuilder().append(startChar)
         if (!startChar.isIdentifierStartChar()) {
             return Token.ErrorToken(startChar.toString(), "unexpected character: $startChar")
@@ -110,7 +109,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanBitOr(): Token {
+    private fun scanBitOr(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -124,7 +123,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanBitAnd(): Token {
+    private fun scanBitAnd(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -138,7 +137,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanXor(): Token {
+    private fun scanXor(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -148,7 +147,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanModulo(): Token {
+    private fun scanModulo(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -158,7 +157,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanGt(): Token {
+    private fun scanGt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -187,7 +186,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanAssign(): Token {
+    private fun scanAssign(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -197,7 +196,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanLt(): Token {
+    private fun scanLt(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -214,7 +213,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanMinus(): Token {
+    private fun scanMinus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -228,7 +227,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanPlus(): Token {
+    private fun scanPlus(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -242,7 +241,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanMul(): Token {
+    private fun scanMul(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -252,7 +251,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanNot(): Token {
+    private fun scanNot(): Token {
         return when (peek()) {
             '=' -> {
                 next()
@@ -262,7 +261,7 @@ class Lexer(
         }
     }
 
-    private suspend fun scanDiv(): Token {
+    private fun scanDiv(): Token {
         return when (peek()) {
             '*' -> {
                 next()
@@ -276,14 +275,14 @@ class Lexer(
         }
     }
 
-    private suspend fun scanCommentToken(commentAcc: StringBuilder): Token {
+    private fun scanCommentToken(commentAcc: StringBuilder): Token {
         // At the start, we're on the first '*' of "/* myComment */"
         var c = next()
         commentAcc.append(c)
 
-        // not exactly the automat but no need for recursion that way.
+        // not exactly the automaton but no need for recursion that way.
         while (!(c == '*' && peek() == '/')) {
-            if (c == '/' && peek() == '*') printWarning("nested comments are not supported")
+            if (c == '/' && peek() == '*') sourceFile.annotate(AnnotationType.WARNING, sourceFile.currentPosition, "nested comments are not supported")
             c = next()
             if (c == InputProvider.END_OF_FILE) return Token.ErrorToken("", "reached EOF while parsing comment.")
             commentAcc.append(c)
@@ -292,14 +291,5 @@ class Lexer(
         // so we advance, safely assuming next() to be '/'
         commentAcc.append(next())
         return Token.Comment(commentAcc.toString())
-    }
-
-    private fun printWarning(message: String) {
-        if (printWarnings) {
-            System.err.apply {
-                println("[warning] $message")
-                println("  in $position")
-            }
-        }
     }
 }

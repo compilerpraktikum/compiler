@@ -42,7 +42,8 @@ internal class ExpressionParseTest {
             AST.BinaryExpression(
                 AST.BinaryExpression(
                     AST.LiteralExpression("1"),
-                    AST.LiteralExpression("2"), AST.BinaryExpression.Operation.ADDITION
+                    AST.LiteralExpression("2"),
+                    AST.BinaryExpression.Operation.ADDITION
                 ),
                 AST.LiteralExpression("3"),
                 AST.BinaryExpression.Operation.ADDITION

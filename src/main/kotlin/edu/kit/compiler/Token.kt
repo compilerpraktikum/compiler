@@ -2,8 +2,6 @@ package edu.kit.compiler
 
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.StringTable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
 
 sealed class Token {
     lateinit var position: SourcePosition
@@ -19,19 +17,6 @@ sealed class Token {
                 is Whitespace -> null
                 is Eof -> "EOF"
                 is ErrorToken -> "error $error"
-            }
-
-    val sourceCode: String
-        get() =
-            when (this) {
-                is Identifier -> name
-                is Literal -> value
-                is Operator -> type.repr
-                is Keyword -> type.repr
-                is Comment -> content
-                is Whitespace -> content
-                is Eof -> ""
-                is ErrorToken -> content
             }
 
     data class Identifier(val name: String) : Token()
@@ -129,7 +114,7 @@ fun StringTable.initializeKeywords() {
     Token.Keyword.Type.values().forEach { registerKeyword(it.repr) }
 }
 
-val Flow<Token>.lexTestRepr: Flow<String>
+val Sequence<Token>.lexTestRepr: Sequence<String>
     get() = this.mapNotNull { it.debugRepr }
 
 val Iterable<Token>.lexTestRepr: List<String>

@@ -12,12 +12,12 @@ object ExitCode {
     const val ERROR_FILE_SYSTEM = 1
 
     /**
-     * Erroneous command line arguments were given, preventing compilation
+     * Error during compilation. For details see output on stderr.
      */
-    const val ERROR_ARGUMENTS = 2
+    const val ERROR_COMPILATION_FAILED = 2
 
     /**
-     * Tokenizing failed, because of an unexpected token, preventing compilation
+     * Unspecified internal error.
      */
-    const val ERROR_INVALID_TOKEN = 3
+    const val ERROR_INTERNAL = 127
 }

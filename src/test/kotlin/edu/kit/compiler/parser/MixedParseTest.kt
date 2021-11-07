@@ -136,7 +136,7 @@ internal class MixedParseTest {
                 )
             )
         )
-    ) { parseAST() }
+    ) { parse() }
 
     @Test
     fun debugParserMJTest_4() = expectNode(
@@ -185,7 +185,7 @@ internal class MixedParseTest {
             )
         )
 
-    ) { parseAST() }
+    ) { parse() }
 
 //    @Ignore
     @Test
@@ -232,7 +232,7 @@ internal class MixedParseTest {
                 )
             )
         )
-    ) { parseAST() }
+    ) { parse() }
 
     @Ignore
     @Test
@@ -293,7 +293,7 @@ internal class MixedParseTest {
             )
         )
 
-    ) { parseAST() }
+    ) { parse() }
 
     @Test
     fun debugParserMJTest_1() = expectNode(
@@ -335,7 +335,7 @@ internal class MixedParseTest {
             )
         )
 
-    ) { parseAST() }
+    ) { parse() }
 
     @Test
     fun testBasicBlock() = expectAst(
