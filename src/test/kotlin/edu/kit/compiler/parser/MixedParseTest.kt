@@ -557,7 +557,7 @@ internal class MixedParseTest {
                                                     "abc",
                                                     Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
                                                     AST.NewArrayExpression(
-                                                        Type.Array(Type.Array(Type.Array(Type.Integer))),
+                                                        Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
                                                         AST.LiteralExpression("22")
                                                     )
                                                 )
