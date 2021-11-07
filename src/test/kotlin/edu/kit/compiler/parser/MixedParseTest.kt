@@ -488,7 +488,7 @@ internal class MixedParseTest {
     @Test
     fun testPrimitiveArrayExpr() {
         expectAst(
-            "class a { public static void main(String[] args) { int[] = new int[22]; } }",
+            "class a { public static void main(String[] args) { int[] abc = new int[22]; } }",
             buildList {
                 add(
                     AST.ClassDeclaration(
@@ -502,15 +502,21 @@ internal class MixedParseTest {
                                         add(
                                             AST.Parameter(
                                                 "args",
-                                                Type.Array(Type.Array(Type.ClassType("String")))
+                                                Type.Array(Type.ClassType("String"))
                                             )
                                         )
                                     },
                                     AST.Block(
                                         buildList {
-                                            AST.NewArrayExpression(
-                                                Type.Array(Type.Integer),
-                                                AST.LiteralExpression(22)
+                                            add(
+                                                AST.LocalVariableDeclarationStatement(
+                                                    "abc",
+                                                    Type.Array(Type.Integer),
+                                                    AST.NewArrayExpression(
+                                                        Type.Array(Type.Integer),
+                                                        AST.LiteralExpression(22)
+                                                    )
+                                                )
                                             )
                                         }
                                     )
