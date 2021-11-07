@@ -528,4 +528,48 @@ internal class MixedParseTest {
             }
         )
     }
+
+    @Test
+    fun testIdentArrayExpr() {
+        expectAst(
+            "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.ClassType("String"))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            add(
+                                                AST.LocalVariableDeclarationStatement(
+                                                    "abc",
+                                                    Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
+                                                    AST.NewArrayExpression(
+                                                        Type.Array(Type.Array(Type.Array(Type.Integer))),
+                                                        AST.LiteralExpression("22")
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
 }
