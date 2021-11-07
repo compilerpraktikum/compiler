@@ -64,7 +64,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         .take(offset + 1).last()
 
     suspend fun initialize() = coroutineScope {
-        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
+        lookaheadBuffer = LookaheadBuffer(tokens.buffer(4096).produceIn(this@coroutineScope))
         sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
     }
     /**
