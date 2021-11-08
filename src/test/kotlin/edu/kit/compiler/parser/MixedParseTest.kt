@@ -187,6 +187,53 @@ internal class MixedParseTest {
 
     ) { parseAST() }
 
+//    @Ignore
+    @Test
+    fun debugParserMJTest_ArrayAccessValid() = expectNode(
+        """class Test {
+            public void m() {
+                a[2 * (-i + 1)][2];
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Test",
+                    listOf(
+                        AST.Method(
+                            "m", Type.Void,
+                            listOf(),
+                            AST.Block(
+                                listOf(
+                                    AST.ExpressionStatement(
+                                        AST.ArrayAccessExpression(
+                                            AST.ArrayAccessExpression(
+                                                AST.IdentifierExpression("a"),
+                                                AST.BinaryExpression(
+                                                    AST.LiteralExpression("2"),
+                                                    AST.BinaryExpression(
+                                                        AST.UnaryExpression(
+                                                            AST.IdentifierExpression("i"),
+                                                            AST.UnaryExpression.Operation.MINUS
+                                                        ),
+                                                        AST.LiteralExpression("1"),
+                                                        AST.BinaryExpression.Operation.ADDITION
+                                                    ),
+                                                    AST.BinaryExpression.Operation.MULTIPLICATION
+                                                )
+                                            ),
+                                            AST.LiteralExpression("2")
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    ) { parseAST() }
+
     @Ignore
     @Test
     fun debugParserMJTest_newArrayWithAccess2() = expectNode(

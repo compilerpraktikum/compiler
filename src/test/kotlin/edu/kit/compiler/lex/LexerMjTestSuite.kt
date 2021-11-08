@@ -1,9 +1,9 @@
 package edu.kit.compiler.lex
 
-import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.Token
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
+import edu.kit.compiler.utils.TestUtils
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest

@@ -436,12 +436,21 @@ class Parser(tokens: Flow<Token>) : AbstractParser(tokens) {
                 }
             }
             is Token.Identifier -> {
-                // Lookahead = 2 needed, here!
+                // Lookahead = 3 needed, here!
                 when (val secondToken = peek(1)) {
                     is Token.Identifier -> parseLocalVariableDeclarationStatement()
                     is Token.Operator -> {
                         if (secondToken.type == Token.Operator.Type.LeftBracket) {
-                            parseLocalVariableDeclarationStatement()
+                            when (val thirdToken = peek(2)) {
+                                is Token.Operator -> {
+                                    if (thirdToken.type == Token.Operator.Type.RightBracket) {
+                                        parseLocalVariableDeclarationStatement()
+                                    } else {
+                                        parseStatement()
+                                    }
+                                }
+                                else -> parseStatement()
+                            }
                         } else {
                             parseStatement()
                         }
