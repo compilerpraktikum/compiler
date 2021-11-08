@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
+import java.lang.Exception
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -111,9 +112,12 @@ class Compiler(private val config: Config) {
                         stringTable,
                         printWarnings = false
                     ).tokens()
-
-                    val program = Parser(tokens).parse()
-                    println(program)
+                    try {
+                        val program = Parser(tokens).parse()
+                        println(program)
+                    }catch (ex: Exception) {
+                        System.err.println("error: $ex")
+                    }
 
                     ExitCode.SUCCESS
 
