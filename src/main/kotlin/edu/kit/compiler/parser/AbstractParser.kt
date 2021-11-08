@@ -100,6 +100,6 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         // such panic
         // much confusing
         // wow
-        TODO("*explosion sounds*")
+        throw IllegalArgumentException("in panic mode: *explosion sounds*")
     }
 }
