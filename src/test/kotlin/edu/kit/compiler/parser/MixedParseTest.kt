@@ -623,7 +623,7 @@ internal class MixedParseTest {
     @Test
     fun testMultiArrayAccess() {
         expectAst(
-            "class a { public static void main(String[] args) { a[10 + b][]; } }",
+            "class a { public static void main(String[] args) { a[10 + b]; } }",
             buildList {
                 add(
                     AST.ClassDeclaration(
