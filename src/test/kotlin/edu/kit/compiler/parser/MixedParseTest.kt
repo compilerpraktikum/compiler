@@ -619,4 +619,50 @@ internal class MixedParseTest {
             }
         )
     }
+
+    @Test
+    fun testMultiArrayAccess() {
+        expectAst(
+            "class a { public static void main(String[] args) { a[10 + b][]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.ClassType("String"))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            add(
+                                                AST.ExpressionStatement(
+                                                    AST.ArrayAccessExpression(
+                                                        AST.IdentifierExpression("a"),
+                                                        AST.BinaryExpression(
+                                                            AST.LiteralExpression("10"),
+                                                            AST.IdentifierExpression("b"),
+                                                            AST.BinaryExpression.Operation.ADDITION
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
 }
