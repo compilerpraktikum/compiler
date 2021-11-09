@@ -14,7 +14,6 @@ import java.io.FileInputStream
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 import kotlin.io.path.absolutePathString
-import kotlin.test.assertTrue
 
 internal class ParserMjTestSuite {
     companion object {
@@ -55,15 +54,14 @@ internal class ParserMjTestSuite {
             exception = ex
         }
         if (testConfig.name.endsWith("invalid.mj")) {
-            assertTrue("expected failure, but got success") {
-                exception != null
+            assert(exception != null) {
+                "expected failure, but got success"
             }
-            exception?.printStackTrace()
         } else {
-            assertTrue("expected success, but got failure") {
-                exception == null
+            assert(exception == null) {
+                val stack = exception!!.stackTraceToString()
+                "expected success, but got failure: $stack"
             }
-            exception?.printStackTrace()
         }
     }
 }
