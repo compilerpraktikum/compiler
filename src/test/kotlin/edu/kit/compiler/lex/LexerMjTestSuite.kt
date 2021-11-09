@@ -3,28 +3,19 @@ package edu.kit.compiler.lex
 import edu.kit.compiler.Token
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
+import edu.kit.compiler.utils.TestUtils
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.File
 import java.io.FileInputStream
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.stream.Stream
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.listDirectoryEntries
-import kotlin.io.path.name
 import kotlin.io.path.readLines
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 internal class LexerMjTestSuite {
-
-    class TestFileArgument(val name: String, val path: Path) {
-        // This is used for naming in the junit output
-        override fun toString(): String = name
-    }
 
     companion object {
         /** this is used to run multiple instances of the test:
@@ -34,19 +25,12 @@ internal class LexerMjTestSuite {
          *         shouldn't be verbose
          */
         @JvmStatic
-        fun provideValidTests(): Stream<TestFileArgument> {
-            // https://stackoverflow.com/questions/320542/how-to-get-the-path-of-a-running-jar-file
-            val testFolderAbsolutePath =
-                File(LexerMjTestSuite::class.java.protectionDomain.codeSource.location.toURI()).getPath()
-            val projectRootDirectory = Paths.get(testFolderAbsolutePath).parent.parent.parent.parent
-            val path = projectRootDirectory.resolve("test-cases").resolve("lexer")
-            return path.listDirectoryEntries("*.mj").map { TestFileArgument(path.relativize(it).name, it) }.stream()
-        }
+        fun provideValidTests(): Stream<TestUtils.TestFileArgument> = TestUtils.getTestSuiteFilesFor("lexer")
     }
 
     @ParameterizedTest
     @MethodSource("provideValidTests")
-    fun test_lexer(testConfig: TestFileArgument) {
+    fun test_lexer(testConfig: TestUtils.TestFileArgument) {
         val inputFile = testConfig.path
         val outputFile = testConfig.path.parent.resolve(testConfig.name + ".out")
 

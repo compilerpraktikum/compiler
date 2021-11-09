@@ -53,8 +53,14 @@ object AST {
         val throwException: Token.Identifier? = null,
     ) : ClassMember()
 
-    class MainMethod(
-        block: Block,
+    data class MainMethod(
+        // we need not only block but the rest too, for in semantical analysis we need to check exact match on
+        // "public static void main(String[] $SOMEIDENTIFIER)"
+        val name: String,
+        val returnType: Type,
+        val parameters: List<Parameter>,
+        val block: Block,
+        val throwException: Token.Identifier? = null,
     ) : ClassMember()
 
     data class Parameter(
@@ -150,7 +156,7 @@ object AST {
     data class UnaryExpression(
         val expression: Expression,
         val operation: Operation
-    ) {
+    ) : Expression() {
         enum class Operation {
             NOT,
             MINUS,
@@ -212,3 +218,34 @@ fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when
     Token.Operator.Type.Or -> AST.BinaryExpression.Operation.OR
     else -> null
 }
+
+abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
+
+class ClassDeclarationDsl(res: MutableList<AST.ClassDeclaration> = mutableListOf()) : AstDsl<AST.ClassDeclaration>(res) {
+    fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
+        val members = ClassMemberDsl().also { it.block() }
+        this.res.add(AST.ClassDeclaration(name, members.res))
+    }
+}
+
+class ClassMemberDsl(res: MutableList<AST.ClassMember> = mutableListOf()) : AstDsl<AST.ClassMember>(res) {
+    fun method(name: String, returnType: Type, parameters: List<AST.Parameter>, throws: String? = null, block: StatementsDsl.() -> Unit) {
+        this.res.add(AST.Method(name, returnType, parameters, AST.Block(StatementsDsl().also(block).res), if (throws == null) { null } else { Token.Identifier(throws) }))
+    }
+}
+
+object ExprDsl {
+    fun <T> literal(v: T) = AST.LiteralExpression(v)
+    fun binOp(op: AST.BinaryExpression.Operation, left: ExprDsl.() -> AST.Expression, right: ExprDsl.() -> AST.Expression) =
+        AST.BinaryExpression(ExprDsl.left(), ExprDsl.right(), op)
+}
+
+class StatementsDsl(val res: MutableList<AST.Statement> = mutableListOf()) {
+    fun emptyStatement() = res.add(AST.EmptyStatement)
+    fun block(b: StatementsDsl.() -> Unit) {
+        res.add(AST.Block(StatementsDsl().also(b).res))
+    }
+}
+
+fun astOf(block: ClassDeclarationDsl.() -> Unit) =
+    ClassDeclarationDsl().also(block).res

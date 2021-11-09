@@ -116,5 +116,18 @@ $BlockStatement$            | $NewArrayExpression$                  | $\{$ **`in
 $X$                 | $First_1(X)$
 :---                |:---
 $Type$              | $\{$ **`int`** $\|$ **`boolean`** $\|$ **`void`** $\|$ **`IDENT`** $\}$
-$Statement$         | $\{$ **`{`** $\|$ **`;`** $\|$ **`if`** $\|$ $First_1(PrimaryExpression)$ $\|$ **`IDENT`** $\}$
-$PrimaryExpression$ | $\{$ **`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`** $\|$ **`IDENT`** $\|$ **`true`** $\}$
+$Statement$         | $\{$ **`{`** $\|$ **`;`** $\|$ **`if`** $\|$ $First_1(PrimaryExpression)$ $\|$ **`while`** $\|$ **`return`** $\}$
+$PrimaryExpression$ | $\{$ **`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`**$\|$ **`(`** $\|$ **`IDENT`**$\|$ **`this`** $\|$ **`new`** $\}$
+
+First2 für alles was zu NewArrayExpr werden kann.
+
+$X$                 | $First_2(X)$
+:---                |:---
+$BlockStatement$ | $First_2(Statement) \bigcup First_2(LocalVariableDeclaration)$
+$LocalVariableDeclaration$ | $\{$ **`int IDENT`** $\|$ **`bool IDENT`** $\|$ **`void IDENT`** $\|$ **`IDENT IDENT`**$\|$ **`int [`** $\|$ **`bool [`** $\|$ **`void [`** $\|$ **`IDENT [`**$\}$
+$Type$ | $\{$ **`int`** $\|$ **`bool`** $\|$ **`void`** $\|$ **`IDENT`**$\|$ **`int [`** $\|$ **`bool [`** $\|$ **`void [`** $\|$ **`IDENT [`**$\}$
+$Statement$ | $\{$**`{`**$\} + First_1(BlockStatement) \bigcup \{$ **`;`** $\|$ **`if (`** $\|$ **`while (`** $\|$ **`return;`**$\} \bigcup First_2(Expression) + \{$**`;`**$\} \bigcup  \{$ **`return`** $\} + First_1(Expression)$
+$Expression$ | $\{$ **`!!`** $\|$ **`!-`** $\|$ **`-!`** $\|$ **`--`**$\|$ **`!null`** $\|$ **`!false`** $\|$ **`!true`** $\|$ **`!INTEGER_LITERAL`**$\|$ **`!(`** $\|$ **`!IDENT`**$\|$ **`!this`** $\|$ **`!new`** $\|$ **`-null`** $\|$ **`-false`** $\|$ **`-true`** $\|$ **`-INTEGER_LITERAL`**$\|$ **`-(`** $\|$ **`-IDENT`**$\|$ **`-this`** $\|$ **`-new`**$\}\bigcup First_1(PrimaryExpression)+Operator() \bigcup First_2(PrimaryExpression)$ 
+$NewArrayExpression$ | $\{$ **`int [`** $\|$ **`bool [`** $\|$ **`void [`** $\|$ **`IDENT [`**$\}$
+$NewObjectArrayExpression$ | $\{$ **`IDENT (`** $\|$**`int [`** $\|$ **`bool [`** $\|$ **`void [`** $\|$ **`IDENT [`**$\}$
+$PrimaryExpression$ | $\{$**`null`** $\|$ **`false`** $\|$ **`true`** $\|$ **`INTEGER_LITERAL`**$\|$ **`(`** $\|$ **`IDENT`**$\|$ **`this`** $\|$ **`new`** $\|$ **`IDENT (`** $\|$**`int [`** $\|$ **`bool [`** $\|$ **`void [`** $\}$

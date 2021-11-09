@@ -7,6 +7,7 @@ import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.SyncInputProvider
+import edu.kit.compiler.parser.Parser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
@@ -46,6 +47,7 @@ class Compiler(private val config: Config) {
      *
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
+    @OptIn(ExperimentalStdlibApi::class)
     fun compile(): Int {
         try {
             // prepare a thread-pool for parallelization
@@ -100,6 +102,24 @@ class Compiler(private val config: Config) {
                         ExitCode.SUCCESS
                     }
                 }
+                Mode.ParseTest -> runBlocking {
+                    var hasInvalidToken = false
+
+                    val tokens = Lexer(
+                        config.sourceFile.absolutePath,
+                        input,
+                        stringTable,
+                        printWarnings = false
+                    ).tokens()
+                    try {
+                        val program = Parser(tokens).parse()
+                        println(program)
+                    } catch (ex: IllegalArgumentException) {
+                        System.err.println("error: $ex")
+                    }
+
+                    ExitCode.SUCCESS
+                }
             }
         } finally {
             threadPool?.shutdown()
@@ -141,7 +161,7 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode {
-        Compile, Echo, LexTest,
+        Compile, Echo, LexTest, ParseTest,
     }
 
     interface Config {

@@ -2,23 +2,365 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
-import edu.kit.compiler.utils.createLexer
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
+import edu.kit.compiler.ast.astOf
+import edu.kit.compiler.utils.TestUtils.expectNode
 import org.junit.jupiter.api.Test
+import kotlin.test.Ignore
 
+@ExperimentalStdlibApi
 internal class MixedParseTest {
 
-    @ExperimentalStdlibApi
-    private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) {
-        val lexer = createLexer(input)
-        val res = runBlocking {
-            Parser(lexer.tokens()).also { it.initialize() }.parseClassDeclarations()
-        }
-        assertEquals(expectedAST, res)
-    }
+    private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
+        expectNode(input, expectedAST) { parseClassDeclarations() }
 
-    @ExperimentalStdlibApi
+    @Test
+    fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock() }
+
+    @Test
+    fun testParseBlockOfEmptyBlocks() =
+        expectNode("{{{}}}", AST.Block(listOf(AST.Block(listOf(AST.Block(listOf())))))) { parseBlock() }
+
+    @Test
+    fun testParseBlockWithEmptyStatement() = expectNode("{;}", AST.Block(listOf(AST.EmptyStatement))) { parseBlock() }
+
+    @Test
+    fun testParseBlockWithMultipleEmptyStatement() = expectNode(
+        "{;;;;}",
+        AST.Block(listOf(AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement))
+    ) { parseBlock() }
+
+    @Test
+    fun testDisambiguateVarDeclarationAndExpression() = expectNode(
+        "{ myident; mytype myident2; }",
+        AST.Block(
+            listOf(
+                AST.ExpressionStatement(AST.IdentifierExpression("myident")),
+                AST.LocalVariableDeclarationStatement("myident2", Type.ClassType("mytype"), null)
+            )
+        )
+    ) { parseBlock() }
+
+    @Test
+    fun testParseAssignment() = expectNode(
+        "myIdent = 3;",
+        AST.ExpressionStatement(
+            AST.BinaryExpression(
+                AST.IdentifierExpression("myIdent"),
+                AST.LiteralExpression("3"),
+                AST.BinaryExpression.Operation.ASSIGNMENT
+            )
+        )
+    ) { parseStatement() }
+
+    @Test
+    fun testParseReturn() = expectNode(
+        "return;",
+        AST.ReturnStatement(null)
+    ) { parseStatement() }
+
+    @Test
+    fun testParseReturnValue() = expectNode(
+        "return(2);",
+        AST.ReturnStatement(AST.LiteralExpression("2"))
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicWhile() = expectNode(
+        "while(2) {};",
+        AST.WhileStatement(AST.LiteralExpression("2"), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicIf() = expectNode(
+        "if(2) {};",
+        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), null)
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicIfElse() = expectNode(
+        "if(2) {} else {};",
+        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicIfElse_bool() = expectNode(
+        "if(true) {} else {};",
+        AST.IfStatement(AST.LiteralExpression(true), AST.Block(listOf()), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun testParseBasicIfElse_ident() = expectNode(
+        "if(myIdent) {} else {};",
+        AST.IfStatement(AST.IdentifierExpression("myIdent"), AST.Block(listOf()), AST.Block(listOf()))
+    ) { parseStatement() }
+
+    @Test
+    fun debugParserMJTest_2() = expectNode(
+        """
+        /* OK , unary minus after binop */
+
+        class Main {
+            public static void main(String[] args) {
+                int i;
+
+                int x = i + -i;
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("i", Type.Integer, null),
+                                    AST.LocalVariableDeclarationStatement(
+                                        "x",
+                                        Type.Integer,
+                                        AST.BinaryExpression(
+                                            AST.IdentifierExpression("i"),
+                                            AST.UnaryExpression(
+                                                AST.IdentifierExpression("i"),
+                                                AST.UnaryExpression.Operation.MINUS
+                                            ),
+                                            AST.BinaryExpression.Operation.ADDITION
+                                        )
+                                    ),
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    ) { parseAST() }
+
+    @Test
+    fun debugParserMJTest_4() = expectNode(
+        """
+            class _Klasse {
+                public static void main(String[] args) {
+                    if (null.nothing) if (true.fun()) if (false[472183921789789798798798798798787789738120391203213213]) return;
+                }
+            }
+        """,
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "_Klasse",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.IfStatement(
+                                        AST.FieldAccessExpression(AST.LiteralExpression("null"), "nothing"),
+                                        AST.IfStatement(
+                                            AST.MethodInvocationExpression(
+                                                AST.LiteralExpression(true),
+                                                "fun",
+                                                emptyList()
+                                            ),
+                                            AST.IfStatement(
+                                                AST.ArrayAccessExpression(
+                                                    AST.LiteralExpression(false),
+                                                    AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
+                                                ),
+                                                AST.ReturnStatement(null),
+                                                null
+                                            ),
+                                            null
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+//    @Ignore
+    @Test
+    fun debugParserMJTest_ArrayAccessValid() = expectNode(
+        """class Test {
+            public void m() {
+                a[2 * (-i + 1)][2];
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Test",
+                    listOf(
+                        AST.Method(
+                            "m", Type.Void,
+                            listOf(),
+                            AST.Block(
+                                listOf(
+                                    AST.ExpressionStatement(
+                                        AST.ArrayAccessExpression(
+                                            AST.ArrayAccessExpression(
+                                                AST.IdentifierExpression("a"),
+                                                AST.BinaryExpression(
+                                                    AST.LiteralExpression("2"),
+                                                    AST.BinaryExpression(
+                                                        AST.UnaryExpression(
+                                                            AST.IdentifierExpression("i"),
+                                                            AST.UnaryExpression.Operation.MINUS
+                                                        ),
+                                                        AST.LiteralExpression("1"),
+                                                        AST.BinaryExpression.Operation.ADDITION
+                                                    ),
+                                                    AST.BinaryExpression.Operation.MULTIPLICATION
+                                                )
+                                            ),
+                                            AST.LiteralExpression("2")
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    ) { parseAST() }
+
+    @Ignore
+    @Test
+    fun debugParserMJTest_newArrayWithAccess2() = expectNode(
+        """/* OK */
+
+        class Main {
+            public static void main(String[] args) {
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+                }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}};
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.IfStatement(
+                                        AST.LiteralExpression(true),
+                                        AST.ExpressionStatement(
+                                            AST.BinaryExpression(
+                                                AST.IdentifierExpression("x"),
+                                                AST.LiteralExpression("3"),
+                                                AST.BinaryExpression.Operation.ASSIGNMENT
+                                            )
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+    @Test
+    fun debugParserMJTest_1() = expectNode(
+        """ /* OK */
+
+            class Main {
+            public static void main(String[] args) {
+                int x;
+                if (true) x = 3;
+            }
+        }""",
+        AST.Program(
+            listOf(
+                AST.ClassDeclaration(
+                    "Main",
+                    listOf(
+                        AST.MainMethod(
+                            "main", Type.Void,
+                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            AST.Block(
+                                listOf(
+                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.IfStatement(
+                                        AST.LiteralExpression(true),
+                                        AST.ExpressionStatement(
+                                            AST.BinaryExpression(
+                                                AST.IdentifierExpression("x"),
+                                                AST.LiteralExpression("3"),
+                                                AST.BinaryExpression.Operation.ASSIGNMENT
+                                            )
+                                        ),
+                                        null
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    ) { parseAST() }
+
+    @Test
+    fun testBasicBlock() = expectAst(
+        "class test { public void test() { } }",
+        astOf {
+            clazz("test") {
+                method("test", Type.Void, listOf()) {
+                }
+            }
+        }
+    )
+
+    @Test
+    fun testBlockWithEmptyStatements() = expectAst(
+        "class test { public void test() { ;; } }",
+        astOf {
+            clazz("test") {
+                method("test", Type.Void, listOf()) {
+                    emptyStatement()
+                    emptyStatement()
+                }
+            }
+        }
+    )
+
     @Test
     fun testEmptyClass() {
         expectAst(
@@ -34,7 +376,6 @@ internal class MixedParseTest {
         )
     }
 
-    @ExperimentalStdlibApi
     @Test
     fun testOneClasTwoFields() {
         expectAst(
@@ -63,7 +404,6 @@ internal class MixedParseTest {
         )
     }
 
-    @ExperimentalStdlibApi
     @Test
     fun testOneClassArrayField() {
         expectAst(
@@ -92,7 +432,6 @@ internal class MixedParseTest {
         )
     }
 
-    @ExperimentalStdlibApi
     @Test
     fun testOneClassMethod() {
         expectAst(
@@ -119,7 +458,6 @@ internal class MixedParseTest {
         )
     }
 
-    @ExperimentalStdlibApi
     @Test
     fun testOneMethodWithParams() {
         expectAst(
@@ -151,6 +489,173 @@ internal class MixedParseTest {
                                     },
                                     AST.Block(
                                         emptyList()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @Test
+    fun testOneMethodOneMainMethod() {
+        expectAst(
+            "class testClass { public static void mymain(Strig[][] arr ) {} }",
+            buildList<AST.ClassDeclaration> {
+                add(
+                    AST.ClassDeclaration(
+                        "testClass",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "mymain",
+                                    Type.Void,
+                                    buildList<AST.Parameter> {
+                                        add(
+                                            AST.Parameter(
+                                                "arr",
+                                                Type.Array(Type.Array(Type.ClassType("Strig")))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        emptyList()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @Test
+    fun testPrimitiveArrayExpr() {
+        expectAst(
+            "class a { public static void main(String[] args) { int[][] abc = new int[22][]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.ClassType("String"))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            add(
+                                                AST.LocalVariableDeclarationStatement(
+                                                    "abc",
+                                                    Type.Array(Type.Array(Type.Integer)),
+                                                    AST.NewArrayExpression(
+                                                        Type.Array(Type.Array(Type.Integer)),
+                                                        AST.LiteralExpression("22")
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @Test
+    fun testIdentArrayExpr() {
+        expectAst(
+            "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.ClassType("String"))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            add(
+                                                AST.LocalVariableDeclarationStatement(
+                                                    "abc",
+                                                    Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
+                                                    AST.NewArrayExpression(
+                                                        Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
+                                                        AST.LiteralExpression("22")
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    @Test
+    fun testMultiArrayAccess() {
+        expectAst(
+            "class a { public static void main(String[] args) { a[10 + b]; } }",
+            buildList {
+                add(
+                    AST.ClassDeclaration(
+                        "a",
+                        buildList<AST.ClassMember> {
+                            add(
+                                AST.MainMethod(
+                                    "main",
+                                    Type.Void,
+                                    buildList {
+                                        add(
+                                            AST.Parameter(
+                                                "args",
+                                                Type.Array(Type.ClassType("String"))
+                                            )
+                                        )
+                                    },
+                                    AST.Block(
+                                        buildList {
+                                            add(
+                                                AST.ExpressionStatement(
+                                                    AST.ArrayAccessExpression(
+                                                        AST.IdentifierExpression("a"),
+                                                        AST.BinaryExpression(
+                                                            AST.LiteralExpression("10"),
+                                                            AST.IdentifierExpression("b"),
+                                                            AST.BinaryExpression.Operation.ADDITION
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        }
                                     )
                                 )
                             )

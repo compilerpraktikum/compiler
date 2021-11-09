@@ -64,7 +64,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         .take(offset + 1).last()
 
     suspend fun initialize() = coroutineScope {
-        lookaheadBuffer = LookaheadBuffer(tokens.buffer().produceIn(this@coroutineScope))
+        lookaheadBuffer = LookaheadBuffer(tokens.buffer(32768).produceIn(this@coroutineScope))
         sourceCodeWindow = SourceCodeWindow(lookaheadBuffer)
     }
     /**
@@ -80,7 +80,7 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
     /**
      * Construct the AST from the token stream
      */
-    protected abstract suspend fun parseAST(): AST.Program
+    abstract suspend fun parseAST(): AST.Program
 
     /**
      * Expect and return a token of type [T].
@@ -100,6 +100,6 @@ abstract class AbstractParser(private val tokens: Flow<Token>) {
         // such panic
         // much confusing
         // wow
-        TODO("*explosion sounds*")
+        throw IllegalArgumentException("in panic mode: *explosion sounds*")
     }
 }
