@@ -27,27 +27,15 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parsePrimaryExpression(): AST.Expression {
-        println("    debug in parsePrimaryExpression: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
                 AST.LiteralExpression(peekedToken.value) // TODO we should further specify ""type""
             }
             is Token.Operator -> {
-                println(
-                    "        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(
-                        2
-                    )
-                )
                 if (peekedToken.type == Token.Operator.Type.LParen) {
                     next()
                     val innerExpr = parseExpression(1)
-                    println("        debug in parsePrimaryExpression.TokenOperator: innerExpr=$innerExpr")
-                    println(
-                        "        debug in parsePrimaryExpression.TokenOperator: peek next=" + peek(0) + " " + peek(1) + " " + peek(
-                            2
-                        )
-                    )
                     val tokenAfterParens = this.next()
                     if (tokenAfterParens is Token.Operator && tokenAfterParens.type == Token.Operator.Type.RParen) {
                         innerExpr
@@ -124,18 +112,13 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         expectOperator(Token.Operator.Type.LeftBracket)
         val indexExpression = parseExpression()
         expectOperator(Token.Operator.Type.RightBracket)
-
-        println("##debug in parseNewArrayExpression(before): peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
         val arrayType = parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType))
-        println("##debug in parseNewArrayExpression(after): peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
-
         return AST.NewArrayExpression(arrayType, indexExpression)
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array): Type.Array {
         val maybeAnotherLBracket = peek(0)
         val maybeAnotherRBracket = peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
-        println("####debug in parseNewArrayExpressionTypeArrayRecurse: peek next=" + peek(0) + " " + peek(1) + " " + peek(2) + " " + peek(3) + " " + peek(4))
         return if (
             (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
             (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
@@ -160,7 +143,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parsePostfixExpression(): AST.Expression {
-        println(" debug in parsePostfixExpression: peek next=" + peek(0) + " " + peek(1) + " " + peek(2))
         val primaryExpression = parsePrimaryExpression()
 
         return when (val firstPeekedToken = peek()) {
@@ -175,7 +157,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parsePostfixOp(target: AST.Expression): AST.Expression {
-        println("PARSE_POSTFIX_OP:" + target + "    peek:" + peek(0) + " " + peek(1) + " " + peek(2))
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
                 when (firstPeekedToken.type) {
@@ -210,7 +191,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     private fun parseUnaryExpression(): AST.Expression {
         // todo not exhausting first(follow) of parsePrimary!)
         // TODO parsePostifixExpression instead of parsePrimaryExpression !
-        println("IN PARSE_UNARY_EXPRESSION")
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
@@ -253,14 +233,12 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     internal fun parseClassDeclarations(): List<AST.ClassDeclaration> {
-        println("Peekstart " + peek())
         return buildList<AST.ClassDeclaration> {
             while (peek(0) != Token.Eof) {
                 expectKeyword(Token.Keyword.Type.Class)
                 val ident = expect<Token.Identifier>()
                 expectOperator(Token.Operator.Type.LeftBrace)
                 val classMembers = parseClassMembers()
-                println("debug   " + peek(0))
                 expectOperator(Token.Operator.Type.RightBrace)
 
                 add(AST.ClassDeclaration(ident.name, classMembers))
@@ -280,7 +258,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parseClassMember(): AST.ClassMember {
-        println("DEBUG parseClassMember: PEEK(0) " + peek(0))
         expectKeyword(Token.Keyword.Type.Public)
         val token = peek(0)
 
@@ -402,7 +379,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         // Statement ==> "{ | ; | if | while | return | null | false | true | INTEGER_LITERAL | ( | IDENT | this | new"
         // Statement: Auf IDENT folgt nie ein weiteres IDENT.
         // LocalVariableDeclarationStatement ==> "int | boolean | void | IDENT" x " IDENT " x " = | ; "
-        println("in parseBlockStatement with peek(0)=" + peek(0))
         return when (val firstToken = peek(0)) {
             is Token.Keyword -> {
                 when (firstToken.type) {
@@ -462,7 +438,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     internal fun parseStatement(): AST.Statement {
-        println("  in parseStatement with peek(0)=" + peek(0))
         return when (val firstToken = peek(0)) {
             is Token.Operator -> {
                 when (firstToken.type) {
@@ -560,7 +535,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
 
     private fun parseExpressionStatement(): AST.ExpressionStatement {
         val expr = parseExpression()
-        println("DEBUG in parseExpressionStatement. expr=$expr")
         expectOperator(Token.Operator.Type.Semicolon)
         return AST.ExpressionStatement(expr)
     }
@@ -599,7 +573,6 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         val basicType = parseBasicType()
         val maybeLeftBracket = peek(0)
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
-            print(basicType)
             return parseTypeArrayRecurse(basicType)
         }
         return basicType
