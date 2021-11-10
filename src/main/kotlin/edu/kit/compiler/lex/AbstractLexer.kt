@@ -47,9 +47,7 @@ abstract class AbstractLexer(
             c = next()
         }
 
-        while (true) { // TODO maybe remove?
-            yield(Token.Eof)
-        }
+        yield(Token.Eof)
     }
 
     /**
