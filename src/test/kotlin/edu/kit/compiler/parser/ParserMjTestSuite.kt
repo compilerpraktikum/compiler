@@ -31,7 +31,7 @@ internal class ParserMjTestSuite {
     fun test_parser(testConfig: TestUtils.TestFileArgument) {
         val inputFile = testConfig.path
 
-        println("Running parser on $inputFile")
+        println("Testing parser on $inputFile")
 
         val input = try {
             SourceFile.from(inputFile)

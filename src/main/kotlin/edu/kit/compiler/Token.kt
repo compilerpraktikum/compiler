@@ -105,7 +105,9 @@ sealed class Token {
 
     data class Whitespace(val content: String) : Token()
 
-    object Eof : Token()
+    object Eof : Token() {
+        override fun toString(): String = "EndOfFile"
+    }
 
     data class ErrorToken(val content: String, val error: String) : Token()
 }

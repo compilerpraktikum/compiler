@@ -33,7 +33,7 @@ internal class LexerMjTestSuite {
         val inputFile = testConfig.path
         val outputFile = testConfig.path.parent.resolve(testConfig.name + ".out")
 
-        println("Testing $inputFile")
+        println("Testing lexer on $inputFile")
 
         val input = try {
             SourceFile.from(inputFile)
