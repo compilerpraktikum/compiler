@@ -24,7 +24,7 @@ object FirstFollowUtils {
 }
 
 @JvmInline
-value class AnchorSet(val tokens: Array<out Token>) {
+value class AnchorSet(val tokens: Set<Token>) {
     /**
      * @param token a token to check against this [AnchorSet]
      * @return true, if the given token type is within this anchor set.
@@ -46,10 +46,10 @@ value class AnchorSet(val tokens: Array<out Token>) {
      * Union operator for two [AnchorSets][AnchorSet]
      */
     operator fun plus(anchorSet: AnchorSet): AnchorSet =
-        AnchorSet(setOf(*this.tokens, *anchorSet.tokens).toTypedArray())
+        AnchorSet(this.tokens.union(anchorSet.tokens))
 }
 
 /**
  * Construct an [AnchorSet] from a variadic array of tokens
  */
-private fun anchorSetOf(vararg tokens: Token) = AnchorSet(tokens)
+private fun anchorSetOf(vararg tokens: Token) = AnchorSet(tokens.toSet())
