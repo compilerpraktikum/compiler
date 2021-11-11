@@ -77,6 +77,7 @@ sealed class Token {
 
     data class Keyword(val type: Type) : Token() {
 
+        @Suppress("unused")
         enum class Type(val repr: String) {
             Abstract("abstract"), Assert("assert"), Boolean("boolean"), Break("break"),
             Byte("byte"), Case("case"), Catch("catch"), Char("char"), Class("class"),
