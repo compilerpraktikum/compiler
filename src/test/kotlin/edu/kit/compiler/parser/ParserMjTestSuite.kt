@@ -40,9 +40,7 @@ internal class ParserMjTestSuite {
             return
         }
 
-        val stringTable = StringTable().apply {
-            initializeKeywords()
-        }
+        val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(input, stringTable)
 
         val parser = Parser(lexer.tokens())

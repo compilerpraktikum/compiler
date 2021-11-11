@@ -7,9 +7,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 
 fun createLexer(input: String, fileName: String = "/path/to/file"): Lexer {
-    val stringTable = StringTable().apply {
-        initializeKeywords()
-    }
+    val stringTable = StringTable(StringTable::initializeKeywords)
     return Lexer(SourceFile.from(fileName, input), stringTable)
 }
 

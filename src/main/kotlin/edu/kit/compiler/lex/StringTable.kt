@@ -6,9 +6,15 @@ package edu.kit.compiler.lex
  * The string table is generated during lexicographic analysis and later utilized during
  * parsing and during semantic analysis.
  */
-class StringTable {
+class StringTable(
+    initializer: StringTable.() -> Unit,
+) {
 
     private val symbols = HashMap<String, Symbol>()
+
+    init {
+        initializer()
+    }
 
     /**
      * Tries to register a new identifier if not already known.

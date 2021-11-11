@@ -24,9 +24,7 @@ class Compiler(private val config: Config) {
      * Run-specific instance of [StringTable] that is passed to the different phases. It will be filled by
      * side-effects, which allows lexicographic and syntactic analysis to be intertwined.
      */
-    private val stringTable = StringTable().apply {
-        initializeKeywords()
-    }
+    private val stringTable = StringTable(StringTable::initializeKeywords)
 
     /**
      * Overall convenience method to fully invoke the compilation of one compile unit. All error logging has already
