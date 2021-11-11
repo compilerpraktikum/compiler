@@ -81,7 +81,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void -> parseNewArrayExpression()
-                else -> enterPanicMode()
+                else -> panicMode()
             }
             is Token.Identifier -> {
                 // k=2
@@ -90,13 +90,13 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                         when (secondToken.type) {
                             Token.Operator.Type.LParen -> parseNewObjectExpression()
                             Token.Operator.Type.LeftBracket -> parseNewArrayExpression()
-                            else -> enterPanicMode()
+                            else -> panicMode()
                         }
                     }
-                    else -> enterPanicMode()
+                    else -> panicMode()
                 }
             }
-            else -> enterPanicMode()
+            else -> panicMode()
         }
     }
 
@@ -118,7 +118,8 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
 
     private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array): Type.Array {
         val maybeAnotherLBracket = peek(0)
-        val maybeAnotherRBracket = peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
+        val maybeAnotherRBracket =
+            peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
         return if (
             (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
             (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
@@ -267,13 +268,13 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Keyword.Type.Static -> parseMainMethod()
                     Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                         parseFieldMethodPrefix()
-                    else -> enterPanicMode() // todo right?
+                    else -> panicMode() // todo right?
                 }
             }
             is Token.Identifier -> {
                 parseFieldMethodPrefix()
             }
-            else -> enterPanicMode() // todo right?
+            else -> panicMode() // todo right?
         }
     }
 
@@ -310,10 +311,10 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                 when (fieldMethodRestToken.type) {
                     Token.Operator.Type.Semicolon -> parseField(ident, type)
                     Token.Operator.Type.LParen -> parseMethod(ident, type)
-                    else -> enterPanicMode() // todo right?
+                    else -> panicMode() // todo right?
                 }
             }
-            else -> enterPanicMode() // todo right?
+            else -> panicMode() // todo right?
         }
     }
 
@@ -395,7 +396,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Keyword.Type.Boolean,
                     Token.Keyword.Type.Void -> parseLocalVariableDeclarationStatement()
 
-                    else -> enterPanicMode() // TODO this might not be the right place
+                    else -> panicMode() // TODO this might not be the right place
                 }
             }
             is Token.Literal -> parseStatement()
@@ -407,7 +408,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseStatement()
 
-                    else -> enterPanicMode() // TODO this might not be the right place
+                    else -> panicMode() // TODO this might not be the right place
                 }
             }
             is Token.Identifier -> {
@@ -433,7 +434,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     else -> parseStatement()
                 }
             }
-            else -> enterPanicMode()
+            else -> panicMode()
         }
     }
 
@@ -447,7 +448,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseExpressionStatement()
 
-                    else -> enterPanicMode() // TODO this might not be the right place
+                    else -> panicMode() // TODO this might not be the right place
                 }
             }
             is Token.Keyword -> {
@@ -461,12 +462,12 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Keyword.Type.This -> parseExpressionStatement()
                     Token.Keyword.Type.New -> parseExpressionStatement()
 
-                    else -> enterPanicMode() // TODO this might not be the right place
+                    else -> panicMode() // TODO this might not be the right place
                 }
             }
             is Token.Literal -> parseExpressionStatement()
             is Token.Identifier -> parseExpressionStatement()
-            else -> enterPanicMode() // TODO this might not be the right place
+            else -> panicMode() // TODO this might not be the right place
         }
     }
 
@@ -594,48 +595,13 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Keyword.Type.Int -> Type.Integer
                     Token.Keyword.Type.Boolean -> Type.Boolean
                     Token.Keyword.Type.Void -> Type.Void
-                    else -> enterPanicMode()
+                    else -> panicMode()
                 }
             }
             is Token.Identifier -> {
                 Type.ClassType(typeToken.name)
             }
-            else -> enterPanicMode()
+            else -> panicMode()
         }
-    }
-
-    private fun expectOperator(type: Token.Operator.Type): Token.Operator {
-        val token = next()
-        if (token !is Token.Operator) {
-            println("expected operator, but got $token")
-            enterPanicMode()
-        }
-
-        if (token.type == type)
-            return token
-        else {
-            println("expected operator $type, but got $token")
-            enterPanicMode()
-        }
-    }
-
-    private fun expectIdentifier(): Token.Identifier {
-        val token = next()
-        if (token !is Token.Identifier) {
-            println("expected identifier, but found $token")
-            enterPanicMode()
-        }
-        return token
-    }
-
-    private fun expectKeyword(type: Token.Keyword.Type): Token.Keyword {
-        val token = next()
-        if (token !is Token.Keyword)
-            enterPanicMode()
-
-        if (token.type == type)
-            return token
-        else
-            enterPanicMode()
     }
 }

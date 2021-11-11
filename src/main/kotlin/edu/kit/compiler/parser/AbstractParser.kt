@@ -34,21 +34,72 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(): T {
-        val token = next()
+    protected inline fun <reified T : Token> expect(anc: AnchorSet): T {
+        if (peek() is T)
+            return next() as T
 
-        if (token is T)
-            return token
-        else
-            enterPanicMode()
+        println("expected ${T::class.simpleName}, but got ${peek()}")
+        panicMode(anc)
+        TODO("not implemented: lenient token")
     }
 
-    // TODO: this should probably not return `Nothing`, but this way the type system just eats it at the moment
-    protected fun enterPanicMode(): Nothing {
-        // very black magic
-        // such panic
-        // much confusing
-        // wow
-        throw IllegalArgumentException("in panic mode: *explosion sounds*")
+    /**
+     * Read a token from the token stream and expect it to be an [Token.Operator] of type [type].
+     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     */
+    protected fun expectOperator(
+        type: Token.Operator.Type,
+        anc: AnchorSet = FirstFollowUtils.emptyFirstSet
+    ): Token.Operator {
+        val peek = peek()
+        if (peek !is Token.Operator) {
+            println("expected operator ($type), but got $peek")
+            panicMode(anc)
+            TODO("not implemented: lenient token")
+        }
+
+        if (peek.type == type)
+            return next() as Token.Operator
+        else {
+            println("expected operator ($type), but got $peek")
+            panicMode(anc)
+            TODO("not implemented: lenient token")
+        }
+    }
+
+    /**
+     * Read a token and expect it to be an identifier. If it is not an identifier, enter [panicMode] and read from the
+     * token stream until a token within [anc] is upfront.
+     */
+    protected fun expectIdentifier(anc: AnchorSet): Token.Identifier = expect(anc)
+
+    /**
+     * Read a token from the token stream and expect it to be a [Token.Keyword] of type [type].
+     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     */
+    protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorSet): Token.Keyword {
+        val peek = peek()
+        if (peek !is Token.Keyword) {
+            println("expected keyword ($type), but got $peek")
+            panicMode(anc)
+            TODO("not implemented: lenient token")
+        }
+
+        if (peek.type == type)
+            return next() as Token.Keyword
+        else {
+            println("expected keyword ($type), but got $peek")
+            panicMode(anc)
+            TODO("not implemented: lenient token")
+        }
+    }
+
+    /**
+     * Read from the token stream until a token is at the front of the stream that is within the given [AnchorSet]
+     *
+     * @param anchorSet [AnchorSet] containing all tokens that are accepted as the next token in the stream.
+     */
+    protected fun panicMode(anchorSet: AnchorSet) {
+        while (peek() !in anchorSet) next()
     }
 }

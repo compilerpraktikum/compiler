@@ -45,11 +45,15 @@ value class AnchorSet(val tokens: Set<Token>) {
     /**
      * Union operator for two [AnchorSets][AnchorSet]
      */
-    operator fun plus(anchorSet: AnchorSet): AnchorSet =
-        AnchorSet(this.tokens.union(anchorSet.tokens))
+    operator fun plus(anchorSet: AnchorSet): AnchorSet = AnchorSet(this.tokens.union(anchorSet.tokens))
+
+    /**
+     * `in` operator for this set
+     */
+    operator fun contains(t: Token): Boolean = t in tokens
 }
 
 /**
  * Construct an [AnchorSet] from a variadic array of tokens
  */
-private fun anchorSetOf(vararg tokens: Token) = AnchorSet(tokens.toSet())
+fun anchorSetOf(vararg tokens: Token) = AnchorSet(tokens.toSet())
