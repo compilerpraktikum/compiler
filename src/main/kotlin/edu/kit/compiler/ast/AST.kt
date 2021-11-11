@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
