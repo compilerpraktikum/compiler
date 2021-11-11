@@ -4,10 +4,23 @@ import edu.kit.compiler.Token
 
 object FirstFollowUtils {
 
-    val firstSets: Array<AnchorSet> = arrayOf(
-        // parse program:
-        anchorSetOf()
-    )
+    val firstSetProgram = anchorSetOf(Token.Keyword(Token.Keyword.Type.Class))
+    val firstSetClassDeclaration = firstSetProgram
+    val firstSetClassMember = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
+    val firstSetMainMethod = anchorSetOf(Token.Keyword(Token.Keyword.Type.Static))
+
+    val firstSetNewObjectExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
+    val firstSetNewArrayExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
+    val firstSetPrimaryExpression =
+        anchorSetOf(
+            Token.Keyword(Token.Keyword.Type.Null),
+            Token.Keyword(Token.Keyword.Type.False),
+            Token.Keyword(Token.Keyword.Type.True),
+            Token.Literal(""),
+            Token.Identifier(""),
+            Token.Keyword(Token.Keyword.Type.This),
+            Token.Operator(Token.Operator.Type.LParen)
+        ) + firstSetNewArrayExpression + firstSetNewObjectExpression
 }
 
 @JvmInline
