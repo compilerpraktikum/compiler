@@ -42,9 +42,7 @@ internal class LexerMjTestSuite {
             return
         }
 
-        val stringTable = StringTable().apply {
-            initializeKeywords()
-        }
+        val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(input, stringTable)
 
         val tokens: List<Token> = lexer.tokens().toList()
