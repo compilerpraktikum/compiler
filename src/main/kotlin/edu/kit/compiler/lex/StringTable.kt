@@ -1,25 +1,21 @@
 package edu.kit.compiler.lex
 
-import java.util.IdentityHashMap
-
 /**
- * Stores a mapping between identifier names and associated information ([StringTable.Entry]). It also handles internalizing
+ * Stores a mapping between identifier names and associated information ([StringTable.Symbol]). It also handles internalizing
  * identifier names to save time and memory.
  * The string table is generated during lexicographic analysis and later utilized during
  * parsing and during semantic analysis.
  */
 class StringTable {
 
-    private val table = IdentityHashMap<String, Entry>()
+    private val symbols = HashMap<String, Symbol>()
 
     /**
      * Tries to register a new identifier if not already known.
-     *  @return the internalized identifier name and associated [Entry]
+     *  @return the internalized identifier name and associated [Symbol]
      */
-    fun tryRegisterIdentifier(name: String): Pair<String, Entry> {
-        val internName = name.intern()
-        val entry = table.computeIfAbsent(internName) { Entry(isKeyword = false) }
-        return internName to entry
+    fun tryRegisterIdentifier(name: String): Symbol {
+        return symbols.computeIfAbsent(name) { Symbol(name, isKeyword = false) }
     }
 
     /**
@@ -27,22 +23,22 @@ class StringTable {
      * @throws[IllegalArgumentException] if the keyword is already registered
      */
     fun registerKeyword(name: String) {
-        val internName = name.intern()
-        require(!table.contains(internName)) { "keyword already registered" }
-        table[internName] = Entry(isKeyword = true)
+        require(!symbols.contains(name)) { "keyword '$name' already registered" }
+        symbols[name] = Symbol(name, isKeyword = true)
     }
 
     /**
-     * Get the [Entry] associated with the given identifier name.
+     * Get the [Symbol] associated with the given identifier name.
      */
-    fun getEntryOrNull(name: String): Entry? {
-        return table[name.intern()]
+    fun getEntryOrNull(name: String): Symbol? {
+        return symbols[name]
     }
 
     /**
      * Stores information (-> TODO) associated to an identifier.
      */
-    data class Entry(
-        val isKeyword: Boolean
+    data class Symbol(
+        val name: String,
+        val isKeyword: Boolean,
     )
 }
