@@ -4,10 +4,29 @@ import edu.kit.compiler.Token
 
 object FirstFollowUtils {
 
-    val firstSetProgram = anchorSetOf(Token.Keyword(Token.Keyword.Type.Class))
-    val firstSetClassDeclaration = firstSetProgram
-    val firstSetClassMember = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
-    val firstSetMainMethod = anchorSetOf(Token.Keyword(Token.Keyword.Type.Static))
+    val emptyFirstSet = anchorSetOf()
+
+    val firstSetBasicType = anchorSetOf(
+        Token.Keyword(Token.Keyword.Type.Int),
+        Token.Keyword(Token.Keyword.Type.Boolean),
+        Token.Keyword(Token.Keyword.Type.Void),
+        Token.Identifier(""),
+    )
+    val firstSetType = firstSetBasicType
+    val firstSetParameter = firstSetType
+    val firstSetParameters = firstSetParameter
+    val firstSetMethodRest = anchorSetOf(Token.Keyword(Token.Keyword.Type.Throws))
+    val firstSetMethod = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
+    val firstSetMainMethod = firstSetMethod
+    val firstSetField = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
+    val firstSetClassMember = firstSetField + firstSetMethod + firstSetMainMethod
+
+    val firstSetArrayAccess = anchorSetOf(Token.Operator(Token.Operator.Type.LeftBracket))
+    val firstSetFieldAccess = anchorSetOf(Token.Operator(Token.Operator.Type.Dot))
+    val firstSetMethodInvocation = anchorSetOf(Token.Operator(Token.Operator.Type.Dot))
+    val firstSetPostfixOp = firstSetMethodInvocation + firstSetFieldAccess + firstSetArrayAccess
+    val firstSetClassDeclaration = anchorSetOf(Token.Keyword(Token.Keyword.Type.Class))
+    val firstSetProgram = firstSetClassDeclaration
 
     val firstSetNewObjectExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
     val firstSetNewArrayExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
@@ -21,6 +40,31 @@ object FirstFollowUtils {
             Token.Keyword(Token.Keyword.Type.This),
             Token.Operator(Token.Operator.Type.LParen)
         ) + firstSetNewArrayExpression + firstSetNewObjectExpression
+    val firstSetPostfixExpression = firstSetPrimaryExpression
+    val firstSetUnaryExpression = anchorSetOf(
+        Token.Operator(Token.Operator.Type.Not),
+        Token.Operator(Token.Operator.Type.Minus)
+    ) + firstSetPostfixExpression
+    val firstSetTypeArrayRecurse = anchorSetOf(Token.Operator(Token.Operator.Type.LeftBracket))
+    val firstSetMultiplicativeExpression = firstSetUnaryExpression
+    val firstSetAdditiveExpression = firstSetMultiplicativeExpression
+    val firstSetRelationalExpression = firstSetAdditiveExpression
+    val firstSetEqualityExpression = firstSetRelationalExpression
+    val firstSetLogicalAndExpression = firstSetEqualityExpression
+    val firstSetLogicalOrExpression = firstSetLogicalAndExpression
+    val firstSetAssignmentExpression = firstSetLogicalOrExpression
+    val firstSetExpression = firstSetAssignmentExpression
+
+    val firstSetReturnStatement = anchorSetOf(Token.Keyword(Token.Keyword.Type.Return))
+    val firstSetExpressionStatement = firstSetExpression
+    val firstSetIfStatement = anchorSetOf(Token.Keyword(Token.Keyword.Type.If))
+    val firstSetWhileStatement = anchorSetOf(Token.Keyword(Token.Keyword.Type.While))
+    val firstSetEmptyStatement = anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon))
+    val firstSetLocalVariableDeclarationStatement = firstSetType
+    val firstSetBlock = anchorSetOf(Token.Operator(Token.Operator.Type.LeftBrace))
+    val firstSetStatement =
+        firstSetBlock + firstSetEmptyStatement + firstSetIfStatement + firstSetExpressionStatement + firstSetWhileStatement + firstSetReturnStatement
+    val firstSetBlockStatement = firstSetStatement + firstSetLocalVariableDeclarationStatement
 }
 
 @JvmInline

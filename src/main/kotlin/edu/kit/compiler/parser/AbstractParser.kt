@@ -49,7 +49,7 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      */
     protected fun expectOperator(
         type: Token.Operator.Type,
-        anc: AnchorSet = FirstFollowUtils.emptyFirstSet
+        anc: AnchorSet
     ): Token.Operator {
         val peek = peek()
         if (peek !is Token.Operator) {
