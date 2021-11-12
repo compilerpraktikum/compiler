@@ -2,6 +2,7 @@ package edu.kit.compiler
 
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lex.Symbol
 
 sealed class Token {
     lateinit var position: SourcePosition
@@ -9,7 +10,7 @@ sealed class Token {
     val debugRepr: String?
         get() =
             when (this) {
-                is Identifier -> "identifier $name"
+                is Identifier -> "identifier ${name.text}"
                 is Literal -> "integer literal $value"
                 is Operator -> type.repr
                 is Keyword -> type.repr
@@ -19,7 +20,15 @@ sealed class Token {
                 is ErrorToken -> "error $error"
             }
 
-    data class Identifier(val name: String) : Token()
+    data class Identifier(val name: Symbol) : Token() {
+        companion object {
+            /**
+             * Identifier to use as a placeholder (e.g. for anchor sets). Do **NOT** use for the real AST as the [Symbol]
+             * stored in [Identifier.name] is invalid.
+             */
+            val Placeholder = Identifier(Symbol("", isKeyword = false))
+        }
+    }
 
     data class Literal(val value: String) : Token()
 

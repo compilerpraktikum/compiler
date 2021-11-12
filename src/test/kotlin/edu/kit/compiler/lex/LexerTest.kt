@@ -3,6 +3,7 @@ package edu.kit.compiler.lex
 import edu.kit.compiler.Token
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.utils.toList
+import edu.kit.compiler.utils.toSymbol
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,7 +24,7 @@ internal class LexerTest {
                 Token.Keyword(Token.Keyword.Type.Class),
                 Token.Whitespace(" "),
                 Token.Operator(Token.Operator.Type.PlusPlus),
-                Token.Identifier("HelloWorld"),
+                Token.Identifier("HelloWorld".toSymbol()),
                 Token.Operator(Token.Operator.Type.LeftBrace),
                 Token.Literal("1234"),
                 Token.Eof
@@ -49,7 +50,7 @@ internal class LexerTest {
         expectTokenSequence(
             "classthrowsabstract",
             listOf(
-                Token.Identifier("classthrowsabstract"),
+                Token.Identifier("classthrowsabstract".toSymbol()),
                 Token.Eof
             )
         )
@@ -121,7 +122,7 @@ internal class LexerTest {
                 Token.Whitespace(" "),
                 Token.Keyword(Token.Keyword.Type.Class),
                 Token.Whitespace(" "),
-                Token.Identifier("classname"),
+                Token.Identifier("classname".toSymbol()),
                 Token.Whitespace(" "),
                 Token.Keyword(Token.Keyword.Type.Throws),
                 Token.Whitespace(" "),
@@ -137,7 +138,7 @@ internal class LexerTest {
                 Token.Literal("1234"),
                 Token.Operator(Token.Operator.Type.Dot),
                 Token.Literal("1"),
-                Token.Identifier("_012protected"),
+                Token.Identifier("_012protected".toSymbol()),
                 Token.ErrorToken("", "ignore error message for test case"),
                 Token.Eof
             )
@@ -155,7 +156,7 @@ internal class LexerTest {
                 append(" ")
             }
         }
-        val IDENTIFIER = Token.Identifier("a".repeat(IDENTIFIER_LENGTH))
+        val IDENTIFIER = Token.Identifier("a".repeat(IDENTIFIER_LENGTH).toSymbol())
         val expectedTokens = mutableListOf<Token>().apply {
             repeat(NUM_IDENTIFIERS) {
                 add(IDENTIFIER)

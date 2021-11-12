@@ -103,9 +103,9 @@ class Lexer(
         val symbol = stringTable.tryRegisterIdentifier(identBuilder.toString())
 
         return if (symbol.isKeyword) {
-            Token.Keyword(Token.Keyword.Type.from(symbol.name)!!)
+            Token.Keyword(Token.Keyword.Type.from(symbol.text)!!)
         } else {
-            Token.Identifier(symbol.name)
+            Token.Identifier(symbol)
         }
     }
 

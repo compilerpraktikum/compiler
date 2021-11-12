@@ -5,6 +5,7 @@ import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.utils.TestUtils.expectNode
+import edu.kit.compiler.utils.toSymbol
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
@@ -18,16 +19,16 @@ internal class ExpressionParseTest {
     fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1").wrapValid())
 
     @Test
-    fun testParseIdentInExpr() = expectAst("myident", AST.IdentifierExpression("myident").wrapValid())
+    fun testParseIdentInExpr() = expectAst("myident", AST.IdentifierExpression("myident".toSymbol()).wrapValid())
 
     @Test
     fun testParseLocalInvocation() =
-        expectAst("myident()", AST.MethodInvocationExpression<Lenient<Of>>(null, "myident", listOf()).wrapValid())
+        expectAst("myident()", AST.MethodInvocationExpression<Lenient<Of>>(null, "myident".toSymbol(), listOf()).wrapValid())
 
     @Test
     fun testParseLocalInvocationArg() = expectAst(
         "myident(1)",
-        AST.MethodInvocationExpression(null, "myident", listOf(AST.LiteralExpression("1").wrapValid())).wrapValid()
+        AST.MethodInvocationExpression(null, "myident".toSymbol(), listOf(AST.LiteralExpression("1").wrapValid())).wrapValid()
     )
 
     @Test
@@ -35,7 +36,7 @@ internal class ExpressionParseTest {
         "myident(1,2,2)",
         AST.MethodInvocationExpression(
             null,
-            "myident",
+            "myident".toSymbol(),
             listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2")).map { it.wrapValid() }
         ).wrapValid()
     )
