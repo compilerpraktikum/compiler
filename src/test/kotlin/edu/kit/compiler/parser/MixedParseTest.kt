@@ -10,24 +10,27 @@ import kotlin.test.Ignore
 @ExperimentalStdlibApi
 internal class MixedParseTest {
 
+    private val emptyAnchorSet = anchorSetOf()
+
     private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
-        expectNode(input, expectedAST) { parseClassDeclarations() }
+        expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test
-    fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock() }
+    fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockOfEmptyBlocks() =
-        expectNode("{{{}}}", AST.Block(listOf(AST.Block(listOf(AST.Block(listOf())))))) { parseBlock() }
+        expectNode("{{{}}}", AST.Block(listOf(AST.Block(listOf(AST.Block(listOf())))))) { parseBlock(emptyAnchorSet) }
 
     @Test
-    fun testParseBlockWithEmptyStatement() = expectNode("{;}", AST.Block(listOf(AST.EmptyStatement))) { parseBlock() }
+    fun testParseBlockWithEmptyStatement() =
+        expectNode("{;}", AST.Block(listOf(AST.EmptyStatement))) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockWithMultipleEmptyStatement() = expectNode(
         "{;;;;}",
         AST.Block(listOf(AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement))
-    ) { parseBlock() }
+    ) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testDisambiguateVarDeclarationAndExpression() = expectNode(
@@ -38,7 +41,7 @@ internal class MixedParseTest {
                 AST.LocalVariableDeclarationStatement("myident2", Type.ClassType("mytype"), null)
             )
         )
-    ) { parseBlock() }
+    ) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseAssignment() = expectNode(
@@ -50,49 +53,49 @@ internal class MixedParseTest {
                 AST.BinaryExpression.Operation.ASSIGNMENT
             )
         )
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseReturn() = expectNode(
         "return;",
         AST.ReturnStatement(null)
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
         AST.ReturnStatement(AST.LiteralExpression("2"))
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicWhile() = expectNode(
         "while(2) {};",
         AST.WhileStatement(AST.LiteralExpression("2"), AST.Block(listOf()))
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIf() = expectNode(
         "if(2) {};",
         AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), null)
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse() = expectNode(
         "if(2) {} else {};",
         AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), AST.Block(listOf()))
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse_bool() = expectNode(
         "if(true) {} else {};",
         AST.IfStatement(AST.LiteralExpression(true), AST.Block(listOf()), AST.Block(listOf()))
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse_ident() = expectNode(
         "if(myIdent) {} else {};",
         AST.IfStatement(AST.IdentifierExpression("myIdent"), AST.Block(listOf()), AST.Block(listOf()))
-    ) { parseStatement() }
+    ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun debugParserMJTest_2() = expectNode(
@@ -187,7 +190,7 @@ internal class MixedParseTest {
 
     ) { parse() }
 
-//    @Ignore
+    //    @Ignore
     @Test
     fun debugParserMJTest_ArrayAccessValid() = expectNode(
         """class Test {
