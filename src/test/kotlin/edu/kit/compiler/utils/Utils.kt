@@ -5,6 +5,7 @@ import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lex.Symbol
 
 fun createLexer(input: String, fileName: String = "/path/to/file"): Lexer {
     val stringTable = StringTable(StringTable::initializeKeywords)
@@ -21,3 +22,5 @@ fun <T> Sequence<T>.takeWhileInclusive(predicate: (T) -> Boolean): Sequence<T> {
 }
 
 fun Sequence<Token>.toList() = takeWhileInclusive { it !is Token.Eof }.toCollection(mutableListOf())
+
+fun String.toSymbol() = Symbol(this, isKeyword = false)

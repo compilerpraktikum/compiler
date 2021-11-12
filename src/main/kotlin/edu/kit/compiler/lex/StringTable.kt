@@ -1,7 +1,15 @@
 package edu.kit.compiler.lex
 
 /**
- * Stores a mapping between identifier names and associated information ([StringTable.Symbol]). It also handles internalizing
+ * Stores information (-> TODO) associated to an identifier.
+ */
+data class Symbol(
+    val text: String,
+    val isKeyword: Boolean,
+)
+
+/**
+ * Stores a mapping between identifier names and associated information ([Symbol]). It also handles internalizing
  * identifier names to save time and memory.
  * The string table is generated during lexicographic analysis and later utilized during
  * parsing and during semantic analysis.
@@ -36,15 +44,7 @@ class StringTable(
     /**
      * Get the [Symbol] associated with the given identifier name.
      */
-    fun getEntryOrNull(name: String): Symbol? {
+    fun getSymbolOrNull(name: String): Symbol? {
         return symbols[name]
     }
-
-    /**
-     * Stores information (-> TODO) associated to an identifier.
-     */
-    data class Symbol(
-        val name: String,
-        val isKeyword: Boolean,
-    )
 }

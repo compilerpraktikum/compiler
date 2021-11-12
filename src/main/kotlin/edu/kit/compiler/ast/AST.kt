@@ -1,6 +1,8 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lex.Symbol
 
 sealed class Type {
     object Void : Type()
@@ -14,7 +16,7 @@ sealed class Type {
     ) : Type()
 
     data class ClassType(
-        val identifier: String
+        val name: Symbol
     ) : Type()
 }
 
@@ -32,19 +34,19 @@ object AST {
     )
 
     data class ClassDeclaration<E, S, M>(
-        val name: String,
+        val name: Symbol,
         val member: List<Kind<M, ClassMember<E, S>>>,
     )
 
     sealed class ClassMember<out E, out S>
 
     data class Field(
-        val name: String,
+        val name: Symbol,
         val type: Type,
     ) : ClassMember<Nothing, Nothing>()
 
     data class Method<out E, out S>(
-        val name: String,
+        val name: Symbol,
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
@@ -54,7 +56,7 @@ object AST {
     data class MainMethod<out E, out S>(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
-        val name: String,
+        val name: Symbol,
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
@@ -62,7 +64,7 @@ object AST {
     ) : ClassMember<E, S>()
 
     data class Parameter(
-        val name: String,
+        val name: Symbol,
         val type: Type,
     )
 
@@ -73,7 +75,7 @@ object AST {
     sealed class BlockStatement<out S, out E> : Kind<Statement<Of, E>, S>
 
     data class LocalVariableDeclarationStatement<E>(
-        val name: String,
+        val name: Symbol,
         val type: Type,
         val initializer: Kind<E, Kind<Expression<Of>, E>>?,
     ) : BlockStatement<Nothing, E>()
@@ -163,13 +165,13 @@ object AST {
 
     data class MethodInvocationExpression<E>(
         val target: Kind<E, Kind<Expression<Of>, E>>?,
-        val method: String,
+        val method: Symbol,
         val arguments: List<Kind<E, Kind<Expression<Of>, E>>>
     ) : Expression<E>()
 
     data class FieldAccessExpression<E>(
         val target: Kind<E, Kind<Expression<Of>, E>>,
-        val field: String,
+        val field: Symbol,
     ) : Expression<E>()
 
     data class ArrayAccessExpression<E>(
@@ -182,7 +184,7 @@ object AST {
      ************************************************/
 
     data class IdentifierExpression(
-        val name: String,
+        val name: Symbol,
     ) : Expression<Nothing>()
 
     data class LiteralExpression<T>(
@@ -190,7 +192,7 @@ object AST {
     ) : Expression<Nothing>()
 
     data class NewObjectExpression(
-        val clazz: String,
+        val clazz: Symbol,
     ) : Expression<Nothing>()
 
     data class NewArrayExpression<E>(
@@ -219,21 +221,26 @@ fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
+/**
+ * **ONLY** use for testing in the DSL below. Real identifiers need to be converted to symbols using the [StringTable].
+ */
+private fun String.toSymbol() = Symbol(this, isKeyword = false)
+
 class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
     AstDsl<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>(res) {
     fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
         val members = ClassMemberDsl().also { it.block() }
-        this.res.add(AST.ClassDeclaration(name, members.res).wrapValid())
+        this.res.add(AST.ClassDeclaration(name.toSymbol(), members.res).wrapValid())
     }
 }
 
 class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
     AstDsl<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>>(res) {
 
-    fun param(name: String, type: Type) = AST.Parameter(name, type)
+    fun param(name: String, type: Type) = AST.Parameter(name.toSymbol(), type)
 
     fun field(name: String, type: Type) {
-        this.res.add(AST.Field(name, type).wrapValid())
+        this.res.add(AST.Field(name.toSymbol(), type).wrapValid())
     }
 
     fun mainMethod(
@@ -246,14 +253,14 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
 
         this.res.add(
             AST.MainMethod<Lenient<Of>, Lenient<Of>>(
-                name,
+                name.toSymbol(),
                 returnType,
                 parameters.toList(),
                 AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
                 if (throws == null) {
                     null
                 } else {
-                    Token.Identifier(throws)
+                    Token.Identifier(throws.toSymbol())
                 }
             ).wrapValid()
         )
@@ -268,14 +275,14 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
     ) {
         this.res.add(
             AST.Method<Lenient<Of>, Lenient<Of>>(
-                name,
+                name.toSymbol(),
                 returnType,
                 parameters.toList(),
                 AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
                 if (throws == null) {
                     null
                 } else {
-                    Token.Identifier(throws)
+                    Token.Identifier(throws.toSymbol())
                 }
             ).wrapValid()
         )
@@ -291,7 +298,7 @@ object ExprDsl {
     ) =
         AST.BinaryExpression(ExprDsl.left().wrapValid(), ExprDsl.right().wrapValid(), op)
 
-    fun ident(name: String) = AST.IdentifierExpression(name)
+    fun ident(name: String) = AST.IdentifierExpression(name.toSymbol())
 
     fun arrayAccess(
         target: ExprDsl.() -> AST.Expression<Lenient<Of>>,
@@ -308,7 +315,7 @@ class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<
     fun localDeclaration(name: String, type: Type, initializer: (ExprDsl.() -> AST.Expression<Lenient<Of>>)? = null) {
         res.add(
             AST.LocalVariableDeclarationStatement<Lenient<Of>>(
-                name, type,
+                name.toSymbol(), type,
                 if (initializer != null) {
                     ExprDsl.initializer().wrapValid()
                 } else null

@@ -233,7 +233,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                             Token.Operator.Type.Dot,
                             anc +
                                 anchorSetOf(
-                                    Token.Identifier(""),
+                                    Token.Identifier.Placeholder,
                                     Token.Operator(Token.Operator.Type.LParen),
                                     Token.Operator(Token.Operator.Type.RParen),
                                 ) +
@@ -353,7 +353,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Keyword.Type.Class,
                     anc +
                         anchorSetOf(
-                            Token.Identifier(""),
+                            Token.Identifier.Placeholder,
                             Token.Operator(Token.Operator.Type.LeftBrace),
                             Token.Operator(Token.Operator.Type.RightBrace),
                         ) +
@@ -400,7 +400,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                 Token.Keyword(Token.Keyword.Type.Int),
                 Token.Keyword(Token.Keyword.Type.Boolean),
                 Token.Keyword(Token.Keyword.Type.Void),
-                Token.Identifier("")
+                Token.Identifier.Placeholder
             )
         )
 
@@ -432,7 +432,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             anc +
                 anchorSetOf(
                     Token.Keyword(Token.Keyword.Type.Void),
-                    Token.Identifier(""),
+                    Token.Identifier.Placeholder,
                     Token.Operator(Token.Operator.Type.LParen),
                     Token.Operator(Token.Operator.Type.RParen),
                     Token.Keyword(Token.Keyword.Type.Throws),
@@ -444,7 +444,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             Token.Keyword.Type.Void,
             anc +
                 anchorSetOf(
-                    Token.Identifier(""),
+                    Token.Identifier.Placeholder,
                     Token.Operator(Token.Operator.Type.LParen),
                     Token.Operator(Token.Operator.Type.RParen),
                     Token.Keyword(Token.Keyword.Type.Throws),
@@ -507,7 +507,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         val type = parseType(
             anc +
                 anchorSetOf(
-                    Token.Identifier(""),
+                    Token.Identifier.Placeholder,
                     Token.Operator(Token.Operator.Type.Semicolon),
                     Token.Operator(Token.Operator.Type.LParen)
                 )
@@ -831,7 +831,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Lenient<AST.LocalVariableDeclarationStatement<Lenient<Of>>> {
         val type = parseType(
             anc + anchorSetOf(
-                Token.Identifier(""),
+                Token.Identifier.Placeholder,
                 Token.Operator(Token.Operator.Type.Assign),
                 Token.Operator(Token.Operator.Type.Semicolon)
             )
@@ -864,7 +864,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parseMethodRest(anc: AnchorUnion): Token.Identifier {
-        expectKeyword(Token.Keyword.Type.Throws, anc + anchorSetOf(Token.Identifier("")))
+        expectKeyword(Token.Keyword.Type.Throws, anc + anchorSetOf(Token.Identifier.Placeholder))
         return expectIdentifier(anc)
     }
 
@@ -884,7 +884,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     }
 
     private fun parseParameter(anc: AnchorUnion): AST.Parameter {
-        val type = parseType(anc + anchorSetOf(Token.Identifier("")))
+        val type = parseType(anc + anchorSetOf(Token.Identifier.Placeholder))
         val ident = expectIdentifier(anc)
         return AST.Parameter(
             ident.name,

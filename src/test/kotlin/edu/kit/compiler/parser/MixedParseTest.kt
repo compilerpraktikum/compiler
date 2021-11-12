@@ -7,6 +7,7 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.utils.TestUtils.expectNode
+import edu.kit.compiler.utils.toSymbol
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 
@@ -63,8 +64,8 @@ internal class MixedParseTest {
         "{ myident; mytype myident2; }",
         AST.Block(
             listOf(
-                AST.ExpressionStatement(AST.IdentifierExpression("myident").wrapValid()).wrapValid(),
-                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2", Type.ClassType("mytype"), null)
+                AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapValid(),
+                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2".toSymbol(), Type.ClassType("mytype".toSymbol()), null)
                     .wrapValid()
             )
         ).wrapValid()
@@ -75,7 +76,7 @@ internal class MixedParseTest {
         "myIdent = 3;",
         AST.ExpressionStatement(
             AST.BinaryExpression(
-                AST.IdentifierExpression("myIdent").wrapValid(),
+                AST.IdentifierExpression("myIdent".toSymbol()).wrapValid(),
                 AST.LiteralExpression("3").wrapValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapValid()
@@ -137,7 +138,7 @@ internal class MixedParseTest {
     fun testParseBasicIfElse_ident() = expectNode(
         "if(myIdent) {} else {};",
         AST.IfStatement(
-            AST.IdentifierExpression("myIdent").wrapValid(),
+            AST.IdentifierExpression("myIdent".toSymbol()).wrapValid(),
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
@@ -158,22 +159,22 @@ internal class MixedParseTest {
         AST.Program(
             listOf(
                 AST.ClassDeclaration(
-                    "Main",
+                    "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main", Type.Void,
-                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            "main".toSymbol(), Type.Void,
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("i", Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("i".toSymbol(), Type.Integer, null)
                                         .wrapValid(),
                                     AST.LocalVariableDeclarationStatement(
-                                        "x",
+                                        "x".toSymbol(),
                                         Type.Integer,
                                         AST.BinaryExpression(
-                                            AST.IdentifierExpression("i").wrapValid(),
+                                            AST.IdentifierExpression("i".toSymbol()).wrapValid(),
                                             AST.UnaryExpression(
-                                                AST.IdentifierExpression("i").wrapValid(),
+                                                AST.IdentifierExpression("i".toSymbol()).wrapValid(),
                                                 AST.UnaryExpression.Operation.MINUS
                                             ).wrapValid(),
                                             AST.BinaryExpression.Operation.ADDITION
@@ -200,20 +201,20 @@ internal class MixedParseTest {
         AST.Program(
             listOf(
                 AST.ClassDeclaration(
-                    "_Klasse",
+                    "_Klasse".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main", Type.Void,
-                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            "main".toSymbol(), Type.Void,
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
                             AST.Block(
                                 listOf(
                                     AST.IfStatement(
-                                        AST.FieldAccessExpression(AST.LiteralExpression("null").wrapValid(), "nothing")
+                                        AST.FieldAccessExpression(AST.LiteralExpression("null").wrapValid(), "nothing".toSymbol())
                                             .wrapValid(),
                                         AST.IfStatement(
                                             AST.MethodInvocationExpression(
                                                 AST.LiteralExpression(true).wrapValid(),
-                                                "fun",
+                                                "fun".toSymbol(),
                                                 emptyList()
                                             ).wrapValid(),
                                             AST.IfStatement(
@@ -250,22 +251,22 @@ internal class MixedParseTest {
         AST.Program(
             listOf(
                 AST.ClassDeclaration(
-                    "Test",
+                    "Test".toSymbol(),
                     listOf(
                         AST.Method(
-                            "m", Type.Void,
+                            "m".toSymbol(), Type.Void,
                             listOf(),
                             AST.Block(
                                 listOf(
                                     AST.ExpressionStatement(
                                         AST.ArrayAccessExpression(
                                             AST.ArrayAccessExpression(
-                                                AST.IdentifierExpression("a").wrapValid(),
+                                                AST.IdentifierExpression("a".toSymbol()).wrapValid(),
                                                 AST.BinaryExpression(
                                                     AST.LiteralExpression("2").wrapValid(),
                                                     AST.BinaryExpression(
                                                         AST.UnaryExpression(
-                                                            AST.IdentifierExpression("i").wrapValid(),
+                                                            AST.IdentifierExpression("i".toSymbol()).wrapValid(),
                                                             AST.UnaryExpression.Operation.MINUS
                                                         ).wrapValid(),
                                                         AST.LiteralExpression("1").wrapValid(),
@@ -318,20 +319,20 @@ internal class MixedParseTest {
         AST.Program(
             listOf(
                 AST.ClassDeclaration(
-                    "Main",
+                    "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main", Type.Void,
-                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            "main".toSymbol(), Type.Void,
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x", Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
                                         .wrapValid(),
                                     AST.IfStatement(
                                         AST.LiteralExpression(true),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
-                                                AST.IdentifierExpression("x").wrapValid(),
+                                                AST.IdentifierExpression("x".toSymbol()).wrapValid(),
                                                 AST.LiteralExpression("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapValid()
@@ -361,20 +362,20 @@ internal class MixedParseTest {
         AST.Program(
             listOf(
                 AST.ClassDeclaration(
-                    "Main",
+                    "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main", Type.Void,
-                            listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
+                            "main".toSymbol(), Type.Void,
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x", Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
                                         .wrapValid(),
                                     AST.IfStatement(
                                         AST.LiteralExpression(true).wrapValid(),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
-                                                AST.IdentifierExpression("x").wrapValid(),
+                                                AST.IdentifierExpression("x".toSymbol()).wrapValid(),
                                                 AST.LiteralExpression("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapValid()
@@ -472,7 +473,7 @@ internal class MixedParseTest {
                     method(
                         "nomain", Type.Void,
                         param("ident", Type.Boolean),
-                        param("ident2", Type.ClassType("myClass"))
+                        param("ident2", Type.ClassType("myClass".toSymbol()))
                     ) {
                     }
                 }
@@ -489,8 +490,8 @@ internal class MixedParseTest {
                     mainMethod(
                         "mymain", Type.Void,
                         AST.Parameter(
-                            "arr",
-                            Type.Array(Type.Array(Type.ClassType("Strig")))
+                            "arr".toSymbol(),
+                            Type.Array(Type.Array(Type.ClassType("Strig".toSymbol())))
                         )
                     ) {}
                 }
@@ -504,7 +505,7 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { int[][] abc = new int[22][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args", Type.Array(Type.ClassType("String")))) {
+                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))) {
                         localDeclaration("abc", Type.Array(Type.Array(Type.Integer))) {
                             newArrayOf(Type.Array(Type.Array(Type.Integer))) {
                                 literal("22")
@@ -522,9 +523,9 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args", Type.Array(Type.ClassType("String")))) {
-                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass"))))) {
-                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass"))))) { literal("22") }
+                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))) {
+                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass".toSymbol()))))) {
+                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass".toSymbol()))))) { literal("22") }
                         }
                     }
                 }
@@ -541,8 +542,8 @@ internal class MixedParseTest {
                     mainMethod(
                         "main", Type.Void,
                         AST.Parameter(
-                            "args",
-                            Type.Array(Type.ClassType("String"))
+                            "args".toSymbol(),
+                            Type.Array(Type.ClassType("String".toSymbol()))
                         )
                     ) {
                         expressionStatement {

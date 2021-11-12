@@ -34,7 +34,7 @@ fun Terminal.printToken(token: Token, colorScheme: ColorScheme = ColorScheme.sol
     is Token.Comment -> this.print(colorScheme.comment("/*$token.content)*/"))
     is Token.Eof -> {}
     is Token.ErrorToken -> this.print(colorScheme.error(token.error))
-    is Token.Identifier -> this.print(colorScheme.identifier(token.name))
+    is Token.Identifier -> this.print(colorScheme.identifier(token.name.text))
     is Token.Keyword -> this.print(colorScheme.keyword(token.type.repr))
     is Token.Literal -> this.print(colorScheme.literal(token.value))
     is Token.Operator -> this.print(colorScheme.operator(token.type.repr))

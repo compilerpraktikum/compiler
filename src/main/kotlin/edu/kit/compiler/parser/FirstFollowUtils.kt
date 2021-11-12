@@ -48,7 +48,7 @@ object FirstFollowUtils {
         Token.Keyword(Token.Keyword.Type.Int),
         Token.Keyword(Token.Keyword.Type.Boolean),
         Token.Keyword(Token.Keyword.Type.Void),
-        Token.Identifier(""),
+        Token.Identifier.Placeholder,
     )
     val firstSetType = firstSetBasicType
     val firstSetParameter = firstSetType
@@ -71,7 +71,7 @@ object FirstFollowUtils {
             Token.Keyword(Token.Keyword.Type.False),
             Token.Keyword(Token.Keyword.Type.True),
             Token.Literal(""),
-            Token.Identifier(""),
+            Token.Identifier.Placeholder,
             Token.Keyword(Token.Keyword.Type.This),
             Token.Operator(Token.Operator.Type.LParen)
         ) + firstSetNewArrayExpression + firstSetNewObjectExpression
