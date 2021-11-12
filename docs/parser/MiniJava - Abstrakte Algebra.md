@@ -1,5 +1,12 @@
 # MiniJava 4.0 - Abstrakte Algebra
 
+Note: Use
+* http://waylonflinn.github.io/markdown-it-katex/ or
+* vscode or
+* another katex-able Markdown-Viewer
+
+to view this file
+
 ## Abstrakte Syntax als Signatur einer ordnungssortierten Termalgebra
 
 

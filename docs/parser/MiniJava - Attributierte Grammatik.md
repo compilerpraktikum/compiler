@@ -1,5 +1,12 @@
 # MiniJava 4.0 - Attributierte Grammatik
 
+Note: Use
+* http://waylonflinn.github.io/markdown-it-katex/ or
+* vscode or
+* another katex-able Markdown-Viewer
+
+to view this file
+
 $ $                                 | $ $   | $  $                                                                                                                                              | $ $ | Semantische Regeln
 ---:                                | :---: | :---                                                                                                                                              | :-- | :--
 $Program$                           | $\to$ | $ClassDeclaration^ \ast$                                                                                                                          | $ $ | $Programm$.classes = new List($ClassDeclaration$) //TODO nur das Nichtterminal wirkt irgwie falsch..
