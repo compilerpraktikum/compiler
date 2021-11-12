@@ -89,6 +89,7 @@ object FirstFollowUtils {
     val firstSetLogicalOrExpression = firstSetLogicalAndExpression
     val firstSetAssignmentExpression = firstSetLogicalOrExpression
     val firstSetExpression = firstSetAssignmentExpression
+    val firstSetArguments = firstSetExpression
 
     val firstSetReturnStatement = anchorSetOf(Token.Keyword(Token.Keyword.Type.Return))
     val firstSetExpressionStatement = firstSetExpression

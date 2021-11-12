@@ -35,88 +35,144 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
                     next()
-                    val innerExpr = parseExpression(1)
-                    val tokenAfterParens = this.next()
-                    if (tokenAfterParens is Token.Operator && tokenAfterParens.type == Token.Operator.Type.RParen) {
-                        innerExpr
-                    } else {
-                        // TODO proper error handling
-                        throw IllegalArgumentException("expected closing RPAREN")
-                    }
+                    val innerExpr = parseExpression(1, anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
+                    expectOperator(Token.Operator.Type.RParen, anc)
+                    innerExpr
                 } else {
-                    throw IllegalArgumentException("unexpected operator: $peekedToken")
+                    panicMode(anc)
+                    TODO("not implemented: lenient nodes")
                 }
             }
             is Token.Identifier -> {
-                val reference = expectIdentifier()
+                val reference = expectIdentifier(
+                    anc +
+                        anchorSetOf(
+                            Token.Operator(Token.Operator.Type.LParen),
+                            Token.Operator(Token.Operator.Type.RParen)
+                        ) +
+                        FirstFollowUtils.firstSetArguments
+                )
 
                 val maybeLParent = peek(0)
                 if (maybeLParent is Token.Operator && maybeLParent.type == Token.Operator.Type.LParen) {
-                    expectOperator(Token.Operator.Type.LParen)
-                    val arguments = parseArguments()
-                    expectOperator(Token.Operator.Type.RParen)
+                    expectOperator(
+                        Token.Operator.Type.LParen,
+                        anc +
+                            anchorSetOf(Token.Operator(Token.Operator.Type.RParen)) +
+                            FirstFollowUtils.firstSetArguments
+                    )
+                    val arguments = parseArguments(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
+                    expectOperator(Token.Operator.Type.RParen, anc)
 
                     AST.MethodInvocationExpression(null, reference.name, arguments) // todo ist das richtig?
                 } else AST.IdentifierExpression(reference.name)
             }
             is Token.Keyword -> {
-                next()
                 when (peekedToken.type) {
-                    Token.Keyword.Type.Null -> AST.LiteralExpression("null") // TODO better ast stuff
-                    Token.Keyword.Type.False ->
+                    Token.Keyword.Type.Null -> {
+                        next()
+                        AST.LiteralExpression("null") // TODO better ast stuff}
+                    }
+                    Token.Keyword.Type.False -> {
+                        next()
                         AST.LiteralExpression(false)
-                    Token.Keyword.Type.True ->
+                    }
+                    Token.Keyword.Type.True -> {
+                        next()
                         AST.LiteralExpression(true)
-                    Token.Keyword.Type.This ->
+                    }
+                    Token.Keyword.Type.This -> {
+                        next()
                         AST.LiteralExpression("this") // TODO better ast stuff
-                    Token.Keyword.Type.New -> parseNewObjectArrayExpression()
-                    else -> throw IllegalArgumentException("unexpected keyword ${peekedToken.type}")
+                    }
+                    Token.Keyword.Type.New -> {
+                        next()
+                        parseNewObjectArrayExpression(anc)
+                    }
+                    else -> {
+                        panicMode(anc)
+                        TODO("not implemented: lenient nodes")
+                    }
                 }
             }
-            else -> throw IllegalArgumentException("unexpected token $peekedToken")
+            else -> {
+                panicMode(anc)
+                TODO("not implemented: lenient nodes")
+            }
         }
     }
 
-    private fun parseNewObjectArrayExpression(): AST.Expression {
+    private fun parseNewObjectArrayExpression(anc: AnchorSet): AST.Expression {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
-                Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void -> parseNewArrayExpression()
-                else -> panicMode()
+                Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void -> parseNewArrayExpression(
+                    anc
+                )
+                else -> {
+                    panicMode(anc)
+                    TODO("not implemented: lenient nodes")
+                }
             }
             is Token.Identifier -> {
                 // k=2
                 when (val secondToken = peek(1)) {
                     is Token.Operator -> {
                         when (secondToken.type) {
-                            Token.Operator.Type.LParen -> parseNewObjectExpression()
-                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression()
-                            else -> panicMode()
+                            Token.Operator.Type.LParen -> parseNewObjectExpression(anc)
+                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc)
+                            else -> {
+                                panicMode(anc)
+                                TODO("not implemented: lenient nodes")
+                            }
                         }
                     }
-                    else -> panicMode()
+                    else -> {
+                        panicMode(anc)
+                        TODO("not implemented: lenient nodes")
+                    }
                 }
             }
-            else -> panicMode()
+            else -> {
+                panicMode(anc)
+                TODO("not implemented: lenient nodes")
+            }
         }
     }
 
-    private fun parseNewObjectExpression(): AST.Expression {
-        val ident = expectIdentifier()
-        expectOperator(Token.Operator.Type.LParen)
-        expectOperator(Token.Operator.Type.RParen)
+    private fun parseNewObjectExpression(anc: AnchorSet): AST.Expression {
+        val ident = expectIdentifier(
+            anc + anchorSetOf(
+                Token.Operator(Token.Operator.Type.LParen),
+                Token.Operator(Token.Operator.Type.RParen)
+            )
+        )
+        expectOperator(Token.Operator.Type.LParen, anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
+        expectOperator(Token.Operator.Type.RParen, anc)
         return AST.NewObjectExpression(ident.name)
     }
 
-    private fun parseNewArrayExpression(): AST.Expression {
-        val basicType = parseBasicType()
-        expectOperator(Token.Operator.Type.LeftBracket)
-        val indexExpression = parseExpression()
-        expectOperator(Token.Operator.Type.RightBracket)
-        val arrayType = parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType))
+    private fun parseNewArrayExpression(anc: AnchorSet): AST.Expression {
+        val basicType = parseBasicType(
+            anc +
+                anchorSetOf(
+                    Token.Operator(Token.Operator.Type.LeftBracket),
+                    Token.Operator(Token.Operator.Type.RightBracket)
+                ) +
+                FirstFollowUtils.firstSetExpression
+        )
+        expectOperator(
+            Token.Operator.Type.LeftBracket,
+            anc +
+                anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
+                FirstFollowUtils.firstSetExpression
+        )
+        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)))
+        expectOperator(Token.Operator.Type.RightBracket, anc)
+        val arrayType = parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType), anc)
         return AST.NewArrayExpression(arrayType, indexExpression)
     }
 
-    private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array): Type.Array {
+    private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array, anc: AnchorSet): Type.Array {
         val maybeAnotherLBracket = peek(0)
         val maybeAnotherRBracket =
             peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
@@ -124,20 +180,25 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
             (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
         ) {
-            expectOperator(Token.Operator.Type.LeftBracket)
-            expectOperator(Token.Operator.Type.RightBracket)
-            Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType))
+            expectOperator(Token.Operator.Type.LeftBracket, anc)
+            expectOperator(Token.Operator.Type.RightBracket, anc)
+            Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc))
         } else {
             basicType
         }
     }
 
-    private fun parseArguments(): List<AST.Expression> {
+    private fun parseArguments(anc: AnchorSet): List<AST.Expression> {
         val arguments = mutableListOf<AST.Expression>()
         var nextToken = peek()
         while (!(nextToken is Token.Operator && nextToken.type == Token.Operator.Type.RParen)) {
-            if (arguments.isNotEmpty()) expectOperator(Token.Operator.Type.Comma)
-            arguments += parseExpression()
+            if (arguments.isNotEmpty()) expectOperator(
+                Token.Operator.Type.Comma,
+                anc +
+                    FirstFollowUtils.firstSetExpression +
+                    anchorSetOf(Token.Operator(Token.Operator.Type.RParen))
+            )
+            arguments += parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
             nextToken = peek()
         }
         return arguments
@@ -170,27 +231,40 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                     Token.Operator.Type.Dot -> {
                         expectOperator(
                             Token.Operator.Type.Dot,
-                            anc + anchorSetOf(
-                                Token.Identifier(""),
-                                Token.Operator(Token.Operator.Type.LParen),
-                                /* todo: first_1(arguments) */
-                                Token.Operator(Token.Operator.Type.RParen),
-                            ) + FirstFollowUtils.firstSetPostfixOp
+                            anc +
+                                anchorSetOf(
+                                    Token.Identifier(""),
+                                    Token.Operator(Token.Operator.Type.LParen),
+                                    Token.Operator(Token.Operator.Type.RParen),
+                                ) +
+                                FirstFollowUtils.firstSetArguments +
+                                FirstFollowUtils.firstSetPostfixOp
                         )
 
-                        val ident = expectIdentifier()
+                        val ident = expectIdentifier(
+                            anc +
+                                anchorSetOf(
+                                    Token.Operator(Token.Operator.Type.LParen),
+                                    Token.Operator(Token.Operator.Type.RParen),
+                                ) +
+                                FirstFollowUtils.firstSetArguments +
+                                FirstFollowUtils.firstSetPostfixOp
+                        )
                         val maybeLParent = peek()
                         if (maybeLParent is Token.Operator && maybeLParent.type == Token.Operator.Type.LParen) {
                             // methodInvocation todo recurse
                             expectOperator(
                                 Token.Operator.Type.LParen,
-                                anc + anchorSetOf(
-                                    /* todo: first_1(arguments) */
-                                    Token.Operator(Token.Operator.Type.RParen),
-                                ) + FirstFollowUtils.firstSetPostfixOp
+                                anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)) +
+                                    FirstFollowUtils.firstSetArguments +
+                                    FirstFollowUtils.firstSetPostfixOp
                             )
-                            val arguments = parseArguments()
-                            expectOperator(Token.Operator.Type.RParen)
+                            val arguments = parseArguments(
+                                anc +
+                                    anchorSetOf(Token.Operator(Token.Operator.Type.RParen)) +
+                                    FirstFollowUtils.firstSetPostfixOp
+                            )
+                            expectOperator(Token.Operator.Type.RParen, anc + FirstFollowUtils.firstSetPostfixOp)
                             parsePostfixOp(AST.MethodInvocationExpression(target, ident.name, arguments), anc)
                         } else {
                             // fieldAccess todo recurse
@@ -202,13 +276,17 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                         expectOperator(
                             Token.Operator.Type.LeftBracket,
                             anc +
-                                /* todo: first set expression */
+                                FirstFollowUtils.firstSetExpression +
                                 anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
                                 FirstFollowUtils.firstSetPostfixOp
                         )
-                        val index = parseExpression()
+                        val index = parseExpression(
+                            anc = anc +
+                                anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
+                                FirstFollowUtils.firstSetPostfixOp
+                        )
                         expectOperator(Token.Operator.Type.RightBracket, anc + FirstFollowUtils.firstSetPostfixOp)
-                        parsePostfixOp(AST.ArrayAccessExpression(target, index))
+                        parsePostfixOp(AST.ArrayAccessExpression(target, index), anc)
                     }
                     else -> target
                 }
@@ -216,29 +294,35 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseUnaryExpression(): AST.Expression {
+    private fun parseUnaryExpression(anc: AnchorSet): AST.Expression {
         // todo not exhausting first(follow) of parsePrimary!)
         // TODO parsePostifixExpression instead of parsePrimaryExpression !
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
                     Token.Operator.Type.Not -> {
-                        expectOperator(Token.Operator.Type.Not)
-                        AST.UnaryExpression(parseUnaryExpression(), AST.UnaryExpression.Operation.NOT)
+                        expectOperator(Token.Operator.Type.Not, anc + FirstFollowUtils.allExpressionOperators)
+                        AST.UnaryExpression(
+                            parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators),
+                            AST.UnaryExpression.Operation.NOT
+                        )
                     }
                     Token.Operator.Type.Minus -> {
-                        expectOperator(Token.Operator.Type.Minus)
-                        AST.UnaryExpression(parseUnaryExpression(), AST.UnaryExpression.Operation.MINUS)
+                        expectOperator(Token.Operator.Type.Minus, anc + FirstFollowUtils.allExpressionOperators)
+                        AST.UnaryExpression(
+                            parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators),
+                            AST.UnaryExpression.Operation.MINUS
+                        )
                     }
-                    else -> parsePostfixExpression()
+                    else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators)
                 }
-            else -> parsePostfixExpression()
+            else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators)
         }
     }
 
     internal fun parseExpression(minPrecedence: Int = 1, anc: AnchorSet): AST.Expression {
         // todo: calculate anchorsets using all expression operators
-        var result = parseUnaryExpression()
+        var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
 
         var currentToken = peek()
 
@@ -254,7 +338,8 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                 when (op.associativity) {
                     AST.BinaryExpression.Operation.Associativity.LEFT -> op.precedence + 1
                     else -> op.precedence
-                }
+                },
+                anc + FirstFollowUtils.allExpressionOperators
             )
             result = AST.BinaryExpression(result, rhs, op)
             currentToken = peek()
