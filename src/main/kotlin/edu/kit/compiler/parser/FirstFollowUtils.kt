@@ -4,7 +4,45 @@ import edu.kit.compiler.Token
 
 object FirstFollowUtils {
 
-    val emptyFirstSet = anchorSetOf()
+    val allExpressionOperators = anchorSetOf(
+        Token.Operator(Token.Operator.Type.NoEq),
+        Token.Operator(Token.Operator.Type.Not),
+        Token.Operator(Token.Operator.Type.LParen),
+        Token.Operator(Token.Operator.Type.RParen),
+        Token.Operator(Token.Operator.Type.MulAssign),
+        Token.Operator(Token.Operator.Type.Mul),
+        Token.Operator(Token.Operator.Type.PlusPlus),
+        Token.Operator(Token.Operator.Type.PlusAssign),
+        Token.Operator(Token.Operator.Type.Plus),
+        Token.Operator(Token.Operator.Type.MinusAssign),
+        Token.Operator(Token.Operator.Type.MinusMinus),
+        Token.Operator(Token.Operator.Type.Minus),
+        Token.Operator(Token.Operator.Type.DivAssign),
+        Token.Operator(Token.Operator.Type.Div),
+        Token.Operator(Token.Operator.Type.LeftShiftAssign),
+        Token.Operator(Token.Operator.Type.LeftShift),
+        Token.Operator(Token.Operator.Type.LtEq),
+        Token.Operator(Token.Operator.Type.Lt),
+        Token.Operator(Token.Operator.Type.Eq),
+        Token.Operator(Token.Operator.Type.Assign),
+        Token.Operator(Token.Operator.Type.GtEq),
+        Token.Operator(Token.Operator.Type.RightShiftSEAssign),
+        Token.Operator(Token.Operator.Type.RightShiftAssign),
+        Token.Operator(Token.Operator.Type.RightShift),
+        Token.Operator(Token.Operator.Type.RightShiftSE),
+        Token.Operator(Token.Operator.Type.Gt),
+        Token.Operator(Token.Operator.Type.ModAssign),
+        Token.Operator(Token.Operator.Type.Mod),
+        Token.Operator(Token.Operator.Type.AndAssign),
+        Token.Operator(Token.Operator.Type.And),
+        Token.Operator(Token.Operator.Type.BitAnd),
+        Token.Operator(Token.Operator.Type.XorAssign),
+        Token.Operator(Token.Operator.Type.Xor),
+        Token.Operator(Token.Operator.Type.BitNot),
+        Token.Operator(Token.Operator.Type.OrAssign),
+        Token.Operator(Token.Operator.Type.Or),
+        Token.Operator(Token.Operator.Type.BitOr)
+    )
 
     val firstSetBasicType = anchorSetOf(
         Token.Keyword(Token.Keyword.Type.Int),
@@ -14,19 +52,16 @@ object FirstFollowUtils {
     )
     val firstSetType = firstSetBasicType
     val firstSetParameter = firstSetType
-    val firstSetParameters = firstSetParameter
-    val firstSetMethodRest = anchorSetOf(Token.Keyword(Token.Keyword.Type.Throws))
     val firstSetMethod = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
     val firstSetMainMethod = firstSetMethod
     val firstSetField = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
     val firstSetClassMember = firstSetField + firstSetMethod + firstSetMainMethod
+    val firstSetClassMembers = firstSetClassMember
 
     val firstSetArrayAccess = anchorSetOf(Token.Operator(Token.Operator.Type.LeftBracket))
     val firstSetFieldAccess = anchorSetOf(Token.Operator(Token.Operator.Type.Dot))
     val firstSetMethodInvocation = anchorSetOf(Token.Operator(Token.Operator.Type.Dot))
     val firstSetPostfixOp = firstSetMethodInvocation + firstSetFieldAccess + firstSetArrayAccess
-    val firstSetClassDeclaration = anchorSetOf(Token.Keyword(Token.Keyword.Type.Class))
-    val firstSetProgram = firstSetClassDeclaration
 
     val firstSetNewObjectExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
     val firstSetNewArrayExpression = anchorSetOf(Token.Keyword(Token.Keyword.Type.New))
