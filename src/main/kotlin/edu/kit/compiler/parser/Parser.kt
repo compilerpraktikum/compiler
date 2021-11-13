@@ -350,7 +350,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
     internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         return buildList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
             while (peek(0) != Token.Eof) {
-                expectKeyword(
+                val classKeyword = expectKeyword(
                     Token.Keyword.Type.Class,
                     anc +
                         anchorSetOf(
@@ -369,14 +369,14 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
                         ) +
                         FirstFollowUtils.firstSetClassMembers
                 )
-                expectOperator(
+                val openBrace = expectOperator(
                     Token.Operator.Type.LeftBrace,
                     anc +
                         anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)) +
                         FirstFollowUtils.firstSetClassMembers
                 )
                 val classMembers = parseClassMembers(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)))
-                expectOperator(Token.Operator.Type.RightBrace, anc)
+                val closingBrace = expectOperator(Token.Operator.Type.RightBrace, anc)
 
                 add(AST.ClassDeclaration(ident.name, classMembers).wrapValid())
             }
