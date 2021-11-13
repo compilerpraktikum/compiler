@@ -1,5 +1,7 @@
 package edu.kit.compiler.ast
 
+import edu.kit.compiler.lex.SourcePosition
+
 /**
  * There are multiple concerns, that AST needs to solve:
  *
@@ -69,7 +71,7 @@ private val exampleChainingInner: Lenient<AST.Expression<Lenient<Of>>> =
 private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
     Lenient.Valid(
         AST.BinaryExpression(
-            Lenient.Error("expected expression"),
+            Lenient.Error(Lenient.Error.ErrorMessage("expected expression", SourcePosition(1, 14))),
             exampleChainingInner,
             AST.BinaryExpression.Operation.ADDITION
         )
@@ -82,12 +84,21 @@ private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
  * - The `Valid(c: A)` variant denotes, that the AST-Node itself is valid, but `A` might contain invalid nodes.
  */
 sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
-    data class Error<out A>(private val messages: MutableList<String>, val node: A?) : Lenient<A>() {
+
+    /**
+     * @see Lenient
+     */
+    data class Error<out A>(private val messages: MutableList<ErrorMessage>, val node: A?) : Lenient<A>() {
+
+        /**
+         * An error message attached to an [Error] node
+         */
+        data class ErrorMessage(val message: String, val position: SourcePosition)
 
         /**
          * An error node with a singular error message assigned
          */
-        constructor(message: String, node: A? = null) : this(mutableListOf(message), node)
+        constructor(message: ErrorMessage, node: A? = null) : this(mutableListOf(message), node)
 
         /**
          * An error node without an initial error message
@@ -97,16 +108,21 @@ sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
         /**
          * All error messages associated with this error node
          */
-        val errors: List<String> = messages
+        val errors: List<ErrorMessage> = messages
 
         /**
          * Add an error message to this node
          */
-        fun addError(msg: String) {
-            this.messages.add(msg)
+        fun addError(msg: String, position: SourcePosition) {
+            this.messages.add(ErrorMessage(msg, position))
         }
     }
 
+    /**
+     * @param c wrapped node
+     *
+     * @see Lenient
+     */
     data class Valid<out A>(val c: A) : Lenient<A>()
 
     fun getAsValid() = when (this) {
