@@ -10,7 +10,7 @@ import kotlin.test.Ignore
 @ExperimentalStdlibApi
 internal class MixedParseTest {
 
-    private val emptyAnchorSet = anchorSetOf()
+    private val emptyAnchorSet = anchorSetOf().intoUnion()
 
     private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }

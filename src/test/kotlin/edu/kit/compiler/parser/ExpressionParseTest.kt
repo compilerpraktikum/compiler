@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
 internal class ExpressionParseTest {
-    private val emptyAnchorSet = anchorSetOf()
+    private val emptyAnchorSet = anchorSetOf().intoUnion()
 
     private fun expectAst(input: String, expectedAST: AST.Expression) =
         expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }

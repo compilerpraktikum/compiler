@@ -21,12 +21,12 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
      * Parse the lexer stream into an AST.
      */
     override fun parse(): AST.Program {
-        val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof))
-        expect<Token.Eof>(anchorSetOf())
+        val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof).intoUnion())
+        expect<Token.Eof>(anchorSetOf().intoUnion())
         return AST.Program(classDeclarations)
     }
 
-    private fun parsePrimaryExpression(anc: AnchorSet): AST.Expression {
+    private fun parsePrimaryExpression(anc: AnchorUnion): AST.Expression {
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
@@ -102,7 +102,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseNewObjectArrayExpression(anc: AnchorSet): AST.Expression {
+    private fun parseNewObjectArrayExpression(anc: AnchorUnion): AST.Expression {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void -> parseNewArrayExpression(
@@ -139,7 +139,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseNewObjectExpression(anc: AnchorSet): AST.Expression {
+    private fun parseNewObjectExpression(anc: AnchorUnion): AST.Expression {
         val ident = expectIdentifier(
             anc + anchorSetOf(
                 Token.Operator(Token.Operator.Type.LParen),
@@ -151,7 +151,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.NewObjectExpression(ident.name)
     }
 
-    private fun parseNewArrayExpression(anc: AnchorSet): AST.Expression {
+    private fun parseNewArrayExpression(anc: AnchorUnion): AST.Expression {
         val basicType = parseBasicType(
             anc +
                 anchorSetOf(
@@ -172,7 +172,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.NewArrayExpression(arrayType, indexExpression)
     }
 
-    private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array, anc: AnchorSet): Type.Array {
+    private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array, anc: AnchorUnion): Type.Array {
         val maybeAnotherLBracket = peek(0)
         val maybeAnotherRBracket =
             peek(1) // special case for NewArrayExpression in combination with ArrayAccess (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
@@ -188,7 +188,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseArguments(anc: AnchorSet): List<AST.Expression> {
+    private fun parseArguments(anc: AnchorUnion): List<AST.Expression> {
         val arguments = mutableListOf<AST.Expression>()
         var nextToken = peek()
         while (!(nextToken is Token.Operator && nextToken.type == Token.Operator.Type.RParen)) {
@@ -204,7 +204,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return arguments
     }
 
-    private fun parsePostfixExpression(anc: AnchorSet): AST.Expression {
+    private fun parsePostfixExpression(anc: AnchorUnion): AST.Expression {
         val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp)
 
         return when (val firstPeekedToken = peek()) {
@@ -223,7 +223,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
 
     private fun parsePostfixOp(
         target: AST.Expression,
-        anc: AnchorSet
+        anc: AnchorUnion
     ): AST.Expression {
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
@@ -294,7 +294,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseUnaryExpression(anc: AnchorSet): AST.Expression {
+    private fun parseUnaryExpression(anc: AnchorUnion): AST.Expression {
         // todo not exhausting first(follow) of parsePrimary!)
         // TODO parsePostifixExpression instead of parsePrimaryExpression !
         return when (val peeked = peek()) {
@@ -320,7 +320,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    internal fun parseExpression(minPrecedence: Int = 1, anc: AnchorSet): AST.Expression {
+    internal fun parseExpression(minPrecedence: Int = 1, anc: AnchorUnion): AST.Expression {
         // todo: calculate anchorsets using all expression operators
         var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
 
@@ -347,7 +347,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return result
     }
 
-    internal fun parseClassDeclarations(anc: AnchorSet): List<AST.ClassDeclaration> {
+    internal fun parseClassDeclarations(anc: AnchorUnion): List<AST.ClassDeclaration> {
         return buildList {
             while (peek(0) != Token.Eof) {
                 expectKeyword(
@@ -383,7 +383,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseClassMembers(anc: AnchorSet): List<AST.ClassMember> {
+    private fun parseClassMembers(anc: AnchorUnion): List<AST.ClassMember> {
         return buildList {
             var peeked = peek(0)
             while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
@@ -393,7 +393,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseClassMember(anc: AnchorSet): AST.ClassMember {
+    private fun parseClassMember(anc: AnchorUnion): AST.ClassMember {
         expectKeyword(
             Token.Keyword.Type.Public,
             anc + anchorSetOf(
@@ -427,7 +427,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseMainMethod(anc: AnchorSet): AST.MainMethod {
+    private fun parseMainMethod(anc: AnchorUnion): AST.MainMethod {
         expectKeyword(
             Token.Keyword.Type.Static,
             anc +
@@ -504,7 +504,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
     }
 
-    private fun parseFieldMethodPrefix(anc: AnchorSet): AST.ClassMember {
+    private fun parseFieldMethodPrefix(anc: AnchorUnion): AST.ClassMember {
         val type = parseType(
             anc +
                 anchorSetOf(
@@ -538,7 +538,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseField(ident: Token.Identifier, type: Type, anc: AnchorSet): AST.Field {
+    private fun parseField(ident: Token.Identifier, type: Type, anc: AnchorUnion): AST.Field {
         expectOperator(Token.Operator.Type.Semicolon, anc)
         return AST.Field(
             ident.name,
@@ -546,7 +546,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
     }
 
-    private fun parseMethod(ident: Token.Identifier, type: Type, anc: AnchorSet): AST.Method {
+    private fun parseMethod(ident: Token.Identifier, type: Type, anc: AnchorUnion): AST.Method {
         expectOperator(
             Token.Operator.Type.LParen,
             anc +
@@ -591,7 +591,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
     }
 
-    internal fun parseBlock(anc: AnchorSet): AST.Block {
+    internal fun parseBlock(anc: AnchorUnion): AST.Block {
         expectOperator(
             Token.Operator.Type.LeftBrace,
             anc +
@@ -610,7 +610,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return resultBlock
     }
 
-    private fun parseBlockStatements(anc: AnchorSet): List<AST.BlockStatement> {
+    private fun parseBlockStatements(anc: AnchorUnion): List<AST.BlockStatement> {
         // at least one should exist at this point.
         return buildList {
             var peeked = peek(0)
@@ -621,7 +621,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseBlockStatement(anc: AnchorSet): AST.BlockStatement {
+    private fun parseBlockStatement(anc: AnchorUnion): AST.BlockStatement {
         // Statement ==> "{ | ; | if | while | return | null | false | true | INTEGER_LITERAL | ( | IDENT | this | new"
         // Statement: Auf IDENT folgt nie ein weiteres IDENT.
         // LocalVariableDeclarationStatement ==> "int | boolean | void | IDENT" x " IDENT " x " = | ; "
@@ -692,7 +692,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    internal fun parseStatement(anc: AnchorSet): AST.Statement {
+    internal fun parseStatement(anc: AnchorUnion): AST.Statement {
         return when (val firstToken = peek(0)) {
             is Token.Operator -> {
                 when (firstToken.type) {
@@ -732,7 +732,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseReturnStatement(anc: AnchorSet): AST.ReturnStatement {
+    private fun parseReturnStatement(anc: AnchorUnion): AST.ReturnStatement {
         expectKeyword(
             Token.Keyword.Type.Return,
             anc + FirstFollowUtils.firstSetExpression + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon))
@@ -746,7 +746,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.ReturnStatement(returnValue)
     }
 
-    private fun parseIfStatement(anc: AnchorSet): AST.IfStatement {
+    private fun parseIfStatement(anc: AnchorUnion): AST.IfStatement {
         expectKeyword(
             Token.Keyword.Type.If,
             anc +
@@ -794,7 +794,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
     }
 
-    private fun parseWhileStatement(anc: AnchorSet): AST.WhileStatement {
+    private fun parseWhileStatement(anc: AnchorUnion): AST.WhileStatement {
         expectKeyword(
             Token.Keyword.Type.While,
             anc +
@@ -820,13 +820,13 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.WhileStatement(loopCondition, loopBodyStatement)
     }
 
-    private fun parseEmptyStatement(anc: AnchorSet): AST.EmptyStatement {
+    private fun parseEmptyStatement(anc: AnchorUnion): AST.EmptyStatement {
         // todo: on error, return error-node
         expectOperator(Token.Operator.Type.Semicolon, anc)
         return AST.EmptyStatement
     }
 
-    private fun parseLocalVariableDeclarationStatement(anc: AnchorSet): AST.LocalVariableDeclarationStatement {
+    private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): AST.LocalVariableDeclarationStatement {
         val type = parseType(
             anc + anchorSetOf(
                 Token.Identifier(""),
@@ -854,18 +854,18 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.LocalVariableDeclarationStatement(varName.name, type, initializer)
     }
 
-    private fun parseExpressionStatement(anc: AnchorSet): AST.ExpressionStatement {
+    private fun parseExpressionStatement(anc: AnchorUnion): AST.ExpressionStatement {
         val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
         expectOperator(Token.Operator.Type.Semicolon, anc)
         return AST.ExpressionStatement(expr)
     }
 
-    private fun parseMethodRest(anc: AnchorSet): Token.Identifier {
+    private fun parseMethodRest(anc: AnchorUnion): Token.Identifier {
         expectKeyword(Token.Keyword.Type.Throws, anc + anchorSetOf(Token.Identifier("")))
         return expectIdentifier(anc)
     }
 
-    private fun parseParameters(anc: AnchorSet): List<AST.Parameter> {
+    private fun parseParameters(anc: AnchorUnion): List<AST.Parameter> {
         return buildList {
             add(parseParameter(anc + anchorSetOf(Token.Operator(Token.Operator.Type.Comma)) + FirstFollowUtils.firstSetParameter))
             var maybeCommaToken = peek(0)
@@ -880,7 +880,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseParameter(anc: AnchorSet): AST.Parameter {
+    private fun parseParameter(anc: AnchorUnion): AST.Parameter {
         val type = parseType(anc + anchorSetOf(Token.Identifier("")))
         val ident = expectIdentifier(anc)
         return AST.Parameter(
@@ -889,7 +889,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
     }
 
-    private fun parseType(anc: AnchorSet): Type {
+    private fun parseType(anc: AnchorUnion): Type {
         val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
         val maybeLeftBracket = peek(0)
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
@@ -898,7 +898,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return basicType
     }
 
-    private fun parseTypeArrayRecurse(basicType: Type, anc: AnchorSet): Type.Array {
+    private fun parseTypeArrayRecurse(basicType: Type, anc: AnchorUnion): Type.Array {
         expectOperator(
             Token.Operator.Type.LeftBracket,
             anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) + FirstFollowUtils.firstSetTypeArrayRecurse
@@ -914,7 +914,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         }
     }
 
-    private fun parseBasicType(anc: AnchorSet): Type {
+    private fun parseBasicType(anc: AnchorUnion): Type {
         return when (val peekedToken = peek()) {
             is Token.Keyword -> {
                 when (peekedToken.type) {

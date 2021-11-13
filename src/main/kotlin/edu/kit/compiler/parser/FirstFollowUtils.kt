@@ -103,13 +103,20 @@ object FirstFollowUtils {
     val firstSetBlockStatement = firstSetStatement + firstSetLocalVariableDeclarationStatement
 }
 
+/**
+ * An inline type for token-sets that are used as anchor sets for the [Parser]. The type provides operators to
+ * [combine][plus] two sets (providing an [AnchorUnion] as a lazy set) and [contains]
+ */
 @JvmInline
-value class AnchorSet(val tokens: Set<Token>) {
+value class AnchorSet(internal val tokens: Set<Token>) {
     /**
+     * Check whether a given token is covered by this anchor set. This checks for token types, but it does not check for
+     * token contents like literal values.
+     *
      * @param token a token to check against this [AnchorSet]
      * @return true, if the given token type is within this anchor set.
      */
-    fun isInSet(token: Token): Boolean {
+    private fun isInSet(token: Token): Boolean {
         return when (token) {
             is Token.Identifier -> tokens.any { it is Token.Identifier }
             is Token.Literal -> tokens.any { it is Token.Literal }
@@ -123,14 +130,48 @@ value class AnchorSet(val tokens: Set<Token>) {
     }
 
     /**
-     * Union operator for two [AnchorSets][AnchorSet]
+     * Union operator for two [AnchorSets][AnchorSet] that generates a lazy union of both sets
      */
-    operator fun plus(anchorSet: AnchorSet): AnchorSet = AnchorSet(this.tokens.union(anchorSet.tokens))
+    operator fun plus(anchorSet: AnchorSet) = AnchorUnion { AnchorSet(this.tokens.union(anchorSet.tokens)) }
+
+    /**
+     * Union operator for an [AnchorSet] and a lazy [AnchorUnion] that generates another lazy union of both sets
+     */
+    operator fun plus(anchorUnion: AnchorUnion) =
+        AnchorUnion { AnchorSet(this.tokens.union(anchorUnion.provide().tokens)) }
 
     /**
      * `in` operator for this set
      */
     operator fun contains(t: Token): Boolean = isInSet(t)
+
+    /**
+     * Converts this [AnchorSet] instance into an [AnchorUnion] that provides the same content
+     */
+    fun intoUnion(): AnchorUnion = AnchorUnion { this@AnchorSet }
+}
+
+/**
+ * An inline class that provides a lazily evaluated union of multiple [AnchorSets][AnchorSet].
+ */
+@JvmInline
+value class AnchorUnion(private val lazyTokenSet: () -> AnchorSet) {
+
+    /**
+     * Evaluate the union and return it as an [AnchorSet]
+     */
+    internal fun provide() = lazyTokenSet.invoke()
+
+    /**
+     * Union operator for two [AnchorSets][AnchorSet] that generates a lazy union of both sets
+     */
+    operator fun plus(anchorSet: AnchorSet) = AnchorUnion { AnchorSet(this.provide().tokens.union(anchorSet.tokens)) }
+
+    /**
+     * Union operator for an [AnchorSet] and a lazy [AnchorUnion] that generates another lazy union of both sets
+     */
+    operator fun plus(anchorUnion: AnchorUnion) =
+        AnchorUnion { AnchorSet(this.provide().tokens.union(anchorUnion.provide().tokens)) }
 }
 
 /**

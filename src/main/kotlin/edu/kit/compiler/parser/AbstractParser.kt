@@ -34,7 +34,7 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(anc: AnchorSet): T {
+    protected inline fun <reified T : Token> expect(anc: AnchorUnion): T {
         if (peek() is T)
             return next() as T
 
@@ -49,7 +49,7 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      */
     protected fun expectOperator(
         type: Token.Operator.Type,
-        anc: AnchorSet
+        anc: AnchorUnion
     ): Token.Operator {
         val peek = peek()
         if (peek !is Token.Operator) {
@@ -71,13 +71,13 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      * Read a token and expect it to be an identifier. If it is not an identifier, enter [panicMode] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorSet): Token.Identifier = expect(anc)
+    protected fun expectIdentifier(anc: AnchorUnion): Token.Identifier = expect(anc)
 
     /**
      * Read a token from the token stream and expect it to be a [Token.Keyword] of type [type].
      * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
      */
-    protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorSet): Token.Keyword {
+    protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorUnion): Token.Keyword {
         val peek = peek()
         if (peek !is Token.Keyword) {
             println("expected keyword ($type), but got $peek")
@@ -99,7 +99,8 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      *
      * @param anchorSet [AnchorSet] containing all tokens that are accepted as the next token in the stream.
      */
-    protected fun panicMode(anchorSet: AnchorSet) {
-        while (peek() !in anchorSet) next()
+    protected fun panicMode(anchorSet: AnchorUnion) {
+        val anc = anchorSet.provide()
+        while (peek() !in anc) next()
     }
 }
