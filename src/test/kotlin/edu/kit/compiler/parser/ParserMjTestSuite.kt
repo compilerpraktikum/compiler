@@ -43,7 +43,7 @@ internal class ParserMjTestSuite {
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(input, stringTable)
 
-        val parser = Parser(lexer.tokens())
+        val parser = Parser(lexer.tokens(), input)
 
         var exception: Throwable? = null
         try {

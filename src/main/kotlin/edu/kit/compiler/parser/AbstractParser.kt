@@ -4,14 +4,17 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
+import edu.kit.compiler.lex.AnnotationType
+import edu.kit.compiler.lex.SourceFile
 import java.util.Optional
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
  *
- * @param[tokens] [sequence][Sequence] of [tokens][edu.kit.compiler.Token]
+ * @param tokens [sequence][Sequence] of [tokens][Token]
+ * @param sourceFile input wrapper that handles error reporting
  */
-abstract class AbstractParser(tokens: Sequence<Token>) {
+abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile: SourceFile) {
 
     /**
      * The lookahead buffer that provides the token stream and buffers tokens when a lookahead is required
