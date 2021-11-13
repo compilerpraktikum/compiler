@@ -130,7 +130,7 @@ value class AnchorSet(val tokens: Set<Token>) {
     /**
      * `in` operator for this set
      */
-    operator fun contains(t: Token): Boolean = t in tokens
+    operator fun contains(t: Token): Boolean = isInSet(t)
 }
 
 /**
