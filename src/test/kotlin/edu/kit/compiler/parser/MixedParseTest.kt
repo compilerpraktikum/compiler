@@ -1,35 +1,61 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Lenient
+import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
+import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.utils.TestUtils.expectNode
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 
 @ExperimentalStdlibApi
 internal class MixedParseTest {
-
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private fun expectAst(input: String, expectedAST: List<AST.ClassDeclaration>) =
+    private val validEmptyBlock = AST.Block<Lenient<Of>, Lenient<Of>>(
+        listOf()
+    ).wrapValid()
+
+    private fun expectAst(input: String, expectedAST: List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test
-    fun testParseEmptyBlock() = expectNode("{}", AST.Block(listOf())) { parseBlock(emptyAnchorSet) }
+    fun testParseEmptyBlock() =
+        expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockOfEmptyBlocks() =
-        expectNode("{{{}}}", AST.Block(listOf(AST.Block(listOf(AST.Block(listOf())))))) { parseBlock(emptyAnchorSet) }
+        expectNode(
+            "{{{}}}",
+            AST.Block<Lenient<Of>, Lenient<Of>>(
+                listOf(
+                    AST.Block<Lenient<Of>, Lenient<Of>>(
+                        listOf(
+                            validEmptyBlock
+                        )
+                    ).wrapValid()
+                )
+            )
+                .wrapValid()
+        ) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockWithEmptyStatement() =
-        expectNode("{;}", AST.Block(listOf(AST.EmptyStatement))) { parseBlock(emptyAnchorSet) }
+        expectNode("{;}", AST.Block(listOf(AST.EmptyStatement.wrapValid())).wrapValid()) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockWithMultipleEmptyStatement() = expectNode(
         "{;;;;}",
-        AST.Block(listOf(AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement, AST.EmptyStatement))
+        AST.Block(
+            listOf(
+                AST.EmptyStatement,
+                AST.EmptyStatement,
+                AST.EmptyStatement,
+                AST.EmptyStatement
+            ).map { it.wrapValid() }
+        ).wrapValid()
     ) { parseBlock(emptyAnchorSet) }
 
     @Test
@@ -37,10 +63,11 @@ internal class MixedParseTest {
         "{ myident; mytype myident2; }",
         AST.Block(
             listOf(
-                AST.ExpressionStatement(AST.IdentifierExpression("myident")),
-                AST.LocalVariableDeclarationStatement("myident2", Type.ClassType("mytype"), null)
+                AST.ExpressionStatement(AST.IdentifierExpression("myident").wrapValid()).wrapValid(),
+                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2", Type.ClassType("mytype"), null)
+                    .wrapValid()
             )
-        )
+        ).wrapValid()
     ) { parseBlock(emptyAnchorSet) }
 
     @Test
@@ -48,53 +75,72 @@ internal class MixedParseTest {
         "myIdent = 3;",
         AST.ExpressionStatement(
             AST.BinaryExpression(
-                AST.IdentifierExpression("myIdent"),
-                AST.LiteralExpression("3"),
+                AST.IdentifierExpression("myIdent").wrapValid(),
+                AST.LiteralExpression("3").wrapValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
-            )
-        )
+            ).wrapValid()
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseReturn() = expectNode(
         "return;",
-        AST.ReturnStatement(null)
+        AST.ReturnStatement<Lenient<Of>>(null).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
-        AST.ReturnStatement(AST.LiteralExpression("2"))
+        AST.ReturnStatement(AST.LiteralExpression("2").wrapValid()).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicWhile() = expectNode(
         "while(2) {};",
-        AST.WhileStatement(AST.LiteralExpression("2"), AST.Block(listOf()))
+        AST.WhileStatement(
+            AST.LiteralExpression("2").wrapValid(),
+            validEmptyBlock
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIf() = expectNode(
         "if(2) {};",
-        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), null)
+        AST.IfStatement(
+            AST.LiteralExpression("2").wrapValid(),
+            validEmptyBlock,
+            null
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse() = expectNode(
         "if(2) {} else {};",
-        AST.IfStatement(AST.LiteralExpression("2"), AST.Block(listOf()), AST.Block(listOf()))
+        AST.IfStatement(
+            AST.LiteralExpression("2").wrapValid(),
+            validEmptyBlock,
+            validEmptyBlock
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse_bool() = expectNode(
         "if(true) {} else {};",
-        AST.IfStatement(AST.LiteralExpression(true), AST.Block(listOf()), AST.Block(listOf()))
+        AST.IfStatement(
+            AST.LiteralExpression(true).wrapValid(),
+            validEmptyBlock,
+            validEmptyBlock
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicIfElse_ident() = expectNode(
         "if(myIdent) {} else {};",
-        AST.IfStatement(AST.IdentifierExpression("myIdent"), AST.Block(listOf()), AST.Block(listOf()))
+        AST.IfStatement(
+            AST.IdentifierExpression("myIdent").wrapValid(),
+            validEmptyBlock,
+            validEmptyBlock
+        ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
@@ -119,24 +165,25 @@ internal class MixedParseTest {
                             listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement("i", Type.Integer, null),
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("i", Type.Integer, null)
+                                        .wrapValid(),
                                     AST.LocalVariableDeclarationStatement(
                                         "x",
                                         Type.Integer,
                                         AST.BinaryExpression(
-                                            AST.IdentifierExpression("i"),
+                                            AST.IdentifierExpression("i").wrapValid(),
                                             AST.UnaryExpression(
-                                                AST.IdentifierExpression("i"),
+                                                AST.IdentifierExpression("i").wrapValid(),
                                                 AST.UnaryExpression.Operation.MINUS
-                                            ),
+                                            ).wrapValid(),
                                             AST.BinaryExpression.Operation.ADDITION
-                                        )
-                                    ),
+                                        ).wrapValid()
+                                    ).wrapValid(),
                                 )
-                            )
-                        )
+                            ).wrapValid()
+                        ).wrapValid()
                     )
-                )
+                ).wrapValid()
             )
         )
     ) { parse() }
@@ -161,30 +208,32 @@ internal class MixedParseTest {
                             AST.Block(
                                 listOf(
                                     AST.IfStatement(
-                                        AST.FieldAccessExpression(AST.LiteralExpression("null"), "nothing"),
+                                        AST.FieldAccessExpression(AST.LiteralExpression("null").wrapValid(), "nothing")
+                                            .wrapValid(),
                                         AST.IfStatement(
                                             AST.MethodInvocationExpression(
-                                                AST.LiteralExpression(true),
+                                                AST.LiteralExpression(true).wrapValid(),
                                                 "fun",
                                                 emptyList()
-                                            ),
+                                            ).wrapValid(),
                                             AST.IfStatement(
                                                 AST.ArrayAccessExpression(
-                                                    AST.LiteralExpression(false),
+                                                    AST.LiteralExpression(false).wrapValid(),
                                                     AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
-                                                ),
-                                                AST.ReturnStatement(null),
+                                                        .wrapValid()
+                                                ).wrapValid(),
+                                                AST.ReturnStatement<Lenient<Of>>(null).wrapValid(),
                                                 null
-                                            ),
+                                            ).wrapValid(),
                                             null
-                                        ),
+                                        ).wrapValid(),
                                         null
-                                    )
+                                    ).wrapValid()
                                 )
-                            )
-                        )
+                            ).wrapValid()
+                        ).wrapValid()
                     )
-                )
+                ).wrapValid()
             )
         )
 
@@ -211,28 +260,28 @@ internal class MixedParseTest {
                                     AST.ExpressionStatement(
                                         AST.ArrayAccessExpression(
                                             AST.ArrayAccessExpression(
-                                                AST.IdentifierExpression("a"),
+                                                AST.IdentifierExpression("a").wrapValid(),
                                                 AST.BinaryExpression(
-                                                    AST.LiteralExpression("2"),
+                                                    AST.LiteralExpression("2").wrapValid(),
                                                     AST.BinaryExpression(
                                                         AST.UnaryExpression(
-                                                            AST.IdentifierExpression("i"),
+                                                            AST.IdentifierExpression("i").wrapValid(),
                                                             AST.UnaryExpression.Operation.MINUS
-                                                        ),
-                                                        AST.LiteralExpression("1"),
+                                                        ).wrapValid(),
+                                                        AST.LiteralExpression("1").wrapValid(),
                                                         AST.BinaryExpression.Operation.ADDITION
-                                                    ),
+                                                    ).wrapValid(),
                                                     AST.BinaryExpression.Operation.MULTIPLICATION
-                                                )
-                                            ),
-                                            AST.LiteralExpression("2")
-                                        )
-                                    )
+                                                ).wrapValid()
+                                            ).wrapValid(),
+                                            AST.LiteralExpression("2").wrapValid()
+                                        ).wrapValid()
+                                    ).wrapValid()
                                 )
-                            )
-                        )
+                            ).wrapValid()
+                        ).wrapValid()
                     )
-                )
+                ).wrapValid()
             )
         )
     ) { parse() }
@@ -276,25 +325,26 @@ internal class MixedParseTest {
                             listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x", Type.Integer, null)
+                                        .wrapValid(),
                                     AST.IfStatement(
                                         AST.LiteralExpression(true),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
-                                                AST.IdentifierExpression("x"),
-                                                AST.LiteralExpression("3"),
+                                                AST.IdentifierExpression("x").wrapValid(),
+                                                AST.LiteralExpression("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
-                                            )
-                                        ),
+                                            ).wrapValid()
+                                        ).wrapValid(),
                                         null
-                                    )
+                                    ).wrapValid()
                                 )
-                            )
-                        )
+                            ).wrapValid()
+                        ).wrapValid()
                     )
-                )
+                ).wrapValid()
             )
-        )
+        ).wrapValid()
 
     ) { parse() }
 
@@ -318,23 +368,24 @@ internal class MixedParseTest {
                             listOf(AST.Parameter("args", Type.Array(Type.ClassType("String")))),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement("x", Type.Integer, null),
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x", Type.Integer, null)
+                                        .wrapValid(),
                                     AST.IfStatement(
-                                        AST.LiteralExpression(true),
+                                        AST.LiteralExpression(true).wrapValid(),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
-                                                AST.IdentifierExpression("x"),
-                                                AST.LiteralExpression("3"),
+                                                AST.IdentifierExpression("x").wrapValid(),
+                                                AST.LiteralExpression("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
-                                            )
-                                        ),
+                                            ).wrapValid()
+                                        ).wrapValid(),
                                         null
-                                    )
+                                    ).wrapValid()
                                 )
-                            )
-                        )
+                            ).wrapValid()
+                        ).wrapValid()
                     )
-                )
+                ).wrapValid()
             )
         )
 
@@ -345,7 +396,7 @@ internal class MixedParseTest {
         "class test { public void test() { } }",
         astOf {
             clazz("test") {
-                method("test", Type.Void, listOf()) {
+                method("test", Type.Void) {
                 }
             }
         }
@@ -356,7 +407,7 @@ internal class MixedParseTest {
         "class test { public void test() { ;; } }",
         astOf {
             clazz("test") {
-                method("test", Type.Void, listOf()) {
+                method("test", Type.Void) {
                     emptyStatement()
                     emptyStatement()
                 }
@@ -368,13 +419,8 @@ internal class MixedParseTest {
     fun testEmptyClass() {
         expectAst(
             "class testClass { }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        emptyList()
-                    )
-                )
+            astOf {
+                clazz("testClass") {}
             }
         )
     }
@@ -383,26 +429,11 @@ internal class MixedParseTest {
     fun testOneClasTwoFields() {
         expectAst(
             "class testClass { public boolean myIdent; public void myIdent2; }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.Field(
-                                    "myIdent",
-                                    Type.Boolean
-                                )
-                            )
-                            add(
-                                AST.Field(
-                                    "myIdent2",
-                                    Type.Void
-                                )
-                            )
-                        }
-                    )
-                )
+            astOf {
+                clazz("testClass") {
+                    field("myIdent", Type.Boolean)
+                    field("myIdent2", Type.Void)
+                }
             }
         )
     }
@@ -411,26 +442,11 @@ internal class MixedParseTest {
     fun testOneClassArrayField() {
         expectAst(
             "class testClass { public boolean [] [] myArray; public void [] myArray2; }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.Field(
-                                    "myArray",
-                                    Type.Array(Type.Array(Type.Boolean))
-                                )
-                            )
-                            add(
-                                AST.Field(
-                                    "myArray2",
-                                    Type.Array(Type.Void)
-                                )
-                            )
-                        }
-                    )
-                )
+            astOf {
+                clazz("testClass") {
+                    field("myArray", Type.Array(Type.Array(Type.Boolean)))
+                    field("myArray2", Type.Array(Type.Void))
+                }
             }
         )
     }
@@ -439,24 +455,10 @@ internal class MixedParseTest {
     fun testOneClassMethod() {
         expectAst(
             "class testClass { public void nomain() {} }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.Method(
-                                    "nomain",
-                                    Type.Void,
-                                    emptyList(),
-                                    AST.Block(
-                                        emptyList()
-                                    )
-                                )
-                            )
-                        }
-                    )
-                )
+            astOf {
+                clazz("testClass") {
+                    method("nomain", Type.Void) {}
+                }
             }
         )
     }
@@ -465,39 +467,15 @@ internal class MixedParseTest {
     fun testOneMethodWithParams() {
         expectAst(
             "class testClass { public void nomain(boolean ident, myClass ident2) {} }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.Method(
-                                    "nomain",
-                                    Type.Void,
-                                    buildList<AST.Parameter> {
-                                        add(
-                                            AST.Parameter(
-                                                "ident",
-                                                Type.Boolean
-                                            )
-                                        )
-                                        add(
-                                            AST.Parameter(
-                                                "ident2",
-                                                Type.ClassType(
-                                                    "myClass"
-                                                )
-                                            )
-                                        )
-                                    },
-                                    AST.Block(
-                                        emptyList()
-                                    )
-                                )
-                            )
-                        }
-                    )
-                )
+            astOf {
+                clazz("testClass") {
+                    method(
+                        "nomain", Type.Void,
+                        param("ident", Type.Boolean),
+                        param("ident2", Type.ClassType("myClass"))
+                    ) {
+                    }
+                }
             }
         )
     }
@@ -506,31 +484,16 @@ internal class MixedParseTest {
     fun testOneMethodOneMainMethod() {
         expectAst(
             "class testClass { public static void mymain(Strig[][] arr ) {} }",
-            buildList<AST.ClassDeclaration> {
-                add(
-                    AST.ClassDeclaration(
-                        "testClass",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.MainMethod(
-                                    "mymain",
-                                    Type.Void,
-                                    buildList<AST.Parameter> {
-                                        add(
-                                            AST.Parameter(
-                                                "arr",
-                                                Type.Array(Type.Array(Type.ClassType("Strig")))
-                                            )
-                                        )
-                                    },
-                                    AST.Block(
-                                        emptyList()
-                                    )
-                                )
-                            )
-                        }
-                    )
-                )
+            astOf {
+                clazz("testClass") {
+                    mainMethod(
+                        "mymain", Type.Void,
+                        AST.Parameter(
+                            "arr",
+                            Type.Array(Type.Array(Type.ClassType("Strig")))
+                        )
+                    ) {}
+                }
             }
         )
     }
@@ -539,42 +502,16 @@ internal class MixedParseTest {
     fun testPrimitiveArrayExpr() {
         expectAst(
             "class a { public static void main(String[] args) { int[][] abc = new int[22][]; } }",
-            buildList {
-                add(
-                    AST.ClassDeclaration(
-                        "a",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.MainMethod(
-                                    "main",
-                                    Type.Void,
-                                    buildList {
-                                        add(
-                                            AST.Parameter(
-                                                "args",
-                                                Type.Array(Type.ClassType("String"))
-                                            )
-                                        )
-                                    },
-                                    AST.Block(
-                                        buildList {
-                                            add(
-                                                AST.LocalVariableDeclarationStatement(
-                                                    "abc",
-                                                    Type.Array(Type.Array(Type.Integer)),
-                                                    AST.NewArrayExpression(
-                                                        Type.Array(Type.Array(Type.Integer)),
-                                                        AST.LiteralExpression("22")
-                                                    )
-                                                )
-                                            )
-                                        }
-                                    )
-                                )
-                            )
+            astOf {
+                clazz("a") {
+                    mainMethod("main", Type.Void, AST.Parameter("args", Type.Array(Type.ClassType("String")))) {
+                        localDeclaration("abc", Type.Array(Type.Array(Type.Integer))) {
+                            newArrayOf(Type.Array(Type.Array(Type.Integer))) {
+                                literal("22")
+                            }
                         }
-                    )
-                )
+                    }
+                }
             }
         )
     }
@@ -583,42 +520,14 @@ internal class MixedParseTest {
     fun testIdentArrayExpr() {
         expectAst(
             "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
-            buildList {
-                add(
-                    AST.ClassDeclaration(
-                        "a",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.MainMethod(
-                                    "main",
-                                    Type.Void,
-                                    buildList {
-                                        add(
-                                            AST.Parameter(
-                                                "args",
-                                                Type.Array(Type.ClassType("String"))
-                                            )
-                                        )
-                                    },
-                                    AST.Block(
-                                        buildList {
-                                            add(
-                                                AST.LocalVariableDeclarationStatement(
-                                                    "abc",
-                                                    Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
-                                                    AST.NewArrayExpression(
-                                                        Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass")))),
-                                                        AST.LiteralExpression("22")
-                                                    )
-                                                )
-                                            )
-                                        }
-                                    )
-                                )
-                            )
+            astOf {
+                clazz("a") {
+                    mainMethod("main", Type.Void, AST.Parameter("args", Type.Array(Type.ClassType("String")))) {
+                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass"))))) {
+                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass"))))) { literal("22") }
                         }
-                    )
-                )
+                    }
+                }
             }
         )
     }
@@ -627,44 +536,25 @@ internal class MixedParseTest {
     fun testMultiArrayAccess() {
         expectAst(
             "class a { public static void main(String[] args) { a[10 + b]; } }",
-            buildList {
-                add(
-                    AST.ClassDeclaration(
-                        "a",
-                        buildList<AST.ClassMember> {
-                            add(
-                                AST.MainMethod(
-                                    "main",
-                                    Type.Void,
-                                    buildList {
-                                        add(
-                                            AST.Parameter(
-                                                "args",
-                                                Type.Array(Type.ClassType("String"))
-                                            )
-                                        )
-                                    },
-                                    AST.Block(
-                                        buildList {
-                                            add(
-                                                AST.ExpressionStatement(
-                                                    AST.ArrayAccessExpression(
-                                                        AST.IdentifierExpression("a"),
-                                                        AST.BinaryExpression(
-                                                            AST.LiteralExpression("10"),
-                                                            AST.IdentifierExpression("b"),
-                                                            AST.BinaryExpression.Operation.ADDITION
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                        }
-                                    )
+            astOf {
+                clazz("a") {
+                    mainMethod(
+                        "main", Type.Void,
+                        AST.Parameter(
+                            "args",
+                            Type.Array(Type.ClassType("String"))
+                        )
+                    ) {
+                        expressionStatement {
+                            arrayAccess({ ident("a") }) {
+                                binOp(
+                                    AST.BinaryExpression.Operation.ADDITION,
+                                    { literal("10") }, { ident("b") }
                                 )
-                            )
+                            }
                         }
-                    )
-                )
+                    }
+                }
             }
         )
     }

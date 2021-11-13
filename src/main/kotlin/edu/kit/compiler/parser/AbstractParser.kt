@@ -2,6 +2,8 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Lenient
+import edu.kit.compiler.ast.Of
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
@@ -29,7 +31,7 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): AST.Program
+    abstract fun parse(): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
 
     /**
      * Expect and return a token of type [T].

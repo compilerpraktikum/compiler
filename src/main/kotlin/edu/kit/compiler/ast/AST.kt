@@ -27,39 +27,39 @@ object AST {
      ** Class
      ************************************************/
 
-    data class Program(
-        val classes: List<ClassDeclaration>,
+    data class Program<E, S, D, C>(
+        val classes: List<Kind<C, ClassDeclaration<E, S, D>>>,
     )
 
-    data class ClassDeclaration(
+    data class ClassDeclaration<E, S, M>(
         val name: String,
-        val member: List<ClassMember>,
+        val member: List<Kind<M, ClassMember<E, S>>>,
     )
 
-    sealed class ClassMember
+    sealed class ClassMember<out E, out S>
 
     data class Field(
         val name: String,
         val type: Type,
-    ) : ClassMember()
+    ) : ClassMember<Nothing, Nothing>()
 
-    data class Method(
+    data class Method<out E, out S>(
         val name: String,
         val returnType: Type,
         val parameters: List<Parameter>,
-        val block: Block,
+        val block: Kind<S, Block<E, S>>,
         val throwException: Token.Identifier? = null,
-    ) : ClassMember()
+    ) : ClassMember<E, S>()
 
-    data class MainMethod(
+    data class MainMethod<out E, out S>(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: String,
         val returnType: Type,
         val parameters: List<Parameter>,
-        val block: Block,
+        val block: Kind<S, Block<E, S>>,
         val throwException: Token.Identifier? = null,
-    ) : ClassMember()
+    ) : ClassMember<E, S>()
 
     data class Parameter(
         val name: String,
@@ -70,52 +70,52 @@ object AST {
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement
+    sealed class BlockStatement<out S, out E> : Kind<Statement<Of, E>, S>
 
-    data class LocalVariableDeclarationStatement(
+    data class LocalVariableDeclarationStatement<E>(
         val name: String,
         val type: Type,
-        val initializer: Expression?,
-    ) : BlockStatement()
+        val initializer: Kind<E, Kind<Expression<Of>, E>>?,
+    ) : BlockStatement<Nothing, E>()
 
-    sealed class Statement : BlockStatement()
+    sealed class Statement<out S, out E> : BlockStatement<S, E>()
 
-    object EmptyStatement : Statement()
+    object EmptyStatement : Statement<Nothing, Nothing>()
 
-    data class Block(
-        val statements: List<BlockStatement>,
-    ) : Statement()
+    data class Block<out S, out E>(
+        val statements: List<Kind<S, Kind<Statement<Of, E>, S>>>,
+    ) : Statement<S, E>()
 
-    data class IfStatement(
-        val condition: Expression,
-        val trueStatement: Statement,
-        val falseStatement: Statement?,
-    ) : Statement()
+    data class IfStatement<out S, out E>(
+        val condition: Kind<E, Kind<Expression<Of>, E>>,
+        val trueStatement: Kind<S, Kind<Statement<Of, E>, S>>,
+        val falseStatement: Kind<S, Kind<Statement<Of, E>, S>>?
+    ) : Statement<S, E>()
 
-    data class WhileStatement(
-        val condition: Expression,
-        val statement: Statement,
-    ) : Statement()
+    data class WhileStatement<out S, out E>(
+        val condition: Kind<E, Kind<Expression<Of>, E>>,
+        val statement: Kind<S, Kind<Statement<Of, E>, S>>,
+    ) : Statement<S, E>()
 
-    data class ReturnStatement(
-        val expression: Expression?,
-    ) : Statement()
+    data class ReturnStatement<out E>(
+        val expression: Kind<E, Kind<Expression<Of>, E>>?,
+    ) : Statement<Nothing, E>()
 
-    data class ExpressionStatement(
-        val expression: Expression,
-    ) : Statement()
+    data class ExpressionStatement<out E>(
+        val expression: Kind<E, Kind<Expression<Of>, E>>,
+    ) : Statement<Nothing, E>()
 
     /************************************************
      ** Expression
      ************************************************/
 
-    sealed class Expression
+    sealed class Expression<out E> : Kind<Expression<Of>, E>
 
-    data class BinaryExpression(
-        val left: Expression,
-        val right: Expression,
+    data class BinaryExpression<E>(
+        val left: Kind<E, Kind<Expression<Of>, E>>,
+        val right: Kind<E, Kind<Expression<Of>, E>>,
         val operation: Operation
-    ) : Expression() {
+    ) : Expression<E>() {
         enum class Operation(
             val precedence: Int,
             val associativity: Associativity
@@ -151,31 +151,31 @@ object AST {
         }
     }
 
-    data class UnaryExpression(
-        val expression: Expression,
+    data class UnaryExpression<out E>(
+        val expression: Kind<E, Kind<Expression<Of>, E>>,
         val operation: Operation
-    ) : Expression() {
+    ) : Expression<E>() {
         enum class Operation {
             NOT,
             MINUS,
         }
     }
 
-    data class MethodInvocationExpression(
-        val target: Expression?,
+    data class MethodInvocationExpression<E>(
+        val target: Kind<E, Kind<Expression<Of>, E>>?,
         val method: String,
-        val arguments: List<Expression>
-    ) : Expression()
+        val arguments: List<Kind<E, Kind<Expression<Of>, E>>>
+    ) : Expression<E>()
 
-    data class FieldAccessExpression(
-        val target: Expression,
+    data class FieldAccessExpression<E>(
+        val target: Kind<E, Kind<Expression<Of>, E>>,
         val field: String,
-    ) : Expression()
+    ) : Expression<E>()
 
-    data class ArrayAccessExpression(
-        val target: Expression,
-        val index: Expression,
-    ) : Expression()
+    data class ArrayAccessExpression<E>(
+        val target: Kind<E, Kind<Expression<Of>, E>>,
+        val index: Kind<E, Kind<Expression<Of>, E>>,
+    ) : Expression<E>()
 
     /************************************************
      ** Primary expression
@@ -183,20 +183,20 @@ object AST {
 
     data class IdentifierExpression(
         val name: String,
-    ) : Expression()
+    ) : Expression<Nothing>()
 
     data class LiteralExpression<T>(
         val value: T,
-    ) : Expression()
+    ) : Expression<Nothing>()
 
     data class NewObjectExpression(
         val clazz: String,
-    ) : Expression()
+    ) : Expression<Nothing>()
 
-    data class NewArrayExpression(
+    data class NewArrayExpression<E>(
         val type: Type.Array,
-        val length: Expression,
-    ) : Expression()
+        val length: Kind<E, Expression<E>>,
+    ) : Expression<E>()
 }
 
 fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when (this) {
@@ -219,29 +219,117 @@ fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
-class ClassDeclarationDsl(res: MutableList<AST.ClassDeclaration> = mutableListOf()) : AstDsl<AST.ClassDeclaration>(res) {
+class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
+    AstDsl<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>(res) {
     fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
         val members = ClassMemberDsl().also { it.block() }
-        this.res.add(AST.ClassDeclaration(name, members.res))
+        this.res.add(AST.ClassDeclaration(name, members.res).wrapValid())
     }
 }
 
-class ClassMemberDsl(res: MutableList<AST.ClassMember> = mutableListOf()) : AstDsl<AST.ClassMember>(res) {
-    fun method(name: String, returnType: Type, parameters: List<AST.Parameter>, throws: String? = null, block: StatementsDsl.() -> Unit) {
-        this.res.add(AST.Method(name, returnType, parameters, AST.Block(StatementsDsl().also(block).res), if (throws == null) { null } else { Token.Identifier(throws) }))
+class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
+    AstDsl<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>>(res) {
+
+    fun param(name: String, type: Type) = AST.Parameter(name, type)
+
+    fun field(name: String, type: Type) {
+        this.res.add(AST.Field(name, type).wrapValid())
+    }
+
+    fun mainMethod(
+        name: String,
+        returnType: Type,
+        vararg parameters: AST.Parameter,
+        throws: String? = null,
+        block: BlockStatementDsl.() -> Unit
+    ) {
+
+        this.res.add(
+            AST.MainMethod<Lenient<Of>, Lenient<Of>>(
+                name,
+                returnType,
+                parameters.toList(),
+                AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
+                if (throws == null) {
+                    null
+                } else {
+                    Token.Identifier(throws)
+                }
+            ).wrapValid()
+        )
+    }
+
+    fun method(
+        name: String,
+        returnType: Type,
+        vararg parameters: AST.Parameter,
+        throws: String? = null,
+        block: BlockStatementDsl.() -> Unit
+    ) {
+        this.res.add(
+            AST.Method<Lenient<Of>, Lenient<Of>>(
+                name,
+                returnType,
+                parameters.toList(),
+                AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
+                if (throws == null) {
+                    null
+                } else {
+                    Token.Identifier(throws)
+                }
+            ).wrapValid()
+        )
     }
 }
 
 object ExprDsl {
     fun <T> literal(v: T) = AST.LiteralExpression(v)
-    fun binOp(op: AST.BinaryExpression.Operation, left: ExprDsl.() -> AST.Expression, right: ExprDsl.() -> AST.Expression) =
-        AST.BinaryExpression(ExprDsl.left(), ExprDsl.right(), op)
+    fun binOp(
+        op: AST.BinaryExpression.Operation,
+        left: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        right: ExprDsl.() -> AST.Expression<Lenient<Of>>
+    ) =
+        AST.BinaryExpression(ExprDsl.left().wrapValid(), ExprDsl.right().wrapValid(), op)
+
+    fun ident(name: String) = AST.IdentifierExpression(name)
+
+    fun arrayAccess(
+        target: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        index: ExprDsl.() -> AST.Expression<Lenient<Of>>
+    ) = AST.ArrayAccessExpression(ExprDsl.target().wrapValid(), ExprDsl.index().wrapValid())
+
+    fun newArrayOf(
+        type: Type.Array,
+        length: ExprDsl.() -> AST.Expression<Lenient<Of>>
+    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid())
 }
 
-class StatementsDsl(val res: MutableList<AST.Statement> = mutableListOf()) {
-    fun emptyStatement() = res.add(AST.EmptyStatement)
+class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
+    fun localDeclaration(name: String, type: Type, initializer: (ExprDsl.() -> AST.Expression<Lenient<Of>>)? = null) {
+        res.add(
+            AST.LocalVariableDeclarationStatement<Lenient<Of>>(
+                name, type,
+                if (initializer != null) {
+                    ExprDsl.initializer().wrapValid()
+                } else null
+            ).wrapValid()
+        )
+    }
+
+    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
     fun block(b: StatementsDsl.() -> Unit) {
-        res.add(AST.Block(StatementsDsl().also(b).res))
+        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
+    }
+
+    fun expressionStatement(expr: ExprDsl.() -> AST.Expression<Lenient<Of>>) {
+        res.add(AST.ExpressionStatement(ExprDsl.expr().wrapValid()).wrapValid())
+    }
+}
+
+open class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
+    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
+    fun block(b: StatementsDsl.() -> Unit) {
+        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
     }
 }
 
