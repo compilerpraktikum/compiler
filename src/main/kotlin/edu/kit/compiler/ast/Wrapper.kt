@@ -82,7 +82,31 @@ private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
  * - The `Valid(c: A)` variant denotes, that the AST-Node itself is valid, but `A` might contain invalid nodes.
  */
 sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
-    data class Error(val message: String) : Lenient<Nothing>()
+    data class Error<out A>(private val messages: MutableList<String>, val node: A?) : Lenient<A>() {
+
+        /**
+         * An error node with a singular error message assigned
+         */
+        constructor(message: String, node: A? = null) : this(mutableListOf(message), node)
+
+        /**
+         * An error node without an initial error message
+         */
+        constructor(node: A? = null) : this(mutableListOf(), node)
+
+        /**
+         * All error messages associated with this error node
+         */
+        val errors: List<String> = messages
+
+        /**
+         * Add an error message to this node
+         */
+        fun addError(msg: String) {
+            this.messages.add(msg)
+        }
+    }
+
     data class Valid<out A>(val c: A) : Lenient<A>()
 
     fun getAsValid() = when (this) {
@@ -101,7 +125,7 @@ inline fun <A> Lenient<A>.unwrapOr(handle: () -> A): A = when (this) {
     is Lenient.Valid -> this.c
 }
 
-inline fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
+fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
 
 /**
  * extension function to fully apply `Lenient<Of>` to `A` using `Kind<Lenient<Of>, A>`
