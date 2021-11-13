@@ -53,12 +53,12 @@ internal class ParserMjTestSuite {
         }
         if (testConfig.name.endsWith("invalid.mj")) {
             assert(exception != null) {
-                "expected failure, but got success"
+                "expected failure, but got success for file ${testConfig.name}"
             }
         } else {
             assert(exception == null) {
                 val stack = exception!!.stackTraceToString()
-                "expected success, but got failure: $stack"
+                "expected success, but got failure for file ${testConfig.name}: $stack"
             }
         }
     }
