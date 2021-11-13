@@ -69,7 +69,7 @@ private val exampleChainingInner: Lenient<AST.Expression<Lenient<Of>>> =
 private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
     Lenient.Valid(
         AST.BinaryExpression(
-            Lenient.Error("expected expression"),
+            Lenient.Error(null),
             exampleChainingInner,
             AST.BinaryExpression.Operation.ADDITION
         )
@@ -82,23 +82,34 @@ private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
  * - The `Valid(c: A)` variant denotes, that the AST-Node itself is valid, but `A` might contain invalid nodes.
  */
 sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
-    data class Error(val message: String) : Lenient<Nothing>()
-    data class Valid<out A>(val c: A) : Lenient<A>()
+    /**
+     * Error kind, may contain a node
+     *
+     * @see Lenient
+     */
+    data class Error<out A>(val node: A?) : Lenient<A>()
+
+    /**
+     * Valid kind, contains the node
+     *
+     * @see Lenient
+     */
+    data class Valid<out A>(val node: A) : Lenient<A>()
 
     fun getAsValid() = when (this) {
         is Error -> null
-        is Valid -> this.c
+        is Valid -> this.node
     }
 
     fun <B> map(m: (A) -> B): Lenient<B> = when (this) {
-        is Error -> this
-        is Valid -> Valid(m(this.c))
+        is Error -> Error(this.node?.let(m))
+        is Valid -> Valid(m(this.node))
     }
 }
 
 inline fun <A> Lenient<A>.unwrapOr(handle: () -> A): A = when (this) {
     is Lenient.Error -> handle()
-    is Lenient.Valid -> this.c
+    is Lenient.Valid -> this.node
 }
 
 inline fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
