@@ -40,62 +40,72 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(anc: AnchorUnion): Optional<T> {
+    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Optional<T> {
         if (peek() is T)
             return Optional.of(next() as T)
 
-        println("expected ${T::class.simpleName}, but got ${peek()}")
-        panicMode(anc)
+        reportError(errorMsg())
+        recover(anc)
         return Optional.empty()
     }
 
     /**
      * Read a token from the token stream and expect it to be an [Token.Operator] of type [type].
-     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     * If this is not the case, enter [recover] and read from the stream until a token from [anc] is upfront.
      */
     protected fun expectOperator(
         type: Token.Operator.Type,
-        anc: AnchorUnion
+        anc: AnchorUnion,
+        errorMsg: () -> String
     ): Optional<Token.Operator> {
         val peek = peek()
         if (peek !is Token.Operator) {
-            println("expected operator ($type), but got $peek")
-            panicMode(anc)
+            reportError(errorMsg())
+            recover(anc)
             return Optional.empty()
         }
 
         return if (peek.type == type)
             Optional.of(next() as Token.Operator)
         else {
-            println("expected operator ($type), but got $peek")
-            panicMode(anc)
+            reportError(errorMsg())
+            recover(anc)
             Optional.empty()
         }
     }
 
     /**
-     * Read a token and expect it to be an identifier. If it is not an identifier, enter [panicMode] and read from the
+     * Read a token and expect it to be an identifier. If it is not an identifier, enter [recover] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorUnion): Token.Identifier = expect<Token.Identifier>(anc).get()
+    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Optional<Token.Identifier> =
+        expect(anc, errorMsg)
 
     /**
      * Read a token from the token stream and expect it to be a [Token.Keyword] of type [type].
-     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     * If this is not the case, enter [recover] and read from the stream until a token from [anc] is upfront.
+     *
+     * @param type keyword [Token.Keyword.Type] that is expected
+     * @param anc [AnchorUnion] for error recovery
+     * @param errorMsg lazy error message generator
      */
-    protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorUnion): Optional<Token.Keyword> {
+    protected fun expectKeyword(
+        type: Token.Keyword.Type,
+        anc: AnchorUnion,
+        errorMsg: () -> String
+    ): Optional<Token.Keyword> {
         val peek = peek()
         if (peek !is Token.Keyword) {
-            println("expected keyword ($type), but got $peek")
-            panicMode(anc)
+            reportError(errorMsg())
+            recover(anc)
             return Optional.empty()
         }
 
         return if (peek.type == type)
             Optional.of(next() as Token.Keyword)
         else {
-            println("expected keyword ($type), but got $peek")
-            panicMode(anc)
+            reportError(errorMsg())
+            recover(anc)
             Optional.empty()
         }
     }
@@ -105,8 +115,15 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
      *
      * @param anchorSet [AnchorSet] containing all tokens that are accepted as the next token in the stream.
      */
-    protected fun panicMode(anchorSet: AnchorUnion) {
+    protected fun recover(anchorSet: AnchorUnion) {
         val anc = anchorSet.provide()
         while (peek() !in anc) next()
+    }
+
+    /**
+     * Annotate the source input with an error message
+     */
+    protected fun reportError(message: String) {
+        sourceFile.annotate(AnnotationType.ERROR, sourceFile.currentPosition, message)
     }
 }

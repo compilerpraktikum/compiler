@@ -5,10 +5,13 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.ast.markErroneous
 import edu.kit.compiler.ast.toASTOperation
+import edu.kit.compiler.ast.wrapErroneous
 import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
+import java.util.Optional
 import edu.kit.compiler.lex.Symbol
 
 private val Token.isRelevantForSyntax
@@ -46,7 +49,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     expectOperator(Token.Operator.Type.RParen, anc)
                     innerExpr
                 } else {
-                    panicMode(anc)
+                    recover(anc)
                     TODO("not implemented: lenient nodes")
                 }
             }
@@ -97,13 +100,13 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                         parseNewObjectArrayExpression(anc)
                     }
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
             }
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("not implemented: lenient nodes")
             }
         }
@@ -116,7 +119,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     anc
                 ).wrapValid()
                 else -> {
-                    panicMode(anc)
+                    recover(anc)
                     TODO("not implemented: lenient nodes")
                 }
             }
@@ -128,19 +131,19 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                             Token.Operator.Type.LParen -> parseNewObjectExpression(anc).wrapValid()
                             Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc).wrapValid()
                             else -> {
-                                panicMode(anc)
+                                recover(anc)
                                 TODO("not implemented: lenient nodes")
                             }
                         }
                     }
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
             }
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("not implemented: lenient nodes")
             }
         }
@@ -228,7 +231,10 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         }
     }
 
-    private fun parsePostfixOp(target: Lenient<AST.Expression<Lenient<Of>>>, anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>>> {
+    private fun parsePostfixOp(
+        target: Lenient<AST.Expression<Lenient<Of>>>,
+        anc: AnchorUnion
+    ): Lenient<AST.Expression<Lenient<Of>>> {
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
                 when (firstPeekedToken.type) {
@@ -269,7 +275,10 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                                     FirstFollowUtils.firstSetPostfixOp
                             )
                             expectOperator(Token.Operator.Type.RParen, anc + FirstFollowUtils.firstSetPostfixOp)
-                            parsePostfixOp(AST.MethodInvocationExpression(target, ident.name, arguments).wrapValid(), anc)
+                            parsePostfixOp(
+                                AST.MethodInvocationExpression(target, ident.name, arguments).wrapValid(),
+                                anc
+                            )
                         } else {
                             // fieldAccess todo recurse
                             parsePostfixOp(AST.FieldAccessExpression(target, ident.name).wrapValid(), anc)
@@ -351,9 +360,9 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
     }
 
     internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
-        return buildList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+        return buildList {
             while (peek(0) != Token.Eof) {
-                val classKeyword = expectKeyword(
+                expectKeyword(
                     Token.Keyword.Type.Class,
                     anc +
                         anchorSetOf(
@@ -362,7 +371,8 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                             Token.Operator(Token.Operator.Type.RightBrace),
                         ) +
                         FirstFollowUtils.firstSetClassMembers
-                )
+                ) { "expected class declaration" }
+
                 val ident = expect<Token.Identifier>(
                     anc +
                         anchorSetOf(
@@ -372,22 +382,30 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                         ) +
                         FirstFollowUtils.firstSetClassMembers
                 )
-                val openBrace = expectOperator(
+                if (ident.isEmpty) {
+                    reportError("expected class name")
+                }
+
+                expectOperator(
                     Token.Operator.Type.LeftBrace,
                     anc +
                         anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)) +
                         FirstFollowUtils.firstSetClassMembers
-                )
-                val classMembers = parseClassMembers(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)))
-                val closingBrace = expectOperator(Token.Operator.Type.RightBrace, anc)
+                ) {
+                    "missing opening brace"
+                }
 
-                add(AST.ClassDeclaration(ident.name, classMembers).wrapValid())
+                val classMembers = parseClassMembers(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)))
+
+                expectOperator(Token.Operator.Type.RightBrace, anc) {
+                    "missing closing brace"
+                }
             }
         }
     }
 
     private fun parseClassMembers(anc: AnchorUnion): List<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>> {
-        return buildList<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>> {
+        return buildList {
             var peeked = peek(0)
             while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
                 add(parseClassMember(anc + anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))))
@@ -397,7 +415,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
     }
 
     private fun parseClassMember(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>> {
-        expectKeyword(
+        val publicKeyword = expectKeyword(
             Token.Keyword.Type.Public,
             anc + anchorSetOf(
                 Token.Keyword(Token.Keyword.Type.Static),
@@ -406,17 +424,18 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 Token.Keyword(Token.Keyword.Type.Void),
                 Token.Identifier.Placeholder
             )
-        )
+        ) { "class members must be public" }
 
-        return when (val token = peek(0)) {
+        val childNode = when (val token = peek(0)) {
             is Token.Keyword -> {
                 return when (token.type) {
                     Token.Keyword.Type.Static -> parseMainMethod(anc)
                     Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                         parseFieldMethodPrefix(anc)
                     else -> {
-                        panicMode(anc)
-                        TODO("not implemented: lenient nodes")
+                        reportError("expected `static` or (return) type identifier")
+                        recover(anc)
+                        return Lenient.Error(null)
                     }
                 }
             }
@@ -424,14 +443,21 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 parseFieldMethodPrefix(anc)
             }
             else -> {
-                panicMode(anc)
-                TODO("not implemented: lenient nodes")
+                reportError("expected field or method declaration")
+                recover(anc)
+                return Lenient.Error(null)
             }
+        }
+
+        return if (publicKeyword.isPresent) {
+            childNode
+        } else {
+            childNode.markErroneous()
         }
     }
 
     private fun parseMainMethod(anc: AnchorUnion): Lenient<AST.MainMethod<Lenient<Of>, Lenient<Of>>> {
-        expectKeyword(
+        val staticKeyword = expectKeyword(
             Token.Keyword.Type.Static,
             anc +
                 anchorSetOf(
@@ -443,8 +469,9 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 ) +
                 FirstFollowUtils.firstSetParameter +
                 FirstFollowUtils.firstSetBlock
-        )
-        expectKeyword(
+        ) { "main method must be `static`" }
+
+        val voidKeyword = expectKeyword(
             Token.Keyword.Type.Void,
             anc +
                 anchorSetOf(
@@ -455,7 +482,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 ) +
                 FirstFollowUtils.firstSetParameter +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) { "main method must return `void`" }
 
         val ident = expectIdentifier(
             anc +
@@ -466,9 +493,9 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 ) +
                 FirstFollowUtils.firstSetParameter +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) { "expected function name `main`" }
 
-        expectOperator(
+        val leftParen = expectOperator(
             Token.Operator.Type.LParen,
             anc +
                 anchorSetOf(
@@ -477,7 +504,8 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 ) +
                 FirstFollowUtils.firstSetParameter +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) { "missing opening parenthesis" }
+
         val parameter = parseParameter(
             anc +
                 anchorSetOf(
@@ -486,12 +514,19 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 ) +
                 FirstFollowUtils.firstSetBlock
         )
-        expectOperator(
+
+        val rightParen = expectOperator(
             Token.Operator.Type.RParen,
             anc +
                 anchorSetOf(Token.Keyword(Token.Keyword.Type.Throws)) +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) {
+            if (peek() in FirstFollowUtils.firstSetParameter) {
+                "main method may only have one parameter of type `String[]`"
+            } else {
+                "expected closing parenthesis"
+            }
+        }
 
         val maybeThrowsToken = peek(0)
         val throwsException = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
@@ -501,13 +536,26 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         }
 
         val block = parseBlock(anc)
-        return AST.MainMethod(
-            ident.name,
-            Type.Void,
-            listOf(parameter),
-            block,
-            throwsException
-        ).wrapValid()
+
+        if (staticKeyword.isPresent && voidKeyword.isPresent && ident.isPresent && leftParen.isPresent &&
+            rightParen.isPresent && throwsException?.isPresent != false
+        ) {
+            AST.MainMethod(
+                ident.get().name,
+                Type.Void,
+                listOf(parameter),
+                block,
+                throwsException?.get()
+            ).wrapValid()
+        } else {
+            return AST.MainMethod(
+                ident.map { it.name }.orElse(""),
+                Type.Void,
+                listOf(parameter),
+                block,
+                throwsException?.orElse(null)
+            ).wrapErroneous()
+        }
     }
 
     private fun parseFieldMethodPrefix(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>> {
@@ -519,40 +567,56 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Operator(Token.Operator.Type.LParen)
                 )
         )
+
         val ident = expectIdentifier(
             anc +
                 anchorSetOf(
                     Token.Operator(Token.Operator.Type.Semicolon),
                     Token.Operator(Token.Operator.Type.LParen)
                 )
-        )
+        ) { "expected identifier" }
+
         return when (val fieldMethodRestToken = peek(0)) {
             is Token.Operator -> {
                 when (fieldMethodRestToken.type) {
                     Token.Operator.Type.Semicolon -> parseField(ident, type, anc)
                     Token.Operator.Type.LParen -> parseMethod(ident, type, anc)
                     else -> {
-                        panicMode(anc)
-                        TODO("not implemented: lenient nodes")
+                        reportError("illegal class member declaration. expected either `;` or `(`.")
+                        recover(anc)
+                        // todo we could try to recover this towards a method declaration and parse it, if we succeed
+                        Lenient.Error(null)
                     }
                 }
             }
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("not implemented: lenient nodes")
             }
         }
     }
 
-    private fun parseField(ident: Token.Identifier, type: Type, anc: AnchorUnion): Lenient<AST.Field> {
-        expectOperator(Token.Operator.Type.Semicolon, anc)
-        return AST.Field(
-            ident.name,
-            type
-        ).wrapValid()
+    private fun parseField(ident: Optional<Token.Identifier>, type: Type, anc: AnchorUnion): Lenient<AST.Field> {
+        expectOperator(Token.Operator.Type.Semicolon, anc) { throw AssertionError("unreachable") }
+
+        return if (ident.isPresent) {
+            AST.Field(
+                ident.get().name,
+                type
+            ).wrapValid()
+        } else {
+            AST.Field(
+                ident.map { it.name }.orElse(""),
+                type
+            ).wrapErroneous()
+        }
     }
 
-    private fun parseMethod(ident: Token.Identifier, type: Type, anc: AnchorUnion): Lenient<AST.Method<Lenient<Of>, Lenient<Of>>> {
+    private fun parseMethod(
+        ident: Optional<Token.Identifier>,
+        type: Type,
+        anc: AnchorUnion
+    ): Lenient<AST.Method<Lenient<Of>, Lenient<Of>>> {
         expectOperator(
             Token.Operator.Type.LParen,
             anc +
@@ -561,7 +625,8 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Keyword(Token.Keyword.Type.Throws)
                 ) +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) { throw AssertionError("unreachable") }
+
         val maybeRParenToken = peek(0)
         val parameters =
             if (!(maybeRParenToken is Token.Operator && maybeRParenToken.type == Token.Operator.Type.RParen)) {
@@ -574,12 +639,13 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                         FirstFollowUtils.firstSetBlock
                 )
             } else emptyList()
-        expectOperator(
+
+        val closingParenthesis = expectOperator(
             Token.Operator.Type.RParen,
             anc +
                 anchorSetOf(Token.Keyword(Token.Keyword.Type.Throws)) +
                 FirstFollowUtils.firstSetBlock
-        )
+        ) { "expected `)`" }
 
         val maybeThrowsToken = peek(0)
         val throwsException = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
@@ -587,14 +653,26 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         } else {
             null
         }
+
         val block = parseBlock(anc)
-        return AST.Method<Lenient<Of>, Lenient<Of>>(
-            ident.name,
-            type,
-            parameters,
-            block,
-            throwsException
-        ).wrapValid()
+
+        if (closingParenthesis.isPresent && throwsException?.isPresent != false) {
+            return AST.Method(
+                ident.get().name,
+                type,
+                parameters,
+                block,
+                throwsException?.get()
+            ).wrapValid()
+        } else {
+            return AST.Method(
+                ident.map { it.name }.orElse(""),
+                type,
+                parameters,
+                block,
+                throwsException?.orElse(Lenient.Error(null))
+            ).wrapErroneous()
+        }
     }
 
     internal fun parseBlock(anc: AnchorUnion): Lenient<AST.Block<Lenient<Of>, Lenient<Of>>> {
@@ -651,7 +729,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Keyword.Type.Void -> parseLocalVariableDeclarationStatement(anc)
 
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
@@ -666,7 +744,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
 
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
@@ -695,7 +773,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 }
             }
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("not implemented: lenient nodes")
             }
         }
@@ -711,7 +789,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseExpressionStatement(anc)
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
@@ -727,7 +805,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                     Token.Keyword.Type.This -> parseExpressionStatement(anc)
                     Token.Keyword.Type.New -> parseExpressionStatement(anc)
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("not implemented: lenient nodes")
                     }
                 }
@@ -735,7 +813,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
             is Token.Literal -> parseExpressionStatement(anc)
             is Token.Identifier -> parseExpressionStatement(anc)
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("not implemented: lenient nodes")
             }
         }
@@ -870,9 +948,11 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         return AST.ExpressionStatement(expr).wrapValid()
     }
 
-    private fun parseMethodRest(anc: AnchorUnion): Symbol {
-        expectKeyword(Token.Keyword.Type.Throws, anc + anchorSetOf(Token.Identifier.Placeholder))
-        return expectIdentifier(anc).name
+    private fun parseMethodRest(anc: AnchorUnion): Optional<Symbol> {
+        expectKeyword(Token.Keyword.Type.Throws,
+            anc + anchorSetOf(Token.Identifier.Placeholder)) { throw AssertionError("unreachable") }
+
+        return expectIdentifier(anc, { "missing identifier. `throws` requires an exception type" }).map { it.name }
     }
 
     private fun parseParameters(anc: AnchorUnion): List<AST.Parameter> {
@@ -941,7 +1021,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                         Type.Void
                     }
                     else -> {
-                        panicMode(anc)
+                        recover(anc)
                         TODO("lenient type node")
                     }
                 }
@@ -951,7 +1031,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
                 Type.Class(t.name)
             }
             else -> {
-                panicMode(anc)
+                recover(anc)
                 TODO("lenient type node")
             }
         }
