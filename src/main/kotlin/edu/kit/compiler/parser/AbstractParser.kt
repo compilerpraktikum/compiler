@@ -74,7 +74,7 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      * Read a token and expect it to be an identifier. If it is not an identifier, enter [panicMode] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorUnion): Optional<Token.Identifier> = expect(anc)
+    protected fun expectIdentifier(anc: AnchorUnion): Token.Identifier = expect<Token.Identifier>(anc).get()
 
     /**
      * Read a token from the token stream and expect it to be a [Token.Keyword] of type [type].
