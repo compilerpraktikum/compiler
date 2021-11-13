@@ -112,7 +112,20 @@ inline fun <A> Lenient<A>.unwrapOr(handle: () -> A): A = when (this) {
     is Lenient.Valid -> this.node
 }
 
-inline fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
+fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
+
+/**
+ * Convert a [Lenient.Valid] to [Lenient.Error] (or keep [Lenient.Error])
+ */
+fun <A> Lenient<A>.markErroneous(): Lenient.Error<A> = when (this) {
+    is Lenient.Error -> this
+    is Lenient.Valid -> Lenient.Error(this.node)
+}
+
+/**
+ * Wrap an element in a [Lenient.Error] instance
+ */
+fun <A> A.wrapErroneous(): Lenient.Error<A> = Lenient.Error(this)
 
 /**
  * extension function to fully apply `Lenient<Of>` to `A` using `Kind<Lenient<Of>, A>`
