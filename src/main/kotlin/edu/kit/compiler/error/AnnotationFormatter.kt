@@ -6,10 +6,15 @@ import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import java.io.PrintStream
 
+private const val TAB_SIZE = 4
+
+fun String.escapeTabs(tabSize: Int = 4): String = replace("\t", " ".repeat(tabSize))
+
 private fun PrintStream.formatLine(text: String, line: Int, column: Int, color: TextColors) {
     val lineAsString = line.toString()
-    println("    " + TextColors.gray("$lineAsString| ") + text)
-    println("    " + " ".repeat(lineAsString.length + 2 + column - 1) + (color + bold)("^"))
+    val numTabsBeforeColumn = text.asSequence().take(column - 1).count { it == '\t' }
+    println("    " + TextColors.gray("$lineAsString| ") + text.escapeTabs(TAB_SIZE))
+    println("    " + " ".repeat(lineAsString.length + 2 + (column - 1) + numTabsBeforeColumn * (TAB_SIZE - 1)) + (color + bold)("^"))
 }
 
 private fun formatAnnotation(sourceFile: SourceFile, annotation: SourceFile.Annotation) {
