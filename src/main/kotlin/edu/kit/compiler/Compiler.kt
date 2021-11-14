@@ -78,7 +78,22 @@ class Compiler(private val config: Config) {
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
-                else -> throw IllegalStateException("unhandled compilation mode")
+                Mode.Echo -> { /* Already handled above*/ }
+                Mode.PrettyPrintAst -> {
+                    var hasInvalidToken = false
+
+                    val tokens = Lexer(
+                        sourceFile,
+                        stringTable,
+                        printWarnings = false
+                    ).tokens()
+                    try {
+                        val program = Parser(tokens).parse()
+                    } catch (ex: IllegalArgumentException) {
+                        System.err.println("error: $ex")
+                    }
+                    ExitCode.SUCCESS
+                }
             }
         } catch (e: Exception) {
             System.err.println("Internal error: ${e.message}")
@@ -144,7 +159,7 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode {
-        Compile, Echo, LexTest, ParseTest,
+        Compile, Echo, LexTest, ParseTest, PrettyPrintAst
     }
 
     interface Config {

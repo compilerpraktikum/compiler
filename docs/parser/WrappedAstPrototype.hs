@@ -12,6 +12,7 @@ data Expr f
 
 --- Kind<f, Expression<f>>
 
+
 map' :: (f (Expr f) -> g (Expr g)) -> Expr f -> Expr g
 map' alg = \case
   Literal a -> Literal a
@@ -57,6 +58,19 @@ instance Functor Lenient where
   fmap f = \case
     Error s -> Error s
     Valid a -> Valid $ f a
+
+lenientToMaybe :: Lenient a -> Maybe a
+lenientToMaybe = \case
+  Error _ -> Nothing
+  Valid a -> Just a
+
+lenientExprToMaybe :: Expr Lenient -> Expr Maybe
+lenientExprToMaybe = map1 lenientToMaybe
+
+validate :: Expr Lenient -> Maybe (Expr Identity)
+validate = \case
+    Literal a -> Just $ Literal a
+    Unary op inner -> Unary op . Identity <$> (lenientToMaybe inner >>= validate)
 
 data Annotated a = Annotated {ty :: String, content :: a}
 

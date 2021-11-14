@@ -36,7 +36,14 @@ object AST {
         val member: List<Kind<M, ClassMember<E, S>>>,
     )
 
-    sealed class ClassMember<out E, out S>
+    sealed class ClassMember<out E, out S> {
+        val memberName: String
+            get() = when (this) {
+                is Field -> name
+                is MainMethod -> name
+                is Method -> name
+            }
+    }
 
     data class Field(
         val name: String,
@@ -118,31 +125,32 @@ object AST {
     ) : Expression<E>() {
         enum class Operation(
             val precedence: Int,
-            val associativity: Associativity
+            val associativity: Associativity,
+            val repr: String
         ) {
-            ASSIGNMENT(1, Associativity.RIGHT),
+            ASSIGNMENT(1, Associativity.RIGHT, "="),
 
             // logical
-            OR(2, Associativity.LEFT),
+            OR(2, Associativity.LEFT, "||"),
 
-            AND(3, Associativity.LEFT),
+            AND(3, Associativity.LEFT, "&&"),
 
             // relational
-            EQUALS(4, Associativity.LEFT),
-            NOT_EQUALS(4, Associativity.LEFT),
+            EQUALS(4, Associativity.LEFT, "=="),
+            NOT_EQUALS(4, Associativity.LEFT, "!="),
 
-            LESS_THAN(5, Associativity.LEFT),
-            GREATER_THAN(5, Associativity.LEFT),
-            LESS_EQUALS(5, Associativity.LEFT),
-            GREATER_EQUALS(5, Associativity.LEFT),
+            LESS_THAN(5, Associativity.LEFT, "<"),
+            GREATER_THAN(5, Associativity.LEFT, ">"),
+            LESS_EQUALS(5, Associativity.LEFT, "<="),
+            GREATER_EQUALS(5, Associativity.LEFT, ">="),
 
             // arithmetical
-            ADDITION(6, Associativity.LEFT),
-            SUBTRACTION(6, Associativity.LEFT),
+            ADDITION(6, Associativity.LEFT, "+"),
+            SUBTRACTION(6, Associativity.LEFT, "-"),
 
-            MULTIPLICATION(7, Associativity.LEFT),
-            DIVISION(7, Associativity.LEFT),
-            MODULO(7, Associativity.LEFT);
+            MULTIPLICATION(7, Associativity.LEFT, "*"),
+            DIVISION(7, Associativity.LEFT, "/"),
+            MODULO(7, Associativity.LEFT, "%");
 
             enum class Associativity {
                 LEFT,
@@ -155,9 +163,9 @@ object AST {
         val expression: Kind<E, Kind<Expression<Of>, E>>,
         val operation: Operation
     ) : Expression<E>() {
-        enum class Operation {
-            NOT,
-            MINUS,
+        enum class Operation(val repr: String) {
+            NOT("!"),
+            MINUS("-"),
         }
     }
 
