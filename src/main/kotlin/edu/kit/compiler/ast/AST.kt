@@ -50,7 +50,7 @@ object AST {
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
-        val throwException: Token.Identifier? = null,
+        val throwException: Symbol? = null,
     ) : ClassMember<E, S>()
 
     data class MainMethod<out E, out S>(
@@ -60,7 +60,7 @@ object AST {
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
-        val throwException: Token.Identifier? = null,
+        val throwException: Symbol? = null,
     ) : ClassMember<E, S>()
 
     data class Parameter(
@@ -257,11 +257,7 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
                 returnType,
                 parameters.toList(),
                 AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
-                if (throws == null) {
-                    null
-                } else {
-                    Token.Identifier(throws.toSymbol())
-                }
+                throws?.toSymbol()
             ).wrapValid()
         )
     }
@@ -279,11 +275,7 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
                 returnType,
                 parameters.toList(),
                 AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
-                if (throws == null) {
-                    null
-                } else {
-                    Token.Identifier(throws.toSymbol())
-                }
+                throws?.toSymbol()
             ).wrapValid()
         )
     }

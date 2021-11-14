@@ -575,7 +575,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
 
         val maybeThrowsToken = peek(0)
-        val methodRest = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+        val throwsException = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
             parseMethodRest(anc + FirstFollowUtils.firstSetBlock)
         } else {
             null
@@ -586,7 +586,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             type,
             parameters,
             block,
-            methodRest
+            throwsException
         ).wrapValid()
     }
 
@@ -863,9 +863,9 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         return AST.ExpressionStatement(expr).wrapValid()
     }
 
-    private fun parseMethodRest(anc: AnchorUnion): Token.Identifier {
+    private fun parseMethodRest(anc: AnchorUnion): Symbol {
         expectKeyword(Token.Keyword.Type.Throws, anc + anchorSetOf(Token.Identifier.Placeholder))
-        return expectIdentifier(anc)
+        return expectIdentifier(anc).name
     }
 
     private fun parseParameters(anc: AnchorUnion): List<AST.Parameter> {
