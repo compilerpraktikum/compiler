@@ -50,7 +50,7 @@ object AST {
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
-        val throwException: Symbol? = null,
+        val throwsException: Symbol? = null,
     ) : ClassMember<E, S>()
 
     data class MainMethod<out E, out S>(
@@ -60,7 +60,7 @@ object AST {
         val returnType: Type,
         val parameters: List<Parameter>,
         val block: Kind<S, Block<E, S>>,
-        val throwException: Symbol? = null,
+        val throwsException: Symbol? = null,
     ) : ClassMember<E, S>()
 
     data class Parameter(
