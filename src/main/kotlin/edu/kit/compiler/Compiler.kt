@@ -71,7 +71,7 @@ class Compiler(private val config: Config) {
                         stringTable,
                         printWarnings = false
                     )
-                    val parser = Parser(lexer.tokens())
+                    val parser = Parser(sourceFile, lexer.tokens())
                     parser.parse()
 
                     if (sourceFile.hasError) {
