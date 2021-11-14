@@ -15,7 +15,7 @@ sealed class Type {
         val elementType: Type
     ) : Type()
 
-    data class ClassType(
+    data class Class(
         val name: Symbol
     ) : Type()
 }

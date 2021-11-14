@@ -941,7 +941,7 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             }
             is Token.Identifier -> {
                 val t = expectIdentifier(anc)
-                Type.ClassType(t.name)
+                Type.Class(t.name)
             }
             else -> {
                 panicMode(anc)

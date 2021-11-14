@@ -65,7 +65,7 @@ internal class MixedParseTest {
         AST.Block(
             listOf(
                 AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapValid(),
-                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2".toSymbol(), Type.ClassType("mytype".toSymbol()), null)
+                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2".toSymbol(), Type.Class("mytype".toSymbol()), null)
                     .wrapValid()
             )
         ).wrapValid()
@@ -163,7 +163,7 @@ internal class MixedParseTest {
                     listOf(
                         AST.MainMethod(
                             "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
                             AST.Block(
                                 listOf(
                                     AST.LocalVariableDeclarationStatement<Lenient<Of>>("i".toSymbol(), Type.Integer, null)
@@ -205,7 +205,7 @@ internal class MixedParseTest {
                     listOf(
                         AST.MainMethod(
                             "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
                             AST.Block(
                                 listOf(
                                     AST.IfStatement(
@@ -323,7 +323,7 @@ internal class MixedParseTest {
                     listOf(
                         AST.MainMethod(
                             "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
                             AST.Block(
                                 listOf(
                                     AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
@@ -366,7 +366,7 @@ internal class MixedParseTest {
                     listOf(
                         AST.MainMethod(
                             "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))),
+                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
                             AST.Block(
                                 listOf(
                                     AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
@@ -473,7 +473,7 @@ internal class MixedParseTest {
                     method(
                         "nomain", Type.Void,
                         param("ident", Type.Boolean),
-                        param("ident2", Type.ClassType("myClass".toSymbol()))
+                        param("ident2", Type.Class("myClass".toSymbol()))
                     ) {
                     }
                 }
@@ -491,7 +491,7 @@ internal class MixedParseTest {
                         "mymain", Type.Void,
                         AST.Parameter(
                             "arr".toSymbol(),
-                            Type.Array(Type.Array(Type.ClassType("Strig".toSymbol())))
+                            Type.Array(Type.Array(Type.Class("Strig".toSymbol())))
                         )
                     ) {}
                 }
@@ -505,7 +505,7 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { int[][] abc = new int[22][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))) {
+                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))) {
                         localDeclaration("abc", Type.Array(Type.Array(Type.Integer))) {
                             newArrayOf(Type.Array(Type.Array(Type.Integer))) {
                                 literal("22")
@@ -523,9 +523,9 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.ClassType("String".toSymbol())))) {
-                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass".toSymbol()))))) {
-                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.ClassType("SomeClass".toSymbol()))))) { literal("22") }
+                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))) {
+                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.Class("SomeClass".toSymbol()))))) {
+                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.Class("SomeClass".toSymbol()))))) { literal("22") }
                         }
                     }
                 }
@@ -543,7 +543,7 @@ internal class MixedParseTest {
                         "main", Type.Void,
                         AST.Parameter(
                             "args".toSymbol(),
-                            Type.Array(Type.ClassType("String".toSymbol()))
+                            Type.Array(Type.Class("String".toSymbol()))
                         )
                     ) {
                         expressionStatement {
