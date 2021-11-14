@@ -8,6 +8,7 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.lex.Lexer
+import edu.kit.compiler.lex.Symbol
 
 private val Token.isRelevantForSyntax
     get() = !(this is Token.Whitespace || this is Token.Comment)
@@ -490,8 +491,10 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
         )
 
         val maybeThrowsToken = peek(0)
-        if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
+        val throwsException = if (maybeThrowsToken is Token.Keyword && maybeThrowsToken.type == Token.Keyword.Type.Throws) {
             parseMethodRest(anc + FirstFollowUtils.firstSetBlock)
+        } else {
+            null
         }
 
         val block = parseBlock(anc)
@@ -499,7 +502,8 @@ class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRe
             ident.name,
             Type.Void,
             listOf(parameter),
-            block
+            block,
+            throwsException
         ).wrapValid()
     }
 
