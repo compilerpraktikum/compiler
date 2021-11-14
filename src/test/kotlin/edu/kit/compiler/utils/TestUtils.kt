@@ -36,8 +36,8 @@ object TestUtils {
 
     @OptIn(ExperimentalStdlibApi::class)
     fun <T> expectNode(input: String, expectedNode: T, runParser: Parser.() -> T) {
-        val lexer = createLexer(input)
-        val res = Parser(lexer.tokens()).runParser()
+        val (lexer, sourceFile) = createLexer(input)
+        val res = Parser(sourceFile, lexer.tokens()).runParser()
         Assertions.assertEquals(expectedNode, res)
     }
 }

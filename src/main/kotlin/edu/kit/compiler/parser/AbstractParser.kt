@@ -4,13 +4,15 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
+import edu.kit.compiler.lex.AnnotatableFile
+import edu.kit.compiler.lex.AnnotationType
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
  *
  * @param[tokens] [sequence][Sequence] of [tokens][edu.kit.compiler.Token]
  */
-abstract class AbstractParser(tokens: Sequence<Token>) {
+abstract class AbstractParser(val sourceFile: AnnotatableFile, tokens: Sequence<Token>) {
 
     /**
      * The lookahead buffer that provides the token stream and buffers tokens when a lookahead is required
@@ -37,10 +39,15 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
      * Expect and return a token of type [T].
      */
     protected inline fun <reified T : Token> expect(anc: AnchorUnion): T {
-        if (peek() is T)
+        val peek = peek()
+        if (peek is T)
             return next() as T
 
-        println("expected ${T::class.simpleName}, but got ${peek()}")
+        sourceFile.annotate(
+            AnnotationType.ERROR,
+            peek.position,
+            "expected ${T::class.simpleName}, but got $peek"
+        )
         panicMode(anc)
         TODO("not implemented: lenient token")
     }
@@ -55,7 +62,11 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
     ): Token.Operator {
         val peek = peek()
         if (peek !is Token.Operator) {
-            println("expected operator ($type), but got $peek")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                peek.position,
+                "expected operator ($type), but got $peek"
+            )
             panicMode(anc)
             TODO("not implemented: lenient token")
         }
@@ -63,7 +74,11 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
         if (peek.type == type)
             return next() as Token.Operator
         else {
-            println("expected operator ($type), but got $peek")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                peek.position,
+                "expected operator ($type), but got $peek"
+            )
             panicMode(anc)
             TODO("not implemented: lenient token")
         }
@@ -82,7 +97,11 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
     protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorUnion): Token.Keyword {
         val peek = peek()
         if (peek !is Token.Keyword) {
-            println("expected keyword ($type), but got $peek")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                peek.position,
+                "expected keyword ($type), but got $peek"
+            )
             panicMode(anc)
             TODO("not implemented: lenient token")
         }
@@ -90,7 +109,11 @@ abstract class AbstractParser(tokens: Sequence<Token>) {
         if (peek.type == type)
             return next() as Token.Keyword
         else {
-            println("expected keyword ($type), but got $peek")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                peek.position,
+                "expected keyword ($type), but got $peek"
+            )
             panicMode(anc)
             TODO("not implemented: lenient token")
         }
