@@ -22,7 +22,7 @@ $ ./build
 # Or just:
 $ ./gradlew shadowJar
 # To build the `LexerDEA.svg` file:
-$ 
+$ dot LexerDEA.dot -T svg > LexerDEA.svg
 ```
 
 ## Testing
