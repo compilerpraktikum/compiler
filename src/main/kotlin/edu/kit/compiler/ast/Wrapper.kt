@@ -87,7 +87,7 @@ sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
         is Valid -> this.c
     }
 
-    fun <B> map(m: (A) -> B) : Lenient<B> = when(this) {
+    fun <B> map(m: (A) -> B): Lenient<B> = when (this) {
         is Error -> this
         is Valid -> Valid(m(this.c))
     }
@@ -206,8 +206,8 @@ fun toValidBlock(block: AST.Block<Lenient<Of>, Lenient<Of>>): AST.Block<Identity
     return AST.Block(statements)
 }
 
-fun toValidStatement(stmt: AST.Statement<Lenient<Of>, Lenient<Of>>) : AST.Statement<Identity<Of>, Identity<Of>>? {
-    return when(stmt) {
+fun toValidStatement(stmt: AST.Statement<Lenient<Of>, Lenient<Of>>): AST.Statement<Identity<Of>, Identity<Of>>? {
+    return when (stmt) {
         is AST.Block -> toValidBlock(stmt)
         is AST.ExpressionStatement -> AST.ExpressionStatement(
             Identity(

@@ -5,7 +5,6 @@ import edu.kit.compiler.ast.accept
 import edu.kit.compiler.ast.toValidAst
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable

@@ -90,11 +90,9 @@ object AST {
 
     data class StmtWrapper<S, E>(val statement: Statement<S, E>) : BlockStatement<S, E>()
 
-    sealed class Statement<out S, out E> : Kind<Statement<Of, E>, S> {
-    }
+    sealed class Statement<out S, out E> : Kind<Statement<Of, E>, S>
 
     fun <S, E> Statement<S, E>.wrapBlockStatement(): StmtWrapper<S, E> = StmtWrapper(this)
-
 
     val emptyStatement = Block<Nothing, Nothing>(listOf())
 
@@ -376,7 +374,7 @@ open class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>,
                 ExprDsl.cond().wrapValid(),
                 StatementsDsl().also(trueStmt).res.also { assert(it.size == 1) { "expexted exactly one child for if statemen" } }[0],
                 if (falseStmt != null) {
-                    StatementsDsl().also(falseStmt).res.also { assert(it.size == 1) {"expected exactly one child for else statement"} }[0]
+                    StatementsDsl().also(falseStmt).res.also { assert(it.size == 1) { "expected exactly one child for else statement" } }[0]
                 } else {
                     null
                 }

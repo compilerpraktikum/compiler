@@ -51,7 +51,6 @@ class PrettyPrintVisitor(
         mainMethod.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
             parameter.accept(this)
-
         }
 //        var i = 0
 //        for (parameter in mainMethod.parameters) {
@@ -77,7 +76,6 @@ class PrettyPrintVisitor(
         method.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
             parameter.accept(this)
-
         }
         print(")")
         if (method.throwsException != null) {
@@ -122,9 +120,11 @@ class PrettyPrintVisitor(
                         }
                 }
             }.filter { blockStatement ->
-                !(blockStatement is AST.StmtWrapper<*, *> &&
-                    blockStatement.statement is AST.Block
-                    && blockStatement.statement.statements.isEmpty())
+                !(
+                    blockStatement is AST.StmtWrapper<*, *> &&
+                        blockStatement.statement is AST.Block &&
+                        blockStatement.statement.statements.isEmpty()
+                    )
             }
         return AST.Block(statements.map { Identity(it) })
     }
@@ -152,7 +152,6 @@ class PrettyPrintVisitor(
                         }
                 }
                 print("}", startsNewLine)
-
             }
         }
         /*    if (startsNewLine) {
@@ -239,7 +238,7 @@ class PrettyPrintVisitor(
             startsNewLine = true
             println("")
             doIndented { doParenthesizedMaybe(true) { statement.accept(this) } }
-        } else { doParenthesizedMaybe(true) { statement.accept(this) }}
+        } else { doParenthesizedMaybe(true) { statement.accept(this) } }
         print("")
     }
 
@@ -424,5 +423,4 @@ class PrettyPrintVisitor(
         if (startsNewLine) print("\n", false)
         startsNewLine = false
     }
-
 }

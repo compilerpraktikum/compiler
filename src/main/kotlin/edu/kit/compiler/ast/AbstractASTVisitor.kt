@@ -73,7 +73,7 @@ fun <E, S, D, C> AST.Expression<E>.accept(visitor: AbstractASTVisitor<E, S, D, C
 fun <S, D, C> Kind<Identity<Of>, Kind<AST.Expression<Of>, Identity<Of>>>.accept(visitor: AbstractASTVisitor<Identity<Of>, S, D, C>) =
     this.into().v.into().accept(visitor)
 
-fun <E, S, D, C> AST.Statement<S, E>.accept(visitor: AbstractASTVisitor<E, S, D, C>) = when(this) {
+fun <E, S, D, C> AST.Statement<S, E>.accept(visitor: AbstractASTVisitor<E, S, D, C>) = when (this) {
     is AST.Block -> visitor.visit(this)
     is AST.ExpressionStatement -> visitor.visit(this)
     is AST.IfStatement -> visitor.visit(this)

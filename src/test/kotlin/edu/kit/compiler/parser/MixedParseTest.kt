@@ -2,7 +2,6 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.AST.wrapBlockStatement
-import edu.kit.compiler.ast.ExprDsl.fieldAccess
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
