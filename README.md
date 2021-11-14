@@ -11,9 +11,9 @@ subset of Java.
 
 ## Documentation
 
-- [MiniJava Syntax](): left-factorized Grammar, `First` and `Follow` sets
+- [MiniJava Syntax](./docs/parser/MiniJava%20Syntax.md): left-factorized Grammar, `First` and `Follow` sets
 - [Lexer DEA](./docs/LexerDEA.svg): deterministic automata for the lexer
-- [Wrapper AST Prototype](./docs/WrappedAstPrototype.hs): Wrapper prototype written in haskell
+- [Wrapper AST Prototype](./docs/parser/WrappedAstPrototype.hs): Wrapper prototype written in haskell
 
 ## Building
 
