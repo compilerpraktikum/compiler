@@ -1,12 +1,18 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.ast.accept
+import edu.kit.compiler.ast.toValidAst
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
+import edu.kit.compiler.prettyprinter.PrettyPrintVisitor
+import java.io.FileDescriptor
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.PrintStream
 import java.nio.charset.MalformedInputException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -88,7 +94,9 @@ class Compiler(private val config: Config) {
                         printWarnings = false
                     ).tokens()
                     try {
-                        val program = Parser(tokens).parse()
+                        val program = toValidAst(Parser(tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val ps = PrintStream(FileOutputStream(FileDescriptor.out))
+                        program.accept(PrettyPrintVisitor(ps))
                     } catch (ex: IllegalArgumentException) {
                         System.err.println("error: $ex")
                     }
