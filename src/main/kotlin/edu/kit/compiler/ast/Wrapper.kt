@@ -81,6 +81,21 @@ private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
 sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
     data class Error(val message: String) : Lenient<Nothing>()
     data class Valid<out A>(val c: A) : Lenient<A>()
+
+    fun getAsValid() = when (this) {
+        is Error -> null
+        is Valid -> this.c
+    }
+
+    fun <B> map(m: (A) -> B) : Lenient<B> = when(this) {
+        is Error -> this
+        is Valid -> Valid(m(this.c))
+    }
+}
+
+inline fun <A> Lenient<A>.unwrapOr(handle: () -> A): A = when (this) {
+    is Lenient.Error -> handle()
+    is Lenient.Valid -> this.c
 }
 
 inline fun <A> A.wrapValid(): Lenient.Valid<A> = Lenient.Valid(this)
@@ -95,7 +110,8 @@ fun <A> Kind<Lenient<Of>, A>.into(): Lenient<A> = this as Lenient<A>
  */
 fun <A> Kind<AST.Expression<Of>, A>.into(): AST.Expression<A> = this as AST.Expression<A>
 
-fun <A, E> Kind<AST.Statement<Of, E>, A>.into(): AST.Statement<A, E> = this as AST.Statement<A, E>
+fun <S, E> Kind<AST.Statement<Of, E>, S>.into(): AST.Statement<S, E> = this as AST.Statement<S, E>
+fun <S, E> Kind<AST.BlockStatement<Of, E>, S>.into(): AST.BlockStatement<S, E> = this as AST.BlockStatement<S, E>
 
 /**
  * Wrapper type, that ignores its contents (aka. a Constant Functor over `A`)
@@ -138,9 +154,197 @@ interface Functor1<T> {
     fun <F, G : Functor<G>> map1(nt: NaturalTransformation<F, G>, tf: Kind<T, F>): Kind<T, G>
 }
 
-// sealed class Expr<out F> : Kind<Expr<Of>, F>
-//
-// fun <A> Kind<Expr<Of>, A>.into(): Expr<A> = this as Expr<A>
+fun <E, S, D, C, T> AST.Program<E, S, D, C>.map(f: (Kind<C, AST.ClassDeclaration<E, S, D>>) -> Kind<T, AST.ClassDeclaration<E, S, D>>): AST.Program<E, S, D, T> =
+    AST.Program(this.classes.map { f(it) })
+
+fun toValidAst(ast: AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
+    val classes = ast.classes.map { it.into() }.map {
+        when (it) {
+            is Lenient.Valid -> toValidClassDeclaration(it.c) ?: return null
+            is Lenient.Error -> return null
+        }
+    }.map { Identity(it) }
+    return AST.Program(classes)
+}
+
+fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>>? {
+    val member = decl.member
+        .map { it.into() }
+        .map {
+            when (it) {
+                is Lenient.Valid -> toValidMember(it.c) ?: return null
+                is Lenient.Error -> return null
+            }
+        }
+        .map { Identity(it) }
+    return AST.ClassDeclaration(decl.name, member)
+}
+
+fun toValidMember(member: AST.ClassMember<Lenient<Of>, Lenient<Of>>): AST.ClassMember<Identity<Of>, Identity<Of>>? {
+    return when (member) {
+        is AST.Field -> member
+        is AST.MainMethod -> AST.MainMethod(
+            member.name,
+            member.returnType,
+            member.parameters,
+            Identity(toValidBlock(member.block.into().getAsValid() ?: return null) ?: return null),
+            member.throwsException
+        )
+        is AST.Method -> AST.Method(
+            member.name,
+            member.returnType,
+            member.parameters,
+            Identity(toValidBlock(member.block.into().getAsValid() ?: return null) ?: return null),
+            member.throwsException
+        )
+    }
+}
+
+fun toValidBlock(block: AST.Block<Lenient<Of>, Lenient<Of>>): AST.Block<Identity<Of>, Identity<Of>>? {
+    val statements = block.statements.map { it.into() }.map { it.getAsValid() ?: return null }
+        .map { toValidBlockStatement(it.into()) ?: return null }.map { Identity(it) }
+    return AST.Block(statements)
+}
+
+fun toValidStatement(stmt: AST.Statement<Lenient<Of>, Lenient<Of>>) : AST.Statement<Identity<Of>, Identity<Of>>? {
+    return when(stmt) {
+        is AST.Block -> toValidBlock(stmt)
+        is AST.ExpressionStatement -> AST.ExpressionStatement(
+            Identity(
+                toValidExpression((stmt.expression.into().getAsValid() ?: return null).into()) ?: return null
+            )
+        )
+        is AST.IfStatement ->
+            AST.IfStatement(
+                Identity(
+                    toValidExpression(stmt.condition.into().unwrapOr { return null }.into()) ?: return null
+                ),
+                Identity(
+                    (toValidStatement(stmt.trueStatement.into().unwrapOr { return null }.into()) ?: return null)
+                ),
+                if (stmt.falseStatement != null) {
+                    Identity(
+                        toValidStatement(stmt.falseStatement.into().unwrapOr { return null }.into()) ?: return null
+                    )
+                } else {
+                    null
+                }
+
+            )
+        is AST.ReturnStatement ->
+            AST.ReturnStatement(
+                if (stmt.expression == null) {
+                    null
+                } else {
+                    Identity(
+                        toValidExpression((stmt.expression.into().getAsValid() ?: return null).into()) ?: return null
+                    )
+                }
+            )
+        is AST.WhileStatement -> AST.WhileStatement(
+            Identity(
+                toValidExpression(stmt.condition.into().unwrapOr { return null }.into()) ?: return null
+            ),
+            Identity(
+                toValidStatement(stmt.statement.into().unwrapOr { return null }.into()) ?: return null
+            )
+        )
+    }
+}
+
+fun toValidBlockStatement(blockStmt: AST.BlockStatement<Lenient<Of>, Lenient<Of>>): AST.BlockStatement<Identity<Of>, Identity<Of>>? {
+    return when (blockStmt) {
+        is AST.LocalVariableDeclarationStatement -> AST.LocalVariableDeclarationStatement(
+            blockStmt.name, blockStmt.type,
+            if (blockStmt.initializer == null) {
+                null
+            } else {
+                Identity(
+                    toValidExpression((blockStmt.initializer.into().getAsValid() ?: return null).into()) ?: return null
+                )
+            }
+        )
+        is AST.StmtWrapper -> AST.StmtWrapper(toValidStatement(blockStmt.statement) ?: return null)
+    }
+}
+
+fun toValidExpression(expression: AST.Expression<Lenient<Of>>): AST.Expression<Identity<Of>>? {
+    return when (expression) {
+        is AST.ArrayAccessExpression ->
+            AST.ArrayAccessExpression(
+                Identity(
+                    toValidExpression(
+                        expression.target.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                ),
+                Identity(
+                    toValidExpression(
+                        expression.index.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                )
+            )
+        is AST.BinaryExpression ->
+            AST.BinaryExpression(
+                Identity(
+                    toValidExpression(
+                        expression.left.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                ),
+                Identity(
+                    toValidExpression(
+                        expression.right.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                ),
+                expression.operation
+            )
+        is AST.FieldAccessExpression ->
+            AST.FieldAccessExpression(
+                Identity(
+                    toValidExpression(
+                        expression.target.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                ),
+                expression.field
+            )
+        is AST.IdentifierExpression -> expression
+        is AST.LiteralExpression<*> -> expression
+        is AST.MethodInvocationExpression -> AST.MethodInvocationExpression(
+            if (expression.target != null) {
+                Identity(
+                    toValidExpression(
+                        expression.target.into().unwrapOr { return null }.into()
+                    ) ?: return null
+                )
+            } else {
+                null
+            },
+            expression.method,
+            expression.arguments
+                .map { it.into().unwrapOr { return null }.into() }
+                .map { toValidExpression(it) ?: return null }
+                .map { Identity(it) }
+        )
+
+        is AST.NewArrayExpression -> AST.NewArrayExpression(
+            expression.type,
+            Identity(
+                toValidExpression(
+                    expression.length.into().unwrapOr { return null }.into()
+                ) ?: return null
+            ),
+            expression.basisType
+        )
+        is AST.NewObjectExpression -> expression
+        is AST.UnaryExpression -> AST.UnaryExpression(
+            Identity(
+                toValidExpression(
+                    expression.expression.into().unwrapOr { return null }.into()
+                ) ?: return null
+            ),
+            expression.operation
+        )
+    }
+}
 
 private object DocsCodeSnippets {
     sealed class Expression() {

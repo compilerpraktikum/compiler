@@ -1,6 +1,8 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.AST.wrapBlockStatement
+import edu.kit.compiler.ast.ExprDsl.fieldAccess
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
@@ -15,9 +17,11 @@ import kotlin.test.Ignore
 internal class MixedParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private val validEmptyBlock = AST.Block<Lenient<Of>, Lenient<Of>>(
+    private val validEmptyBlock = AST.Block<Lenient<Of>, Lenient<Of>>(listOf()).wrapValid()
+
+    private val validEmptyBlockStatement = AST.Block<Lenient<Of>, Lenient<Of>>(
         listOf()
-    ).wrapValid()
+    ).wrapBlockStatement().wrapValid()
 
     private fun expectAst(input: String, expectedAST: List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
@@ -34,9 +38,9 @@ internal class MixedParseTest {
                 listOf(
                     AST.Block<Lenient<Of>, Lenient<Of>>(
                         listOf(
-                            validEmptyBlock
+                            validEmptyBlockStatement
                         )
-                    ).wrapValid()
+                    ).wrapBlockStatement().wrapValid()
                 )
             )
                 .wrapValid()
@@ -44,18 +48,18 @@ internal class MixedParseTest {
 
     @Test
     fun testParseBlockWithEmptyStatement() =
-        expectNode("{;}", AST.Block(listOf(AST.EmptyStatement.wrapValid())).wrapValid()) { parseBlock(emptyAnchorSet) }
+        expectNode("{;}", AST.Block(listOf(validEmptyBlockStatement)).wrapValid()) { parseBlock(emptyAnchorSet) }
 
     @Test
     fun testParseBlockWithMultipleEmptyStatement() = expectNode(
         "{;;;;}",
         AST.Block(
             listOf(
-                AST.EmptyStatement,
-                AST.EmptyStatement,
-                AST.EmptyStatement,
-                AST.EmptyStatement
-            ).map { it.wrapValid() }
+                validEmptyBlockStatement,
+                validEmptyBlockStatement,
+                validEmptyBlockStatement,
+                validEmptyBlockStatement,
+            )
         ).wrapValid()
     ) { parseBlock(emptyAnchorSet) }
 
@@ -64,7 +68,7 @@ internal class MixedParseTest {
         "{ myident; mytype myident2; }",
         AST.Block(
             listOf(
-                AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapValid(),
+                AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapBlockStatement().wrapValid(),
                 AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2".toSymbol(), Type.Class("mytype".toSymbol()), null)
                     .wrapValid()
             )
@@ -229,7 +233,7 @@ internal class MixedParseTest {
                                             null
                                         ).wrapValid(),
                                         null
-                                    ).wrapValid()
+                                    ).wrapBlockStatement().wrapValid()
                                 )
                             ).wrapValid()
                         ).wrapValid()
@@ -277,7 +281,7 @@ internal class MixedParseTest {
                                             ).wrapValid(),
                                             AST.LiteralExpression("2").wrapValid()
                                         ).wrapValid()
-                                    ).wrapValid()
+                                    ).wrapBlockStatement().wrapValid()
                                 )
                             ).wrapValid()
                         ).wrapValid()
@@ -338,7 +342,7 @@ internal class MixedParseTest {
                                             ).wrapValid()
                                         ).wrapValid(),
                                         null
-                                    ).wrapValid()
+                                    ).wrapBlockStatement().wrapValid()
                                 )
                             ).wrapValid()
                         ).wrapValid()
@@ -381,7 +385,7 @@ internal class MixedParseTest {
                                             ).wrapValid()
                                         ).wrapValid(),
                                         null
-                                    ).wrapValid()
+                                    ).wrapBlockStatement().wrapValid()
                                 )
                             ).wrapValid()
                         ).wrapValid()

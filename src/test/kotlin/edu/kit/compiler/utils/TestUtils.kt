@@ -1,14 +1,25 @@
 package edu.kit.compiler.utils
 
+import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Identity
+import edu.kit.compiler.ast.Lenient
+import edu.kit.compiler.ast.Of
+import edu.kit.compiler.ast.PrettyPrintVisitor
+import edu.kit.compiler.ast.accept
+import edu.kit.compiler.ast.toValidAst
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
 import org.junit.jupiter.api.Assertions
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.PrintStream
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Stream
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
+import kotlin.test.assertEquals
 
 object TestUtils {
 
@@ -39,5 +50,38 @@ object TestUtils {
         val (lexer, sourceFile) = createLexer(input)
         val res = Parser(sourceFile, lexer.tokens()).runParser()
         Assertions.assertEquals(expectedNode, res)
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun createAST(input: String): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>> {
+        val lexer = createLexer(input)
+        return Parser(lexer.tokens()).parse()
+    }
+
+    fun assertIdemPotence(input: String) {
+        println("====[ input ]====")
+        println(input)
+
+        val ast1 = createAST(input)
+        val pretty1 = prettyPrint(toValidAst(ast1)!!)
+        println("====[ pretty1 ]====")
+        println(pretty1)
+
+        val ast2 = createAST(pretty1)
+        val pretty2 = prettyPrint(toValidAst(ast2)!!)
+        println("====[ pretty2 ]====")
+        println(pretty2)
+
+        assertEquals(pretty1, pretty2)
+    }
+
+    fun prettyPrint(astRoot: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>): String {
+        val byteArrayOutputStream: ByteArrayOutputStream = ByteArrayOutputStream()
+        val utf8: String = StandardCharsets.UTF_8.name()
+        val printStream = PrintStream(byteArrayOutputStream, true, utf8)
+
+        astRoot.accept(PrettyPrintVisitor(printStream))
+
+        return byteArrayOutputStream.toString(utf8)
     }
 }

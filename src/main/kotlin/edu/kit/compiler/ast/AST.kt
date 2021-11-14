@@ -1,10 +1,11 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 
-sealed class Type {
+sealed class Type() {
     object Void : Type()
 
     object Integer : Type()
@@ -38,7 +39,14 @@ object AST {
         val member: List<Kind<M, ClassMember<E, S>>>,
     )
 
-    sealed class ClassMember<out E, out S>
+    sealed class ClassMember<out E, out S> {
+        val memberName: Symbol
+            get() = when (this) {
+                is Field -> name
+                is MainMethod -> name
+                is Method -> name
+            }
+    }
 
     data class Field(
         val name: Symbol,
@@ -72,7 +80,7 @@ object AST {
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement<out S, out E> : Kind<Statement<Of, E>, S>
+    sealed class BlockStatement<out S, out E> : Kind<BlockStatement<Of, E>, S>
 
     data class LocalVariableDeclarationStatement<E>(
         val name: Symbol,
@@ -80,12 +88,18 @@ object AST {
         val initializer: Kind<E, Kind<Expression<Of>, E>>?,
     ) : BlockStatement<Nothing, E>()
 
-    sealed class Statement<out S, out E> : BlockStatement<S, E>()
+    data class StmtWrapper<S, E>(val statement: Statement<S, E>) : BlockStatement<S, E>()
 
-    object EmptyStatement : Statement<Nothing, Nothing>()
+    sealed class Statement<out S, out E> : Kind<Statement<Of, E>, S> {
+    }
+
+    fun <S, E> Statement<S, E>.wrapBlockStatement(): StmtWrapper<S, E> = StmtWrapper(this)
+
+
+    val emptyStatement = Block<Nothing, Nothing>(listOf())
 
     data class Block<out S, out E>(
-        val statements: List<Kind<S, Kind<Statement<Of, E>, S>>>,
+        val statements: List<Kind<S, Kind<BlockStatement<Of, E>, S>>>,
     ) : Statement<S, E>()
 
     data class IfStatement<out S, out E>(
@@ -120,31 +134,32 @@ object AST {
     ) : Expression<E>() {
         enum class Operation(
             val precedence: Int,
-            val associativity: Associativity
+            val associativity: Associativity,
+            val repr: String
         ) {
-            ASSIGNMENT(1, Associativity.RIGHT),
+            ASSIGNMENT(1, Associativity.RIGHT, "="),
 
             // logical
-            OR(2, Associativity.LEFT),
+            OR(2, Associativity.LEFT, "||"),
 
-            AND(3, Associativity.LEFT),
+            AND(3, Associativity.LEFT, "&&"),
 
             // relational
-            EQUALS(4, Associativity.LEFT),
-            NOT_EQUALS(4, Associativity.LEFT),
+            EQUALS(4, Associativity.LEFT, "=="),
+            NOT_EQUALS(4, Associativity.LEFT, "!="),
 
-            LESS_THAN(5, Associativity.LEFT),
-            GREATER_THAN(5, Associativity.LEFT),
-            LESS_EQUALS(5, Associativity.LEFT),
-            GREATER_EQUALS(5, Associativity.LEFT),
+            LESS_THAN(5, Associativity.LEFT, "<"),
+            GREATER_THAN(5, Associativity.LEFT, ">"),
+            LESS_EQUALS(5, Associativity.LEFT, "<="),
+            GREATER_EQUALS(5, Associativity.LEFT, ">="),
 
             // arithmetical
-            ADDITION(6, Associativity.LEFT),
-            SUBTRACTION(6, Associativity.LEFT),
+            ADDITION(6, Associativity.LEFT, "+"),
+            SUBTRACTION(6, Associativity.LEFT, "-"),
 
-            MULTIPLICATION(7, Associativity.LEFT),
-            DIVISION(7, Associativity.LEFT),
-            MODULO(7, Associativity.LEFT);
+            MULTIPLICATION(7, Associativity.LEFT, "*"),
+            DIVISION(7, Associativity.LEFT, "/"),
+            MODULO(7, Associativity.LEFT, "%");
 
             enum class Associativity {
                 LEFT,
@@ -157,9 +172,11 @@ object AST {
         val expression: Kind<E, Kind<Expression<Of>, E>>,
         val operation: Operation
     ) : Expression<E>() {
-        enum class Operation {
-            NOT,
-            MINUS,
+        enum class Operation(
+            val repr: String
+        ) {
+            NOT("!"),
+            MINUS("-"),
         }
     }
 
@@ -198,6 +215,7 @@ object AST {
     data class NewArrayExpression<E>(
         val type: Type.Array,
         val length: Kind<E, Expression<E>>,
+        val basisType: Type
     ) : Expression<E>()
 }
 
@@ -297,10 +315,20 @@ object ExprDsl {
         index: ExprDsl.() -> AST.Expression<Lenient<Of>>
     ) = AST.ArrayAccessExpression(ExprDsl.target().wrapValid(), ExprDsl.index().wrapValid())
 
+    fun fieldAccess(
+        left: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        field: String
+    ) = AST.FieldAccessExpression(ExprDsl.left().wrapValid(), field.toSymbol())
+
     fun newArrayOf(
         type: Type.Array,
         length: ExprDsl.() -> AST.Expression<Lenient<Of>>
-    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid())
+    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid(), type.elementType)
+
+    private tailrec fun getArrayBaseType(type: Type.Array): Type = when (type.elementType) {
+        is Type.Array -> getArrayBaseType(type.elementType)
+        else -> type
+    }
 }
 
 class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
@@ -315,20 +343,45 @@ class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<
         )
     }
 
-    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
-    fun block(b: StatementsDsl.() -> Unit) {
-        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
+    fun emptyStatement() = res.add(AST.StmtWrapper(AST.emptyStatement).wrapValid())
+    fun block(b: BlockStatementDsl.() -> Unit) {
+        res.add(AST.StmtWrapper(AST.Block(BlockStatementDsl().also(b).res)).wrapValid())
     }
 
     fun expressionStatement(expr: ExprDsl.() -> AST.Expression<Lenient<Of>>) {
-        res.add(AST.ExpressionStatement(ExprDsl.expr().wrapValid()).wrapValid())
+        res.add(AST.StmtWrapper(AST.ExpressionStatement(ExprDsl.expr().wrapValid())).wrapValid())
     }
+
+    fun ifStmt(
+        cond: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        trueStmt: StatementsDsl.() -> Unit,
+        falseStmt: (StatementsDsl.() -> Unit)? = null
+    ) = res.add(StatementsDsl().also { it.ifStmt(cond, trueStmt, falseStmt) }.res[0].map { it.wrapBlockStatement() })
 }
 
 open class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
-    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
-    fun block(b: StatementsDsl.() -> Unit) {
-        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
+    fun emptyStatement() = res.add(AST.emptyStatement.wrapValid())
+    fun block(b: BlockStatementDsl.() -> Unit) {
+        res.add(AST.Block(BlockStatementDsl().also(b).res).wrapValid())
+    }
+
+    fun ifStmt(
+        cond: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        trueStmt: StatementsDsl.() -> Unit,
+        falseStmt: (StatementsDsl.() -> Unit)? = null
+    ) {
+
+        res.add(
+            AST.IfStatement(
+                ExprDsl.cond().wrapValid(),
+                StatementsDsl().also(trueStmt).res.also { assert(it.size == 1) { "expexted exactly one child for if statemen" } }[0],
+                if (falseStmt != null) {
+                    StatementsDsl().also(falseStmt).res.also { assert(it.size == 1) {"expected exactly one child for else statement"} }[0]
+                } else {
+                    null
+                }
+            ).wrapValid()
+        )
     }
 }
 
