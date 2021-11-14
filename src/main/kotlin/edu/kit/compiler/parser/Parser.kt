@@ -7,7 +7,6 @@ import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.ast.wrapValid
-import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.Symbol
 
@@ -20,7 +19,7 @@ private val Token.isRelevantForSyntax
  * @param[tokens] [sequence][Sequence] of [tokens][edu.kit.compiler.Token]
  */
 @ExperimentalStdlibApi
-class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractParser(sourceFile, tokens.filter(Token::isRelevantForSyntax)) {
+class Parser(tokens: Sequence<Token>) : AbstractParser(tokens.filter(Token::isRelevantForSyntax)) {
 
     /**
      * Parse the lexer stream into an AST.

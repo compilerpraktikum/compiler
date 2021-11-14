@@ -7,10 +7,9 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 
-fun createLexer(input: String, fileName: String = "/path/to/file"): Pair<Lexer, SourceFile> {
+fun createLexer(input: String, fileName: String = "/path/to/file"): Lexer {
     val stringTable = StringTable(StringTable::initializeKeywords)
-    val sourceFile = SourceFile.from(fileName, input)
-    return Lexer(sourceFile, stringTable) to sourceFile
+    return Lexer(SourceFile.from(fileName, input), stringTable)
 }
 
 fun <T> Sequence<T>.takeWhileInclusive(predicate: (T) -> Boolean): Sequence<T> {

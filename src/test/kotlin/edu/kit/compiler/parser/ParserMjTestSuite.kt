@@ -1,6 +1,5 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
@@ -44,7 +43,7 @@ internal class ParserMjTestSuite {
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(input, stringTable)
 
-        val parser = Parser(input, lexer.tokens())
+        val parser = Parser(lexer.tokens())
 
         var exception: Throwable? = null
         try {
@@ -52,9 +51,6 @@ internal class ParserMjTestSuite {
         } catch (ex: Throwable) {
             exception = ex
         }
-
-        input.printAnnotations(AnnotationFormatter.DEFAULT)
-
         if (testConfig.name.endsWith("invalid.mj")) {
             assert(exception != null) {
                 "expected failure, but got success for file ${testConfig.name}"
