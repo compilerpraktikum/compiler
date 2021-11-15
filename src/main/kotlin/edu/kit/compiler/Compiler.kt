@@ -94,7 +94,7 @@ class Compiler(private val config: Config) {
                         printWarnings = false
                     ).tokens()
                     try {
-                        val program = toValidAst(Parser(tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val program = toValidAst(Parser(sourceFile, tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
                         val ps = PrintStream(FileOutputStream(FileDescriptor.out))
                         program.accept(PrettyPrintVisitor(ps))
                     } catch (ex: IllegalArgumentException) {

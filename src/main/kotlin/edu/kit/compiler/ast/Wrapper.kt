@@ -31,6 +31,9 @@ package edu.kit.compiler.ast
  * @sample DocsCodeSnippets.ExpressionWithErrors
  * @sample DocsCodeSnippets.TypedExpression
  * @sample DocsCodeSnippets.WrappedExpression.Expr
+ *
+ * @param F Wrapper you want to apply to the other parameter `A`
+ * @param A Value to pass into `F`.
  */
 interface Kind<out F, out A> {
     fun outOf(): Kind<F, A> = this

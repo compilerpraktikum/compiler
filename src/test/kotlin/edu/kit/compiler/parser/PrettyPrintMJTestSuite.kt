@@ -58,7 +58,7 @@ internal class PrettyPrintMJTestSuite {
             println("====[ input ]====")
             println(input)
             val lexer1 = Lexer(input, stringTable)
-            val pretty1 = prettyPrint(toValidAst(Parser(lexer1.tokens()).parse())!!)
+            val pretty1 = prettyPrint(toValidAst(Parser(input, lexer1.tokens()).parse())!!)
             println("====[ pretty1 ]====")
             println(pretty1)
             val ast2 = createAST(pretty1)
@@ -94,7 +94,7 @@ internal class PrettyPrintMJTestSuite {
 
     @OptIn(ExperimentalStdlibApi::class)
     fun createAST(input: String): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
-        val lexer = createLexer(input)
-        return toValidAst(Parser(lexer.tokens()).parse())!!
+        val (lexer, sourceFile) = createLexer(input)
+        return toValidAst(Parser(sourceFile, lexer.tokens()).parse())!!
     }
 }
