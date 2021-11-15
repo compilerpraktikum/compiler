@@ -1,8 +1,12 @@
 FROM ubuntu:latest
 
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Berlin
 RUN apt-get update && \
     apt-get -y install \
-        openjdk-17-jdk
+        openjdk-17-jdk git
+
+RUN git clone "https://git.scc.kit.edu/IPDSnelting/mjtest-tests.git" /home/tests
 
 COPY . /home/compiler
 WORKDIR /home/compiler
