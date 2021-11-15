@@ -174,7 +174,7 @@ class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractPar
         val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)))
         expectOperator(Token.Operator.Type.RightBracket, anc)
         val arrayType = parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType), anc)
-        return AST.NewArrayExpression(arrayType, indexExpression, basicType)
+        return AST.NewArrayExpression(arrayType, indexExpression)
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(basicType: Type.Array, anc: AnchorUnion): Type.Array {

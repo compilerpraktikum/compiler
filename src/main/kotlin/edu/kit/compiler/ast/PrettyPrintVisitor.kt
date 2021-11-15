@@ -328,7 +328,7 @@ class PrettyPrintVisitor(
     override fun visit(newArrayExpression: AST.NewArrayExpression<Identity<Of>>) {
         printParanthesesMaybe {
             print("new ")
-            newArrayExpression.basisType.accept(this)
+            newArrayExpression.type.baseType.accept(this)
             print("[")
             doParenthesizedMaybe(true) { newArrayExpression.length.accept(this) }
             print("]")

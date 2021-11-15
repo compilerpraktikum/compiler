@@ -334,8 +334,7 @@ fun toValidExpression(expression: AST.Expression<Lenient<Of>>): AST.Expression<I
                 toValidExpression(
                     expression.length.into().unwrapOr { return null }.into()
                 ) ?: return null
-            ),
-            expression.basisType
+            )
         )
         is AST.NewObjectExpression -> expression
         is AST.UnaryExpression -> AST.UnaryExpression(

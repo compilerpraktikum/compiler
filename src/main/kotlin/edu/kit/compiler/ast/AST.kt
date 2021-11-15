@@ -14,7 +14,13 @@ sealed class Type() {
 
     data class Array(
         val elementType: Type
-    ) : Type()
+    ) : Type() {
+        val baseType: Type
+            get() = when (elementType) {
+                is Array -> elementType.baseType
+                else -> elementType
+            }
+    }
 
     data class Class(
         val name: Symbol
@@ -213,7 +219,6 @@ object AST {
     data class NewArrayExpression<E>(
         val type: Type.Array,
         val length: Kind<E, Expression<E>>,
-        val basisType: Type
     ) : Expression<E>()
 }
 
@@ -321,7 +326,7 @@ object ExprDsl {
     fun newArrayOf(
         type: Type.Array,
         length: ExprDsl.() -> AST.Expression<Lenient<Of>>
-    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid(), type.elementType)
+    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid())
 
     private tailrec fun getArrayBaseType(type: Type.Array): Type = when (type.elementType) {
         is Type.Array -> getArrayBaseType(type.elementType)
