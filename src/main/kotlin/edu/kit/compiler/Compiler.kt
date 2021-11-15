@@ -10,12 +10,8 @@ import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
-import java.io.FileDescriptor
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.PrintStream
 import java.nio.charset.MalformedInputException
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 
