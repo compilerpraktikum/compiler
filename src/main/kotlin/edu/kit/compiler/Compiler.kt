@@ -119,23 +119,17 @@ class Compiler(private val config: Config) {
         val sourceFile = config.sourceFile
 
         return try {
-            if (!Files.exists(sourceFile)) {
-                return CompilerResult.failure("source file does not exist")
-            }
-
-            if (!Files.isRegularFile(sourceFile)) {
-                return CompilerResult.failure("source file is not a file")
-            }
-
             CompilerResult.success(
                 SourceFile.from(sourceFile)
             )
         } catch (e: SecurityException) {
-            return CompilerResult.failure("access to source file denied: ${e.message}")
+            return CompilerResult.failure("error: access to source file denied: ${e.message}")
         } catch (e: IOException) {
-            return CompilerResult.failure("failed to read source file: ${e.message}")
+            return CompilerResult.failure("error: failed to read source file: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            return CompilerResult.failure("error: files larger than 2GB are not supported")
         } catch (e: MalformedInputException) {
-            return CompilerResult.failure("invalid source file encoding: ${e.message}")
+            return CompilerResult.failure("error: invalid source file encoding: ${e.message}")
         }
     }
 
@@ -143,26 +137,15 @@ class Compiler(private val config: Config) {
         val sourceFile = config.sourceFile
 
         try {
-            if (!Files.exists(sourceFile)) {
-                System.err.println("source file does not exist")
-                return ExitCode.ERROR_FILE_SYSTEM
-            }
-
-            if (!Files.isRegularFile(sourceFile)) {
-                System.err.println("source file is not a file")
-                return ExitCode.ERROR_FILE_SYSTEM
-            }
-
             sourceFile.inputStream().transferTo(System.out)
-
             return ExitCode.SUCCESS
         } catch (e: SecurityException) {
-            System.err.println("access to source file denied: ${e.message}")
-            return ExitCode.ERROR_FILE_SYSTEM
+            System.err.println("error: access to source file denied: ${e.message}")
         } catch (e: IOException) {
-            System.err.println("failed to read source file: ${e.message}")
-            return ExitCode.ERROR_FILE_SYSTEM
+            System.err.println("error: failed to read source file: ${e.message}")
         }
+
+        return ExitCode.ERROR_FILE_SYSTEM
     }
 
     enum class Mode {
