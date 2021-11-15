@@ -1,12 +1,16 @@
 package edu.kit.compiler.lex
 
+import java.lang.IllegalArgumentException
+
 /**
  * Stores information (-> TODO) associated to an identifier.
  */
 data class Symbol(
     val text: String,
     val isKeyword: Boolean,
-)
+) : Comparable<Symbol> {
+    override fun compareTo(other: Symbol) = text.compareTo(other.text)
+}
 
 /**
  * Stores a mapping between identifier names and associated information ([Symbol]). It also handles internalizing

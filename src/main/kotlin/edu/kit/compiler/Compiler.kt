@@ -1,12 +1,18 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.ast.PrettyPrintVisitor
+import edu.kit.compiler.ast.accept
+import edu.kit.compiler.ast.toValidAst
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
+import java.io.FileDescriptor
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.PrintStream
 import java.nio.charset.MalformedInputException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -78,7 +84,24 @@ class Compiler(private val config: Config) {
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
-                else -> throw IllegalStateException("unhandled compilation mode")
+                Mode.Echo -> { /* Already handled above*/ }
+                Mode.PrettyPrintAst -> {
+                    var hasInvalidToken = false
+
+                    val tokens = Lexer(
+                        sourceFile,
+                        stringTable,
+                        printWarnings = false
+                    ).tokens()
+                    try {
+                        val program = toValidAst(Parser(sourceFile, tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val ps = PrintStream(FileOutputStream(FileDescriptor.out))
+                        program.accept(PrettyPrintVisitor(ps))
+                    } catch (ex: IllegalArgumentException) {
+                        System.err.println("error: $ex")
+                    }
+                    ExitCode.SUCCESS
+                }
             }
         } catch (e: Exception) {
             System.err.println("Internal error: ${e.message}")
@@ -144,7 +167,7 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode {
-        Compile, Echo, LexTest, ParseTest,
+        Compile, Echo, LexTest, ParseTest, PrettyPrintAst
     }
 
     interface Config {

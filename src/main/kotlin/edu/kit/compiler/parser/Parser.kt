@@ -642,7 +642,7 @@ class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractPar
                     Token.Keyword.Type.False,
                     Token.Keyword.Type.True,
                     Token.Keyword.Type.This,
-                    Token.Keyword.Type.New -> parseStatement(anc)
+                    Token.Keyword.Type.New -> parseStatement(anc).map { AST.StmtWrapper(it) }
 
                     Token.Keyword.Type.Int,
                     Token.Keyword.Type.Boolean,
@@ -654,14 +654,14 @@ class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractPar
                     }
                 }
             }
-            is Token.Literal -> parseStatement(anc)
+            is Token.Literal -> parseStatement(anc).map { AST.StmtWrapper(it) }
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace,
                     Token.Operator.Type.Semicolon,
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
-                    Token.Operator.Type.LParen -> parseStatement(anc)
+                    Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
 
                     else -> {
                         panicMode(anc)
@@ -680,16 +680,16 @@ class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractPar
                                     if (thirdToken.type == Token.Operator.Type.RightBracket) {
                                         parseLocalVariableDeclarationStatement(anc)
                                     } else {
-                                        parseStatement(anc)
+                                        parseStatement(anc).map { AST.StmtWrapper(it) }
                                     }
                                 }
-                                else -> parseStatement(anc)
+                                else -> parseStatement(anc).map { AST.StmtWrapper(it) }
                             }
                         } else {
-                            parseStatement(anc)
+                            parseStatement(anc).map { AST.StmtWrapper(it) }
                         }
                     }
-                    else -> parseStatement(anc)
+                    else -> parseStatement(anc).map { AST.StmtWrapper(it) }
                 }
             }
             else -> {
@@ -827,10 +827,10 @@ class Parser(sourceFile: AnnotatableFile, tokens: Sequence<Token>) : AbstractPar
         return AST.WhileStatement(loopCondition, loopBodyStatement).wrapValid()
     }
 
-    private fun parseEmptyStatement(anc: AnchorUnion): Lenient<AST.EmptyStatement> {
+    private fun parseEmptyStatement(anc: AnchorUnion): Lenient<AST.Statement<Nothing, Nothing>> {
         // todo: on error, return error-node
         expectOperator(Token.Operator.Type.Semicolon, anc)
-        return AST.EmptyStatement.wrapValid()
+        return AST.emptyStatement.wrapValid()
     }
 
     private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Lenient<AST.LocalVariableDeclarationStatement<Lenient<Of>>> {
