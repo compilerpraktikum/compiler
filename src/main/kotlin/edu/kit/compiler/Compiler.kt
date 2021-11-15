@@ -3,6 +3,7 @@ package edu.kit.compiler
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
 import edu.kit.compiler.ast.toValidAst
+import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
@@ -58,6 +59,7 @@ class Compiler(private val config: Config) {
                 Mode.Compile -> {
                     throw NotImplementedError("Compile mode not yet implemented.")
                 }
+                Mode.Echo -> { throw IllegalStateException("echo unhandled") }
                 Mode.LexTest -> {
                     Lexer(
                         sourceFile,
@@ -67,6 +69,7 @@ class Compiler(private val config: Config) {
                         println(it)
                     }
 
+                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
                     if (sourceFile.hasError) {
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
@@ -80,26 +83,36 @@ class Compiler(private val config: Config) {
                     val parser = Parser(sourceFile, lexer.tokens())
                     parser.parse()
 
+                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
                     if (sourceFile.hasError) {
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
-                Mode.Echo -> { /* Already handled above*/ }
                 Mode.PrettyPrintAst -> {
                     val tokens = Lexer(
                         sourceFile,
                         stringTable,
                         printWarnings = false
                     ).tokens()
+
                     try {
                         val program = toValidAst(Parser(sourceFile, tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
-                        val ps = PrintStream(FileOutputStream(FileDescriptor.out))
-                        program.accept(PrettyPrintVisitor(ps))
+                        program.accept(PrettyPrintVisitor(System.out))
                     } catch (ex: IllegalArgumentException) {
-                        System.err.println("error: $ex")
+                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        System.err.println("[error] $ex")
+                        return ExitCode.ERROR_COMPILATION_FAILED
+                    } catch (ex: NotImplementedError) {
+                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
+                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
-                    ExitCode.SUCCESS
+
+                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                    if (sourceFile.hasError) {
+                        return ExitCode.ERROR_COMPILATION_FAILED
+                    }
                 }
             }
         } catch (e: Exception) {
