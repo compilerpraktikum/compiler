@@ -5,16 +5,16 @@ import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 
-sealed class Type() {
-    object Void : Type()
+sealed class Type<TypeWrapper>() {
+    object Void : Type<Nothing>()
 
-    object Integer : Type()
+    object Integer : Type<Nothing>()
 
-    object Boolean : Type()
+    object Boolean : Type<Nothing>()
 
-    data class Array(
-        val elementType: Type
-    ) : Type() {
+    data class Array<TypeWrapper>(
+        val elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>
+    ) : Type<TypeWrapper>() {
         val baseType: Type
             get() = when (elementType) {
                 is Array -> elementType.baseType
@@ -24,7 +24,7 @@ sealed class Type() {
 
     data class Class(
         val name: Symbol
-    ) : Type()
+    ) : Type<Nothing>()
 }
 
 /**
@@ -36,16 +36,23 @@ object AST {
      ** Class
      ************************************************/
 
-    data class Program<E, S, D, C>(
-        val classes: List<Kind<C, ClassDeclaration<E, S, D>>>,
+    /**
+     * @param ExpressionWrapper Wrapper for Expression Nodes
+     * @param StatementWrapper Wrapper for Statements and Block Statement Nodes
+     * @param MethodWrapper Wrapper for Method and Field Nodes
+     * @param ClassWrapper Wrapper for Classes
+     * @param OtherNodeWrapper Wrapper for the rest other Nodes, could fail in parsing
+     */
+    data class Program<ExpressionWrapper, StatementWrapper, MethodWrapper, ClassWrapper, OtherNodeWrapper>(
+        val classes: List<Kind<ClassWrapper, ClassDeclaration<ExpressionWrapper, StatementWrapper, MethodWrapper, OtherNodeWrapper>>>,
     )
 
-    data class ClassDeclaration<E, S, M>(
+    data class ClassDeclaration<ExpressionWrapper, StatementWrapper, MethodWrapper, OtherNodeWrapper>(
         val name: Symbol,
-        val member: List<Kind<M, ClassMember<E, S>>>,
+        val member: List<Kind<MethodWrapper, ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>>>,
     )
 
-    sealed class ClassMember<out E, out S> {
+    sealed class ClassMember<out ExpressionWrapper, out StatementWrapper, out OtherNodeWrapper> {
         val memberName: Symbol
             get() = when (this) {
                 is Field -> name
@@ -54,32 +61,32 @@ object AST {
             }
     }
 
-    data class Field(
+    data class Field<out OtherNodeWrapper>(
         val name: Symbol,
-        val type: Type,
-    ) : ClassMember<Nothing, Nothing>()
+        val type: Kind<OtherNodeWrapper, Type<Of>>,
+    ) : ClassMember<Nothing, Nothing, OtherNodeWrapper>()
 
-    data class Method<out E, out S>(
+    data class Method<out ExpressionWrapper, out StatementWrapper, out OtherNodeWrapper>(
         val name: Symbol,
-        val returnType: Type,
-        val parameters: List<Parameter>,
-        val block: Kind<S, Block<E, S>>,
+        val returnType: Kind<OtherNodeWrapper, Type<Of>>,
+        val parameters: List<Kind<OtherNodeWrapper, Parameter<Of>>>,
+        val block: Kind<StatementWrapper, Block<ExpressionWrapper, StatementWrapper>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<E, S>()
+    ) : ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>()
 
-    data class MainMethod<out E, out S>(
+    data class MainMethod<out ExpressionWrapper, out StatementWrapper, OtherNodeWrapper>(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Symbol,
-        val returnType: Type,
-        val parameters: List<Parameter>,
-        val block: Kind<S, Block<E, S>>,
+        val returnType: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
+        val parameters: List<Kind<OtherNodeWrapper, Kind<Parameter<Of>, OtherNodeWrapper>>>,
+        val block: Kind<StatementWrapper, Block<ExpressionWrapper, StatementWrapper>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<E, S>()
+    ) : ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>()
 
-    data class Parameter(
+    data class Parameter<out OtherNodeWrapper>(
         val name: Symbol,
-        val type: Type,
+        val type: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
     )
 
     /************************************************
