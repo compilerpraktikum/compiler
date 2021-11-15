@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 /**
  * Idempotenz- und Gleichheitstests
  * Beware!
- * Beim Schreiben von expected-Prints die getabbten Codefragmente einfügen, sonst macht IntelliJ Spaces daraus!
+ * Beim Schreiben von expected-Prints die getabbten Codefragmente einfügen, sonst macht IntelliJ Spaces daraus!!!
  */
 class PrettyPrintTest {
 
