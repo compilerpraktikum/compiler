@@ -15,6 +15,7 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
         "--echo" to Compiler.Mode.Echo,
         "--lextest" to Compiler.Mode.LexTest,
         "--parsetest" to Compiler.Mode.ParseTest,
+        "--print-ast" to Compiler.Mode.PrettyPrintAst,
     ).default(Compiler.Mode.Compile)
 
     override val sourceFile by argument(name = "file", help = "source file").path()
