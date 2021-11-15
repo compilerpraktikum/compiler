@@ -62,11 +62,11 @@ interface Kind<out F, out A> {
  */
 class Of private constructor()
 
-private val exampleChaining: Lenient<AST.Expression<Of>> =
+private val exampleChaining: Lenient<AST.Expression<Of, Nothing>> =
     Lenient.Valid(AST.LiteralExpression(2))
-private val exampleChainingInner: Lenient<AST.Expression<Lenient<Of>>> =
+private val exampleChainingInner: Lenient<AST.Expression<Lenient<Of>, Nothing>> =
     Lenient.Valid(AST.LiteralExpression(2))
-private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>>> =
+private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>, Nothing>> =
     Lenient.Valid(
         AST.BinaryExpression(
             Lenient.Error(null),
@@ -133,12 +133,18 @@ fun <A> A.wrapErroneous(): Lenient.Error<A> = Lenient.Error(this)
 fun <A> Kind<Lenient<Of>, A>.into(): Lenient<A> = this as Lenient<A>
 
 /**
+ * extension function to fully apply `Type<Of>` to `A` using `Kind<Type<Of>, A>`
+ */
+fun <A> Kind<Type<Of>, A>.into(): Type<A> = this as Type<A>
+
+/**
  * extension function to fully apply `Extension<Of>` to `A` using `Kind<Expression<Of>, A>`
  */
-fun <A> Kind<AST.Expression<Of>, A>.into(): AST.Expression<A> = this as AST.Expression<A>
+fun <A, O> Kind<AST.Expression<Of, O>, A>.into(): AST.Expression<A, O> = this as AST.Expression<A, O>
 
-fun <S, E> Kind<AST.Statement<Of, E>, S>.into(): AST.Statement<S, E> = this as AST.Statement<S, E>
-fun <S, E> Kind<AST.BlockStatement<Of, E>, S>.into(): AST.BlockStatement<S, E> = this as AST.BlockStatement<S, E>
+fun <S, E, O> Kind<AST.Statement<Of, E, O>, S>.into(): AST.Statement<S, E, O> = this as AST.Statement<S, E, O>
+fun <S, E, O> Kind<AST.BlockStatement<Of, E, O>, S>.into(): AST.BlockStatement<S, E, O> =
+    this as AST.BlockStatement<S, E, O>
 
 /**
  * Wrapper type, that ignores its contents (aka. a Constant Functor over `A`)
@@ -165,10 +171,6 @@ data class Identity<A>(val v: A) : Kind<Identity<Of>, A>
 
 fun <A> Kind<Identity<Of>, A>.into(): Identity<A> = this as Identity<A>
 
-data class TypeAnnotated<A>(val type: Type, val v: A) : Kind<TypeAnnotated<Of>, A>
-
-fun <A> Kind<TypeAnnotated<Of>, A>.into(): TypeAnnotated<A> = this as TypeAnnotated<A>
-
 interface NaturalTransformation<F, G> {
     fun <A> run(fa: Kind<F, A>): Kind<G, A>
 }
@@ -181,25 +183,25 @@ interface Functor1<T> {
     fun <F, G : Functor<G>> map1(nt: NaturalTransformation<F, G>, tf: Kind<T, F>): Kind<T, G>
 }
 
-fun <E, S, D, C, T> AST.Program<E, S, D, C>.map(f: (Kind<C, AST.ClassDeclaration<E, S, D>>) -> Kind<T, AST.ClassDeclaration<E, S, D>>): AST.Program<E, S, D, T> =
+fun <ExprW, StmtW, MethW, ClassW, ClassW2, OtherW> AST.Program<ExprW, StmtW, MethW, ClassW, OtherW>.map(f: (Kind<ClassW, AST.ClassDeclaration<ExprW, StmtW, MethW, OtherW>>) -> Kind<ClassW2, AST.ClassDeclaration<ExprW, StmtW, MethW, OtherW>>): AST.Program<ExprW, StmtW, MethW, ClassW2, OtherW> =
     AST.Program(this.classes.map { f(it) })
 
-fun toValidAst(ast: AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
+fun toValidAst(ast: AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
     val classes = ast.classes.map { it.into() }.map {
         when (it) {
-            is Lenient.Valid -> toValidClassDeclaration(it.c) ?: return null
+            is Lenient.Valid -> toValidClassDeclaration(it.node) ?: return null
             is Lenient.Error -> return null
         }
     }.map { Identity(it) }
     return AST.Program(classes)
 }
 
-fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>>? {
+fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
     val member = decl.member
         .map { it.into() }
         .map {
             when (it) {
-                is Lenient.Valid -> toValidMember(it.c) ?: return null
+                is Lenient.Valid -> toValidMember(it.node) ?: return null
                 is Lenient.Error -> return null
             }
         }
@@ -207,9 +209,9 @@ fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>,
     return AST.ClassDeclaration(decl.name, member)
 }
 
-fun toValidMember(member: AST.ClassMember<Lenient<Of>, Lenient<Of>>): AST.ClassMember<Identity<Of>, Identity<Of>>? {
+fun toValidMember(member: AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassMember<Identity<Of>, Identity<Of>, Identity<Of>>? {
     return when (member) {
-        is AST.Field -> member
+        is AST.Field<Lenient<Of>> -> member
         is AST.MainMethod -> AST.MainMethod(
             member.name,
             member.returnType,

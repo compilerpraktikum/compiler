@@ -5,22 +5,25 @@ import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 
-sealed class Type<TypeWrapper>() {
+sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
     object Void : Type<Nothing>()
 
     object Integer : Type<Nothing>()
 
     object Boolean : Type<Nothing>()
 
-    data class Array<TypeWrapper>(
+    data class Array<out TypeWrapper>(
         val elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>
-    ) : Type<TypeWrapper>() {
-        val baseType: Type
-            get() = when (elementType) {
-                is Array -> elementType.baseType
-                else -> elementType
-            }
-    }
+    ) : Type<TypeWrapper>()
+
+    val Array<Identity<Of>>.baseType: Type<Nothing>
+        get() = when (val innerType = elementType.into().v.into()) {
+            is Array<Identity<Of>> -> innerType.baseType
+            is Void -> innerType
+            is Integer -> innerType
+            is Class -> innerType
+            is Boolean -> innerType
+        }
 
     data class Class(
         val name: Symbol
@@ -63,26 +66,26 @@ object AST {
 
     data class Field<out OtherNodeWrapper>(
         val name: Symbol,
-        val type: Kind<OtherNodeWrapper, Type<Of>>,
+        val type: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
     ) : ClassMember<Nothing, Nothing, OtherNodeWrapper>()
 
-    data class Method<out ExpressionWrapper, out StatementWrapper, out OtherNodeWrapper>(
+    data class Method<out E, out S, out O>(
         val name: Symbol,
-        val returnType: Kind<OtherNodeWrapper, Type<Of>>,
-        val parameters: List<Kind<OtherNodeWrapper, Parameter<Of>>>,
-        val block: Kind<StatementWrapper, Block<ExpressionWrapper, StatementWrapper>>,
+        val returnType: Kind<O, Kind<Type<Of>, O>>,
+        val parameters: List<Kind<O, Kind<Parameter<Of>, O>>>,
+        val block: Kind<S, Block<E, S, O>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>()
+    ) : ClassMember<E, S, O>()
 
-    data class MainMethod<out ExpressionWrapper, out StatementWrapper, OtherNodeWrapper>(
+    data class MainMethod<out E, out S, O>(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Symbol,
-        val returnType: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
-        val parameters: List<Kind<OtherNodeWrapper, Kind<Parameter<Of>, OtherNodeWrapper>>>,
-        val block: Kind<StatementWrapper, Block<ExpressionWrapper, StatementWrapper>>,
+        val returnType: Kind<O, Kind<Type<Of>, O>>,
+        val parameters: List<Kind<O, Kind<Parameter<Of>, O>>>,
+        val block: Kind<S, Block<E, S, O>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>()
+    ) : ClassMember<E, S, O>()
 
     data class Parameter<out OtherNodeWrapper>(
         val name: Symbol,
@@ -93,56 +96,56 @@ object AST {
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement<out S, out E> : Kind<BlockStatement<Of, E>, S>
+    sealed class BlockStatement<out S, out E, out O> : Kind<BlockStatement<Of, E, O>, S>
 
-    data class LocalVariableDeclarationStatement<E>(
+    data class LocalVariableDeclarationStatement<E, O>(
         val name: Symbol,
-        val type: Type,
-        val initializer: Kind<E, Kind<Expression<Of>, E>>?,
-    ) : BlockStatement<Nothing, E>()
+        val type: Type<O>,
+        val initializer: Kind<E, Kind<Expression<Of, O>, E>>?,
+    ) : BlockStatement<Nothing, E, O>()
 
-    data class StmtWrapper<S, E>(val statement: Statement<S, E>) : BlockStatement<S, E>()
+    data class StmtWrapper<S, E, O>(val statement: Statement<S, E, O>) : BlockStatement<S, E, O>()
 
-    sealed class Statement<out S, out E> : Kind<Statement<Of, E>, S>
+    sealed class Statement<out S, out E, out O> : Kind<Statement<Of, E, O>, S>
 
-    fun <S, E> Statement<S, E>.wrapBlockStatement(): StmtWrapper<S, E> = StmtWrapper(this)
+    fun <S, E, O> Statement<S, E, O>.wrapBlockStatement(): StmtWrapper<S, E, O> = StmtWrapper(this)
 
-    val emptyStatement = Block<Nothing, Nothing>(listOf())
+    val emptyStatement = Block<Nothing, Nothing, Nothing>(listOf())
 
-    data class Block<out S, out E>(
-        val statements: List<Kind<S, Kind<BlockStatement<Of, E>, S>>>,
-    ) : Statement<S, E>()
+    data class Block<out S, out E, out O>(
+        val statements: List<Kind<S, Kind<BlockStatement<Of, E, O>, S>>>,
+    ) : Statement<S, E, O>()
 
-    data class IfStatement<out S, out E>(
-        val condition: Kind<E, Kind<Expression<Of>, E>>,
-        val trueStatement: Kind<S, Kind<Statement<Of, E>, S>>,
-        val falseStatement: Kind<S, Kind<Statement<Of, E>, S>>?
-    ) : Statement<S, E>()
+    data class IfStatement<out S, out E, out O>(
+        val condition: Kind<E, Kind<Expression<Of, O>, E>>,
+        val trueStatement: Kind<S, Kind<Statement<Of, E, O>, S>>,
+        val falseStatement: Kind<S, Kind<Statement<Of, E, O>, S>>?
+    ) : Statement<S, E, O>()
 
-    data class WhileStatement<out S, out E>(
-        val condition: Kind<E, Kind<Expression<Of>, E>>,
-        val statement: Kind<S, Kind<Statement<Of, E>, S>>,
-    ) : Statement<S, E>()
+    data class WhileStatement<out S, out E, out O>(
+        val condition: Kind<E, Kind<Expression<Of, O>, E>>,
+        val statement: Kind<S, Kind<Statement<Of, E, O>, S>>,
+    ) : Statement<S, E, O>()
 
-    data class ReturnStatement<out E>(
-        val expression: Kind<E, Kind<Expression<Of>, E>>?,
-    ) : Statement<Nothing, E>()
+    data class ReturnStatement<out E, out O>(
+        val expression: Kind<E, Kind<Expression<Of, O>, E>>?,
+    ) : Statement<Nothing, E, Nothing>()
 
-    data class ExpressionStatement<out E>(
-        val expression: Kind<E, Kind<Expression<Of>, E>>,
-    ) : Statement<Nothing, E>()
+    data class ExpressionStatement<out E, out O>(
+        val expression: Kind<E, Kind<Expression<Of, O>, E>>,
+    ) : Statement<Nothing, E, Nothing>()
 
     /************************************************
      ** Expression
      ************************************************/
 
-    sealed class Expression<out E> : Kind<Expression<Of>, E>
+    sealed class Expression<out E, out O> : Kind<Expression<Of, O>, E>
 
-    data class BinaryExpression<E>(
-        val left: Kind<E, Kind<Expression<Of>, E>>,
-        val right: Kind<E, Kind<Expression<Of>, E>>,
+    data class BinaryExpression<E, O>(
+        val left: Kind<E, Kind<Expression<Of, O>, E>>,
+        val right: Kind<E, Kind<Expression<Of, O>, E>>,
         val operation: Operation
-    ) : Expression<E>() {
+    ) : Expression<E, O>() {
         enum class Operation(
             val precedence: Int,
             val associativity: Associativity,
@@ -179,10 +182,10 @@ object AST {
         }
     }
 
-    data class UnaryExpression<out E>(
-        val expression: Kind<E, Kind<Expression<Of>, E>>,
+    data class UnaryExpression<out E, out O>(
+        val expression: Kind<E, Kind<Expression<Of, O>, E>>,
         val operation: Operation
-    ) : Expression<E>() {
+    ) : Expression<E, O>() {
         enum class Operation(
             val repr: String
         ) {
@@ -191,21 +194,21 @@ object AST {
         }
     }
 
-    data class MethodInvocationExpression<E>(
-        val target: Kind<E, Kind<Expression<Of>, E>>?,
+    data class MethodInvocationExpression<E, O>(
+        val target: Kind<E, Kind<Expression<Of, O>, E>>?,
         val method: Symbol,
-        val arguments: List<Kind<E, Kind<Expression<Of>, E>>>
-    ) : Expression<E>()
+        val arguments: List<Kind<E, Kind<Expression<Of, O>, E>>>
+    ) : Expression<E, O>()
 
-    data class FieldAccessExpression<E>(
-        val target: Kind<E, Kind<Expression<Of>, E>>,
+    data class FieldAccessExpression<E, O>(
+        val target: Kind<E, Kind<Expression<Of, O>, E>>,
         val field: Symbol,
-    ) : Expression<E>()
+    ) : Expression<E, O>()
 
-    data class ArrayAccessExpression<E>(
-        val target: Kind<E, Kind<Expression<Of>, E>>,
-        val index: Kind<E, Kind<Expression<Of>, E>>,
-    ) : Expression<E>()
+    data class ArrayAccessExpression<E, O>(
+        val target: Kind<E, Kind<Expression<Of, O>, E>>,
+        val index: Kind<E, Kind<Expression<Of, O>, E>>,
+    ) : Expression<E, O>()
 
     /************************************************
      ** Primary expression
@@ -213,20 +216,20 @@ object AST {
 
     data class IdentifierExpression(
         val name: Symbol,
-    ) : Expression<Nothing>()
+    ) : Expression<Nothing, Nothing>()
 
     data class LiteralExpression<T>(
         val value: T,
-    ) : Expression<Nothing>()
+    ) : Expression<Nothing, Nothing>()
 
     data class NewObjectExpression(
         val clazz: Symbol,
-    ) : Expression<Nothing>()
+    ) : Expression<Nothing, Nothing>()
 
-    data class NewArrayExpression<E>(
-        val type: Type.Array,
-        val length: Kind<E, Expression<E>>,
-    ) : Expression<E>()
+    data class NewArrayExpression<E, out O>(
+        val type: Kind<O, Kind<Type.Array<Of>, O>>,
+        val length: Kind<E, Kind<Expression<Of, O>, E>>,
+    ) : Expression<E, O>()
 }
 
 fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when (this) {
@@ -370,28 +373,9 @@ class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<
 }
 
 open class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
-    fun emptyStatement() = res.add(AST.emptyStatement.wrapValid())
-    fun block(b: BlockStatementDsl.() -> Unit) {
-        res.add(AST.Block(BlockStatementDsl().also(b).res).wrapValid())
-    }
-
-    fun ifStmt(
-        cond: ExprDsl.() -> AST.Expression<Lenient<Of>>,
-        trueStmt: StatementsDsl.() -> Unit,
-        falseStmt: (StatementsDsl.() -> Unit)? = null
-    ) {
-
-        res.add(
-            AST.IfStatement(
-                ExprDsl.cond().wrapValid(),
-                StatementsDsl().also(trueStmt).res.also { assert(it.size == 1) { "expexted exactly one child for if statemen" } }[0],
-                if (falseStmt != null) {
-                    StatementsDsl().also(falseStmt).res.also { assert(it.size == 1) { "expected exactly one child for else statement" } }[0]
-                } else {
-                    null
-                }
-            ).wrapValid()
-        )
+    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
+    fun block(b: StatementsDsl.() -> Unit) {
+        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
     }
 }
 
