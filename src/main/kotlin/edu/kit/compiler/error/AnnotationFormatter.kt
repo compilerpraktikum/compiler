@@ -19,7 +19,7 @@ private fun PrintStream.formatLine(text: String, line: Int, column: Int, color: 
 
 private fun formatAnnotation(sourceFile: SourceFile, annotation: SourceFile.Annotation) {
     val (out, color) = when (annotation.type) {
-        AnnotationType.WARNING -> Pair(System.out, TextColors.yellow)
+        AnnotationType.WARNING -> Pair(System.err, TextColors.yellow)
         AnnotationType.ERROR -> Pair(System.err, TextColors.red)
     }
 
