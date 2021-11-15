@@ -86,8 +86,6 @@ class Compiler(private val config: Config) {
                 }
                 Mode.Echo -> { /* Already handled above*/ }
                 Mode.PrettyPrintAst -> {
-                    var hasInvalidToken = false
-
                     val tokens = Lexer(
                         sourceFile,
                         stringTable,
@@ -99,6 +97,7 @@ class Compiler(private val config: Config) {
                         program.accept(PrettyPrintVisitor(ps))
                     } catch (ex: IllegalArgumentException) {
                         System.err.println("error: $ex")
+                        return ExitCode.ERROR_COMPILATION_FAILED
                     }
                     ExitCode.SUCCESS
                 }
