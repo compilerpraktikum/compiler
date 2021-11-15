@@ -76,8 +76,17 @@ class Compiler(private val config: Config) {
                         stringTable,
                         printWarnings = false
                     )
+
                     val parser = Parser(sourceFile, lexer.tokens())
-                    parser.parse()
+
+                    try {
+                        parser.parse()
+                    } catch (ex: NotImplementedError) {
+                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
+                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        System.err.println("[error] invalid program")
+                        return ExitCode.ERROR_COMPILATION_FAILED
+                    }
 
                     sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
                     if (sourceFile.hasError) {
