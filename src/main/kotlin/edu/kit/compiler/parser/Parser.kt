@@ -54,7 +54,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     expectOperator(Token.Operator.Type.RParen, anc) { "expected closing parenthesis." }
                     innerExpr
                 } else {
-                    reportError("illegal token `${peekedToken.debugRepr}`, expected primary expression")
+                    reportError(
+                        "illegal token `${peekedToken.debugRepr}`, expected primary expression",
+                        peekedToken.position
+                    )
                     recover(anc)
                     Lenient.Error(null)
                 }
@@ -100,14 +103,20 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         parseNewObjectArrayExpression(anc)
                     }
                     else -> {
-                        reportError("illegal token `${peekedToken.debugRepr}`. expected primary expression")
+                        reportError(
+                            "illegal token `${peekedToken.debugRepr}`. expected primary expression",
+                            peekedToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
                 }
             }
             else -> {
-                reportError("illegal token `${peekedToken.debugRepr}`. expected primary expression")
+                reportError(
+                    "illegal token `${peekedToken.debugRepr}`. expected primary expression",
+                    peekedToken.position
+                )
                 recover(anc)
                 return Lenient.Error(null)
             }
@@ -123,7 +132,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                     parseNewArrayExpression(anc)
                 else -> {
-                    reportError("illegal token `${firstToken.debugRepr}`. expected type")
+                    reportError("illegal token `${firstToken.debugRepr}`. expected type", firstToken.position)
                     recover(anc)
                     return Lenient.Error(null)
                 }
@@ -136,21 +145,27 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             Token.Operator.Type.LParen -> parseNewObjectExpression(anc)
                             Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc)
                             else -> {
-                                reportError("illegal token `${secondToken.debugRepr}`. expected constructor call or array type")
+                                reportError(
+                                    "illegal token `${secondToken.debugRepr}`. expected constructor call or array type",
+                                    secondToken.position
+                                )
                                 recover(anc)
                                 return Lenient.Error(null)
                             }
                         }
                     }
                     else -> {
-                        reportError("illegal token `${secondToken.debugRepr}`. expected constructor call or array type")
+                        reportError(
+                            "illegal token `${secondToken.debugRepr}`. expected constructor call or array type",
+                            secondToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
                 }
             }
             else -> {
-                reportError("illegal token `${firstToken.debugRepr}`. expected type")
+                reportError("illegal token `${firstToken.debugRepr}`. expected type", firstToken.position)
                 recover(anc)
                 return Lenient.Error(null)
             }
@@ -208,7 +223,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         ) {
             next()
             next()
-            Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid()
+            Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() })
+                .wrapValid()
         } else {
             basicType
         }
@@ -474,7 +490,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                         parseFieldMethodPrefix(anc)
                     else -> {
-                        reportError("expected `static` or (return) type identifier")
+                        reportError("expected `static` or (return) type identifier", token.position)
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -484,7 +500,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 parseFieldMethodPrefix(anc)
             }
             else -> {
-                reportError("expected field or method declaration")
+                reportError("expected field or method declaration", token.position)
                 recover(anc)
                 return Lenient.Error(null)
             }
@@ -624,7 +640,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Operator.Type.Semicolon -> parseField(ident, type, anc)
                     Token.Operator.Type.LParen -> parseMethod(ident, type, anc)
                     else -> {
-                        reportError("illegal class member declaration. expected either `;` or `(`.")
+                        reportError(
+                            "illegal class member declaration. expected either `;` or `(`.",
+                            fieldMethodRestToken.position
+                        )
                         recover(anc)
                         // todo we could try to recover this towards a method declaration and parse it, if we succeed
                         Lenient.Error(null)
@@ -632,7 +651,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 }
             }
             else -> {
-                reportError("illegal class member declaration. expected either `;` or `(`.")
+                reportError(
+                    "illegal class member declaration. expected either `;` or `(`.",
+                    fieldMethodRestToken.position
+                )
                 recover(anc)
                 // todo we could try to recover this towards a method declaration and parse it, if we succeed
                 Lenient.Error(null)
@@ -775,7 +797,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.Void -> parseLocalVariableDeclarationStatement(anc)
 
                     else -> {
-                        reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                        reportError(
+                            "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                            firstToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -791,7 +816,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
 
                     else -> {
-                        reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                        reportError(
+                            "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                            firstToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -821,7 +849,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 }
             }
             else -> {
-                reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                reportError(
+                    "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                    firstToken.position
+                )
                 recover(anc)
                 return Lenient.Error(null)
             }
@@ -838,7 +869,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseExpressionStatement(anc)
                     else -> {
-                        reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                        reportError(
+                            "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                            firstToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -855,7 +889,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.This -> parseExpressionStatement(anc)
                     Token.Keyword.Type.New -> parseExpressionStatement(anc)
                     else -> {
-                        reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                        reportError(
+                            "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                            firstToken.position
+                        )
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -864,7 +901,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             is Token.Literal -> parseExpressionStatement(anc)
             is Token.Identifier -> parseExpressionStatement(anc)
             else -> {
-                reportError("illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression")
+                reportError(
+                    "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
+                    firstToken.position
+                )
                 recover(anc)
                 return Lenient.Error(null)
             }
@@ -1108,7 +1148,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         Type.Void.wrapValid()
                     }
                     else -> {
-                        reportError("illegal token `${peekedToken.debugRepr}`. expected type")
+                        reportError("illegal token `${peekedToken.debugRepr}`. expected type", peekedToken.position)
                         recover(anc)
                         return Lenient.Error(null)
                     }
@@ -1123,7 +1163,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 }
             }
             else -> {
-                reportError("illegal token `${peekedToken.debugRepr}`. expected type")
+                reportError("illegal token `${peekedToken.debugRepr}`. expected type", peekedToken.position)
                 recover(anc)
                 return Lenient.Error(null)
             }

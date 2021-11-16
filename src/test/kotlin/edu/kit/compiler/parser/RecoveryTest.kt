@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
  */
 class RecoveryTest {
     @Test
-    fun testMultiArrayAccess() {
+    fun testParameterParsing() {
         testParse("class a { public void foo(int a int a) {} }")
     }
 

@@ -5,6 +5,7 @@ import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.lex.SourcePosition
 import java.util.Optional
 
 /**
@@ -40,10 +41,11 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
      * Expect and return a token of type [T].
      */
     protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Optional<T> {
-        if (peek() is T)
+        val p = peek()
+        if (p is T)
             return Optional.of(next() as T)
 
-        reportError(errorMsg())
+        reportError(errorMsg(), p.position)
         recover(anc)
         return Optional.empty()
     }
@@ -59,7 +61,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     ): Optional<Token.Operator> {
         val peek = peek()
         if (peek !is Token.Operator) {
-            reportError(errorMsg())
+            reportError(errorMsg(), peek.position)
             recover(anc)
             return Optional.empty()
         }
@@ -67,7 +69,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         return if (peek.type == type)
             Optional.of(next() as Token.Operator)
         else {
-            reportError(errorMsg())
+            reportError(errorMsg(), peek.position)
             recover(anc)
             Optional.empty()
         }
@@ -95,7 +97,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     ): Optional<Token.Keyword> {
         val peek = peek()
         if (peek !is Token.Keyword) {
-            reportError(errorMsg())
+            reportError(errorMsg(), peek.position)
             recover(anc)
             return Optional.empty()
         }
@@ -103,7 +105,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         return if (peek.type == type)
             Optional.of(next() as Token.Keyword)
         else {
-            reportError(errorMsg())
+            reportError(errorMsg(), peek.position)
             recover(anc)
             Optional.empty()
         }
@@ -122,7 +124,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Annotate the source input with an error message
      */
-    protected fun reportError(message: String) {
-        sourceFile.annotate(AnnotationType.ERROR, sourceFile.currentPosition, message)
+    protected fun reportError(message: String, position: SourcePosition) {
+        sourceFile.annotate(AnnotationType.ERROR, position, message)
     }
 }
