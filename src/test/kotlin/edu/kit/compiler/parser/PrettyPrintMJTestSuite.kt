@@ -5,7 +5,7 @@ import edu.kit.compiler.ast.Identity
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.ast.toValidAst
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
@@ -58,7 +58,7 @@ internal class PrettyPrintMJTestSuite {
             println("====[ input ]====")
             println(input)
             val lexer1 = Lexer(input, stringTable)
-            val pretty1 = prettyPrint(toValidAst(Parser(input, lexer1.tokens()).parse())!!)
+            val pretty1 = prettyPrint(Parser(input, lexer1.tokens()).parse().validate()!!)
             println("====[ pretty1 ]====")
             println(pretty1)
             val ast2 = createAST(pretty1)
@@ -82,7 +82,7 @@ internal class PrettyPrintMJTestSuite {
         }
     }
 
-    fun prettyPrint(astRoot: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>): String {
+    fun prettyPrint(astRoot: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>): String {
         val byteArrayOutputStream: ByteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
@@ -93,8 +93,8 @@ internal class PrettyPrintMJTestSuite {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
+    fun createAST(input: String): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
         val (lexer, sourceFile) = createLexer(input)
-        return toValidAst(Parser(sourceFile, lexer.tokens()).parse())!!
+        return Parser(sourceFile, lexer.tokens()).parse().validate()!!
     }
 }

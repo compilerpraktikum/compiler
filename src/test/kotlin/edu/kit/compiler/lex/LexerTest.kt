@@ -188,7 +188,8 @@ internal class LexerTest {
      */
     private fun expectTokenSequence(input: String, expectedTokens: List<Token>, measureDuration: Boolean = false) {
         val start = System.currentTimeMillis()
-        val tokens = createLexer(input).first.tokens().toList()
+        val (lexer, _) = createLexer(input)
+        val tokens = lexer.tokens().toList()
         val duration = System.currentTimeMillis() - start
 
         assertEquals(expectedTokens.size, tokens.size)

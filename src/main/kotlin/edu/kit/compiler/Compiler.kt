@@ -2,7 +2,7 @@ package edu.kit.compiler
 
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.ast.toValidAst
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
@@ -98,7 +98,7 @@ class Compiler(private val config: Config) {
                     val parser = Parser(sourceFile, lexer.tokens())
 
                     try {
-                        val program = toValidAst(parser.parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
                         program.accept(PrettyPrintVisitor(System.out))
                     } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
                         sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
@@ -119,7 +119,7 @@ class Compiler(private val config: Config) {
                     val parser = Parser(sourceFile, lexer.tokens())
 
                     try {
-                        val program = toValidAst(parser.parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
                         // TODO run semantic checks
                     } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
                         sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)

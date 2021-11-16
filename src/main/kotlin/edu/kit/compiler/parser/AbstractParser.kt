@@ -1,18 +1,20 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.Of
-import edu.kit.compiler.lex.AnnotatableFile
+import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.lex.AnnotationType
+import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.lex.SourcePosition
+import java.util.Optional
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
  *
- * @param[tokens] [sequence][Sequence] of [tokens][edu.kit.compiler.Token]
+ * @param tokens [sequence][Sequence] of [tokens][Token]
+ * @param sourceFile input wrapper that handles error reporting
  */
-abstract class AbstractParser(val sourceFile: AnnotatableFile, tokens: Sequence<Token>) {
+abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile: SourceFile) {
 
     /**
      * The lookahead buffer that provides the token stream and buffers tokens when a lookahead is required
@@ -33,89 +35,79 @@ abstract class AbstractParser(val sourceFile: AnnotatableFile, tokens: Sequence<
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+    abstract fun parse(): Lenient<LenientProgram>
 
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(anc: AnchorUnion): T {
-        val peek = peek()
-        if (peek is T)
-            return next() as T
+    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Optional<T> {
+        val p = peek()
+        if (p is T)
+            return Optional.of(next() as T)
 
-        sourceFile.annotate(
-            AnnotationType.ERROR,
-            peek.position,
-            "expected ${T::class.simpleName}, but got $peek"
-        )
-        panicMode(anc)
-        TODO("not implemented: lenient token")
+        reportError(errorMsg(), p.position)
+        recover(anc)
+        return Optional.empty()
     }
 
     /**
      * Read a token from the token stream and expect it to be an [Token.Operator] of type [type].
-     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     * If this is not the case, enter [recover] and read from the stream until a token from [anc] is upfront.
      */
     protected fun expectOperator(
         type: Token.Operator.Type,
-        anc: AnchorUnion
-    ): Token.Operator {
+        anc: AnchorUnion,
+        errorMsg: () -> String
+    ): Optional<Token.Operator> {
         val peek = peek()
         if (peek !is Token.Operator) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                peek.position,
-                "expected operator ($type), but got $peek"
-            )
-            panicMode(anc)
-            TODO("not implemented: lenient token")
+            reportError(errorMsg(), peek.position)
+            recover(anc)
+            return Optional.empty()
         }
 
-        if (peek.type == type)
-            return next() as Token.Operator
+        return if (peek.type == type)
+            Optional.of(next() as Token.Operator)
         else {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                peek.position,
-                "expected operator ($type), but got $peek"
-            )
-            panicMode(anc)
-            TODO("not implemented: lenient token")
+            reportError(errorMsg(), peek.position)
+            recover(anc)
+            Optional.empty()
         }
     }
 
     /**
-     * Read a token and expect it to be an identifier. If it is not an identifier, enter [panicMode] and read from the
+     * Read a token and expect it to be an identifier. If it is not an identifier, enter [recover] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorUnion): Token.Identifier = expect(anc)
+    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Optional<Token.Identifier> =
+        expect(anc, errorMsg)
 
     /**
      * Read a token from the token stream and expect it to be a [Token.Keyword] of type [type].
-     * If this is not the case, enter [panicMode] and read from the stream until a token from [anc] is upfront.
+     * If this is not the case, enter [recover] and read from the stream until a token from [anc] is upfront.
+     *
+     * @param type keyword [Token.Keyword.Type] that is expected
+     * @param anc [AnchorUnion] for error recovery
+     * @param errorMsg lazy error message generator
      */
-    protected fun expectKeyword(type: Token.Keyword.Type, anc: AnchorUnion): Token.Keyword {
+    protected fun expectKeyword(
+        type: Token.Keyword.Type,
+        anc: AnchorUnion,
+        errorMsg: () -> String
+    ): Optional<Token.Keyword> {
         val peek = peek()
         if (peek !is Token.Keyword) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                peek.position,
-                "expected keyword ($type), but got $peek"
-            )
-            panicMode(anc)
-            TODO("not implemented: lenient token")
+            reportError(errorMsg(), peek.position)
+            recover(anc)
+            return Optional.empty()
         }
 
-        if (peek.type == type)
-            return next() as Token.Keyword
+        return if (peek.type == type)
+            Optional.of(next() as Token.Keyword)
         else {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                peek.position,
-                "expected keyword ($type), but got $peek"
-            )
-            panicMode(anc)
-            TODO("not implemented: lenient token")
+            reportError(errorMsg(), peek.position)
+            recover(anc)
+            Optional.empty()
         }
     }
 
@@ -124,8 +116,15 @@ abstract class AbstractParser(val sourceFile: AnnotatableFile, tokens: Sequence<
      *
      * @param anchorSet [AnchorSet] containing all tokens that are accepted as the next token in the stream.
      */
-    protected fun panicMode(anchorSet: AnchorUnion) {
+    protected fun recover(anchorSet: AnchorUnion) {
         val anc = anchorSet.provide()
-        while (peek() !in anc) next()
+        while (peek() !in anc && peek() !is Token.Eof) next()
+    }
+
+    /**
+     * Annotate the source input with an error message
+     */
+    protected fun reportError(message: String, position: SourcePosition) {
+        sourceFile.annotate(AnnotationType.ERROR, position, message)
     }
 }

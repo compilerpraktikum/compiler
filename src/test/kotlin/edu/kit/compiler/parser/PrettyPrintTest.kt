@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.ast.toValidAst
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.utils.TestUtils.assertIdemPotence
 import edu.kit.compiler.utils.TestUtils.createAST
 import edu.kit.compiler.utils.TestUtils.prettyPrint
@@ -229,7 +229,7 @@ class PrettyPrintTest {
 
     private fun assertPrettyPrintEqualsDesired(input: String, desired: String) {
         val ast = createAST(input)
-        val pretty = prettyPrint(toValidAst(ast)!!)
+        val pretty = prettyPrint(ast.validate()!!)
 
         assertEqualsIgnoreCRLF(desired, pretty)
     }

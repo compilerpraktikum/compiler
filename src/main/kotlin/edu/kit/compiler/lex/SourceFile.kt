@@ -113,6 +113,13 @@ private constructor(
         }
     }
 
+    /**
+     * Get a sequence of annotations. This is *only* used for testing the parser recovery
+     */
+    fun getAnnotations(): Sequence<Annotation> {
+        return annotations.asSequence().flatMap(Map.Entry<Int, ArrayList<Annotation>>::value)
+    }
+
     data class Annotation(
         val type: AnnotationType,
         val position: SourcePosition,
