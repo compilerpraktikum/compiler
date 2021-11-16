@@ -413,6 +413,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         return buildList {
             while (peek(0) !is Token.Eof) {
+                // manual intervention: we read away one visibility modifier if present. Those are illegal here, but we
+                // avoid many follow-up errors if we do that. It isn't totally dumb, considering java allows them
+                var illegalVisibilityModifier = false
+                if (peek() in FirstFollowUtils.visibilityTokens) {
+                    reportError(next(), "classes must not have visibility modifiers")
+                    illegalVisibilityModifier = true
+                }
+
                 val classKeyword = expectKeyword(
                     Token.Keyword.Type.Class,
                     anc +
@@ -449,7 +457,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "missing closing brace"
                 }
 
-                if (classKeyword.isPresent && ident.isPresent && lBrace.isPresent && rBrace.isPresent) {
+                if (classKeyword.isPresent && ident.isPresent && lBrace.isPresent && rBrace.isPresent && !illegalVisibilityModifier) {
                     add(AST.ClassDeclaration(ident.get().name, classMembers).wrapValid())
                 } else {
                     add(
