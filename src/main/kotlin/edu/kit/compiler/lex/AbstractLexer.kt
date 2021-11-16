@@ -40,7 +40,11 @@ abstract class AbstractLexer(
             token.position = position
 
             if (token is Token.ErrorToken) {
-                sourceFile.annotate(AnnotationType.ERROR, position, token.error)
+                /*
+                 * Only pass [token.position] not [token.range] because all errors except unfinished comment are single
+                 * character anyways. And for unfinished comment errors we want to point to the beginning of the comment.
+                 */
+                sourceFile.annotate(AnnotationType.ERROR, position, token.error, token.errorNote)
             }
 
             yield(token)

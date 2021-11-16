@@ -1,11 +1,17 @@
 package edu.kit.compiler
 
 import edu.kit.compiler.lex.SourcePosition
+import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lex.extend
 
 sealed class Token {
     lateinit var position: SourcePosition
+
+    protected abstract val length: Int
+    val range: SourceRange
+        get() = position.extend(length)
 
     val debugRepr: String?
         get() =
@@ -28,9 +34,15 @@ sealed class Token {
              */
             val Placeholder = Identifier(Symbol("", isKeyword = false))
         }
+
+        override val length: Int
+            get() = name.text.length
     }
 
-    data class Literal(val value: String) : Token()
+    data class Literal(val value: String) : Token() {
+        override val length: Int
+            get() = value.length
+    }
 
     data class Operator(val type: Type) : Token() {
 
@@ -82,6 +94,9 @@ sealed class Token {
             Or("||"),
             BitOr("|")
         }
+
+        override val length: Int
+            get() = type.repr.length
     }
 
     data class Keyword(val type: Type) : Token() {
@@ -109,17 +124,32 @@ sealed class Token {
                 }
             }
         }
+
+        override val length: Int
+            get() = type.repr.length
     }
 
-    data class Comment(val content: String) : Token()
+    data class Comment(val content: String) : Token() {
+        override val length: Int
+            get() = content.length
+    }
 
-    data class Whitespace(val content: String) : Token()
+    data class Whitespace(val content: String) : Token() {
+        override val length: Int
+            get() = content.length
+    }
 
     object Eof : Token() {
+        override val length: Int
+            get() = 0
+
         override fun toString(): String = "EndOfFile"
     }
 
-    data class ErrorToken(val content: String, val error: String) : Token()
+    data class ErrorToken(val content: String, val error: String, val errorNote: String? = null) : Token() {
+        override val length: Int
+            get() = content.length
+    }
 }
 
 fun StringTable.initializeKeywords() {
