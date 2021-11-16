@@ -5,8 +5,8 @@ import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.ast.BlockOfLenient
 import edu.kit.compiler.ast.ClassDeclarationOfLenient
 import edu.kit.compiler.ast.Lenient
+import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.ast.Of
-import edu.kit.compiler.ast.ProgramOfLenient
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.ast.wrapValid
@@ -173,11 +173,15 @@ internal class MixedParseTest {
                     "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main".toSymbol(), Type.Void,
+                            "main".toSymbol(), Type.Void.wrapValid(),
                             listOf(
                                 AST.Parameter(
                                     "args".toSymbol(),
-                                    Type.Array(Type.Array.ArrayType(Type.Class("String".toSymbol())))
+                                    Type.Array(
+                                        Type.Array.ArrayType(
+                                            Type.Class("String".toSymbol()).wrapValid()
+                                        )
+                                    ).wrapValid()
                                 ).wrapValid()
                             ),
                             AST.Block(
@@ -190,7 +194,7 @@ internal class MixedParseTest {
                                         .wrapValid(),
                                     AST.LocalVariableDeclarationStatement(
                                         "x".toSymbol(),
-                                        Type.Integer,
+                                        Type.Integer.wrapValid(),
                                         AST.BinaryExpression(
                                             AST.IdentifierExpression("i".toSymbol()).wrapValid(),
                                             AST.UnaryExpression(
@@ -206,7 +210,7 @@ internal class MixedParseTest {
                     )
                 ).wrapValid()
             )
-        )
+        ).wrapValid()
     ) { parse() }
 
     @Test
@@ -219,7 +223,7 @@ internal class MixedParseTest {
                     }
                 }
             """,
-            ProgramOfLenient(
+            LenientProgram(
                 listOf(
                     AST.ClassDeclaration(
                         "_Klasse".toSymbol(),
@@ -266,7 +270,7 @@ internal class MixedParseTest {
                         )
                     ).wrapValid()
                 )
-            )
+            ).wrapValid()
 
         ) { parse() }
     }
@@ -285,7 +289,7 @@ internal class MixedParseTest {
                     "Test".toSymbol(),
                     listOf(
                         AST.Method(
-                            "m".toSymbol(), Type.Void,
+                            "m".toSymbol(), Type.Void.wrapValid(),
                             listOf(),
                             AST.Block(
                                 listOf(
@@ -315,7 +319,7 @@ internal class MixedParseTest {
                     )
                 ).wrapValid()
             )
-        )
+        ).wrapValid()
     ) { parse() }
 
     @Ignore
@@ -439,7 +443,7 @@ internal class MixedParseTest {
                     )
                 ).wrapValid()
             )
-        )
+        ).wrapValid()
 
     ) { parse() }
 

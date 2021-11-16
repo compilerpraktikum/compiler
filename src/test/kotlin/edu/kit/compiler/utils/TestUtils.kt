@@ -1,12 +1,11 @@
 package edu.kit.compiler.utils
 
-import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Identity
 import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.Of
+import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.ast.PrettyPrintVisitor
+import edu.kit.compiler.ast.ProgramOfIdentity
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.ast.toValidAst
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
 import org.junit.jupiter.api.Assertions
@@ -48,12 +47,12 @@ object TestUtils {
     @OptIn(ExperimentalStdlibApi::class)
     fun <T> expectNode(input: String, expectedNode: T, runParser: Parser.() -> T) {
         val (lexer, sourceFile) = createLexer(input)
-        val res = Parser(lexer.tokens(), sourceFile).runParser()
+        val res: T = Parser(sourceFile, lexer.tokens()).runParser()
         Assertions.assertEquals(expectedNode, res)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>> {
+    fun createAST(input: String): Lenient<LenientProgram> {
         val (lexer, sourceFile) = createLexer(input)
         return Parser(sourceFile, lexer.tokens()).parse()
     }
@@ -63,20 +62,20 @@ object TestUtils {
         println(input)
 
         val ast1 = createAST(input)
-        val pretty1 = prettyPrint(toValidAst(ast1)!!)
+        val pretty1 = prettyPrint(ast1.validate()!!)
         println("====[ pretty1 ]====")
         println(pretty1)
 
         val ast2 = createAST(pretty1)
-        val pretty2 = prettyPrint(toValidAst(ast2)!!)
+        val pretty2 = prettyPrint(ast2.validate()!!)
         println("====[ pretty2 ]====")
         println(pretty2)
 
         assertEquals(pretty1, pretty2)
     }
 
-    fun prettyPrint(astRoot: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>): String {
-        val byteArrayOutputStream: ByteArrayOutputStream = ByteArrayOutputStream()
+    fun prettyPrint(astRoot: ProgramOfIdentity): String {
+        val byteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
 

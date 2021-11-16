@@ -1,5 +1,6 @@
 package edu.kit.compiler.parser
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
@@ -43,22 +44,16 @@ internal class ParserMjTestSuite {
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(input, stringTable)
 
-        val parser = Parser(lexer.tokens(), input)
+        val parser = Parser(input, lexer.tokens())
 
-        var exception: Throwable? = null
-        try {
-            parser.parse()
-        } catch (ex: Throwable) {
-            exception = ex
-        }
+        val success = parser.parse().validate() != null
         if (testConfig.name.endsWith("invalid.mj")) {
-            assert(exception != null) {
+            assert(!success) {
                 "expected failure, but got success for file ${testConfig.name}"
             }
         } else {
-            assert(exception == null) {
-                val stack = exception!!.stackTraceToString()
-                "expected success, but got failure for file ${testConfig.name}: $stack"
+            assert(success) {
+                "expected success, but got failure for file ${testConfig.name}"
             }
         }
     }

@@ -2,7 +2,6 @@ package edu.kit.compiler.ast
 
 import edu.kit.compiler.ast.AST.wrapBlockStatement
 import java.io.PrintStream
-import java.lang.IllegalStateException
 import java.util.Stack
 
 class PrettyPrintVisitor(
@@ -346,7 +345,7 @@ class PrettyPrintVisitor(
     }
 
     fun arrayDepthCount(type: Type.Array.ArrayType<Identity<Of>>, acc: Int): Int {
-        return arrayDepthCount(type.elementType.into().v.into(), acc + 1)
+        return arrayDepthCount(type.elementType.into().v.into(), acc)
     }
 
     override fun visit(voidType: Type.Void) {

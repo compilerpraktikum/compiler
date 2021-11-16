@@ -3,6 +3,7 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
+import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.markErroneous
@@ -24,13 +25,13 @@ private val Token.isRelevantForSyntax
  * @param sourceFile input wrapper that handles error reporting
  */
 @ExperimentalStdlibApi
-class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
+class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     AbstractParser(tokens.filter(Token::isRelevantForSyntax), sourceFile) {
 
     /**
      * Parse the lexer stream into an AST.
      */
-    override fun parse(): Lenient<AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    override fun parse(): Lenient<LenientProgram> {
         val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof).intoUnion())
         val eof = expect<Token.Eof>(anchorSetOf().intoUnion()) { "expected end of file" }
 
@@ -590,7 +591,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
             ).wrapValid()
         } else {
             AST.MainMethod(
-                ident.map { it.name }.orElse(null),
+                ident.orElse(Token.Identifier.Placeholder).name,
                 Type.Void.wrapValid(),
                 listOf(parameter),
                 block,
@@ -653,7 +654,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
             ).wrapValid()
         } else {
             AST.Field(
-                ident.map { it.name }.orElse(null),
+                ident.orElse(Token.Identifier.Placeholder).name,
                 type
             ).wrapErroneous()
         }
@@ -696,7 +697,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
 
         val block = parseBlock(anc)
 
-        if (closingParenthesis.isPresent && throwsException?.isPresent != false) {
+        if (ident.isPresent && closingParenthesis.isPresent && throwsException?.isPresent != false) {
             return AST.Method(
                 ident.get().name,
                 type,
@@ -706,7 +707,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
             ).wrapValid()
         } else {
             return AST.Method(
-                ident.map { it.name }.orElse(null),
+                ident.orElse(Token.Identifier.Placeholder).name,
                 type,
                 parameters,
                 block,

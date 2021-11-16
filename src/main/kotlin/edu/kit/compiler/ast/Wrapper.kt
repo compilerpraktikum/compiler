@@ -310,12 +310,12 @@ inline fun <ExprW1, ExprW2, OtherW1, OtherW2> AST.Expression<ExprW1, OtherW1>.ma
             AST.UnaryExpression(f(expression), operation)
     }
 
-typealias ProgramOfLenient = AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias LenientProgram = AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
 typealias ProgramOfIdentity = AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>
 
-fun Lenient<ProgramOfLenient>.validate(): ProgramOfIdentity? = this.unwrapOr { return null }.validate()
+fun Lenient<LenientProgram>.validate(): ProgramOfIdentity? = this.unwrapOr { return null }.validate()
 
-fun ProgramOfLenient.validate(): ProgramOfIdentity? =
+fun LenientProgram.validate(): ProgramOfIdentity? =
     this.mapClassW { Identity(it.into().unwrapOr { return null }.validate() ?: return null) }
 
 typealias ClassDeclarationOfLenient = AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>

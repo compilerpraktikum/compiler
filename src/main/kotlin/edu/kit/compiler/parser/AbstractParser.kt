@@ -1,9 +1,8 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.Of
+import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import java.util.Optional
@@ -35,7 +34,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+    abstract fun parse(): Lenient<LenientProgram>
 
     /**
      * Expect and return a token of type [T].
