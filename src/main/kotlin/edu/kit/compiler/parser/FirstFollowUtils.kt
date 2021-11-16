@@ -57,6 +57,13 @@ object FirstFollowUtils {
     val firstSetField = anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))
     val firstSetClassMember = firstSetField + firstSetMethod + firstSetMainMethod
     val firstSetClassMembers = firstSetClassMember
+    val firstSetFieldMethodPrefix = anchorSetOf(
+        Token.Keyword(Token.Keyword.Type.Int),
+        Token.Keyword(Token.Keyword.Type.Boolean),
+        Token.Keyword(Token.Keyword.Type.Void),
+        Token.Identifier.Placeholder
+    )
+    val firstSetMainMethodPrefix = anchorSetOf(Token.Keyword(Token.Keyword.Type.Static))
 
     val firstSetArrayAccess = anchorSetOf(Token.Operator(Token.Operator.Type.LeftBracket))
     val firstSetFieldAccess = anchorSetOf(Token.Operator(Token.Operator.Type.Dot))

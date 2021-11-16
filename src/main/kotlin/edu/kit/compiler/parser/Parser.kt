@@ -464,9 +464,41 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     private fun parseClassMembers(anc: AnchorUnion): List<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         return buildList {
             var peeked = peek(0)
-            while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
-                add(parseClassMember(anc + anchorSetOf(Token.Keyword(Token.Keyword.Type.Public))))
-                peeked = peek(0)
+
+            while (true) {
+                // read class members while we find `public` tokens
+                while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
+                    add(parseClassMember(anc + FirstFollowUtils.firstSetClassMember))
+                    peeked = peek(0)
+                }
+
+                /*
+                 * Manual intervention: Strictly following anchor sets and SLL parsing, we would expect the end of the
+                 * class file here, because we did not encounter another `public`. But if we do not see an `}`, we assume
+                 * that all following tokens are miss-placed and recover until the next `class` definition starts. This
+                 * is stupid however, because this means that one missing `public` will result in all following members
+                 * being skipped.
+                 * So instead we check if the peeked token is a valid start of a class member after a `public`, and
+                 * if so, we will parse it anyway (resulting in an error because `public` is missing, but good recovery
+                 * after that). Then, we will try and parse more members starting at `public` again. However, if the
+                 * peeked token is not valid even after a `public` token, we will recover towards the next `public` token
+                 * (or the end of class as usual).
+                 */
+
+                if (peeked !in anc.provide() /* there are only more members if we aren't in follow(classmembers) */) {
+                    val semiLegalAnchorSet =
+                        FirstFollowUtils.firstSetFieldMethodPrefix + FirstFollowUtils.firstSetMainMethodPrefix
+                    if (peeked in semiLegalAnchorSet.provide()) {
+                        // this will be illegal, but we get better error reporting from it
+                        add(parseClassMember(anc + FirstFollowUtils.firstSetClassMember))
+                    } else {
+                        reportError("expected class member definition", peeked.position)
+                        recover(anc + FirstFollowUtils.firstSetClassMember)
+                    }
+                    peeked = peek(0)
+                } else {
+                    break
+                }
             }
         }
     }
