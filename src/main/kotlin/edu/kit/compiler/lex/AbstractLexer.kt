@@ -51,7 +51,9 @@ abstract class AbstractLexer(
             c = next()
         }
 
-        yield(Token.Eof)
+        val eof = Token.Eof()
+        eof.position = sourceFile.currentPosition
+        yield(eof)
     }
 
     /**

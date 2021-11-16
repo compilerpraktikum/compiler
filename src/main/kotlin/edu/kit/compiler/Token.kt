@@ -139,11 +139,14 @@ sealed class Token {
             get() = content.length
     }
 
-    object Eof : Token() {
+    class Eof : Token() {
         override val length: Int
             get() = 0
 
         override fun toString(): String = "EndOfFile"
+
+        override fun equals(other: Any?): Boolean = other is Eof
+        override fun hashCode(): Int = 0
     }
 
     data class ErrorToken(val content: String, val error: String, val errorNote: String? = null) : Token() {

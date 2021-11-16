@@ -32,7 +32,7 @@ class StringInputProvider(
     }
 
     override fun next(): Char {
-        if (nextIndex < limit) {
+        if (nextIndex <= limit) {
             return get(nextIndex++)
         } else {
             return InputProvider.END_OF_FILE
@@ -41,11 +41,7 @@ class StringInputProvider(
 
     override fun peek(offset: Int): Char {
         require(offset >= 0)
-        val pos = cursor + 1 + offset
-        if (pos >= limit) {
-            return InputProvider.END_OF_FILE
-        }
-        return get(pos)
+        return get(nextIndex + offset)
     }
 
     fun substring(start: Int, end: Int): String = content.substring(start, end)
