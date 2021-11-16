@@ -34,7 +34,6 @@ private fun Char.isWhitespace() = when (this) {
 class Lexer(
     sourceFile: SourceFile,
     stringTable: StringTable,
-    private val printWarnings: Boolean = true
 ) : AbstractLexer(sourceFile, stringTable) {
 
     override fun scanToken(firstChar: Char): Token = when (firstChar) {

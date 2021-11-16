@@ -15,6 +15,14 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 
+private class CompilationFailedException(val sourceFile: SourceFile) : Exception("compilation failed (internal)")
+
+private fun SourceFile.failIfHasError() {
+    if (hasError) {
+        throw CompilationFailedException(this)
+    }
+}
+
 /**
  * Main compiler pipeline. Stores state specific to one compilation unit and defines the strategy with which all
  * compiler phases are called.
@@ -57,26 +65,20 @@ class Compiler(private val config: Config) {
                 }
                 Mode.Echo -> { throw IllegalStateException("echo unhandled") }
                 Mode.LexTest -> {
-                    Lexer(
+                    val lexer = Lexer(
                         sourceFile,
                         stringTable,
-                        printWarnings = false
-                    ).tokens().lexTestRepr.forEach {
-                        println(it)
-                    }
+                    )
 
-                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
-                    if (sourceFile.hasError) {
-                        return ExitCode.ERROR_COMPILATION_FAILED
+                    lexer.tokens().lexTestRepr.forEach {
+                        println(it)
                     }
                 }
                 Mode.ParseTest -> {
                     val lexer = Lexer(
                         sourceFile,
                         stringTable,
-                        printWarnings = false
                     )
-
                     val parser = Parser(sourceFile, lexer.tokens())
 
                     try {
@@ -87,23 +89,18 @@ class Compiler(private val config: Config) {
                         System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
-
-                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
-                    if (sourceFile.hasError) {
-                        return ExitCode.ERROR_COMPILATION_FAILED
-                    }
                 }
                 Mode.PrettyPrintAst -> {
-                    val tokens = Lexer(
+                    val lexer = Lexer(
                         sourceFile,
                         stringTable,
-                        printWarnings = false
-                    ).tokens()
+                    )
+                    val parser = Parser(sourceFile, lexer.tokens())
 
                     try {
-                        val program = toValidAst(Parser(sourceFile, tokens).parse()) ?: throw IllegalArgumentException("parsing failed")
+                        val program = toValidAst(parser.parse()) ?: throw IllegalArgumentException("parsing failed")
                         program.accept(PrettyPrintVisitor(System.out))
-                    } catch (ex: IllegalArgumentException) {
+                    } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
                         sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
                         System.err.println("[error] $ex")
                         return ExitCode.ERROR_COMPILATION_FAILED
@@ -113,13 +110,35 @@ class Compiler(private val config: Config) {
                         System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
+                }
+                Mode.SemanticCheck -> {
+                    val lexer = Lexer(
+                        sourceFile,
+                        stringTable,
+                    )
+                    val parser = Parser(sourceFile, lexer.tokens())
 
-                    sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
-                    if (sourceFile.hasError) {
+                    try {
+                        val program = toValidAst(parser.parse()) ?: throw IllegalArgumentException("parsing failed")
+                        // TODO run semantic checks
+                    } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
+                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        System.err.println("[error] $ex")
+                        return ExitCode.ERROR_COMPILATION_FAILED
+                    } catch (ex: NotImplementedError) {
+                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
+                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
             }
+
+            sourceFile.failIfHasError()
+            sourceFile.printAnnotations(AnnotationFormatter.DEFAULT) // print warnings
+        } catch (e: CompilationFailedException) {
+            e.sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+            return ExitCode.ERROR_COMPILATION_FAILED
         } catch (e: Exception) {
             System.err.println("Internal error: ${e.message}")
             e.printStackTrace(System.err)
@@ -167,7 +186,7 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode {
-        Compile, Echo, LexTest, ParseTest, PrettyPrintAst
+        Compile, Echo, LexTest, ParseTest, PrettyPrintAst, SemanticCheck
     }
 
     interface Config {
