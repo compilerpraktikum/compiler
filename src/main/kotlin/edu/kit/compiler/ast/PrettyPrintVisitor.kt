@@ -7,7 +7,7 @@ import java.util.Stack
 
 class PrettyPrintVisitor(
     val printStream: PrintStream
-) : AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>() {
+) : AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>() {
 
     private var currentIndentation: Int = 0
     private var startsNewLine: Boolean = false
@@ -16,7 +16,7 @@ class PrettyPrintVisitor(
     private var printParanthesesStack: Stack<Boolean> =
         Stack() // Usage. In a visit method: peek() is false, we always don't. if peek() is true, the current method decides, if it needs to be printed!
 
-    override fun visit(program: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(program: ProgramOfIdentity) {
         printParanthesesStack.push(true) // default: print parantheses. TODO put this in the constructor!!!
 
         program.classes
@@ -25,7 +25,7 @@ class PrettyPrintVisitor(
             .forEach { classDeclaration -> classDeclaration.accept(this) }
     }
 
-    override fun visit(classDeclaration: AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(classDeclaration: ClassDeclarationOfIdentity) {
         println("class ${classDeclaration.name.text} {")
         doIndented {
             classDeclaration.member
@@ -37,20 +37,20 @@ class PrettyPrintVisitor(
         println("}")
     }
 
-    override fun visit(field: AST.Field) {
+    override fun visit(field: AST.Field<Identity<Of>>) {
         print("public ", true)
-        field.type.accept(this)
+        field.type.into().v.into().accept(this)
         println(" ${field.name.text};")
     }
 
-    override fun visit(mainMethod: AST.MainMethod<Identity<Of>, Identity<Of>>) {
+    override fun visit(mainMethod: AST.MainMethod<Identity<Of>, Identity<Of>, Identity<Of>>) {
         print("public static ", true)
-        mainMethod.returnType.accept(this)
+        mainMethod.returnType.into().v.into().accept(this)
         print(" ${mainMethod.name.text}(")
 
         mainMethod.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
-            parameter.accept(this)
+            parameter.into().v.into().accept(this)
         }
 //        var i = 0
 //        for (parameter in mainMethod.parameters) {
@@ -68,14 +68,14 @@ class PrettyPrintVisitor(
         println("")
     }
 
-    override fun visit(method: AST.Method<Identity<Of>, Identity<Of>>) {
+    override fun visit(method: AST.Method<Identity<Of>, Identity<Of>, Identity<Of>>) {
         print("public ", true)
-        method.returnType.accept(this)
+        method.returnType.into().v.into().accept(this)
         print(" ${method.name.text}(")
 
         method.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
-            parameter.accept(this)
+            parameter.into().v.into().accept(this)
         }
         print(")")
         if (method.throwsException != null) {
@@ -86,16 +86,16 @@ class PrettyPrintVisitor(
         println("")
     }
 
-    override fun visit(parameter: AST.Parameter) {
+    override fun visit(parameter: AST.Parameter<Identity<Of>>) {
         // just for indentation
-        parameter.type.accept(this)
+        parameter.type.into().v.into().accept(this)
         print(" ${parameter.name.text}")
     }
 
-    override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Identity<Of>>) {
+    override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>) {
         print("", startsNewLine)
         startsNewLine = false
-        localVariableDeclarationStatement.type.accept(this)
+        localVariableDeclarationStatement.type.into().v.into().accept(this)
         print(" ${localVariableDeclarationStatement.name.text}", false)
         if (localVariableDeclarationStatement.initializer != null) {
             print(" = ")
@@ -107,8 +107,8 @@ class PrettyPrintVisitor(
     /**
      * removes nested empty blocks and reduces them into one. Example `{{{}}}` -> `{}`
      */
-    private fun cleanupBlock(block: AST.Block<Identity<Of>, Identity<Of>>): AST.Block<Identity<Of>, Identity<Of>> {
-        val statements: List<AST.BlockStatement<Identity<Of>, Identity<Of>>> = block.statements
+    private fun cleanupBlock(block: AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>): AST.Block<Identity<Of>, Identity<Of>, Identity<Of>> {
+        val statements: List<AST.BlockStatement<Identity<Of>, Identity<Of>, Identity<Of>>> = block.statements
             .map { it.into().v.into() }
             .map { blockStatement ->
                 when (blockStatement) {
@@ -121,15 +121,15 @@ class PrettyPrintVisitor(
                 }
             }.filter { blockStatement ->
                 !(
-                    blockStatement is AST.StmtWrapper<*, *> &&
-                        blockStatement.statement is AST.Block &&
+                    blockStatement is AST.StmtWrapper<*, *, *> &&
+                        blockStatement.statement is AST.Block<*, *, *> &&
                         blockStatement.statement.statements.isEmpty()
                     )
             }
         return AST.Block(statements.map { Identity(it) })
     }
 
-    override fun visit(block: AST.Block<Identity<Of>, Identity<Of>>) {
+    override fun visit(block: AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>) {
         val cleanBlock = cleanupBlock(block)
 
         if (!startsNewLine) {
@@ -171,7 +171,7 @@ class PrettyPrintVisitor(
         }*/
     }
 
-    override fun visit(ifStatement: AST.IfStatement<Identity<Of>, Identity<Of>>) {
+    override fun visit(ifStatement: AST.IfStatement<Identity<Of>, Identity<Of>, Identity<Of>>) {
         print("if (", startsNewLine)
         doParenthesizedMaybe(false) { ifStatement.condition.accept(this) }
         print(")")
@@ -228,7 +228,7 @@ class PrettyPrintVisitor(
     }
 
     // Begin Body -> True 1. Option { : " { }" , : " {\n ...} 2. Option Statement das nicht Block ist -> "\n", "..." einrücken
-    override fun visit(whileStatement: AST.WhileStatement<Identity<Of>, Identity<Of>>) {
+    override fun visit(whileStatement: AST.WhileStatement<Identity<Of>, Identity<Of>, Identity<Of>>) {
         print("while (", startsNewLine)
         doParenthesizedMaybe(false) { whileStatement.condition.accept(this) }
         print(")")
@@ -238,11 +238,13 @@ class PrettyPrintVisitor(
             startsNewLine = true
             println("")
             doIndented { doParenthesizedMaybe(true) { statement.accept(this) } }
-        } else { doParenthesizedMaybe(true) { statement.accept(this) } }
+        } else {
+            doParenthesizedMaybe(true) { statement.accept(this) }
+        }
         print("")
     }
 
-    override fun visit(returnStatement: AST.ReturnStatement<Identity<Of>>) {
+    override fun visit(returnStatement: AST.ReturnStatement<Identity<Of>, Identity<Of>>) {
         print("return", startsNewLine)
         if (returnStatement.expression != null) {
             print(" ")
@@ -251,7 +253,7 @@ class PrettyPrintVisitor(
         print(";")
     }
 
-    override fun visit(binaryExpression: AST.BinaryExpression<Identity<Of>>) {
+    override fun visit(binaryExpression: AST.BinaryExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             doParenthesizedMaybe(true) { binaryExpression.left.accept(this) }
             print(" " + binaryExpression.operation.repr + " ")
@@ -259,14 +261,14 @@ class PrettyPrintVisitor(
         }
     }
 
-    override fun visit(unaryExpression: AST.UnaryExpression<Identity<Of>>) {
+    override fun visit(unaryExpression: AST.UnaryExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             print(unaryExpression.operation.repr)
             doParenthesizedMaybe(true) { unaryExpression.expression.accept(this) }
         }
     }
 
-    override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<Identity<Of>>) {
+    override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             if (methodInvocationExpression.target != null) {
                 doParenthesizedMaybe(true) { methodInvocationExpression.target.accept(this) }
@@ -290,7 +292,7 @@ class PrettyPrintVisitor(
         }
     }
 
-    override fun visit(fieldAccessExpression: AST.FieldAccessExpression<Identity<Of>>) {
+    override fun visit(fieldAccessExpression: AST.FieldAccessExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             doParenthesizedMaybe(true) { fieldAccessExpression.target.accept(this) }
             print(".")
@@ -298,7 +300,7 @@ class PrettyPrintVisitor(
         }
     }
 
-    override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<Identity<Of>>) {
+    override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             arrayAccessExpression.target.accept(this)
             print("[")
@@ -325,26 +327,26 @@ class PrettyPrintVisitor(
         }
     }
 
-    override fun visit(newArrayExpression: AST.NewArrayExpression<Identity<Of>>) {
+    override fun visit(newArrayExpression: AST.NewArrayExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
             print("new ")
-            newArrayExpression.type.baseType.accept(this)
+            newArrayExpression.type.into().v.into().elementType.into().v.into().baseType.accept(this)
             print("[")
             doParenthesizedMaybe(true) { newArrayExpression.length.accept(this) }
             print("]")
-            print("[]".repeat(arrayDepthCount(newArrayExpression.type.elementType, 0)))
+            print("[]".repeat(arrayDepthCount(newArrayExpression.type.into().v.into(), 0)))
         }
     }
 
-    fun arrayDepthCount(type: Type, acc: Int): Int {
+    fun arrayDepthCount(type: Type<Identity<Of>>, acc: Int): Int {
         return when (type) {
-            is Type.Array -> arrayDepthCount(type.elementType, acc + 1)
+            is Type.Array -> arrayDepthCount(type.arrayType.elementType.into().v.into(), acc + 1)
             else -> acc
         }
     }
 
-    fun arrayDepthCount(type: Type.Array, acc: Int): Int {
-        return arrayDepthCount(type.elementType, acc + 1)
+    fun arrayDepthCount(type: Type.Array.ArrayType<Identity<Of>>, acc: Int): Int {
+        return arrayDepthCount(type.elementType.into().v.into(), acc + 1)
     }
 
     override fun visit(voidType: Type.Void) {
@@ -359,8 +361,8 @@ class PrettyPrintVisitor(
         print("boolean")
     }
 
-    override fun visit(arrayType: Type.Array) {
-        arrayType.elementType.accept(this)
+    override fun visit(arrayType: Type.Array<Identity<Of>>) {
+        arrayType.arrayType.elementType.into().v.into().accept(this)
         print("[]")
     }
 
@@ -372,7 +374,7 @@ class PrettyPrintVisitor(
         TODO("maybe needed..")
     }
 
-    override fun visit(expressionStatement: AST.ExpressionStatement<Identity<Of>>) {
+    override fun visit(expressionStatement: AST.ExpressionStatement<Identity<Of>, Identity<Of>>) {
         print("", startsNewLine)
 
         doParenthesizedMaybe(false) { expressionStatement.expression.accept(this) } // no parantheses for expressions directly under root

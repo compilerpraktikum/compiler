@@ -137,6 +137,10 @@ fun <A> Kind<Lenient<Of>, A>.into(): Lenient<A> = this as Lenient<A>
  */
 fun <A> Kind<Type<Of>, A>.into(): Type<A> = this as Type<A>
 
+fun <A> Kind<Type.Array.ArrayType<Of>, A>.into(): Type.Array.ArrayType<A> = this as Type.Array.ArrayType<A>
+
+fun <A> Kind<AST.Parameter<Of>, A>.into(): AST.Parameter<A> = this as AST.Parameter<A>
+
 /**
  * extension function to fully apply `Extension<Of>` to `A` using `Kind<Expression<Of>, A>`
  */
@@ -171,207 +175,249 @@ data class Identity<A>(val v: A) : Kind<Identity<Of>, A>
 
 fun <A> Kind<Identity<Of>, A>.into(): Identity<A> = this as Identity<A>
 
+data class TypeAnnotated<Ann, TypeW>(val type: Type<TypeW>, val v: Ann) : Kind<TypeAnnotated<Of, TypeW>, Ann>
+
+fun <A, TypeW> Kind<TypeAnnotated<Of, TypeW>, A>.into(): TypeAnnotated<A, TypeW> = this as TypeAnnotated<A, TypeW>
+
+/**
+ *
+ */
+data class Annotated<Annotation, Node>(val annotation: Annotation, val node: Node)
+
 interface NaturalTransformation<F, G> {
     fun <A> run(fa: Kind<F, A>): Kind<G, A>
 }
 
 interface Functor<F> {
-    fun <A, B> fmap(f: (A) -> B, fa: Kind<F, A>): Kind<F, B>
+    fun <A, B> fmap(fa: Kind<F, A>, f: (A) -> B): Kind<F, B>
 }
 
 interface Functor1<T> {
-    fun <F, G : Functor<G>> map1(nt: NaturalTransformation<F, G>, tf: Kind<T, F>): Kind<T, G>
+    fun <F, G : Functor<G>> Kind<T, F>.map1(nt: NaturalTransformation<F, G>): Kind<T, G>
 }
 
-fun <ExprW, StmtW, MethW, ClassW, ClassW2, OtherW> AST.Program<ExprW, StmtW, MethW, ClassW, OtherW>.map(f: (Kind<ClassW, AST.ClassDeclaration<ExprW, StmtW, MethW, OtherW>>) -> Kind<ClassW2, AST.ClassDeclaration<ExprW, StmtW, MethW, OtherW>>): AST.Program<ExprW, StmtW, MethW, ClassW2, OtherW> =
-    AST.Program(this.classes.map { f(it) })
+/**
+ * `mapClassW` converts from one `ClassWrapper` generic to another.
+ * The function is marked `inline` to allow early returns from the lambda expression
+ */
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, MethW1, MethW2, ClassW1, ClassW2, OtherW1, OtherW2> AST.Program<ExprW1, StmtW1, MethW1, ClassW1, OtherW1>.mapClassW(
+    f: (Kind<ClassW1, AST.ClassDeclaration<ExprW1, StmtW1, MethW1, OtherW1>>)
+    -> Kind<ClassW2, AST.ClassDeclaration<ExprW2, StmtW2, MethW2, OtherW2>>
+): AST.Program<ExprW2, StmtW2, MethW2, ClassW2, OtherW2> =
+    AST.Program(this.classes.map(f))
 
-fun toValidAst(ast: AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
-    val classes = ast.classes.map { it.into() }.map {
-        when (it) {
-            is Lenient.Valid -> toValidClassDeclaration(it.node) ?: return null
-            is Lenient.Error -> return null
-        }
-    }.map { Identity(it) }
-    return AST.Program(classes)
-}
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, MethW1, MethW2, OtherW1, OtherW2> AST.ClassDeclaration<ExprW1, StmtW1, MethW1, OtherW1>.mapMethodW(
+    f: (Kind<MethW1, AST.ClassMember<ExprW1, StmtW1, OtherW1>>)
+    -> Kind<MethW2, AST.ClassMember<ExprW2, StmtW2, OtherW2>>
+): AST.ClassDeclaration<ExprW2, StmtW2, MethW2, OtherW2> =
+    AST.ClassDeclaration(name, member.map(f))
 
-fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
-    val member = decl.member
-        .map { it.into() }
-        .map {
-            when (it) {
-                is Lenient.Valid -> toValidMember(it.node) ?: return null
-                is Lenient.Error -> return null
-            }
-        }
-        .map { Identity(it) }
-    return AST.ClassDeclaration(decl.name, member)
-}
-
-fun toValidMember(member: AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassMember<Identity<Of>, Identity<Of>, Identity<Of>>? {
-    return when (member) {
-        is AST.Field<Lenient<Of>> -> member
-        is AST.MainMethod -> AST.MainMethod(
-            member.name,
-            member.returnType,
-            member.parameters,
-            Identity(toValidBlock(member.block.into().getAsValid() ?: return null) ?: return null),
-            member.throwsException
-        )
-        is AST.Method -> AST.Method(
-            member.name,
-            member.returnType,
-            member.parameters,
-            Identity(toValidBlock(member.block.into().getAsValid() ?: return null) ?: return null),
-            member.throwsException
-        )
+inline fun <OtherW1, OtherW2> Type<OtherW1>.mapOtherW(
+    f: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
+): Type<OtherW2> =
+    when (this) {
+        is Type.Array -> Type.Array(Type.Array.ArrayType(f(arrayType.elementType)))
+        is Type.Boolean -> this
+        is Type.Class -> this
+        is Type.Integer -> this
+        is Type.Void -> this
     }
-}
 
-fun toValidBlock(block: AST.Block<Lenient<Of>, Lenient<Of>>): AST.Block<Identity<Of>, Identity<Of>>? {
-    val statements = block.statements.map { it.into() }.map { it.getAsValid() ?: return null }
-        .map { toValidBlockStatement(it.into()) ?: return null }.map { Identity(it) }
-    return AST.Block(statements)
-}
+inline fun <OtherW1, OtherW2> AST.Parameter<OtherW1>.mapOtherW(
+    f: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
+): AST.Parameter<OtherW2> =
+    AST.Parameter(name, f(type))
 
-fun toValidStatement(stmt: AST.Statement<Lenient<Of>, Lenient<Of>>): AST.Statement<Identity<Of>, Identity<Of>>? {
-    return when (stmt) {
-        is AST.Block -> toValidBlock(stmt)
-        is AST.ExpressionStatement -> AST.ExpressionStatement(
-            Identity(
-                toValidExpression((stmt.expression.into().getAsValid() ?: return null).into()) ?: return null
-            )
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<StmtW1, ExprW1, OtherW1>.mapStmt(
+    mapBlockStatement: (Kind<StmtW1, Kind<AST.BlockStatement<Of, ExprW1, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.BlockStatement<Of, ExprW2, OtherW2>, StmtW2>>,
+    mapStatement: (Kind<StmtW1, Kind<AST.Statement<Of, ExprW1, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.Statement<Of, ExprW2, OtherW2>, StmtW2>>,
+    mapExpression: (Kind<ExprW1, Kind<AST.Expression<Of, OtherW1>, ExprW1>>) -> Kind<ExprW2, Kind<AST.Expression<Of, OtherW2>, ExprW2>>,
+):
+    AST.Statement<StmtW2, ExprW2, OtherW2> = when (this) {
+    is AST.Block -> AST.Block(
+        this.statements.map { mapBlockStatement(it) }
+    ).into()
+    is AST.ExpressionStatement ->
+        AST.ExpressionStatement(
+            mapExpression(expression)
         )
-        is AST.IfStatement ->
-            AST.IfStatement(
-                Identity(
-                    toValidExpression(stmt.condition.into().unwrapOr { return null }.into()) ?: return null
-                ),
-                Identity(
-                    (toValidStatement(stmt.trueStatement.into().unwrapOr { return null }.into()) ?: return null)
-                ),
-                if (stmt.falseStatement != null) {
-                    Identity(
-                        toValidStatement(stmt.falseStatement.into().unwrapOr { return null }.into()) ?: return null
-                    )
-                } else {
-                    null
-                }
-
-            )
-        is AST.ReturnStatement ->
-            AST.ReturnStatement(
-                if (stmt.expression == null) {
-                    null
-                } else {
-                    Identity(
-                        toValidExpression((stmt.expression.into().getAsValid() ?: return null).into()) ?: return null
-                    )
-                }
-            )
-        is AST.WhileStatement -> AST.WhileStatement(
-            Identity(
-                toValidExpression(stmt.condition.into().unwrapOr { return null }.into()) ?: return null
-            ),
-            Identity(
-                toValidStatement(stmt.statement.into().unwrapOr { return null }.into()) ?: return null
-            )
+    is AST.IfStatement ->
+        AST.IfStatement(
+            mapExpression(condition),
+            mapStatement(trueStatement),
+            falseStatement?.let { mapStatement(it) }
         )
-    }
-}
-
-fun toValidBlockStatement(blockStmt: AST.BlockStatement<Lenient<Of>, Lenient<Of>>): AST.BlockStatement<Identity<Of>, Identity<Of>>? {
-    return when (blockStmt) {
-        is AST.LocalVariableDeclarationStatement -> AST.LocalVariableDeclarationStatement(
-            blockStmt.name, blockStmt.type,
-            if (blockStmt.initializer == null) {
-                null
-            } else {
-                Identity(
-                    toValidExpression((blockStmt.initializer.into().getAsValid() ?: return null).into()) ?: return null
-                )
+    is AST.ReturnStatement ->
+        AST.ReturnStatement(
+            expression?.let { justExpr ->
+                mapExpression(justExpr)
             }
         )
-        is AST.StmtWrapper -> AST.StmtWrapper(toValidStatement(blockStmt.statement) ?: return null)
-    }
+
+    is AST.WhileStatement ->
+        AST.WhileStatement(
+            mapExpression(condition),
+            mapStatement(statement),
+        )
 }
 
-fun toValidExpression(expression: AST.Expression<Lenient<Of>>): AST.Expression<Identity<Of>>? {
-    return when (expression) {
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.BlockStatement<StmtW1, ExprW1, OtherW1>.mapBlockStmt(
+    mapStatement: (AST.Statement<StmtW1, ExprW1, OtherW1>) -> AST.Statement<StmtW2, ExprW2, OtherW2>,
+    mapExpression: (Kind<ExprW1, Kind<AST.Expression<Of, OtherW1>, ExprW1>>) -> Kind<ExprW2, Kind<AST.Expression<Of, OtherW2>, ExprW2>>,
+    mapType: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
+):
+    AST.BlockStatement<StmtW2, ExprW2, OtherW2> =
+    when (this) {
+        is AST.LocalVariableDeclarationStatement ->
+            AST.LocalVariableDeclarationStatement(name, mapType(type), initializer?.let { mapExpression(it) })
+        is AST.StmtWrapper ->
+            AST.StmtWrapper(mapStatement(statement))
+    }
+
+inline fun <ExprW1, ExprW2, OtherW1, OtherW2> AST.Expression<ExprW1, OtherW1>.mapExprW(
+    f: (Kind<ExprW1, Kind<AST.Expression<Of, OtherW1>, ExprW1>>) -> Kind<ExprW2, Kind<AST.Expression<Of, OtherW2>, ExprW2>>,
+    g: (Kind<OtherW1, Kind<Type.Array.ArrayType<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type.Array.ArrayType<Of>, OtherW2>>
+): AST.Expression<ExprW2, OtherW2> =
+    when (this) {
         is AST.ArrayAccessExpression ->
             AST.ArrayAccessExpression(
-                Identity(
-                    toValidExpression(
-                        expression.target.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                ),
-                Identity(
-                    toValidExpression(
-                        expression.index.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                )
+                f(target),
+                f(index)
             )
         is AST.BinaryExpression ->
             AST.BinaryExpression(
-                Identity(
-                    toValidExpression(
-                        expression.left.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                ),
-                Identity(
-                    toValidExpression(
-                        expression.right.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                ),
-                expression.operation
+                f(left),
+                f(right),
+                operation
             )
         is AST.FieldAccessExpression ->
-            AST.FieldAccessExpression(
-                Identity(
-                    toValidExpression(
-                        expression.target.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                ),
-                expression.field
+            AST.FieldAccessExpression(f(target), field)
+        is AST.IdentifierExpression -> this
+        is AST.LiteralExpression<*> -> this
+        is AST.MethodInvocationExpression ->
+            AST.MethodInvocationExpression(
+                target?.let { target -> f(target) },
+                method,
+                arguments.map { arg -> f(arg) }
             )
-        is AST.IdentifierExpression -> expression
-        is AST.LiteralExpression<*> -> expression
-        is AST.MethodInvocationExpression -> AST.MethodInvocationExpression(
-            if (expression.target != null) {
-                Identity(
-                    toValidExpression(
-                        expression.target.into().unwrapOr { return null }.into()
-                    ) ?: return null
-                )
-            } else {
-                null
-            },
-            expression.method,
-            expression.arguments
-                .map { it.into().unwrapOr { return null }.into() }
-                .map { toValidExpression(it) ?: return null }
-                .map { Identity(it) }
-        )
+        is AST.NewArrayExpression ->
+            AST.NewArrayExpression(
+                g(type),
+                f(length)
+            )
+        is AST.NewObjectExpression -> this
+        is AST.UnaryExpression ->
+            AST.UnaryExpression(f(expression), operation)
+    }
 
-        is AST.NewArrayExpression -> AST.NewArrayExpression(
-            expression.type,
-            Identity(
-                toValidExpression(
-                    expression.length.into().unwrapOr { return null }.into()
-                ) ?: return null
-            )
+typealias ProgramOfLenient = AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias ProgramOfIdentity = AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun ProgramOfLenient.validate(): ProgramOfIdentity? =
+    this.mapClassW { Identity(it.into().unwrapOr { return null }.validate() ?: return null) }
+
+typealias ClassDeclarationOfLenient = AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias ClassDeclarationOfIdentity = AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun ClassDeclarationOfLenient.validate(): ClassDeclarationOfIdentity? =
+    this.mapMethodW { Identity(it.into().unwrapOr { return null }.validate() ?: return null) }
+
+fun Type<Lenient<Of>>.validate(): Type<Identity<Of>>? =
+    this.mapOtherW { Identity(it.into().unwrapOr { return null }.into().validate() ?: return null) }
+
+fun AST.Parameter<Lenient<Of>>.validate(): AST.Parameter<Identity<Of>>? =
+    this.mapOtherW { Identity(it.into().unwrapOr { return null }.into().validate() ?: return null) }
+
+// fun toValidClassDeclaration(decl: AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>): AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>? {
+//    val member = decl.member
+//        .map { it.into() }
+//        .map {
+//            when (it) {
+//                is Lenient.Valid -> toValidMember(it.node) ?: return null
+//                is Lenient.Error -> return null
+//            }
+//        }
+//        .map { Identity(it) }
+//    return AST.ClassDeclaration(decl.name, member)
+// }
+
+typealias ClassMemberOfLenient = AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias ClassMemberOfIdentity = AST.ClassMember<Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun ClassMemberOfLenient.validate(): ClassMemberOfIdentity? {
+    return when (this) {
+        is AST.Field<Lenient<Of>> -> AST.Field(
+            name,
+            Identity(type.into().unwrapOr { return null }.into().validate() ?: return null)
         )
-        is AST.NewObjectExpression -> expression
-        is AST.UnaryExpression -> AST.UnaryExpression(
-            Identity(
-                toValidExpression(
-                    expression.expression.into().unwrapOr { return null }.into()
-                ) ?: return null
-            ),
-            expression.operation
+        is AST.MainMethod -> AST.MainMethod(
+            name,
+            Identity((returnType.into().unwrapOr { return null }.into().validate() ?: return null)),
+            parameters.map { it.into().unwrapOr { return null }.into().validate() ?: return null }
+                .map { Identity(it) },
+            Identity((block.into().getAsValid() ?: return null).validateBlock() ?: return null),
+            throwsException
+        )
+        is AST.Method -> AST.Method(
+            name,
+            Identity((returnType.into().unwrapOr { return null }.into().validate() ?: return null)),
+            parameters.map { it.into().unwrapOr { return null }.into().validate() ?: return null }
+                .map { Identity(it) },
+            Identity((block.into().getAsValid() ?: return null).validateBlock() ?: return null),
+            throwsException
         )
     }
+}
+
+typealias BlockOfLenient = AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias BlockOfIdentity = AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>.validateBlock(): AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>? {
+    val statements = this.statements.map { it.into().unwrapOr { return null }.into().validate() ?: return null }
+        .map { Identity(it) }
+
+    return AST.Block(statements)
+}
+
+typealias StatementOfLenient = AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias StatementOfIdentity = AST.Statement<Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun StatementOfLenient.validate(): StatementOfIdentity? {
+    return this.mapStmt(
+        { blockStatement -> Identity(blockStatement.into().unwrapOr { return null }.into().validate() ?: return null) },
+        { statement -> Identity(statement.into().unwrapOr { return null }.into().validate() ?: return null) },
+        { expression -> Identity(expression.into().unwrapOr { return null }.into().validate() ?: return null) }
+    )
+}
+
+typealias BlockStatementOfLenient = AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>
+typealias BlockStatementOfIdentity = AST.BlockStatement<Identity<Of>, Identity<Of>, Identity<Of>>
+
+fun BlockStatementOfLenient.validate(): BlockStatementOfIdentity? {
+    return this.mapBlockStmt(
+        { statement -> statement.into().validate() ?: return null },
+        { expression -> Identity(expression.into().unwrapOr { return null }.into().validate() ?: return null) },
+        { type -> Identity(type.into().unwrapOr { return null }.into().validate() ?: return null) }
+    )
+}
+
+private val exampleExpression =
+    AST.UnaryExpression(Lenient.Valid(AST.LiteralExpression(2)), AST.UnaryExpression.Operation.NOT)
+
+fun AST.Expression<Lenient<Of>, Lenient<Of>>.validate(): AST.Expression<Identity<Of>, Identity<Of>>? {
+    return this.mapExprW({ expr ->
+        Identity(expr.into().unwrapOr { return null }.into().validate() ?: return null)
+    }, { other ->
+        Identity(other.into().unwrapOr { return null }.into().validate() ?: return null)
+    })
+}
+
+private fun Type.Array.ArrayType<Lenient<Of>>.validate(): Type.Array.ArrayType<Identity<Of>>? {
+    return Type.Array.ArrayType(
+        Identity(
+            this.elementType.into().unwrapOr { return null }.into().validate() ?: return null
+        )
+    )
 }
 
 private object DocsCodeSnippets {
@@ -411,14 +457,14 @@ private object DocsCodeSnippets {
         }
     }
 
-    private val exampleExpressionOfIdentity: AST.Expression<Identity<Of>> = AST.BinaryExpression(
+    private val exampleExpressionOfIdentity: AST.Expression<Identity<Of>, Identity<Of>> = AST.BinaryExpression(
         Identity(AST.LiteralExpression(2)),
         Identity(AST.LiteralExpression(3)),
         AST.BinaryExpression.Operation.ADDITION
     )
 
     private object ConstFoldExample {
-        fun constFold(i: AST.Expression<ConstValue<Int, Of>>): ConstValue<Int, AST.Expression<ConstValue<Int, Of>>> =
+        fun constFold(i: AST.Expression<ConstValue<Int, Of>, Identity<Of>>): ConstValue<Int, AST.Expression<ConstValue<Int, Of>, Identity<Of>>> =
             when (i) {
                 is AST.LiteralExpression<*> -> ConstValue(i.value as Int)
                 is AST.UnaryExpression ->

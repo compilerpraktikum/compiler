@@ -2,8 +2,11 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.AST.wrapBlockStatement
+import edu.kit.compiler.ast.BlockOfLenient
+import edu.kit.compiler.ast.ClassDeclarationOfLenient
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
+import edu.kit.compiler.ast.ProgramOfLenient
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.ast.wrapValid
@@ -16,13 +19,13 @@ import kotlin.test.Ignore
 internal class MixedParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private val validEmptyBlock = AST.Block<Lenient<Of>, Lenient<Of>>(listOf()).wrapValid()
+    private val validEmptyBlock = BlockOfLenient(listOf()).wrapValid()
 
-    private val validEmptyBlockStatement = AST.Block<Lenient<Of>, Lenient<Of>>(
+    private val validEmptyBlockStatement = BlockOfLenient(
         listOf()
     ).wrapBlockStatement().wrapValid()
 
-    private fun expectAst(input: String, expectedAST: List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>) =
+    private fun expectAst(input: String, expectedAST: List<Lenient<ClassDeclarationOfLenient>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test
@@ -33,9 +36,9 @@ internal class MixedParseTest {
     fun testParseBlockOfEmptyBlocks() =
         expectNode(
             "{{{}}}",
-            AST.Block<Lenient<Of>, Lenient<Of>>(
+            BlockOfLenient(
                 listOf(
-                    AST.Block<Lenient<Of>, Lenient<Of>>(
+                    BlockOfLenient(
                         listOf(
                             validEmptyBlockStatement
                         )
@@ -67,8 +70,13 @@ internal class MixedParseTest {
         "{ myident; mytype myident2; }",
         AST.Block(
             listOf(
-                AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapBlockStatement().wrapValid(),
-                AST.LocalVariableDeclarationStatement<Lenient<Of>>("myident2".toSymbol(), Type.Class("mytype".toSymbol()), null)
+                AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapBlockStatement()
+                    .wrapValid(),
+                AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                    "myident2".toSymbol(),
+                    Type.Class("mytype".toSymbol()).wrapValid(),
+                    null
+                )
                     .wrapValid()
             )
         ).wrapValid()
@@ -89,7 +97,7 @@ internal class MixedParseTest {
     @Test
     fun testParseReturn() = expectNode(
         "return;",
-        AST.ReturnStatement<Lenient<Of>>(null).wrapValid()
+        AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
@@ -166,10 +174,19 @@ internal class MixedParseTest {
                     listOf(
                         AST.MainMethod(
                             "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
+                            listOf(
+                                AST.Parameter(
+                                    "args".toSymbol(),
+                                    Type.Array(Type.Array.ArrayType(Type.Class("String".toSymbol())))
+                                ).wrapValid()
+                            ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("i".toSymbol(), Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                        "i".toSymbol(),
+                                        Type.Integer.wrapValid(),
+                                        null
+                                    )
                                         .wrapValid(),
                                     AST.LocalVariableDeclarationStatement(
                                         "x".toSymbol(),
@@ -193,55 +210,66 @@ internal class MixedParseTest {
     ) { parse() }
 
     @Test
-    fun debugParserMJTest_4() = expectNode(
-        """
-            class _Klasse {
-                public static void main(String[] args) {
-                    if (null.nothing) if (true.fun()) if (false[472183921789789798798798798798787789738120391203213213]) return;
+    fun debugParserMJTest_4() {
+        expectNode(
+            """
+                class _Klasse {
+                    public static void main(String[] args) {
+                        if (null.nothing) if (true.fun()) if (false[472183921789789798798798798798787789738120391203213213]) return;
+                    }
                 }
-            }
-        """,
-        AST.Program(
-            listOf(
-                AST.ClassDeclaration(
-                    "_Klasse".toSymbol(),
-                    listOf(
-                        AST.MainMethod(
-                            "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
-                            AST.Block(
+            """,
+            ProgramOfLenient(
+                listOf(
+                    AST.ClassDeclaration(
+                        "_Klasse".toSymbol(),
+                        listOf(
+                            AST.MainMethod(
+                                "main".toSymbol(), Type.Void.wrapValid(),
                                 listOf(
-                                    AST.IfStatement(
-                                        AST.FieldAccessExpression(AST.LiteralExpression("null").wrapValid(), "nothing".toSymbol())
-                                            .wrapValid(),
+                                    AST.Parameter(
+                                        "args".toSymbol(),
+                                        Type.Array(Type.Array.ArrayType(Type.Class("String".toSymbol()).wrapValid()))
+                                            .wrapValid()
+                                    ).wrapValid()
+                                ),
+                                AST.Block(
+                                    listOf(
                                         AST.IfStatement(
-                                            AST.MethodInvocationExpression(
-                                                AST.LiteralExpression(true).wrapValid(),
-                                                "fun".toSymbol(),
-                                                emptyList()
-                                            ).wrapValid(),
+                                            AST.FieldAccessExpression(
+                                                AST.LiteralExpression("null").wrapValid(),
+                                                "nothing".toSymbol()
+                                            )
+                                                .wrapValid(),
                                             AST.IfStatement(
-                                                AST.ArrayAccessExpression(
-                                                    AST.LiteralExpression(false).wrapValid(),
-                                                    AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
-                                                        .wrapValid()
+                                                AST.MethodInvocationExpression(
+                                                    AST.LiteralExpression(true).wrapValid(),
+                                                    "fun".toSymbol(),
+                                                    emptyList()
                                                 ).wrapValid(),
-                                                AST.ReturnStatement<Lenient<Of>>(null).wrapValid(),
+                                                AST.IfStatement(
+                                                    AST.ArrayAccessExpression(
+                                                        AST.LiteralExpression(false).wrapValid(),
+                                                        AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
+                                                            .wrapValid()
+                                                    ).wrapValid(),
+                                                    AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid(),
+                                                    null
+                                                ).wrapValid(),
                                                 null
                                             ).wrapValid(),
                                             null
-                                        ).wrapValid(),
-                                        null
-                                    ).wrapBlockStatement().wrapValid()
-                                )
+                                        ).wrapBlockStatement().wrapValid()
+                                    )
+                                ).wrapValid()
                             ).wrapValid()
-                        ).wrapValid()
-                    )
-                ).wrapValid()
+                        )
+                    ).wrapValid()
+                )
             )
-        )
 
-    ) { parse() }
+        ) { parse() }
+    }
 
     //    @Ignore
     @Test
@@ -325,11 +353,21 @@ internal class MixedParseTest {
                     "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
+                            "main".toSymbol(), Type.Void.wrapValid(),
+                            listOf(
+                                AST.Parameter(
+                                    "args".toSymbol(),
+                                    Type.Array(Type.Array.ArrayType(Type.Class("String".toSymbol()).wrapValid()))
+                                        .wrapValid()
+                                ).wrapValid()
+                            ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                        "x".toSymbol(),
+                                        Type.Integer.wrapValid(),
+                                        null
+                                    )
                                         .wrapValid(),
                                     AST.IfStatement(
                                         AST.LiteralExpression(true),
@@ -368,11 +406,21 @@ internal class MixedParseTest {
                     "Main".toSymbol(),
                     listOf(
                         AST.MainMethod(
-                            "main".toSymbol(), Type.Void,
-                            listOf(AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))),
+                            "main".toSymbol(), Type.Void.wrapValid(),
+                            listOf(
+                                AST.Parameter(
+                                    "args".toSymbol(),
+                                    Type.Array(Type.Array.ArrayType(Type.Class("String".toSymbol()).wrapValid()))
+                                        .wrapValid()
+                                ).wrapValid()
+                            ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>>("x".toSymbol(), Type.Integer, null)
+                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                        "x".toSymbol(),
+                                        Type.Integer.wrapValid(),
+                                        null
+                                    )
                                         .wrapValid(),
                                     AST.IfStatement(
                                         AST.LiteralExpression(true).wrapValid(),
@@ -448,8 +496,8 @@ internal class MixedParseTest {
             "class testClass { public boolean [] [] myArray; public void [] myArray2; }",
             astOf {
                 clazz("testClass") {
-                    field("myArray", Type.Array(Type.Array(Type.Boolean)))
-                    field("myArray2", Type.Array(Type.Void))
+                    field("myArray", Type.arrayOf(Type.arrayOf(Type.Boolean.wrapValid()).wrapValid()))
+                    field("myArray2", Type.arrayOf(Type.Void.wrapValid()))
                 }
             }
         )
@@ -494,7 +542,8 @@ internal class MixedParseTest {
                         "mymain", Type.Void,
                         AST.Parameter(
                             "arr".toSymbol(),
-                            Type.Array(Type.Array(Type.Class("Strig".toSymbol())))
+                            Type.arrayOf(Type.arrayOf(Type.Class("Strig".toSymbol()).wrapValid()).wrapValid())
+                                .wrapValid()
                         )
                     ) {}
                 }
@@ -508,9 +557,16 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { int[][] abc = new int[22][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))) {
-                        localDeclaration("abc", Type.Array(Type.Array(Type.Integer))) {
-                            newArrayOf(Type.Array(Type.Array(Type.Integer))) {
+                    mainMethod(
+                        "main",
+                        Type.Void,
+                        AST.Parameter(
+                            "args".toSymbol(),
+                            Type.arrayOf(Type.Class("String".toSymbol()).wrapValid()).wrapValid()
+                        )
+                    ) {
+                        localDeclaration("abc", Type.arrayOf(Type.arrayOf(Type.Integer.wrapValid()).wrapValid())) {
+                            newArrayOf(Type.Array.ArrayType(Type.arrayOf(Type.Integer.wrapValid()).wrapValid())) {
                                 literal("22")
                             }
                         }
@@ -526,9 +582,35 @@ internal class MixedParseTest {
             "class a { public static void main(String[] args) { SomeClass[][][] abc = new SomeClass[22][][]; } }",
             astOf {
                 clazz("a") {
-                    mainMethod("main", Type.Void, AST.Parameter("args".toSymbol(), Type.Array(Type.Class("String".toSymbol())))) {
-                        localDeclaration("abc", Type.Array(Type.Array(Type.Array(Type.Class("SomeClass".toSymbol()))))) {
-                            newArrayOf(Type.Array(Type.Array(Type.Array(Type.Class("SomeClass".toSymbol()))))) { literal("22") }
+                    mainMethod(
+                        "main",
+                        Type.Void,
+                        AST.Parameter(
+                            "args".toSymbol(),
+                            Type.arrayOf(Type.Class("String".toSymbol()).wrapValid()).wrapValid()
+                        )
+                    ) {
+                        localDeclaration(
+                            "abc",
+                            Type.arrayOf(
+                                Type.arrayOf(
+                                    Type.arrayOf(Type.Class("SomeClass".toSymbol()).wrapValid()).wrapValid()
+                                ).wrapValid()
+                            )
+                        ) {
+                            newArrayOf(
+                                Type.Array.ArrayType(
+                                    Type.arrayOf(
+                                        Type.arrayOf(
+                                            Type.Class("SomeClass".toSymbol()).wrapValid()
+                                        ).wrapValid()
+                                    ).wrapValid()
+                                )
+                            ) {
+                                literal(
+                                    "22"
+                                )
+                            }
                         }
                     }
                 }
@@ -546,7 +628,7 @@ internal class MixedParseTest {
                         "main", Type.Void,
                         AST.Parameter(
                             "args".toSymbol(),
-                            Type.Array(Type.Class("String".toSymbol()))
+                            Type.arrayOf(Type.Class("String".toSymbol()).wrapValid()).wrapValid()
                         )
                     ) {
                         expressionStatement {

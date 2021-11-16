@@ -2,7 +2,6 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Kind
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
@@ -184,28 +183,19 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
 
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
-        val arrayType: Lenient<Type.Array<Lenient<Of>>> = if (rBracket.isPresent) {
-            parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType).wrapValid(), anc)
+        val arrayType = if (rBracket.isPresent) {
+            parseNewArrayExpressionTypeArrayRecurse(Type.Array.ArrayType(basicType).wrapValid(), anc)
         } else {
-            parseNewArrayExpressionTypeArrayRecurse(Type.Array(basicType).wrapErroneous(), anc)
+            parseNewArrayExpressionTypeArrayRecurse(Type.Array.ArrayType(basicType).wrapErroneous(), anc)
         }
 
-        // Lenient<A> : Kind<Lenient<Of>, A>
-
-        //              Kind<Lenient<Of>, Kind<Type.Array<Of>, Lenient<Of>>>
-        // into() =>    Lenient<          Kind<Type.Array<Of>, Lenient<Of>>>
-        // map(into() > Lenient<          Type.Array<          Lenient<Of>>>
-        val asd: Kind<Lenient<Of>, Type.Array<Lenient<Of>>> = arrayType
-        val asdf: Kind<Lenient<Of>, Kind<Type.Array<Of>, Lenient<Of>>> = asd
-
-        // NewArrayExpression =>  type: Kind<Lenient<Of>, Kind<Type.Array<Of>, Lenient<Of>>>,
-        return AST.NewArrayExpression(asdf, indexExpression).wrapValid()
+        return AST.NewArrayExpression(arrayType, indexExpression).wrapValid()
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(
-        basicType: Lenient<Type.Array<Lenient<Of>>>,
+        basicType: Lenient<Type.Array.ArrayType<Lenient<Of>>>,
         anc: AnchorUnion
-    ): Lenient<Type.Array<Lenient<Of>>> {
+    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
         val maybeAnotherLBracket = peek(0)
         // special case for NewArrayExpression in combination with ArrayAccess
         // (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
@@ -217,7 +207,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         ) {
             next()
             next()
-            Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc)).wrapValid()
+            Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid()
         } else {
             basicType
         }
@@ -651,7 +641,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
 
     private fun parseField(
         ident: Optional<Token.Identifier>,
-        type: Type<Lenient<Of>>,
+        type: Lenient<Type<Lenient<Of>>>,
         anc: AnchorUnion
     ): Lenient<AST.Field<Lenient<Of>>> {
         next()
@@ -671,7 +661,7 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
 
     private fun parseMethod(
         ident: Optional<Token.Identifier>,
-        type: Type<Lenient<Of>>,
+        type: Lenient<Type<Lenient<Of>>>,
         anc: AnchorUnion
     ): Lenient<AST.Method<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
         next()
@@ -1067,15 +1057,15 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
 
         val maybeLeftBracket = peek(0)
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
-            return parseTypeArrayRecurse(basicType, anc)
+            return parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }
         }
         return basicType
     }
 
     private fun parseTypeArrayRecurse(
-        basicType: Type<Lenient<Of>>,
+        basicType: Lenient<Type<Lenient<Of>>>,
         anc: AnchorUnion
-    ): Lenient<Type.Array<Lenient<Of>>> {
+    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
         next()
 
         // todo what if there is `int a = new int[2][2];`? This is a new-array-instantiation and immediate array access, is this even covered by the parser?
@@ -1088,15 +1078,15 @@ class Parser(tokens: Sequence<Token>, sourceFile: SourceFile) :
         val maybeAnotherLBracket = peek(0)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             if (rightBracket.isPresent) {
-                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapValid()
+                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid()
             } else {
-                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapErroneous()
+                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapErroneous()
             }
         } else {
             if (rightBracket.isPresent)
-                Type.Array(basicType).wrapValid()
+                Type.Array.ArrayType(basicType).wrapValid()
             else
-                Type.Array(basicType).wrapErroneous()
+                Type.Array.ArrayType(basicType).wrapErroneous()
         }
     }
 

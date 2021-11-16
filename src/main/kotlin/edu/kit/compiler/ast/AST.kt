@@ -6,6 +6,12 @@ import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 
 sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
+
+    companion object {
+        fun <TypeWrapper> arrayOf(elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>) =
+            Array(Array.ArrayType(elementType))
+    }
+
     object Void : Type<Nothing>()
 
     object Integer : Type<Nothing>()
@@ -13,22 +19,29 @@ sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
     object Boolean : Type<Nothing>()
 
     data class Array<out TypeWrapper>(
-        val elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>
-    ) : Type<TypeWrapper>()
-
-    val Array<Identity<Of>>.baseType: Type<Nothing>
-        get() = when (val innerType = elementType.into().v.into()) {
-            is Array<Identity<Of>> -> innerType.baseType
-            is Void -> innerType
-            is Integer -> innerType
-            is Class -> innerType
-            is Boolean -> innerType
+        val arrayType: ArrayType<TypeWrapper>
+    ) : Type<TypeWrapper>() {
+        @JvmInline
+        value class ArrayType<out TypeWrapper>(
+            val elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>
+        ) : Kind<ArrayType<Of>, TypeWrapper> {
+            fun wrapArray() = Array(this)
         }
+    }
 
     data class Class(
         val name: Symbol
     ) : Type<Nothing>()
 }
+
+public val Type<Identity<Of>>.baseType: Type<Nothing>
+    get() = when (this) {
+        is Type.Array -> this.arrayType.elementType.into().v.into().baseType
+        is Type.Void -> this
+        is Type.Integer -> this
+        is Type.Class -> this
+        is Type.Boolean -> this
+    }
 
 /**
  * Sealed AST-Node class structure
@@ -90,7 +103,7 @@ object AST {
     data class Parameter<out OtherNodeWrapper>(
         val name: Symbol,
         val type: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
-    )
+    ) : Kind<Parameter<Of>, OtherNodeWrapper>
 
     /************************************************
      ** Statement
@@ -100,7 +113,7 @@ object AST {
 
     data class LocalVariableDeclarationStatement<E, O>(
         val name: Symbol,
-        val type: Type<O>,
+        val type: Kind<O, Kind<Type<Of>, O>>,
         val initializer: Kind<E, Kind<Expression<Of, O>, E>>?,
     ) : BlockStatement<Nothing, E, O>()
 
@@ -129,11 +142,11 @@ object AST {
 
     data class ReturnStatement<out E, out O>(
         val expression: Kind<E, Kind<Expression<Of, O>, E>>?,
-    ) : Statement<Nothing, E, Nothing>()
+    ) : Statement<Nothing, E, O>()
 
     data class ExpressionStatement<out E, out O>(
         val expression: Kind<E, Kind<Expression<Of, O>, E>>,
-    ) : Statement<Nothing, E, Nothing>()
+    ) : Statement<Nothing, E, O>()
 
     /************************************************
      ** Expression
@@ -227,7 +240,7 @@ object AST {
     ) : Expression<Nothing, Nothing>()
 
     data class NewArrayExpression<E, out O>(
-        val type: Kind<O, Kind<Type.Array<Of>, O>>,
+        val type: Kind<O, Kind<Type.Array.ArrayType<Of>, O>>,
         val length: Kind<E, Kind<Expression<Of, O>, E>>,
     ) : Expression<E, O>()
 }
@@ -257,37 +270,42 @@ abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
  */
 private fun String.toSymbol() = Symbol(this, isKeyword = false)
 
-class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
-    AstDsl<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>(res) {
+class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
+    AstDsl<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>>(res) {
     fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
         val members = ClassMemberDsl().also { it.block() }
-        this.res.add(AST.ClassDeclaration(name.toSymbol(), members.res).wrapValid())
+        this.res.add(
+            AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>(
+                name.toSymbol(),
+                members.res
+            ).wrapValid()
+        )
     }
 }
 
-class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
-    AstDsl<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>>>>(res) {
+class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) :
+    AstDsl<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>>>(res) {
 
-    fun param(name: String, type: Type) = AST.Parameter(name.toSymbol(), type)
+    fun param(name: String, type: Type<Lenient<Of>>) = AST.Parameter<Lenient<Of>>(name.toSymbol(), type.wrapValid())
 
-    fun field(name: String, type: Type) {
-        this.res.add(AST.Field(name.toSymbol(), type).wrapValid())
+    fun field(name: String, type: Type<Lenient<Of>>) {
+        this.res.add(AST.Field(name.toSymbol(), type.wrapValid()).wrapValid())
     }
 
     fun mainMethod(
         name: String,
-        returnType: Type,
-        vararg parameters: AST.Parameter,
+        returnType: Type<Lenient<Of>>,
+        vararg parameters: AST.Parameter<Lenient<Of>>,
         throws: String? = null,
         block: BlockStatementDsl.() -> Unit
     ) {
 
         this.res.add(
-            AST.MainMethod<Lenient<Of>, Lenient<Of>>(
+            AST.MainMethod<Lenient<Of>, Lenient<Of>, Lenient<Of>>(
                 name.toSymbol(),
-                returnType,
-                parameters.toList(),
-                AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
+                returnType.wrapValid(),
+                parameters.toList().map { it.wrapValid() },
+                AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>(BlockStatementDsl().also(block).res).wrapValid(),
                 throws?.toSymbol()
             ).wrapValid()
         )
@@ -295,17 +313,17 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
 
     fun method(
         name: String,
-        returnType: Type,
-        vararg parameters: AST.Parameter,
+        returnType: Type<Lenient<Of>>,
+        vararg parameters: AST.Parameter<Lenient<Of>>,
         throws: String? = null,
         block: BlockStatementDsl.() -> Unit
     ) {
         this.res.add(
-            AST.Method<Lenient<Of>, Lenient<Of>>(
+            AST.Method<Lenient<Of>, Lenient<Of>, Lenient<Of>>(
                 name.toSymbol(),
-                returnType,
-                parameters.toList(),
-                AST.Block(BlockStatementDsl().also(block).res).wrapValid(),
+                returnType.wrapValid(),
+                parameters.toList().map { it.wrapValid() },
+                AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>(BlockStatementDsl().also(block).res).wrapValid(),
                 throws?.toSymbol()
             ).wrapValid()
         )
@@ -316,39 +334,38 @@ object ExprDsl {
     fun <T> literal(v: T) = AST.LiteralExpression(v)
     fun binOp(
         op: AST.BinaryExpression.Operation,
-        left: ExprDsl.() -> AST.Expression<Lenient<Of>>,
-        right: ExprDsl.() -> AST.Expression<Lenient<Of>>
+        left: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
+        right: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>
     ) =
         AST.BinaryExpression(ExprDsl.left().wrapValid(), ExprDsl.right().wrapValid(), op)
 
     fun ident(name: String) = AST.IdentifierExpression(name.toSymbol())
 
     fun arrayAccess(
-        target: ExprDsl.() -> AST.Expression<Lenient<Of>>,
-        index: ExprDsl.() -> AST.Expression<Lenient<Of>>
+        target: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
+        index: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>
     ) = AST.ArrayAccessExpression(ExprDsl.target().wrapValid(), ExprDsl.index().wrapValid())
 
     fun fieldAccess(
-        left: ExprDsl.() -> AST.Expression<Lenient<Of>>,
+        left: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
         field: String
     ) = AST.FieldAccessExpression(ExprDsl.left().wrapValid(), field.toSymbol())
 
     fun newArrayOf(
-        type: Type.Array,
-        length: ExprDsl.() -> AST.Expression<Lenient<Of>>
-    ) = AST.NewArrayExpression(type, ExprDsl.length().wrapValid())
-
-    private tailrec fun getArrayBaseType(type: Type.Array): Type = when (type.elementType) {
-        is Type.Array -> getArrayBaseType(type.elementType)
-        else -> type
-    }
+        type: Type.Array.ArrayType<Lenient<Of>>,
+        length: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>
+    ) = AST.NewArrayExpression(type.wrapValid(), ExprDsl.length().wrapValid())
 }
 
-class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
-    fun localDeclaration(name: String, type: Type, initializer: (ExprDsl.() -> AST.Expression<Lenient<Of>>)? = null) {
+class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
+    fun localDeclaration(
+        name: String,
+        type: Type<Lenient<Of>>,
+        initializer: (ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>)? = null
+    ) {
         res.add(
-            AST.LocalVariableDeclarationStatement<Lenient<Of>>(
-                name.toSymbol(), type,
+            AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                name.toSymbol(), type.wrapValid(),
                 if (initializer != null) {
                     ExprDsl.initializer().wrapValid()
                 } else null
@@ -361,22 +378,39 @@ class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement<Lenient<
         res.add(AST.StmtWrapper(AST.Block(BlockStatementDsl().also(b).res)).wrapValid())
     }
 
-    fun expressionStatement(expr: ExprDsl.() -> AST.Expression<Lenient<Of>>) {
+    fun expressionStatement(expr: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>) {
         res.add(AST.StmtWrapper(AST.ExpressionStatement(ExprDsl.expr().wrapValid())).wrapValid())
     }
 
     fun ifStmt(
-        cond: ExprDsl.() -> AST.Expression<Lenient<Of>>,
-        trueStmt: StatementsDsl.() -> Unit,
-        falseStmt: (StatementsDsl.() -> Unit)? = null
-    ) = res.add(StatementsDsl().also { it.ifStmt(cond, trueStmt, falseStmt) }.res[0].map { it.wrapBlockStatement() })
+        cond: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
+        trueStmt: StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>,
+        falseStmt: (StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>)? = null
+    ) = res.add(StatementDsl.ifStmt(cond, trueStmt, falseStmt).wrapBlockStatement().wrapValid())
 }
 
-open class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
-    fun emptyStatement() = res.add(AST.EmptyStatement.wrapValid())
+object StatementDsl {
+    fun ifStmt(
+        cond: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
+        trueStmt: StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>,
+        falseStmt: (StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>)? = null
+    ) = AST.IfStatement(
+        ExprDsl.cond().wrapValid(),
+        StatementDsl.trueStmt().wrapValid(),
+        falseStmt?.let { StatementDsl.it().wrapValid() }
+    )
+}
+
+class StatementsDsl(val res: MutableList<Lenient<AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> = mutableListOf()) {
     fun block(b: StatementsDsl.() -> Unit) {
-        res.add(AST.Block(StatementsDsl().also(b).res).wrapValid())
+        res.add(AST.Block(StatementsDsl().also(b).res.map { it.map { it.wrapBlockStatement() } }).wrapValid())
     }
+
+    fun ifStmt(
+        cond: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,
+        trueStmt: StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>,
+        falseStmt: (StatementDsl.() -> AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>)? = null
+    ) = res.add(StatementDsl.ifStmt(cond, trueStmt, falseStmt).wrapValid())
 }
 
 fun astOf(block: ClassDeclarationDsl.() -> Unit) =
