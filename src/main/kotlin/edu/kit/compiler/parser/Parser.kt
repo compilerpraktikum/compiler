@@ -673,7 +673,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Operator.Type.LParen -> parseMethod(ident, type, anc)
                     else -> {
                         reportError(
-                            "illegal class member declaration. expected either `;` or `(`.",
+                            "illegal class member declaration. expected either a method declaration or `;`",
                             fieldMethodRestToken.position
                         )
                         recover(anc)
