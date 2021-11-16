@@ -466,8 +466,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             var peeked = peek(0)
 
             while (true) {
-                // read class members while we find `public` tokens
-                while (peeked is Token.Keyword && peeked.type == Token.Keyword.Type.Public) {
+                // read class members while we find visibility tokens. Most of them won't be accepted, but it will
+                // improve error messages
+                while (peeked in FirstFollowUtils.visibilityTokens) {
                     add(parseClassMember(anc + FirstFollowUtils.firstSetClassMember))
                     peeked = peek(0)
                 }
@@ -490,10 +491,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         FirstFollowUtils.firstSetFieldMethodPrefix + FirstFollowUtils.firstSetMainMethodPrefix
                     if (peeked in semiLegalAnchorSet.provide()) {
                         // this will be illegal, but we get better error reporting from it
-                        add(parseClassMember(anc + FirstFollowUtils.firstSetClassMember))
+                        add(parseClassMember(anc + FirstFollowUtils.visibilityTokens))
                     } else {
                         reportError(peeked, "expected class member definition")
-                        recover(anc + FirstFollowUtils.firstSetClassMember)
+                        recover(anc + FirstFollowUtils.visibilityTokens)
                     }
                     peeked = peek(0)
                 } else {
@@ -608,7 +609,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     FirstFollowUtils.firstSetBlock
             )
         } else {
-            reportError("expected one parameter of type `String[]`", peeked.position)
+            reportError(peeked, "expected one parameter of type `String[]`")
             recover(
                 anc +
                     anchorSetOf(

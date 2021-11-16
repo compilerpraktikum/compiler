@@ -44,6 +44,12 @@ object FirstFollowUtils {
         Token.Operator(Token.Operator.Type.BitOr)
     )
 
+    val visibilityTokens = anchorSetOf(
+        Token.Keyword(Token.Keyword.Type.Public),
+        Token.Keyword(Token.Keyword.Type.Protected),
+        Token.Keyword(Token.Keyword.Type.Private)
+    )
+
     val firstSetBasicType = anchorSetOf(
         Token.Keyword(Token.Keyword.Type.Int),
         Token.Keyword(Token.Keyword.Type.Boolean),
