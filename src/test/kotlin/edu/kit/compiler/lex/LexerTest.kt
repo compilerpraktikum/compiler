@@ -13,7 +13,7 @@ internal class LexerTest {
 
     @Test
     fun testNoInput() {
-        expectTokenSequence("", listOf(Token.Eof))
+        expectTokenSequence("", listOf(Token.Eof()))
     }
 
     @Test
@@ -27,7 +27,7 @@ internal class LexerTest {
                 Token.Identifier("HelloWorld".toSymbol()),
                 Token.Operator(Token.Operator.Type.LeftBrace),
                 Token.Literal("1234"),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -40,7 +40,7 @@ internal class LexerTest {
                 Token.Whitespace(" \n\r\t"),
                 Token.ErrorToken("", ""),
                 Token.ErrorToken("", ""),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -51,7 +51,7 @@ internal class LexerTest {
             "classthrowsabstract",
             listOf(
                 Token.Identifier("classthrowsabstract".toSymbol()),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -71,7 +71,7 @@ internal class LexerTest {
                 Token.Operator(Token.Operator.Type.Assign),
                 Token.Operator(Token.Operator.Type.Colon),
                 Token.Operator(Token.Operator.Type.Colon),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -82,7 +82,7 @@ internal class LexerTest {
             "/*/",
             listOf(
                 Token.ErrorToken("", ""),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -95,7 +95,7 @@ internal class LexerTest {
                 Token.Comment("/*/***/"),
                 Token.Operator(Token.Operator.Type.Mul),
                 Token.Operator(Token.Operator.Type.Div),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -108,7 +108,7 @@ internal class LexerTest {
                 Token.ErrorToken("", ""),
                 Token.ErrorToken("", ""),
                 Token.ErrorToken("", ""),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -140,7 +140,7 @@ internal class LexerTest {
                 Token.Literal("1"),
                 Token.Identifier("_012protected".toSymbol()),
                 Token.ErrorToken("", "ignore error message for test case"),
-                Token.Eof
+                Token.Eof()
             )
         )
     }
@@ -162,7 +162,7 @@ internal class LexerTest {
                 add(IDENTIFIER)
                 add(Token.Whitespace(" "))
             }
-            add(Token.Eof)
+            add(Token.Eof())
         }
 
         expectTokenSequence(input, expectedTokens, measureDuration = true)

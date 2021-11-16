@@ -127,7 +127,7 @@ value class AnchorSet(internal val tokens: Set<Token>) {
         return when (token) {
             is Token.Identifier -> tokens.any { it is Token.Identifier }
             is Token.Literal -> tokens.any { it is Token.Literal }
-            Token.Eof -> token in tokens
+            is Token.Eof -> token in tokens
             is Token.ErrorToken -> false
             is Token.Keyword -> token.type in tokens.mapNotNull { (it as? Token.Keyword)?.type }
             is Token.Operator -> token.type in tokens.mapNotNull { (it as? Token.Operator)?.type }

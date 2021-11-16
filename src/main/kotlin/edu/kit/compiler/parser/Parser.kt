@@ -32,7 +32,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
      * Parse the lexer stream into an AST.
      */
     override fun parse(): Lenient<LenientProgram> {
-        val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof).intoUnion())
+        val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof()).intoUnion())
         val eof = expect<Token.Eof>(anchorSetOf().intoUnion()) { "expected end of file" }
 
         return if (eof.isPresent)
@@ -412,7 +412,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         return buildList {
-            while (peek(0) != Token.Eof) {
+            while (peek(0) !is Token.Eof) {
                 val classKeyword = expectKeyword(
                     Token.Keyword.Type.Class,
                     anc +
@@ -429,7 +429,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         anchorSetOf(
                             Token.Operator(Token.Operator.Type.LeftBrace),
                             Token.Operator(Token.Operator.Type.RightBrace),
-                            Token.Eof
+                            Token.Eof()
                         ) +
                         FirstFollowUtils.firstSetClassMembers
                 ) { "expected class name" }
