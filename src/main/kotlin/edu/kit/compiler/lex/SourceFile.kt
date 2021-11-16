@@ -14,14 +14,16 @@ enum class AnnotationType(private val str: String) {
 }
 
 interface AnnotatableFile {
-    fun annotate(type: AnnotationType, position: SourcePosition, message: String)
+    fun annotate(type: AnnotationType, range: SourceRange, message: String, note: String? = null)
+    fun annotate(type: AnnotationType, position: SourcePosition, message: String, note: String? = null) {
+        annotate(type, position.extend(1), message, note)
+    }
 }
-
-private val Char.isInvisible
-    get() = (this == '\r')
 
 private val Char.isNewLine
     get() = (this == '\n')
+
+private fun String.normalizeLineEndings() = replace("\r\n", "\n").replace("\r", "\n")
 
 class SourceFile
 private constructor(
@@ -34,15 +36,15 @@ private constructor(
          * @throws[java.io.IOException]
          */
         fun from(path: Path): SourceFile {
-            val content = Files.readString(path, StandardCharsets.US_ASCII)
+            val content = Files.readString(path, StandardCharsets.US_ASCII).normalizeLineEndings()
             return SourceFile(path.absolutePathString(), StringInputProvider(content))
         }
 
         fun from(path: String, content: String) = SourceFile(path, StringInputProvider(content))
     }
 
-    var currentPosition = SourcePosition(1, 0)
-        private set
+    val currentPosition: SourcePosition
+        get() = SourcePosition(this, input.cursor)
 
     /**
      * Map: line number -> start of that line in [input]
@@ -55,18 +57,16 @@ private constructor(
         val char = input.next()
 
         if (char.isNewLine) {
-            lineStarts.add(input.cursor)
-        }
-
-        currentPosition = when {
-            char.isNewLine -> currentPosition.nextLine()
-            char.isInvisible -> currentPosition
-            else -> currentPosition.nextColumn()
+            lineStarts.add(input.cursor + 1)
         }
 
         return char
     }
 
+    /**
+     * Retrieve the source content in the given line.
+     * @return the source content excluding the newline character before and after the line
+     */
     fun getLine(line: Int): String {
         require(line > 0) { "line must be > 0" }
         val lineIndex = line - 1
@@ -79,20 +79,25 @@ private constructor(
             lineStarts[lineIndex + 1] - 1
         } else {
             // search next newline
-            var current = start + 1
+            var current = start
             while (current < input.limit && !input.get(current).isNewLine) {
                 current += 1
             }
             current
         }
 
-        return buildString(end - start - 1) {
-            for (i in start until end) {
-                val char = input.get(i)
-                if (!char.isInvisible) {
-                    append(char)
-                }
-            }
+        return input.substring(start, end)
+    }
+
+    fun calculateLineAndColumn(offset: Int): Pair<Int, Int> {
+        require(offset >= 0) { "offset must be > 0" }
+        val index = lineStarts.binarySearch(offset)
+        if (index >= 0) {
+            return Pair(index + 1, 1)
+        } else {
+            // reconstruct the insertion index (-index - 1), start of line offset is smaller than [offset] so take the element before insertion index
+            val startIndex = -index - 2
+            return Pair(startIndex + 1, offset - lineStarts[startIndex] + 1)
         }
     }
 
@@ -100,8 +105,8 @@ private constructor(
         private set
     private val annotations: MutableMap<Int, ArrayList<Annotation>> = TreeMap() // line -> annotations
 
-    override fun annotate(type: AnnotationType, position: SourcePosition, message: String) {
-        annotations.computeIfAbsent(position.line) { ArrayList() }.add(Annotation(type, position, message))
+    override fun annotate(type: AnnotationType, range: SourceRange, message: String, note: String?) {
+        annotations.computeIfAbsent(range.start.line) { ArrayList() }.add(Annotation(type, range, message, note))
         if (type == AnnotationType.ERROR) {
             hasError = true
         }
@@ -122,7 +127,8 @@ private constructor(
 
     data class Annotation(
         val type: AnnotationType,
-        val position: SourcePosition,
+        val range: SourceRange,
         val message: String,
+        val note: String?,
     )
 }

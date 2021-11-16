@@ -27,7 +27,7 @@ class RecoveryTest {
         val annotations = sourceFile.getAnnotations().toList()
         assertEquals(expectedErrorPositions.size, annotations.size)
 
-        for ((index, a) in annotations.map(SourceFile.Annotation::position).withIndex()) {
+        for ((index, a) in annotations.map(SourceFile.Annotation::range).withIndex()) {
             // todo check that expected source positions of annotations match results
         }
     }
