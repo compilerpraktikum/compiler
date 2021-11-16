@@ -116,7 +116,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
      */
     protected fun recover(anchorSet: AnchorUnion) {
         val anc = anchorSet.provide()
-        while (peek() !in anc) next()
+        while (peek() !in anc && peek() !is Token.Eof) next()
     }
 
     /**
