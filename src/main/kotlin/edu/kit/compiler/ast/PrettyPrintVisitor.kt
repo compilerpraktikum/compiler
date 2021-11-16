@@ -300,7 +300,7 @@ class PrettyPrintVisitor(
 
     override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<Identity<Of>>) {
         printParanthesesMaybe {
-            arrayAccessExpression.target.accept(this)
+            doParenthesizedMaybe(true) { arrayAccessExpression.target.accept(this) }
             print("[")
             doParenthesizedMaybe(false) { arrayAccessExpression.index.accept(this) }
             print("]")
