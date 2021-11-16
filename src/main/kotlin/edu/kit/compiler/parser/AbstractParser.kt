@@ -35,7 +35,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
+    abstract fun parse(): AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
 
     /**
      * Expect and return a token of type [T].

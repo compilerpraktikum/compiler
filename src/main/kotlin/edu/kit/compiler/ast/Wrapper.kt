@@ -313,6 +313,8 @@ inline fun <ExprW1, ExprW2, OtherW1, OtherW2> AST.Expression<ExprW1, OtherW1>.ma
 typealias ProgramOfLenient = AST.Program<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>
 typealias ProgramOfIdentity = AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>
 
+fun Lenient<ProgramOfLenient>.validate(): ProgramOfIdentity? = this.unwrapOr { return null }.validate()
+
 fun ProgramOfLenient.validate(): ProgramOfIdentity? =
     this.mapClassW { Identity(it.into().unwrapOr { return null }.validate() ?: return null) }
 
