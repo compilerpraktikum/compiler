@@ -595,14 +595,30 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 FirstFollowUtils.firstSetBlock
         ) { "missing opening parenthesis" }
 
-        val parameter = parseParameter(
-            anc +
-                anchorSetOf(
-                    Token.Operator(Token.Operator.Type.RParen),
-                    Token.Keyword(Token.Keyword.Type.Throws),
-                ) +
-                FirstFollowUtils.firstSetBlock
-        )
+        // manually check if a parameter can be parsed before trying, so we can report a more sensible error message
+        // than `expected type`
+        val peeked = peek()
+        val parameter = if (peeked in FirstFollowUtils.firstSetParameter) {
+            parseParameter(
+                anc +
+                    anchorSetOf(
+                        Token.Operator(Token.Operator.Type.RParen),
+                        Token.Keyword(Token.Keyword.Type.Throws),
+                    ) +
+                    FirstFollowUtils.firstSetBlock
+            )
+        } else {
+            reportError("expected one parameter of type `String[]`", peeked.position)
+            recover(
+                anc +
+                    anchorSetOf(
+                        Token.Operator(Token.Operator.Type.RParen),
+                        Token.Keyword(Token.Keyword.Type.Throws),
+                    ) +
+                    FirstFollowUtils.firstSetBlock
+            )
+            Lenient.Error(null)
+        }
 
         val rightParen = expectOperator(
             Token.Operator.Type.RParen,
