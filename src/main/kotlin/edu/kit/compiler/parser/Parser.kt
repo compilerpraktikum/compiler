@@ -55,7 +55,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     innerExpr
                 } else {
                     reportError(
-                        "illegal token `${peekedToken.debugRepr}`, expected primary expression",
+                        "illegal token `${peekedToken.debugRepr}`, expected expression",
                         peekedToken.position
                     )
                     recover(anc)
@@ -104,7 +104,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                     else -> {
                         reportError(
-                            "illegal token `${peekedToken.debugRepr}`. expected primary expression",
+                            "illegal token `${peekedToken.debugRepr}`. expected expression",
                             peekedToken.position
                         )
                         recover(anc)
@@ -114,7 +114,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             }
             else -> {
                 reportError(
-                    "illegal token `${peekedToken.debugRepr}`. expected primary expression",
+                    "illegal token `${peekedToken.debugRepr}`. expected expression",
                     peekedToken.position
                 )
                 recover(anc)
@@ -485,7 +485,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val childNode = when (val token = peek(0)) {
             is Token.Keyword -> {
-                return when (token.type) {
+                when (token.type) {
                     Token.Keyword.Type.Static -> parseMainMethod(anc)
                     Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
                         parseFieldMethodPrefix(anc)
