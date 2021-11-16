@@ -1031,7 +1031,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseParameters(anc: AnchorUnion): List<Lenient<AST.Parameter<Lenient<Of>>>> {
         return buildList {
-            add(parseParameter(anc + anchorSetOf(Token.Operator(Token.Operator.Type.Comma)) + FirstFollowUtils.firstSetParameter))
+            add(parseParameter(anc + anchorSetOf(Token.Operator(Token.Operator.Type.Comma))))
 
             var maybeCommaToken = peek(0)
             while (maybeCommaToken is Token.Operator && maybeCommaToken.type == Token.Operator.Type.Comma) {
@@ -1044,7 +1044,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseParameter(anc: AnchorUnion): Lenient<AST.Parameter<Lenient<Of>>> {
         val type = parseType(anc + anchorSetOf(Token.Identifier.Placeholder))
-        val ident = expectIdentifier(anc) { "expected identifier" }
+        val ident = expectIdentifier(anc) { "expected parameter name identifier" }
 
         return if (ident.isPresent) {
             AST.Parameter(ident.get().name, type).wrapValid()
