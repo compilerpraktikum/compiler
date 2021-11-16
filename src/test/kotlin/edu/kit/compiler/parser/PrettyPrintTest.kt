@@ -97,18 +97,21 @@ class PrettyPrintTest {
     fun testArrayAccessExpression() {
         runTestEqualsAndIdemPotence(
             """
-            class Test {
-                public void m() {
-                    a[2 * (-i + 1)][2];
-                }
+        	class Test {
+            	public void m() {
+            		a[2 * (-i + 1)][2];
+            		a.b[42];
+					new int[5][4];
+				}
             }
             """.trimIndent(),
-            """
-            class Test {
-            	public void m() {
-            		a[2 * ((-i) + 1)][2];
-            	}
-            }
+            """class Test {
+	public void m() {
+		(a[2 * ((-i) + 1)])[2];
+		(a.b)[42];
+		(new int[5])[4];
+	}
+}
 
             """.trimIndent()
         )
