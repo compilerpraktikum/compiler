@@ -492,7 +492,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         // this will be illegal, but we get better error reporting from it
                         add(parseClassMember(anc + FirstFollowUtils.firstSetClassMember))
                     } else {
-                        reportError("expected class member definition", peeked.position)
+                        reportError(peeked, "expected class member definition")
                         recover(anc + FirstFollowUtils.firstSetClassMember)
                     }
                     peeked = peek(0)
