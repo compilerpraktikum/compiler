@@ -308,9 +308,9 @@ class PrettyPrintVisitor(
         }
     }
 
-    override fun visit(indentifierExpression: AST.IdentifierExpression) {
-        // never print parantheses
-        print(indentifierExpression.name.text)
+    override fun visit(identifierExpression: AST.IdentifierExpression) {
+        // never print parentheses
+        print(identifierExpression.name.text)
     }
 
     override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {

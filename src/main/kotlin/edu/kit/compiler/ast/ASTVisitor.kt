@@ -2,63 +2,63 @@ package edu.kit.compiler.ast
 
 interface ASTVisitor<E, S, D, C, O> {
 
-    abstract fun visit(program: AST.Program<E, S, D, C, O>)
+    fun visit(program: AST.Program<E, S, D, C, O>)
 
-    abstract fun visit(classDeclaration: AST.ClassDeclaration<E, S, D, O>)
+    fun visit(classDeclaration: AST.ClassDeclaration<E, S, D, O>)
 
-    abstract fun visit(field: AST.Field<O>)
+    fun visit(field: AST.Field<O>)
 
-    abstract fun visit(method: AST.Method<E, S, O>)
+    fun visit(method: AST.Method<E, S, O>)
 
-    abstract fun visit(mainMethod: AST.MainMethod<E, S, O>)
+    fun visit(mainMethod: AST.MainMethod<E, S, O>)
 
-    abstract fun visit(parameter: AST.Parameter<O>)
+    fun visit(parameter: AST.Parameter<O>)
 
-    abstract fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<E, O>)
+    fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<E, O>)
 
-    abstract fun visit(block: AST.Block<E, S, O>)
+    fun visit(block: AST.Block<E, S, O>)
 
-    abstract fun visit(ifStatement: AST.IfStatement<E, S, O>)
+    fun visit(ifStatement: AST.IfStatement<E, S, O>)
 
-    abstract fun visit(whileStatement: AST.WhileStatement<E, S, O>)
+    fun visit(whileStatement: AST.WhileStatement<E, S, O>)
 
-    abstract fun visit(returnStatement: AST.ReturnStatement<E, O>)
+    fun visit(returnStatement: AST.ReturnStatement<E, O>)
 
-    abstract fun visit(binaryExpression: AST.BinaryExpression<E, O>)
+    fun visit(binaryExpression: AST.BinaryExpression<E, O>)
 
-    abstract fun visit(unaryExpression: AST.UnaryExpression<E, O>)
+    fun visit(unaryExpression: AST.UnaryExpression<E, O>)
 
-    abstract fun visit(methodInvocationExpression: AST.MethodInvocationExpression<E, O>)
+    fun visit(methodInvocationExpression: AST.MethodInvocationExpression<E, O>)
 
-    abstract fun visit(fieldAccessExpression: AST.FieldAccessExpression<E, O>)
+    fun visit(fieldAccessExpression: AST.FieldAccessExpression<E, O>)
 
-    abstract fun visit(arrayAccessExpression: AST.ArrayAccessExpression<E, O>)
+    fun visit(arrayAccessExpression: AST.ArrayAccessExpression<E, O>)
 
-    abstract fun visit(identifierExpression: AST.IdentifierExpression)
+    fun visit(identifierExpression: AST.IdentifierExpression)
 
-    abstract fun <T> visit(literalExpression: AST.LiteralExpression<T>)
+    fun <T> visit(literalExpression: AST.LiteralExpression<T>)
 
-    abstract fun visit(newObjectExpression: AST.NewObjectExpression)
+    fun visit(newObjectExpression: AST.NewObjectExpression)
 
-    abstract fun visit(newArrayExpression: AST.NewArrayExpression<E, O>)
+    fun visit(newArrayExpression: AST.NewArrayExpression<E, O>)
 
-    abstract fun visit(voidType: Type.Void)
+    fun visit(voidType: Type.Void)
 
-    abstract fun visit(integerType: Type.Integer)
+    fun visit(integerType: Type.Integer)
 
-    abstract fun visit(booleanType: Type.Boolean)
+    fun visit(booleanType: Type.Boolean)
 
-    abstract fun visit(arrayType: Type.Array<O>)
+    fun visit(arrayType: Type.Array<O>)
 
-    abstract fun visit(arrayType: Type.Array.ArrayType<O>)
+    fun visit(arrayType: Type.Array.ArrayType<O>)
 
-    abstract fun visit(classType: Type.Class)
+    fun visit(classType: Type.Class)
 
-    abstract fun visit(operation: AST.BinaryExpression.Operation)
+    fun visit(operation: AST.BinaryExpression.Operation)
 
-    abstract fun visit(operation: AST.UnaryExpression.Operation)
+    fun visit(operation: AST.UnaryExpression.Operation)
 
-    abstract fun visit(expressionStatement: AST.ExpressionStatement<E, O>)
+    fun visit(expressionStatement: AST.ExpressionStatement<E, O>)
 }
 
 fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
