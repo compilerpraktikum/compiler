@@ -824,10 +824,18 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseBlockStatements(anc: AnchorUnion): List<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         // at least one should exist at this point.
-        return buildList<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+        return buildList {
             var peeked = peek(0)
-            while (!(peeked is Token.Operator && peeked.type == Token.Operator.Type.RightBrace)) {
-                add(parseBlockStatement(anc + FirstFollowUtils.firstSetBlockStatement))
+
+            /*
+             * Intervention: because the loop waits for a specific token to arise, it makes zero sense to recover to
+             * tokens from anchor sets outside of the loop. We will therefore replace the anchorset with one that
+             * contains only tokens from the loop condition, to prevent the parser from spinning on missplaced tokens
+             * that are in the anchor set.
+             */
+            val loopAnchor = anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace), Token.Eof())
+            while (peeked !in loopAnchor) {
+                add(parseBlockStatement(loopAnchor + FirstFollowUtils.firstSetBlockStatement))
                 peeked = peek(0)
             }
         }
