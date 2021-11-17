@@ -1,7 +1,6 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import kotlinx.coroutines.flow.Flow
 
 /**
  * Generic base class for lexers.
