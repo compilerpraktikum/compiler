@@ -478,3 +478,29 @@ private object DocsCodeSnippets {
             }
     }
 }
+
+/**
+ * This interface can be implemented for Wrappers [F], that
+ * allow for extracting a contained value [A] from the wrapper.
+ *
+ * There is an extension function [unwrap], that can be used
+ * extract the value inside a Wrapper.
+ * See [WrappingExample.unwrappedValue] for an example
+ *
+ *
+ * @sample WrappingExample
+ */
+interface Unwrappable<F> {
+    fun <A> unwrapValue(fa: Kind<F, A>): A
+}
+
+object UnwrappableIdentity : Unwrappable<Identity<Of>> {
+    override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
+}
+
+fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
+
+private object WrappingExample {
+    val wrappedValue: Kind<Identity<Of>, AST.Expression<Of, Identity<Of>>> = TODO()
+    val unwrappedValue: AST.Expression<Of, Identity<Of>> = wrappedValue.unwrap(UnwrappableIdentity)
+}

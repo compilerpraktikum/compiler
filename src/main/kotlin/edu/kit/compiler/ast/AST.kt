@@ -53,22 +53,22 @@ object AST {
      ************************************************/
 
     /**
-     * @param ExpressionWrapper Wrapper for Expression Nodes
-     * @param StatementWrapper Wrapper for Statements and Block Statement Nodes
-     * @param MethodWrapper Wrapper for Method and Field Nodes
-     * @param ClassWrapper Wrapper for Classes
-     * @param OtherNodeWrapper Wrapper for the rest other Nodes, could fail in parsing
+     * @param ExprW Wrapper for Expression Nodes
+     * @param StmtW Wrapper for Statements and Block Statement Nodes
+     * @param MethodW Wrapper for Method and Field Nodes
+     * @param ClassW Wrapper for Classes
+     * @param OtherW Wrapper for the rest other Nodes, could fail in parsing
      */
-    data class Program<ExpressionWrapper, StatementWrapper, MethodWrapper, ClassWrapper, OtherNodeWrapper>(
-        val classes: List<Kind<ClassWrapper, ClassDeclaration<ExpressionWrapper, StatementWrapper, MethodWrapper, OtherNodeWrapper>>>,
+    data class Program<ExprW, StmtW, MethodW, ClassW, OtherW>(
+        val classes: List<Kind<ClassW, ClassDeclaration<ExprW, StmtW, MethodW, OtherW>>>,
     )
 
-    data class ClassDeclaration<ExpressionWrapper, StatementWrapper, MethodWrapper, OtherNodeWrapper>(
+    data class ClassDeclaration<ExprW, StmtW, MethodW, OtherW>(
         val name: Symbol,
-        val member: List<Kind<MethodWrapper, ClassMember<ExpressionWrapper, StatementWrapper, OtherNodeWrapper>>>,
+        val member: List<Kind<MethodW, ClassMember<ExprW, StmtW, OtherW>>>,
     )
 
-    sealed class ClassMember<out ExpressionWrapper, out StatementWrapper, out OtherNodeWrapper> {
+    sealed class ClassMember<out ExprW, out StmtW, out OtherW> {
         val memberName: Symbol
             get() = when (this) {
                 is Field -> name
@@ -77,88 +77,88 @@ object AST {
             }
     }
 
-    data class Field<out OtherNodeWrapper>(
+    data class Field<out OtherW>(
         val name: Symbol,
-        val type: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
-    ) : ClassMember<Nothing, Nothing, OtherNodeWrapper>()
+        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
+    ) : ClassMember<Nothing, Nothing, OtherW>()
 
-    data class Method<out E, out S, out O>(
+    data class Method<out ExprW, out StmtW, out OtherW>(
         val name: Symbol,
-        val returnType: Kind<O, Kind<Type<Of>, O>>,
-        val parameters: List<Kind<O, Kind<Parameter<Of>, O>>>,
-        val block: Kind<S, Block<E, S, O>>,
+        val returnType: Kind<OtherW, Kind<Type<Of>, OtherW>>,
+        val parameters: List<Kind<OtherW, Kind<Parameter<Of>, OtherW>>>,
+        val block: Kind<StmtW, Block<ExprW, StmtW, OtherW>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<E, S, O>()
+    ) : ClassMember<ExprW, StmtW, OtherW>()
 
-    data class MainMethod<out E, out S, O>(
+    data class MainMethod<out ExprW, out StmtW, OtherW>(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Symbol,
-        val returnType: Kind<O, Kind<Type<Of>, O>>,
-        val parameters: List<Kind<O, Kind<Parameter<Of>, O>>>,
-        val block: Kind<S, Block<E, S, O>>,
+        val returnType: Kind<OtherW, Kind<Type<Of>, OtherW>>,
+        val parameters: List<Kind<OtherW, Kind<Parameter<Of>, OtherW>>>,
+        val block: Kind<StmtW, Block<ExprW, StmtW, OtherW>>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<E, S, O>()
+    ) : ClassMember<ExprW, StmtW, OtherW>()
 
-    data class Parameter<out OtherNodeWrapper>(
+    data class Parameter<out OtherW>(
         val name: Symbol,
-        val type: Kind<OtherNodeWrapper, Kind<Type<Of>, OtherNodeWrapper>>,
-    ) : Kind<Parameter<Of>, OtherNodeWrapper>
+        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
+    ) : Kind<Parameter<Of>, OtherW>
 
     /************************************************
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement<out E, out S, out O> : Kind<BlockStatement<E, Of, O>, S>
+    sealed class BlockStatement<out ExprW, out StmtW, out OtherW> : Kind<BlockStatement<ExprW, Of, OtherW>, StmtW>
 
-    data class LocalVariableDeclarationStatement<E, O>(
+    data class LocalVariableDeclarationStatement<ExprW, OtherW>(
         val name: Symbol,
-        val type: Kind<O, Kind<Type<Of>, O>>,
-        val initializer: Kind<E, Kind<Expression<Of, O>, E>>?,
-    ) : BlockStatement<E, Nothing, O>()
+        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
+        val initializer: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
+    ) : BlockStatement<ExprW, Nothing, OtherW>()
 
-    data class StmtWrapper<E, S, O>(val statement: Statement<E, S, O>) : BlockStatement<E, S, O>()
+    data class StmtWrapper<ExprW, StmtW, OtherW>(val statement: Statement<ExprW, StmtW, OtherW>) : BlockStatement<ExprW, StmtW, OtherW>()
 
-    sealed class Statement<out E, out S, out O> : Kind<Statement<E, Of, O>, S>
+    sealed class Statement<out ExprW, out StmtW, out OtherW> : Kind<Statement<ExprW, Of, OtherW>, StmtW>
 
-    fun <E, S, O> Statement<E, S, O>.wrapBlockStatement(): StmtWrapper<E, S, O> = StmtWrapper(this)
+    fun <ExprW, StmtW, OtherW> Statement<ExprW, StmtW, OtherW>.wrapBlockStatement(): StmtWrapper<ExprW, StmtW, OtherW> = StmtWrapper(this)
 
     val emptyStatement = Block<Nothing, Nothing, Nothing>(listOf())
 
-    data class Block<out E, out S, out O>(
-        val statements: List<Kind<S, Kind<BlockStatement<E, Of, O>, S>>>,
-    ) : Statement<E, S, O>()
+    data class Block<out ExprW, out StmtW, out OtherW>(
+        val statements: List<Kind<StmtW, Kind<BlockStatement<ExprW, Of, OtherW>, StmtW>>>,
+    ) : Statement<ExprW, StmtW, OtherW>()
 
-    data class IfStatement<out E, out S, out O>(
-        val condition: Kind<E, Kind<Expression<Of, O>, E>>,
-        val trueStatement: Kind<S, Kind<Statement<E, Of, O>, S>>,
-        val falseStatement: Kind<S, Kind<Statement<E, Of, O>, S>>?
-    ) : Statement<E, S, O>()
+    data class IfStatement<out ExprW, out StmtW, out OtherW>(
+        val condition: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+        val trueStatement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>,
+        val falseStatement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>?
+    ) : Statement<ExprW, StmtW, OtherW>()
 
-    data class WhileStatement<out E, out S, out O>(
-        val condition: Kind<E, Kind<Expression<Of, O>, E>>,
-        val statement: Kind<S, Kind<Statement<E, Of, O>, S>>,
-    ) : Statement<E, S, O>()
+    data class WhileStatement<out ExprW, out StmtW, out OtherW>(
+        val condition: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+        val statement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>,
+    ) : Statement<ExprW, StmtW, OtherW>()
 
-    data class ReturnStatement<out E, out O>(
-        val expression: Kind<E, Kind<Expression<Of, O>, E>>?,
-    ) : Statement<E, Nothing, O>()
+    data class ReturnStatement<out ExprW, out OtherW>(
+        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
+    ) : Statement<ExprW, Nothing, OtherW>()
 
-    data class ExpressionStatement<out E, out O>(
-        val expression: Kind<E, Kind<Expression<Of, O>, E>>,
-    ) : Statement<E, Nothing, O>()
+    data class ExpressionStatement<out ExprW, out OtherW>(
+        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    ) : Statement<ExprW, Nothing, OtherW>()
 
     /************************************************
      ** Expression
      ************************************************/
 
-    sealed class Expression<out E, out O> : Kind<Expression<Of, O>, E>
+    sealed class Expression<out ExprW, out OtherW> : Kind<Expression<Of, OtherW>, ExprW>
 
-    data class BinaryExpression<E, O>(
-        val left: Kind<E, Kind<Expression<Of, O>, E>>,
-        val right: Kind<E, Kind<Expression<Of, O>, E>>,
+    data class BinaryExpression<ExprW, OtherW>(
+        val left: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+        val right: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
         val operation: Operation
-    ) : Expression<E, O>() {
+    ) : Expression<ExprW, OtherW>() {
         enum class Operation(
             val precedence: Int,
             val associativity: Associativity,
@@ -195,10 +195,10 @@ object AST {
         }
     }
 
-    data class UnaryExpression<out E, out O>(
-        val expression: Kind<E, Kind<Expression<Of, O>, E>>,
+    data class UnaryExpression<out ExprW, out OtherW>(
+        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
         val operation: Operation
-    ) : Expression<E, O>() {
+    ) : Expression<ExprW, OtherW>() {
         enum class Operation(
             val repr: String
         ) {
@@ -207,21 +207,21 @@ object AST {
         }
     }
 
-    data class MethodInvocationExpression<E, O>(
-        val target: Kind<E, Kind<Expression<Of, O>, E>>?,
+    data class MethodInvocationExpression<ExprW, OtherW>(
+        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
         val method: Symbol,
-        val arguments: List<Kind<E, Kind<Expression<Of, O>, E>>>
-    ) : Expression<E, O>()
+        val arguments: List<Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>>
+    ) : Expression<ExprW, OtherW>()
 
-    data class FieldAccessExpression<E, O>(
-        val target: Kind<E, Kind<Expression<Of, O>, E>>,
+    data class FieldAccessExpression<ExprW, OtherW>(
+        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
         val field: Symbol,
-    ) : Expression<E, O>()
+    ) : Expression<ExprW, OtherW>()
 
-    data class ArrayAccessExpression<E, O>(
-        val target: Kind<E, Kind<Expression<Of, O>, E>>,
-        val index: Kind<E, Kind<Expression<Of, O>, E>>,
-    ) : Expression<E, O>()
+    data class ArrayAccessExpression<ExprW, OtherW>(
+        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+        val index: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    ) : Expression<ExprW, OtherW>()
 
     /************************************************
      ** Primary expression
@@ -239,10 +239,10 @@ object AST {
         val clazz: Symbol,
     ) : Expression<Nothing, Nothing>()
 
-    data class NewArrayExpression<E, out O>(
-        val type: Kind<O, Kind<Type.Array.ArrayType<Of>, O>>,
-        val length: Kind<E, Kind<Expression<Of, O>, E>>,
-    ) : Expression<E, O>()
+    data class NewArrayExpression<ExprW, out OtherW>(
+        val type: Kind<OtherW, Kind<Type.Array.ArrayType<Of>, OtherW>>,
+        val length: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    ) : Expression<ExprW, OtherW>()
 }
 
 fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when (this) {
