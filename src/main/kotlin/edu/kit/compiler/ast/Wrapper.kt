@@ -146,9 +146,9 @@ fun <A> Kind<AST.Parameter<Of>, A>.into(): AST.Parameter<A> = this as AST.Parame
  */
 fun <A, O> Kind<AST.Expression<Of, O>, A>.into(): AST.Expression<A, O> = this as AST.Expression<A, O>
 
-fun <S, E, O> Kind<AST.Statement<Of, E, O>, S>.into(): AST.Statement<S, E, O> = this as AST.Statement<S, E, O>
-fun <S, E, O> Kind<AST.BlockStatement<Of, E, O>, S>.into(): AST.BlockStatement<S, E, O> =
-    this as AST.BlockStatement<S, E, O>
+fun <E, S, O> Kind<AST.Statement<E, Of, O>, S>.into(): AST.Statement<E, S, O> = this as AST.Statement<E, S, O>
+fun <E, S, O> Kind<AST.BlockStatement<E, Of, O>, S>.into(): AST.BlockStatement<E, S, O> =
+    this as AST.BlockStatement<E, S, O>
 
 /**
  * Wrapper type, that ignores its contents (aka. a Constant Functor over `A`)
@@ -228,12 +228,12 @@ inline fun <OtherW1, OtherW2> AST.Parameter<OtherW1>.mapOtherW(
 ): AST.Parameter<OtherW2> =
     AST.Parameter(name, f(type))
 
-inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<StmtW1, ExprW1, OtherW1>.mapStmt(
-    mapBlockStatement: (Kind<StmtW1, Kind<AST.BlockStatement<Of, ExprW1, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.BlockStatement<Of, ExprW2, OtherW2>, StmtW2>>,
-    mapStatement: (Kind<StmtW1, Kind<AST.Statement<Of, ExprW1, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.Statement<Of, ExprW2, OtherW2>, StmtW2>>,
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<ExprW1, StmtW1, OtherW1>.mapStmt(
+    mapBlockStatement: (Kind<StmtW1, Kind<AST.BlockStatement<ExprW1, Of, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.BlockStatement<ExprW2, Of, OtherW2>, StmtW2>>,
+    mapStatement: (Kind<StmtW1, Kind<AST.Statement<ExprW1, Of, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.Statement<ExprW2, Of, OtherW2>, StmtW2>>,
     mapExpression: (Kind<ExprW1, Kind<AST.Expression<Of, OtherW1>, ExprW1>>) -> Kind<ExprW2, Kind<AST.Expression<Of, OtherW2>, ExprW2>>,
 ):
-    AST.Statement<StmtW2, ExprW2, OtherW2> = when (this) {
+    AST.Statement<ExprW2, StmtW2, OtherW2> = when (this) {
     is AST.Block -> AST.Block(
         this.statements.map { mapBlockStatement(it) }
     ).into()
@@ -261,12 +261,12 @@ inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<Stmt
         )
 }
 
-inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.BlockStatement<StmtW1, ExprW1, OtherW1>.mapBlockStmt(
-    mapStatement: (AST.Statement<StmtW1, ExprW1, OtherW1>) -> AST.Statement<StmtW2, ExprW2, OtherW2>,
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.BlockStatement<ExprW1, StmtW1, OtherW1>.mapBlockStmt(
+    mapStatement: (AST.Statement<ExprW1, StmtW1, OtherW1>) -> AST.Statement<ExprW2, StmtW2, OtherW2>,
     mapExpression: (Kind<ExprW1, Kind<AST.Expression<Of, OtherW1>, ExprW1>>) -> Kind<ExprW2, Kind<AST.Expression<Of, OtherW2>, ExprW2>>,
     mapType: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
 ):
-    AST.BlockStatement<StmtW2, ExprW2, OtherW2> =
+    AST.BlockStatement<ExprW2, StmtW2, OtherW2> =
     when (this) {
         is AST.LocalVariableDeclarationStatement ->
             AST.LocalVariableDeclarationStatement(name, mapType(type), initializer?.let { mapExpression(it) })

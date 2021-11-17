@@ -1,136 +1,155 @@
 package edu.kit.compiler.ast
 
+import edu.kit.compiler.lex.Symbol
+
 /**
  * This interface is inhabited by Wrappers [F], where
  * their wrapped value can be extracted from:
  * @sample IntoWrapperExample
  */
-interface IntoWrapper<F> {
-    fun <A> intoW(fa: Kind<F, A>): A
+interface Unwrappable<F> {
+    fun <A> unwrapValue(fa: Kind<F, A>): A
 }
 
-object IntoWrapperExample {
-    object IntoWrapperIdentity : IntoWrapper<Identity<Of>> {
-        override fun <A> intoW(fa: Kind<Identity<Of>, A>) = fa.into().v
+fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
+
+private object IntoWrapperExample {
+    object IntoWrapperIdentity : Unwrappable<Identity<Of>> {
+        override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
     }
+
     val wrappedValue: Kind<Identity<Of>, AST.Expression<Of, Identity<Of>>> = TODO()
-    val notWrappedValue: AST.Expression<Of, Identity<Of>> = IntoWrapperIdentity.intoW(wrappedValue)
+    val notWrappedValue: AST.Expression<Of, Identity<Of>> = wrappedValue.unwrap(IntoWrapperIdentity)
 }
 
 abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
-    val intoExpr: IntoWrapper<ExprW>,
-    val intoStmt: IntoWrapper<StmtW>,
-    val intoDecl: IntoWrapper<DeclW>,
-    private val intoClass: IntoWrapper<ClassW>,
-    val intoOther: IntoWrapper<OtherW>
+    val unwrapExpr: Unwrappable<ExprW>,
+    private val unwrapStmt: Unwrappable<StmtW>,
+    private val unwrapDecl: Unwrappable<DeclW>,
+    private val unwrapClass: Unwrappable<ClassW>,
+    private val unwrapOther: Unwrappable<OtherW>
 ) :
     AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW> {
     override fun visit(program: AST.Program<ExprW, StmtW, DeclW, ClassW, OtherW>) {
-        program.classes.map { intoClass.intoW(it).accept(this) }
+        program.classes.forEach { it.unwrap(unwrapClass).accept(this) }
     }
 
     override fun visit(classDeclaration: AST.ClassDeclaration<ExprW, StmtW, DeclW, OtherW>) {
-        TODO("Not yet implemented")
+        classDeclaration.member.forEach { it.unwrap(unwrapDecl).accept(this) }
     }
 
     override fun visit(field: AST.Field<OtherW>) {
-        TODO("Not yet implemented")
+        field.type.unwrap(unwrapOther).into().accept(this)
     }
 
     override fun visit(method: AST.Method<ExprW, StmtW, OtherW>) {
-        TODO("Not yet implemented")
+        method.returnType.unwrap(unwrapOther).into().accept(this)
+        method.parameters.forEach { it.unwrap(unwrapOther).into().accept(this) }
+        method.block.unwrap(unwrapStmt).accept(this)
     }
 
     override fun visit(mainMethod: AST.MainMethod<ExprW, StmtW, OtherW>) {
-        TODO("Not yet implemented")
+        mainMethod.returnType.unwrap(unwrapOther).into().accept(this)
+        mainMethod.parameters.forEach { it.unwrap(unwrapOther).into().accept(this) }
+        mainMethod.block.unwrap(unwrapStmt).accept(this)
     }
 
     override fun visit(parameter: AST.Parameter<OtherW>) {
-        TODO("Not yet implemented")
+        parameter.type.unwrap(unwrapOther).into().accept(this)
     }
 
     override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        localVariableDeclarationStatement.type.unwrap(unwrapOther).into().accept(this)
+        localVariableDeclarationStatement.initializer?.also { it.unwrap(unwrapExpr) }
     }
 
-    override fun visit(block: AST.Block<StmtW, ExprW, OtherW>) {
-        TODO("Not yet implemented")
+    override fun visit(block: AST.Block<ExprW, StmtW, OtherW>) {
+        block.statements.forEach { it.unwrap(unwrapStmt).into() }
     }
 
-    override fun visit(ifStatement: AST.IfStatement<StmtW, ExprW, OtherW>) {
-        TODO("Not yet implemented")
+    override fun visit(ifStatement: AST.IfStatement<ExprW, StmtW, OtherW>) {
+        ifStatement.condition.unwrap(unwrapExpr).into().accept(this)
+        ifStatement.trueStatement.unwrap(unwrapStmt).into().accept(this)
+        ifStatement.falseStatement?.also { it.unwrap(unwrapStmt).into().accept(this) }
     }
 
-    override fun visit(whileStatement: AST.WhileStatement<StmtW, ExprW, OtherW>) {
-        TODO("Not yet implemented")
+    override fun visit(whileStatement: AST.WhileStatement<ExprW, StmtW, OtherW>) {
+        whileStatement.condition.unwrap(unwrapExpr).into().accept(this)
+        whileStatement.statement.unwrap(unwrapStmt).into().accept(this)
     }
 
     override fun visit(returnStatement: AST.ReturnStatement<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        returnStatement.expression?.also { it.unwrap(unwrapExpr).into().accept(this) }
     }
 
     override fun visit(binaryExpression: AST.BinaryExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        binaryExpression.left.unwrap(unwrapExpr).into().accept(this)
+        binaryExpression.right.unwrap(unwrapExpr).into().accept(this)
+        binaryExpression.operation.accept(this)
     }
 
     override fun visit(unaryExpression: AST.UnaryExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        unaryExpression.expression.unwrap(unwrapExpr).into().accept(this)
+        unaryExpression.operation.accept(this)
     }
 
     override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        methodInvocationExpression.target?.also { it.unwrap(unwrapExpr).into().accept(this) }
+        methodInvocationExpression.arguments.forEach { it.unwrap(unwrapExpr).into().accept(this) }
     }
 
     override fun visit(fieldAccessExpression: AST.FieldAccessExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        fieldAccessExpression.target.unwrap(unwrapExpr).into().accept(this)
     }
 
     override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        arrayAccessExpression.index.unwrap(unwrapExpr).into().accept(this)
+        arrayAccessExpression.target.unwrap(unwrapExpr).into().accept(this)
     }
 
     override fun visit(identifierExpression: AST.IdentifierExpression) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(newObjectExpression: AST.NewObjectExpression) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(newArrayExpression: AST.NewArrayExpression<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        newArrayExpression.type.unwrap(unwrapOther).into().accept(this)
+        newArrayExpression.length.unwrap(unwrapExpr).into().accept(this)
     }
 
     override fun visit(voidType: Type.Void) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(integerType: Type.Integer) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(booleanType: Type.Boolean) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(arrayType: Type.Array<OtherW>) {
-        TODO("Not yet implemented")
+        arrayType.arrayType.accept(this)
     }
 
     override fun visit(classType: Type.Class) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(operation: AST.BinaryExpression.Operation) {
-        TODO("Not yet implemented")
+        //Nothing to do
     }
 
     override fun visit(expressionStatement: AST.ExpressionStatement<ExprW, OtherW>) {
-        TODO("Not yet implemented")
+        expressionStatement.expression.unwrap(unwrapExpr).into().accept(this)
     }
 }
 
@@ -150,11 +169,11 @@ interface AbstractASTVisitor<E, S, D, C, O> {
 
     abstract fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<E, O>)
 
-    abstract fun visit(block: AST.Block<S, E, O>)
+    abstract fun visit(block: AST.Block<E, S, O>)
 
-    abstract fun visit(ifStatement: AST.IfStatement<S, E, O>)
+    abstract fun visit(ifStatement: AST.IfStatement<E, S, O>)
 
-    abstract fun visit(whileStatement: AST.WhileStatement<S, E, O>)
+    abstract fun visit(whileStatement: AST.WhileStatement<E, S, O>)
 
     abstract fun visit(returnStatement: AST.ReturnStatement<E, O>)
 
@@ -184,9 +203,13 @@ interface AbstractASTVisitor<E, S, D, C, O> {
 
     abstract fun visit(arrayType: Type.Array<O>)
 
+    abstract fun visit(arrayType: Type.Array.ArrayType<O>)
+
     abstract fun visit(classType: Type.Class)
 
     abstract fun visit(operation: AST.BinaryExpression.Operation)
+
+    abstract fun visit(operation: AST.UnaryExpression.Operation)
 
     abstract fun visit(expressionStatement: AST.ExpressionStatement<E, O>)
 }
@@ -207,7 +230,7 @@ fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: AbstractASTVisitor<E, S
 fun <S, D, C, O> Kind<Identity<Of>, Kind<AST.Expression<Of, O>, Identity<Of>>>.accept(visitor: AbstractASTVisitor<Identity<Of>, S, D, C, O>) =
     this.into().v.into().accept(visitor)
 
-fun <E, S, D, C, O> AST.Statement<S, E, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.Statement<E, S, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.Block -> visitor.visit(this)
     is AST.ExpressionStatement -> visitor.visit(this)
     is AST.IfStatement -> visitor.visit(this)
@@ -215,7 +238,7 @@ fun <E, S, D, C, O> AST.Statement<S, E, O>.accept(visitor: AbstractASTVisitor<E,
     is AST.WhileStatement -> visitor.visit(this)
 }
 
-fun <E, S, D, C, O> AST.BlockStatement<S, E, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.BlockStatement<E, S, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.LocalVariableDeclarationStatement -> visitor.visit(this)
     is AST.StmtWrapper -> this.statement.accept(visitor)
 }
@@ -230,6 +253,8 @@ fun <E, S, D, C, O> Type<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
     is Type.Void -> visitor.visit(this)
 }
 
+fun <E, S, D, C, O> Type.Array.ArrayType<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+
 fun <E, S, D, C, O> AST.ClassDeclaration<E, S, D, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
     visitor.visit(this)
 
@@ -240,3 +265,9 @@ fun <E, S, D, C, O> AST.ClassMember<E, S, O>.accept(visitor: AbstractASTVisitor<
 }
 
 fun <E, S, D, C, O> AST.Program<E, S, D, C, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+
+fun <E, S, D, C, O> AST.BinaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+    visitor.visit(this)
+
+fun <E, S, D, C, O> AST.UnaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+    visitor.visit(this)

@@ -109,44 +109,44 @@ object AST {
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement<out S, out E, out O> : Kind<BlockStatement<Of, E, O>, S>
+    sealed class BlockStatement<out E, out S, out O> : Kind<BlockStatement<E, Of, O>, S>
 
     data class LocalVariableDeclarationStatement<E, O>(
         val name: Symbol,
         val type: Kind<O, Kind<Type<Of>, O>>,
         val initializer: Kind<E, Kind<Expression<Of, O>, E>>?,
-    ) : BlockStatement<Nothing, E, O>()
+    ) : BlockStatement<E, Nothing, O>()
 
-    data class StmtWrapper<S, E, O>(val statement: Statement<S, E, O>) : BlockStatement<S, E, O>()
+    data class StmtWrapper<E, S, O>(val statement: Statement<E, S, O>) : BlockStatement<E, S, O>()
 
-    sealed class Statement<out S, out E, out O> : Kind<Statement<Of, E, O>, S>
+    sealed class Statement<out E, out S, out O> : Kind<Statement<E, Of, O>, S>
 
-    fun <S, E, O> Statement<S, E, O>.wrapBlockStatement(): StmtWrapper<S, E, O> = StmtWrapper(this)
+    fun <E, S, O> Statement<E, S, O>.wrapBlockStatement(): StmtWrapper<E, S, O> = StmtWrapper(this)
 
     val emptyStatement = Block<Nothing, Nothing, Nothing>(listOf())
 
-    data class Block<out S, out E, out O>(
-        val statements: List<Kind<S, Kind<BlockStatement<Of, E, O>, S>>>,
-    ) : Statement<S, E, O>()
+    data class Block<out E, out S, out O>(
+        val statements: List<Kind<S, Kind<BlockStatement<E, Of, O>, S>>>,
+    ) : Statement<E, S, O>()
 
-    data class IfStatement<out S, out E, out O>(
+    data class IfStatement<out E, out S, out O>(
         val condition: Kind<E, Kind<Expression<Of, O>, E>>,
-        val trueStatement: Kind<S, Kind<Statement<Of, E, O>, S>>,
-        val falseStatement: Kind<S, Kind<Statement<Of, E, O>, S>>?
-    ) : Statement<S, E, O>()
+        val trueStatement: Kind<S, Kind<Statement<E, Of, O>, S>>,
+        val falseStatement: Kind<S, Kind<Statement<E, Of, O>, S>>?
+    ) : Statement<E, S, O>()
 
-    data class WhileStatement<out S, out E, out O>(
+    data class WhileStatement<out E, out S, out O>(
         val condition: Kind<E, Kind<Expression<Of, O>, E>>,
-        val statement: Kind<S, Kind<Statement<Of, E, O>, S>>,
-    ) : Statement<S, E, O>()
+        val statement: Kind<S, Kind<Statement<E, Of, O>, S>>,
+    ) : Statement<E, S, O>()
 
     data class ReturnStatement<out E, out O>(
         val expression: Kind<E, Kind<Expression<Of, O>, E>>?,
-    ) : Statement<Nothing, E, O>()
+    ) : Statement<E, Nothing, O>()
 
     data class ExpressionStatement<out E, out O>(
         val expression: Kind<E, Kind<Expression<Of, O>, E>>,
-    ) : Statement<Nothing, E, O>()
+    ) : Statement<E, Nothing, O>()
 
     /************************************************
      ** Expression

@@ -6,7 +6,7 @@ import java.util.Stack
 
 class PrettyPrintVisitor(
     val printStream: PrintStream
-) : AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>() {
+) : AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
 
     private var currentIndentation: Int = 0
     private var startsNewLine: Boolean = false
@@ -262,7 +262,7 @@ class PrettyPrintVisitor(
 
     override fun visit(unaryExpression: AST.UnaryExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
-            print(unaryExpression.operation.repr)
+            unaryExpression.operation.accept(this)
             doParenthesizedMaybe(true) { unaryExpression.expression.accept(this) }
         }
     }
@@ -423,5 +423,13 @@ class PrettyPrintVisitor(
     private fun printNewLineInBody() {
         if (startsNewLine) print("\n", false)
         startsNewLine = false
+    }
+
+    override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
+        // Nothing to do. This is handled by the visitors containing them
+    }
+
+    override fun visit(operation: AST.UnaryExpression.Operation) {
+        print(operation.repr)
     }
 }
