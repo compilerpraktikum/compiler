@@ -34,12 +34,11 @@ repositories {
 
 dependencies {
     implementation 'com.github.ajalt.clikt:clikt:3.3.0'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$project.kotlin_version"
-    implementation 'org.junit.jupiter:junit-jupiter:5.7.0'
     implementation "com.github.ajalt.mordant:mordant:2.0.0-beta3"
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
 }
 
 // define JVM target version
@@ -103,4 +102,3 @@ task ktlintFormat(type: JavaExec, group: "formatting") {
     main = "com.pinterest.ktlint.Main"
     args "-F", "src/**/*.kt"
 }
-
