@@ -1,6 +1,6 @@
 package edu.kit.compiler.ast
 
-abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
+abstract class AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     private val unwrapExpr: Unwrappable<ExprW>,
     private val unwrapStmt: Unwrappable<StmtW>,
     private val unwrapDecl: Unwrappable<DeclW>,
