@@ -1,6 +1,140 @@
 package edu.kit.compiler.ast
 
-abstract class AbstractASTVisitor<E, S, D, C, O> {
+/**
+ * This interface is inhabited by Wrappers [F], where
+ * their wrapped value can be extracted from:
+ * @sample IntoWrapperExample
+ */
+interface IntoWrapper<F> {
+    fun <A> intoW(fa: Kind<F, A>): A
+}
+
+object IntoWrapperExample {
+    object IntoWrapperIdentity : IntoWrapper<Identity<Of>> {
+        override fun <A> intoW(fa: Kind<Identity<Of>, A>) = fa.into().v
+    }
+    val wrappedValue: Kind<Identity<Of>, AST.Expression<Of, Identity<Of>>> = TODO()
+    val notWrappedValue: AST.Expression<Of, Identity<Of>> = IntoWrapperIdentity.intoW(wrappedValue)
+}
+
+abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
+    val intoExpr: IntoWrapper<ExprW>,
+    val intoStmt: IntoWrapper<StmtW>,
+    val intoDecl: IntoWrapper<DeclW>,
+    private val intoClass: IntoWrapper<ClassW>,
+    val intoOther: IntoWrapper<OtherW>
+) :
+    AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW> {
+    override fun visit(program: AST.Program<ExprW, StmtW, DeclW, ClassW, OtherW>) {
+        program.classes.map { intoClass.intoW(it).accept(this) }
+    }
+
+    override fun visit(classDeclaration: AST.ClassDeclaration<ExprW, StmtW, DeclW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(field: AST.Field<OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(method: AST.Method<ExprW, StmtW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(mainMethod: AST.MainMethod<ExprW, StmtW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(parameter: AST.Parameter<OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(block: AST.Block<StmtW, ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(ifStatement: AST.IfStatement<StmtW, ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(whileStatement: AST.WhileStatement<StmtW, ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(returnStatement: AST.ReturnStatement<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(binaryExpression: AST.BinaryExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(unaryExpression: AST.UnaryExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(fieldAccessExpression: AST.FieldAccessExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(identifierExpression: AST.IdentifierExpression) {
+        TODO("Not yet implemented")
+    }
+
+    override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(newObjectExpression: AST.NewObjectExpression) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(newArrayExpression: AST.NewArrayExpression<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(voidType: Type.Void) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(integerType: Type.Integer) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(booleanType: Type.Boolean) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(arrayType: Type.Array<OtherW>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(classType: Type.Class) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(operation: AST.BinaryExpression.Operation) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(expressionStatement: AST.ExpressionStatement<ExprW, OtherW>) {
+        TODO("Not yet implemented")
+    }
+}
+
+interface AbstractASTVisitor<E, S, D, C, O> {
 
     abstract fun visit(program: AST.Program<E, S, D, C, O>)
 
