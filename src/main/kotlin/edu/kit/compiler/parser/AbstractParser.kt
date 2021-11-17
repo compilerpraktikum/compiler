@@ -17,14 +17,26 @@ import java.util.Optional
 abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile: SourceFile) {
 
     /**
+     * While in panic mode, suppress errors
+     */
+    protected var panicMode = false
+
+    /**
      * The lookahead buffer that provides the token stream and buffers tokens when a lookahead is required
      */
     private val buffer = LookaheadBuffer(tokens)
 
     /**
      * Retrieve the next token.
+     *
+     * @param recovering if recovering, [panicMode] will not be disabled by reading the token
      */
-    protected fun next(): Token = buffer.get()
+    protected fun next(recovering: Boolean = false): Token {
+        if (!recovering)
+            panicMode = false
+
+        return buffer.get()
+    }
 
     /**
      * Peek into the token sequence and return the token at the given offset (starting at 0 for the token
@@ -118,14 +130,17 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
      */
     protected fun recover(anchorSet: AnchorUnion) {
         val anc = anchorSet.provide()
-        while (peek() !in anc && peek() !is Token.Eof) next()
+        while (peek() !in anc && peek() !is Token.Eof) next(recovering = true)
     }
 
     /**
      * Annotate the source input with an error message
      */
     protected fun reportError(range: SourceRange, message: String) {
-        sourceFile.annotate(AnnotationType.ERROR, range, message)
+        if (!panicMode)
+            sourceFile.annotate(AnnotationType.ERROR, range, message)
+
+        panicMode = true
     }
 
     protected fun reportError(token: Token, message: String) {

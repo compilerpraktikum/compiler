@@ -26,7 +26,7 @@ class RecoveryTest {
 
     @Test
     fun testClasses() {
-        testParse("class #class class class class##")
+        testParse("class #class class class class")
     }
 
     @OptIn(ExperimentalStdlibApi::class)
