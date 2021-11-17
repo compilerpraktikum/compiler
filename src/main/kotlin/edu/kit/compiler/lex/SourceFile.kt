@@ -40,7 +40,7 @@ private constructor(
             return SourceFile(path.absolutePathString(), StringInputProvider(content))
         }
 
-        fun from(path: String, content: String) = SourceFile(path, StringInputProvider(content))
+        fun from(path: String, content: String) = SourceFile(path, StringInputProvider(content.normalizeLineEndings()))
     }
 
     val currentPosition: SourcePosition

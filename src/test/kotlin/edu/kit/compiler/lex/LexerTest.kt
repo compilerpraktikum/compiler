@@ -37,7 +37,7 @@ internal class LexerTest {
         expectTokenSequence(
             " \n\r\t\b\u000C",
             listOf(
-                Token.Whitespace(" \n\r\t"),
+                Token.Whitespace(" \n\n\t"),
                 Token.ErrorToken("", ""),
                 Token.ErrorToken("", ""),
                 Token.Eof()
