@@ -1,7 +1,5 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.lex.Symbol
-
 /**
  * This interface is inhabited by Wrappers [F], where
  * their wrapped value can be extracted from:
@@ -108,15 +106,15 @@ abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     }
 
     override fun visit(identifierExpression: AST.IdentifierExpression) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(newObjectExpression: AST.NewObjectExpression) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(newArrayExpression: AST.NewArrayExpression<ExprW, OtherW>) {
@@ -125,15 +123,15 @@ abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     }
 
     override fun visit(voidType: Type.Void) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(integerType: Type.Integer) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(booleanType: Type.Boolean) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(arrayType: Type.Array<OtherW>) {
@@ -141,11 +139,11 @@ abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     }
 
     override fun visit(classType: Type.Class) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(operation: AST.BinaryExpression.Operation) {
-        //Nothing to do
+        // Nothing to do
     }
 
     override fun visit(expressionStatement: AST.ExpressionStatement<ExprW, OtherW>) {
