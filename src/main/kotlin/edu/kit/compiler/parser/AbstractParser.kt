@@ -3,8 +3,8 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.Lenient
 import edu.kit.compiler.ast.LenientProgram
+import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceRange
 import java.util.Optional
 
@@ -14,7 +14,7 @@ import java.util.Optional
  * @param tokens [sequence][Sequence] of [tokens][Token]
  * @param sourceFile input wrapper that handles error reporting
  */
-abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile: SourceFile) {
+abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile: AnnotatableFile) {
 
     /**
      * While in panic mode, suppress errors

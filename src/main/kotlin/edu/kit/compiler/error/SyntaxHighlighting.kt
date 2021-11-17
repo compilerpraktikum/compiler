@@ -31,9 +31,9 @@ data class ColorScheme(
 }
 
 fun Terminal.printToken(token: Token, colorScheme: ColorScheme = ColorScheme.solarized): Unit = when (token) {
-    is Token.Comment -> this.print(colorScheme.comment("/*$token.content)*/"))
+    is Token.Comment -> this.print(colorScheme.comment("/*${token.content}*/"))
     is Token.Eof -> {}
-    is Token.ErrorToken -> this.print(colorScheme.error(token.error))
+    is Token.ErrorToken -> this.print(colorScheme.error(token.content))
     is Token.Identifier -> this.print(colorScheme.identifier(token.name.text))
     is Token.Keyword -> this.print(colorScheme.keyword(token.type.repr))
     is Token.Literal -> this.print(colorScheme.literal(token.value))

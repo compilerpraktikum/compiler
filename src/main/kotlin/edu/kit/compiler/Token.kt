@@ -149,7 +149,11 @@ sealed class Token {
         override fun hashCode(): Int = 0
     }
 
-    data class ErrorToken(val content: String, val error: String, val errorNote: String? = null) : Token() {
+    data class ErrorToken(
+        val content: String,
+        val error: String?, // null to opt out of automatic error reporting
+        val errorReporter: ((ErrorToken) -> Unit)? = null,
+    ) : Token() {
         override val length: Int
             get() = content.length
     }

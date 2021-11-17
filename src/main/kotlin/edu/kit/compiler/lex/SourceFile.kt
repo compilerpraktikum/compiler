@@ -15,9 +15,10 @@ enum class AnnotationType(private val str: String) {
 }
 
 interface AnnotatableFile {
-    fun annotate(type: AnnotationType, range: SourceRange, message: String, note: String? = null)
-    fun annotate(type: AnnotationType, position: SourcePosition, message: String, note: String? = null) {
-        annotate(type, position.extend(1), message, note)
+    fun annotate(type: AnnotationType, range: SourceRange, message: String, notes: List<SourceNote> = emptyList())
+
+    fun annotate(type: AnnotationType, position: SourcePosition, message: String, notes: List<SourceNote> = emptyList()) {
+        annotate(type, position.extend(1), message, notes)
     }
 }
 
@@ -38,7 +39,7 @@ private constructor(
          */
         fun from(path: Path): SourceFile {
             val content = Files.readString(path, StandardCharsets.US_ASCII).normalizeLineEndings()
-            return SourceFile(path.absolutePathString(), StringInputProvider(content))
+            return SourceFile(path.toRealPath().absolutePathString(), StringInputProvider(content))
         }
 
         fun from(path: String, content: String) = SourceFile(path, StringInputProvider(content.normalizeLineEndings()))
@@ -90,8 +91,11 @@ private constructor(
         return input.substring(start, end)
     }
 
+    val numLines: Int
+        get() = lineStarts.size
+
     fun calculateLineAndColumn(offset: Int): Pair<Int, Int> {
-        require(offset >= 0) { "offset must be > 0" }
+        require(offset >= 0) { "offset must be >= 0" }
         val index = lineStarts.binarySearch(offset)
         if (index >= 0) {
             return Pair(index + 1, 1)
@@ -102,19 +106,21 @@ private constructor(
         }
     }
 
-    var hasError = false // TODO replace usages with validate @csicar
+    var hasError = false
         private set
+
     private val annotations: MutableMap<Int, ArrayList<Annotation>> = TreeMap() // line -> annotations
 
-    override fun annotate(type: AnnotationType, range: SourceRange, message: String, note: String?) {
-        annotations.computeIfAbsent(range.start.line) { ArrayList() }.add(Annotation(type, range, message, note))
+    override fun annotate(type: AnnotationType, range: SourceRange, message: String, notes: List<SourceNote>) {
+        annotations.computeIfAbsent(range.start.line) { ArrayList() }.add(Annotation(type, range, message, notes))
+
         if (type == AnnotationType.ERROR) {
             hasError = true
         }
     }
 
     fun printAnnotations(formatter: (SourceFile, Annotation) -> Unit = AnnotationFormatter.DEFAULT) {
-        annotations.asSequence().flatMap { it.value }.forEach {
+        getAnnotations().forEach {
             formatter(this, it)
         }
     }
@@ -123,13 +129,15 @@ private constructor(
      * Get a sequence of annotations. This is *only* used for testing the parser recovery
      */
     fun getAnnotations(): Sequence<Annotation> {
-        return annotations.asSequence().flatMap(Map.Entry<Int, ArrayList<Annotation>>::value)
+        return annotations.asSequence().flatMap { it.value }
     }
 
     data class Annotation(
         val type: AnnotationType,
         val range: SourceRange,
         val message: String,
-        val note: String?,
+        val notes: List<SourceNote>,
     )
 }
+
+typealias SourceNote = Pair<SourceRange, String>

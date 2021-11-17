@@ -281,10 +281,19 @@ class Lexer(
 
         // not exactly the automaton but no need for recursion that way.
         while (!(c == '*' && peek() == '/')) {
-            if (c == '/' && peek() == '*') sourceFile.annotate(AnnotationType.WARNING, sourceFile.currentPosition, "nested comments are not supported")
+            if (c == '/' && peek() == '*') sourceFile.annotate(AnnotationType.WARNING, sourceFile.currentPosition.extend(2), "nested comments are not supported")
             c = next()
             if (c == InputProvider.END_OF_FILE) {
-                return Token.ErrorToken(commentAcc.toString(), "reached EOF while parsing comment.", "in comment starting here")
+                val eofPosition = sourceFile.currentPosition
+                // delay message creation, because the token.position is injected after this method returns
+                return Token.ErrorToken(commentAcc.toString(), null) { token ->
+                    sourceFile.annotate(
+                        AnnotationType.ERROR,
+                        eofPosition,
+                        "reached EOF while parsing comment",
+                        listOf(SourceNote(token.position.extend(2), "in comment starting here"))
+                    )
+                }
             }
             commentAcc.append(c)
         }
