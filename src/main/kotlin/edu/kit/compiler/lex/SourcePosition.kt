@@ -19,8 +19,13 @@ data class SourceRange(
     val start: SourcePosition,
     val length: Int
 ) {
-    val end: SourcePosition
-        get() = start.advance(length)
+    init {
+        require(length >= 0) { "length must be >= 0" }
+    }
+
+    // store lazy value instead of on demand computation (get() = ...) so multiple calls of range.end.line do not cause
+    // multiple calls to SourceFile.calculateLineAndColumn()
+    val last: SourcePosition by lazy { start.advance(length - 1) }
 
     fun extend(other: SourceRange): SourceRange {
         require(start.file == other.start.file) { "can only extend source ranges of the same source file" }
