@@ -1,7 +1,6 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.validate
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
@@ -48,7 +47,7 @@ internal class ParserMjTestSuite {
         val parser = Parser(input, lexer.tokens())
 
         val success = parser.parse().validate() != null
-        input.printAnnotations(AnnotationFormatter.DEFAULT)
+        input.printAnnotations()
 
         if (testConfig.name.endsWith("invalid.mj")) {
             assert(!success) {

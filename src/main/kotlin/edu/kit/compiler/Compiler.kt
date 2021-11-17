@@ -3,7 +3,6 @@ package edu.kit.compiler
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
 import edu.kit.compiler.ast.validate
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
@@ -85,7 +84,7 @@ class Compiler(private val config: Config) {
                         parser.parse()
                     } catch (ex: NotImplementedError) {
                         // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        sourceFile.printAnnotations()
                         System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
@@ -101,12 +100,12 @@ class Compiler(private val config: Config) {
                         val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
                         program.accept(PrettyPrintVisitor(System.out))
                     } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
-                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        sourceFile.printAnnotations()
                         System.err.println("[error] $ex")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     } catch (ex: NotImplementedError) {
                         // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        sourceFile.printAnnotations()
                         System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
@@ -122,12 +121,12 @@ class Compiler(private val config: Config) {
                         val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
                         // TODO run semantic checks
                     } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
-                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        sourceFile.printAnnotations()
                         System.err.println("[error] $ex")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     } catch (ex: NotImplementedError) {
                         // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+                        sourceFile.printAnnotations()
                         System.err.println("[error] invalid program")
                         return ExitCode.ERROR_COMPILATION_FAILED
                     }
@@ -135,9 +134,9 @@ class Compiler(private val config: Config) {
             }
 
             sourceFile.failIfHasError()
-            sourceFile.printAnnotations(AnnotationFormatter.DEFAULT) // print warnings
+            sourceFile.printAnnotations() // print warnings
         } catch (e: CompilationFailedException) {
-            e.sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+            e.sourceFile.printAnnotations()
             return ExitCode.ERROR_COMPILATION_FAILED
         } catch (e: Exception) {
             System.err.println("Internal error: ${e.message}")

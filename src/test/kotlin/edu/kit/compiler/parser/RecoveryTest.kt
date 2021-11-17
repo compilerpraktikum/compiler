@@ -1,6 +1,5 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.utils.createLexer
 import org.junit.jupiter.api.Test
@@ -45,7 +44,7 @@ class RecoveryTest {
         val parser = Parser(sourceFile, lexer.tokens())
         parser.parse()
 
-        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+        sourceFile.printAnnotations()
 
         val annotations = sourceFile.getAnnotations().toList()
         assertEquals(

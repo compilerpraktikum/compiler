@@ -1,7 +1,6 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexTestRepr
 import edu.kit.compiler.utils.TestUtils
@@ -47,7 +46,7 @@ internal class LexerMjTestSuite {
 
         val tokens: List<Token> = lexer.tokens().toList()
 
-        input.printAnnotations(AnnotationFormatter.DEFAULT)
+        input.printAnnotations()
 
         if (testConfig.name.endsWith("invalid.mj")) {
             assertTrue("Expected an invalid token") { tokens.any { it is Token.ErrorToken } }

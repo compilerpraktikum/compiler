@@ -1,5 +1,6 @@
 package edu.kit.compiler.lex
 
+import edu.kit.compiler.error.AnnotationFormatter
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -112,7 +113,7 @@ private constructor(
         }
     }
 
-    fun printAnnotations(formatter: (SourceFile, Annotation) -> Unit) {
+    fun printAnnotations(formatter: (SourceFile, Annotation) -> Unit = AnnotationFormatter.DEFAULT) {
         annotations.asSequence().flatMap { it.value }.forEach {
             formatter(this, it)
         }
