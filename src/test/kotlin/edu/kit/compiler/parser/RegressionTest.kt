@@ -17,6 +17,11 @@ class RegressionTest {
         testParse("class a { private int foo; int foo; foo; public int foo(); public int foo() {} public; }")
     }
 
+    @Test
+    fun testIllegalArgumentDefinition() {
+        testParse("class a { public int foo() { foo.bar(x, return) } }")
+    }
+
     @OptIn(ExperimentalStdlibApi::class)
     private fun testParse(input: String, shouldSucceed: Boolean = false) {
         val (lexer, sourceFile) = createLexer(input)

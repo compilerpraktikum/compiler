@@ -233,11 +233,19 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     private fun parseArguments(anc: AnchorUnion): List<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>> {
         val arguments = mutableListOf<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>>()
         var nextToken = peek()
-        while (!(nextToken is Token.Operator && nextToken.type == Token.Operator.Type.RParen)) {
+
+        /*
+         * Intervention: because the loop waits for a specific token to arise, it makes zero sense to recover to
+         * tokens from anchor sets outside the loop. We will therefore replace the anchor set with one that
+         * contains only tokens from the loop condition, to prevent the parser from spinning on miss-placed tokens
+         * that are in the anchor set.
+         */
+        val loopAnchor = anchorSetOf(Token.Operator(Token.Operator.Type.RParen), Token.Eof())
+        while (nextToken !in loopAnchor) {
             if (arguments.isNotEmpty()) {
                 expectOperator(
                     Token.Operator.Type.Comma,
-                    anc +
+                    loopAnchor +
                         FirstFollowUtils.firstSetExpression +
                         anchorSetOf(Token.Operator(Token.Operator.Type.RParen))
                 ) { "arguments must be comma-separated" }
@@ -829,8 +837,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
             /*
              * Intervention: because the loop waits for a specific token to arise, it makes zero sense to recover to
-             * tokens from anchor sets outside of the loop. We will therefore replace the anchorset with one that
-             * contains only tokens from the loop condition, to prevent the parser from spinning on missplaced tokens
+             * tokens from anchor sets outside the loop. We will therefore replace the anchor set with one that
+             * contains only tokens from the loop condition, to prevent the parser from spinning on miss-placed tokens
              * that are in the anchor set.
              */
             val loopAnchor = anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace), Token.Eof())
