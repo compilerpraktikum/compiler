@@ -7,7 +7,7 @@ abstract class TreeWalkingAstVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     private val unwrapClass: Unwrappable<ClassW>,
     private val unwrapOther: Unwrappable<OtherW>
 ) :
-    AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW> {
+    ASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW> {
     override fun visit(program: AST.Program<ExprW, StmtW, DeclW, ClassW, OtherW>) {
         program.classes.forEach { it.unwrap(unwrapClass).accept(this) }
     }

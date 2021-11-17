@@ -1,6 +1,6 @@
 package edu.kit.compiler.ast
 
-interface AbstractASTVisitor<E, S, D, C, O> {
+interface ASTVisitor<E, S, D, C, O> {
 
     abstract fun visit(program: AST.Program<E, S, D, C, O>)
 
@@ -61,7 +61,7 @@ interface AbstractASTVisitor<E, S, D, C, O> {
     abstract fun visit(expressionStatement: AST.ExpressionStatement<E, O>)
 }
 
-fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.ArrayAccessExpression -> visitor.visit(this)
     is AST.BinaryExpression -> visitor.visit(this)
     is AST.FieldAccessExpression -> visitor.visit(this)
@@ -74,10 +74,10 @@ fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: AbstractASTVisitor<E, S
 }
 
 @JvmName("acceptExpression")
-fun <S, D, C, O> Kind<Identity<Of>, Kind<AST.Expression<Of, O>, Identity<Of>>>.accept(visitor: AbstractASTVisitor<Identity<Of>, S, D, C, O>) =
+fun <S, D, C, O> Kind<Identity<Of>, Kind<AST.Expression<Of, O>, Identity<Of>>>.accept(visitor: ASTVisitor<Identity<Of>, S, D, C, O>) =
     this.into().v.into().accept(visitor)
 
-fun <E, S, D, C, O> AST.Statement<E, S, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.Statement<E, S, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.Block -> visitor.visit(this)
     is AST.ExpressionStatement -> visitor.visit(this)
     is AST.IfStatement -> visitor.visit(this)
@@ -85,14 +85,14 @@ fun <E, S, D, C, O> AST.Statement<E, S, O>.accept(visitor: AbstractASTVisitor<E,
     is AST.WhileStatement -> visitor.visit(this)
 }
 
-fun <E, S, D, C, O> AST.BlockStatement<E, S, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.BlockStatement<E, S, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.LocalVariableDeclarationStatement -> visitor.visit(this)
     is AST.StmtWrapper -> this.statement.accept(visitor)
 }
 
-fun <E, S, D, C, O> AST.Parameter<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+fun <E, S, D, C, O> AST.Parameter<O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = visitor.visit(this)
 
-fun <E, S, D, C, O> Type<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> Type<O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
     is Type.Array -> visitor.visit(this)
     is Type.Boolean -> visitor.visit(this)
     is Type.Class -> visitor.visit(this)
@@ -100,21 +100,21 @@ fun <E, S, D, C, O> Type<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
     is Type.Void -> visitor.visit(this)
 }
 
-fun <E, S, D, C, O> Type.Array.ArrayType<O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+fun <E, S, D, C, O> Type.Array.ArrayType<O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = visitor.visit(this)
 
-fun <E, S, D, C, O> AST.ClassDeclaration<E, S, D, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+fun <E, S, D, C, O> AST.ClassDeclaration<E, S, D, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) =
     visitor.visit(this)
 
-fun <E, S, D, C, O> AST.ClassMember<E, S, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = when (this) {
+fun <E, S, D, C, O> AST.ClassMember<E, S, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {
     is AST.Field -> visitor.visit(this)
     is AST.MainMethod -> visitor.visit(this)
     is AST.Method -> visitor.visit(this)
 }
 
-fun <E, S, D, C, O> AST.Program<E, S, D, C, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+fun <E, S, D, C, O> AST.Program<E, S, D, C, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = visitor.visit(this)
 
-fun <E, S, D, C, O> AST.BinaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+fun <E, S, D, C, O> AST.BinaryExpression.Operation.accept(visitor: ASTVisitor<E, S, D, C, O>) =
     visitor.visit(this)
 
-fun <E, S, D, C, O> AST.UnaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+fun <E, S, D, C, O> AST.UnaryExpression.Operation.accept(visitor: ASTVisitor<E, S, D, C, O>) =
     visitor.visit(this)

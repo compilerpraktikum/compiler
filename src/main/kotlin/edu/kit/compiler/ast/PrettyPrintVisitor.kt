@@ -6,7 +6,7 @@ import java.util.Stack
 
 class PrettyPrintVisitor(
     val printStream: PrintStream
-) : AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
+) : ASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
 
     private var currentIndentation: Int = 0
     private var startsNewLine: Boolean = false
