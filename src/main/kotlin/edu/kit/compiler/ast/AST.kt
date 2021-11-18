@@ -234,9 +234,14 @@ object AST {
         val name: Symbol,
     ) : Expression<Nothing, Nothing>()
 
-    data class LiteralExpression<T>(
-        val value: T,
+    data class LiteralExpression(
+        val value: LiteralValue,
     ) : Expression<Nothing, Nothing>()
+
+    sealed class LiteralValue {
+        data class LiteralInt(val value: Int) : LiteralValue()
+        data class literalBoolean(val value: Boolean) : LiteralValue()
+    }
 
     data class NewObjectExpression(
         val clazz: Symbol,

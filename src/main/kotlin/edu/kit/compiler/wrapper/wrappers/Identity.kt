@@ -17,3 +17,5 @@ fun <A> Kind<Identity<Of>, A>.into(): Identity<A> = this as Identity<A>
 object UnwrappableIdentity : Unwrappable<Identity<Of>> {
     override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
 }
+
+fun <A> Kind<Identity<Of>, A>.unwrapId() = UnwrappableIdentity.unwrapValue(this)

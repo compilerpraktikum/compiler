@@ -4,7 +4,9 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.wrapper.wrappers.Identity
 import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.LenientTyped
 import edu.kit.compiler.wrapper.wrappers.Positioned
+import edu.kit.compiler.wrapper.wrappers.SynthesizedTyped
 
 /**
  * This is just a file full of aliases for different wrapper applications, that we might use
@@ -73,7 +75,7 @@ typealias LenientArrayAccessExpression = AST.ArrayAccessExpression<Lenient<Of>, 
 /** IdentifierExpression containing [Lenient]s */
 typealias LenientIdentifierExpression = AST.IdentifierExpression
 /** LiteralExpression containing [Lenient]s */
-typealias LenientLiteralExpression<T> = AST.LiteralExpression<T>
+typealias LenientLiteralExpression = AST.LiteralExpression
 /** NewObjectExpression containing [Lenient]s */
 typealias LenientNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [Lenient]s */
@@ -140,7 +142,7 @@ typealias IdentityArrayAccessExpression = AST.ArrayAccessExpression<Identity<Of>
 /** IdentifierExpression containing [Identity]s */
 typealias IdentityIdentifierExpression = AST.IdentifierExpression
 /** LiteralExpression containing [Identity]s */
-typealias IdentityLiteralExpression<T> = AST.LiteralExpression<T>
+typealias IdentityLiteralExpression = AST.LiteralExpression
 /** NewObjectExpression containing [Identity]s */
 typealias IdentityNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [Identity]s */
@@ -207,7 +209,7 @@ typealias PositionedArrayAccessExpression = AST.ArrayAccessExpression<Positioned
 /** IdentifierExpression containing [Positioned]s */
 typealias PositionedIdentifierExpression = AST.IdentifierExpression
 /** LiteralExpression containing [Positioned]s */
-typealias PositionedLiteralExpression<T> = AST.LiteralExpression<T>
+typealias PositionedLiteralExpression = AST.LiteralExpression
 /** NewObjectExpression containing [Positioned]s */
 typealias PositionedNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [Positioned]s */
@@ -274,8 +276,144 @@ typealias ParsedArrayAccessExpression = AST.ArrayAccessExpression<Parsed<Of>, Pa
 /** IdentifierExpression containing [Parsed]s */
 typealias ParsedIdentifierExpression = AST.IdentifierExpression
 /** LiteralExpression containing [Parsed]s */
-typealias ParsedLiteralExpression<T> = AST.LiteralExpression<T>
+typealias ParsedLiteralExpression = AST.LiteralExpression
 /** NewObjectExpression containing [Parsed]s */
 typealias ParsedNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [Parsed]s */
 typealias ParsedNewArrayExpression = AST.NewArrayExpression<Parsed<Of>, Parsed<Of>>
+
+
+/************************************************
+ ** Typed
+ ************************************************/
+/** Type containing [SynthesizedTyped]s */
+typealias TypedType = Type<SynthesizedTyped<Of>>
+/** Array containing [SynthesizedTyped]s */
+typealias TypedArray = Array<SynthesizedTyped<Of>>
+/** ArrayType containing [SynthesizedTyped]s */
+typealias TypedArrayType = Type.Array.ArrayType<SynthesizedTyped<Of>>
+
+/** Program containing [SynthesizedTyped]s */
+typealias TypedProgram = AST.Program<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** ClassDeclaration containing [SynthesizedTyped]s */
+typealias TypedClassDeclaration = AST.ClassDeclaration<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+
+/** ClassMember containing [SynthesizedTyped]s */
+typealias TypedClassMember = AST.ClassMember<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** Field containing [SynthesizedTyped]s */
+typealias TypedField = AST.Field<SynthesizedTyped<Of>>
+/** Method containing [SynthesizedTyped]s */
+typealias TypedMethod = AST.Method<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** MainMethod containing [SynthesizedTyped]s */
+typealias TypedMainMethod = AST.MainMethod<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** Parameter containing [SynthesizedTyped]s */
+typealias TypedParameter = AST.Parameter<SynthesizedTyped<Of>>
+
+/** BlockStatement containing [SynthesizedTyped]s */
+typealias TypedBlockStatement = AST.BlockStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** LocalVariableDeclaration containing [SynthesizedTyped]s */
+typealias TypedLocalVariableDeclaration = AST.LocalVariableDeclarationStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** StmtWrapper containing [SynthesizedTyped]s */
+typealias TypedStmtWrapper = AST.StmtWrapper<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+
+/** Statement containing [SynthesizedTyped]s */
+typealias TypedStatement = AST.Statement<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** Block containing [SynthesizedTyped]s */
+typealias TypedBlock = AST.Block<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** IfStatement containing [SynthesizedTyped]s */
+typealias TypedIfStatement = AST.IfStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** WhileStatement containing [SynthesizedTyped]s */
+typealias TypedWhileStatement = AST.WhileStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** ReturnStatement containing [SynthesizedTyped]s */
+typealias TypedReturnStatement = AST.ReturnStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** ExpressionStatement containing [SynthesizedTyped]s */
+typealias TypedExpressionStatement = AST.ExpressionStatement<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+
+/** Expression containing [SynthesizedTyped]s */
+typealias TypedExpression = AST.Expression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** BinaryExpression containing [SynthesizedTyped]s */
+typealias TypedBinaryExpression = AST.BinaryExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** UnaryExpression containing [SynthesizedTyped]s */
+typealias TypedUnaryExpression = AST.UnaryExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** MethodInvocationExpression containing [SynthesizedTyped]s */
+typealias TypedMethodInvocationExpression = AST.MethodInvocationExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** FieldAccessExpression containing [SynthesizedTyped]s */
+typealias TypedFieldAccessExpression = AST.FieldAccessExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** ArrayAccessExpression containing [SynthesizedTyped]s */
+typealias TypedArrayAccessExpression = AST.ArrayAccessExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+/** IdentifierExpression containing [SynthesizedTyped]s */
+typealias TypedIdentifierExpression = AST.IdentifierExpression
+/** LiteralExpression containing [SynthesizedTyped]s */
+typealias TypedLiteralExpression = AST.LiteralExpression
+/** NewObjectExpression containing [SynthesizedTyped]s */
+typealias TypedNewObjectExpression = AST.NewObjectExpression
+/** NewArrayExpression containing [SynthesizedTyped]s */
+typealias TypedNewArrayExpression = AST.NewArrayExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
+
+
+/************************************************
+ ** LenientTyped
+ ************************************************/
+/** Type containing [LenientTyped]s */
+typealias LenientTypedType = Type<LenientTyped<Of>>
+/** Array containing [LenientTyped]s */
+typealias LenientTypedArray = Array<LenientTyped<Of>>
+/** ArrayType containing [LenientTyped]s */
+typealias LenientTypedArrayType = Type.Array.ArrayType<LenientTyped<Of>>
+
+/** Program containing [LenientTyped]s */
+typealias LenientTypedProgram = AST.Program<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** ClassDeclaration containing [LenientTyped]s */
+typealias LenientTypedClassDeclaration = AST.ClassDeclaration<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+
+/** ClassMember containing [LenientTyped]s */
+typealias LenientTypedClassMember = AST.ClassMember<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** Field containing [LenientTyped]s */
+typealias LenientTypedField = AST.Field<LenientTyped<Of>>
+/** Method containing [LenientTyped]s */
+typealias LenientTypedMethod = AST.Method<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** MainMethod containing [LenientTyped]s */
+typealias LenientTypedMainMethod = AST.MainMethod<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** Parameter containing [LenientTyped]s */
+typealias LenientTypedParameter = AST.Parameter<LenientTyped<Of>>
+
+/** BlockStatement containing [LenientTyped]s */
+typealias LenientTypedBlockStatement = AST.BlockStatement<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** LocalVariableDeclaration containing [LenientTyped]s */
+typealias LenientTypedLocalVariableDeclaration = AST.LocalVariableDeclarationStatement<LenientTyped<Of>, LenientTyped<Of>>
+/** StmtWrapper containing [LenientTyped]s */
+typealias LenientTypedStmtWrapper = AST.StmtWrapper<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+
+/** Statement containing [LenientTyped]s */
+typealias LenientTypedStatement = AST.Statement<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** Block containing [LenientTyped]s */
+typealias LenientTypedBlock = AST.Block<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** IfStatement containing [LenientTyped]s */
+typealias LenientTypedIfStatement = AST.IfStatement<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** WhileStatement containing [LenientTyped]s */
+typealias LenientTypedWhileStatement = AST.WhileStatement<LenientTyped<Of>, LenientTyped<Of>, LenientTyped<Of>>
+/** ReturnStatement containing [LenientTyped]s */
+typealias LenientTypedReturnStatement = AST.ReturnStatement<LenientTyped<Of>, LenientTyped<Of>>
+/** ExpressionStatement containing [LenientTyped]s */
+typealias LenientTypedExpressionStatement = AST.ExpressionStatement<LenientTyped<Of>, LenientTyped<Of>>
+
+/** Expression containing [LenientTyped]s */
+typealias LenientTypedExpression = AST.Expression<LenientTyped<Of>, LenientTyped<Of>>
+/** BinaryExpression containing [LenientTyped]s */
+typealias LenientTypedBinaryExpression = AST.BinaryExpression<LenientTyped<Of>, LenientTyped<Of>>
+/** UnaryExpression containing [LenientTyped]s */
+typealias LenientTypedUnaryExpression = AST.UnaryExpression<LenientTyped<Of>, LenientTyped<Of>>
+/** MethodInvocationExpression containing [LenientTyped]s */
+typealias LenientTypedMethodInvocationExpression = AST.MethodInvocationExpression<LenientTyped<Of>, LenientTyped<Of>>
+/** FieldAccessExpression containing [LenientTyped]s */
+typealias LenientTypedFieldAccessExpression = AST.FieldAccessExpression<LenientTyped<Of>, LenientTyped<Of>>
+/** ArrayAccessExpression containing [LenientTyped]s */
+typealias LenientTypedArrayAccessExpression = AST.ArrayAccessExpression<LenientTyped<Of>, LenientTyped<Of>>
+/** IdentifierExpression containing [LenientTyped]s */
+typealias LenientTypedIdentifierExpression = AST.IdentifierExpression
+/** LiteralExpression containing [LenientTyped]s */
+typealias LenientTypedLiteralExpression = AST.LiteralExpression
+/** NewObjectExpression containing [LenientTyped]s */
+typealias LenientTypedNewObjectExpression = AST.NewObjectExpression
+/** NewArrayExpression containing [LenientTyped]s */
+typealias LenientTypedNewArrayExpression = AST.NewArrayExpression<LenientTyped<Of>, LenientTyped<Of>>
