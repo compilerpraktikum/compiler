@@ -1,6 +1,11 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.ast.AST.wrapBlockStatement
+import edu.kit.compiler.wrapper.Identity
+import edu.kit.compiler.wrapper.IdentityClassDeclaration
+import edu.kit.compiler.wrapper.IdentityProgram
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.into
 import java.io.PrintStream
 import java.util.Stack
 
@@ -15,7 +20,7 @@ class PrettyPrintVisitor(
     private var printParanthesesStack: Stack<Boolean> =
         Stack() // Usage. In a visit method: peek() is false, we always don't. if peek() is true, the current method decides, if it needs to be printed!
 
-    override fun visit(program: ProgramOfIdentity) {
+    override fun visit(program: IdentityProgram) {
         printParanthesesStack.push(true) // default: print parantheses. TODO put this in the constructor!!!
 
         program.classes
@@ -24,7 +29,7 @@ class PrettyPrintVisitor(
             .forEach { classDeclaration -> classDeclaration.accept(this) }
     }
 
-    override fun visit(classDeclaration: ClassDeclarationOfIdentity) {
+    override fun visit(classDeclaration: IdentityClassDeclaration) {
         println("class ${classDeclaration.name.text} {")
         doIndented {
             classDeclaration.member

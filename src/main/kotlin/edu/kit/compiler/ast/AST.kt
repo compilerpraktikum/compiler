@@ -2,6 +2,10 @@ package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.Identity
+import edu.kit.compiler.wrapper.Kind
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.into
 
 sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
 

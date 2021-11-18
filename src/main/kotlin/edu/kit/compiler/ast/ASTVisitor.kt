@@ -1,38 +1,43 @@
 package edu.kit.compiler.ast
 
-interface ASTVisitor<E, S, D, C, O> {
+import edu.kit.compiler.wrapper.Identity
+import edu.kit.compiler.wrapper.Kind
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.into
 
-    fun visit(program: AST.Program<E, S, D, C, O>)
+interface ASTVisitor<ExprW, StmtW, MethodW, ClassW, OtherW> {
 
-    fun visit(classDeclaration: AST.ClassDeclaration<E, S, D, O>)
+    fun visit(program: AST.Program<ExprW, StmtW, MethodW, ClassW, OtherW>)
 
-    fun visit(field: AST.Field<O>)
+    fun visit(classDeclaration: AST.ClassDeclaration<ExprW, StmtW, MethodW, OtherW>)
 
-    fun visit(method: AST.Method<E, S, O>)
+    fun visit(field: AST.Field<OtherW>)
 
-    fun visit(mainMethod: AST.MainMethod<E, S, O>)
+    fun visit(method: AST.Method<ExprW, StmtW, OtherW>)
 
-    fun visit(parameter: AST.Parameter<O>)
+    fun visit(mainMethod: AST.MainMethod<ExprW, StmtW, OtherW>)
 
-    fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<E, O>)
+    fun visit(parameter: AST.Parameter<OtherW>)
 
-    fun visit(block: AST.Block<E, S, O>)
+    fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<ExprW, OtherW>)
 
-    fun visit(ifStatement: AST.IfStatement<E, S, O>)
+    fun visit(block: AST.Block<ExprW, StmtW, OtherW>)
 
-    fun visit(whileStatement: AST.WhileStatement<E, S, O>)
+    fun visit(ifStatement: AST.IfStatement<ExprW, StmtW, OtherW>)
 
-    fun visit(returnStatement: AST.ReturnStatement<E, O>)
+    fun visit(whileStatement: AST.WhileStatement<ExprW, StmtW, OtherW>)
 
-    fun visit(binaryExpression: AST.BinaryExpression<E, O>)
+    fun visit(returnStatement: AST.ReturnStatement<ExprW, OtherW>)
 
-    fun visit(unaryExpression: AST.UnaryExpression<E, O>)
+    fun visit(binaryExpression: AST.BinaryExpression<ExprW, OtherW>)
 
-    fun visit(methodInvocationExpression: AST.MethodInvocationExpression<E, O>)
+    fun visit(unaryExpression: AST.UnaryExpression<ExprW, OtherW>)
 
-    fun visit(fieldAccessExpression: AST.FieldAccessExpression<E, O>)
+    fun visit(methodInvocationExpression: AST.MethodInvocationExpression<ExprW, OtherW>)
 
-    fun visit(arrayAccessExpression: AST.ArrayAccessExpression<E, O>)
+    fun visit(fieldAccessExpression: AST.FieldAccessExpression<ExprW, OtherW>)
+
+    fun visit(arrayAccessExpression: AST.ArrayAccessExpression<ExprW, OtherW>)
 
     fun visit(identifierExpression: AST.IdentifierExpression)
 
@@ -40,7 +45,7 @@ interface ASTVisitor<E, S, D, C, O> {
 
     fun visit(newObjectExpression: AST.NewObjectExpression)
 
-    fun visit(newArrayExpression: AST.NewArrayExpression<E, O>)
+    fun visit(newArrayExpression: AST.NewArrayExpression<ExprW, OtherW>)
 
     fun visit(voidType: Type.Void)
 
@@ -48,9 +53,9 @@ interface ASTVisitor<E, S, D, C, O> {
 
     fun visit(booleanType: Type.Boolean)
 
-    fun visit(arrayType: Type.Array<O>)
+    fun visit(arrayType: Type.Array<OtherW>)
 
-    fun visit(arrayType: Type.Array.ArrayType<O>)
+    fun visit(arrayType: Type.Array.ArrayType<OtherW>)
 
     fun visit(classType: Type.Class)
 
@@ -58,7 +63,7 @@ interface ASTVisitor<E, S, D, C, O> {
 
     fun visit(operation: AST.UnaryExpression.Operation)
 
-    fun visit(expressionStatement: AST.ExpressionStatement<E, O>)
+    fun visit(expressionStatement: AST.ExpressionStatement<ExprW, OtherW>)
 }
 
 fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: ASTVisitor<E, S, D, C, O>) = when (this) {

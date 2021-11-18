@@ -1,5 +1,9 @@
 package edu.kit.compiler.ast
 
+import edu.kit.compiler.wrapper.Unwrappable
+import edu.kit.compiler.wrapper.into
+import edu.kit.compiler.wrapper.unwrap
+
 abstract class AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     private val unwrapExpr: Unwrappable<ExprW>,
     private val unwrapStmt: Unwrappable<StmtW>,
@@ -130,3 +134,11 @@ abstract class AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
         expressionStatement.expression.unwrap(unwrapExpr).into().accept(this)
     }
 }
+
+fun <E, S, D, C, O> AST.Program<E, S, D, C, O>.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) = visitor.visit(this)
+
+fun <E, S, D, C, O> AST.BinaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+    visitor.visit(this)
+
+fun <E, S, D, C, O> AST.UnaryExpression.Operation.accept(visitor: AbstractASTVisitor<E, S, D, C, O>) =
+    visitor.visit(this)

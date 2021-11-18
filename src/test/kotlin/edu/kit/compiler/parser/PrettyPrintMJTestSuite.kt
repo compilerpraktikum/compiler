@@ -1,17 +1,17 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Identity
-import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.ast.validate
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.utils.createLexer
+import edu.kit.compiler.wrapper.Identity
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.validate
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource

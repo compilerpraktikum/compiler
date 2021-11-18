@@ -2,16 +2,16 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.AST.wrapBlockStatement
-import edu.kit.compiler.ast.BlockOfLenient
-import edu.kit.compiler.ast.ClassDeclarationOfLenient
-import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.LenientProgram
-import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
-import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
+import edu.kit.compiler.wrapper.Lenient
+import edu.kit.compiler.wrapper.LenientBlock
+import edu.kit.compiler.wrapper.LenientClassDeclaration
+import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.wrapValid
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 
@@ -19,13 +19,13 @@ import kotlin.test.Ignore
 internal class MixedParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private val validEmptyBlock = BlockOfLenient(listOf()).wrapValid()
+    private val validEmptyBlock = LenientBlock(listOf()).wrapValid()
 
-    private val validEmptyBlockStatement = BlockOfLenient(
+    private val validEmptyBlockStatement = LenientBlock(
         listOf()
     ).wrapBlockStatement().wrapValid()
 
-    private fun expectAst(input: String, expectedAST: List<Lenient<ClassDeclarationOfLenient>>) =
+    private fun expectAst(input: String, expectedAST: List<Lenient<LenientClassDeclaration>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test
@@ -36,9 +36,9 @@ internal class MixedParseTest {
     fun testParseBlockOfEmptyBlocks() =
         expectNode(
             "{{{}}}",
-            BlockOfLenient(
+            LenientBlock(
                 listOf(
-                    BlockOfLenient(
+                    LenientBlock(
                         listOf(
                             validEmptyBlockStatement
                         )

@@ -3,6 +3,9 @@ package edu.kit.compiler.ast
 import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.Lenient
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.wrapValid
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
