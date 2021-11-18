@@ -5,9 +5,10 @@ import edu.kit.compiler.ast.accept
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.wrapper.IdentityProgram
-import edu.kit.compiler.wrapper.Lenient
 import edu.kit.compiler.wrapper.LenientProgram
 import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Assertions
 import java.io.ByteArrayOutputStream
 import java.io.File

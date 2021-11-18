@@ -1,7 +1,20 @@
-package edu.kit.compiler.wrapper
+package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.wrapper.IdentityBlockStatement
+import edu.kit.compiler.wrapper.IdentityClassDeclaration
+import edu.kit.compiler.wrapper.IdentityClassMember
+import edu.kit.compiler.wrapper.IdentityProgram
+import edu.kit.compiler.wrapper.IdentityStatement
+import edu.kit.compiler.wrapper.Kind
+import edu.kit.compiler.wrapper.LenientBlockStatement
+import edu.kit.compiler.wrapper.LenientClassDeclaration
+import edu.kit.compiler.wrapper.LenientClassMember
+import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.LenientStatement
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.into
 
 /**
  * An AST-Node wrapper, that indicates, that the contained AST-Node may or may not be valid.

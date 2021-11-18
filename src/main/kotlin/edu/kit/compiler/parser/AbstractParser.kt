@@ -4,8 +4,8 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.wrapper.Lenient
 import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.wrappers.Lenient
 import java.util.Optional
 
 /**

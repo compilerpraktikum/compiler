@@ -1,7 +1,9 @@
-package edu.kit.compiler.wrapper
+package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.wrapper.Kind
+import edu.kit.compiler.wrapper.Of
 
 /**
  * `mapClassW` converts from one `ClassWrapper` generic to another.
@@ -30,10 +32,47 @@ inline fun <OtherW1, OtherW2> Type<OtherW1>.mapOtherW(
         is Type.Void -> this
     }
 
+inline fun <OtherW1, OtherW2> AST.Field<OtherW1>.mapOtherW(
+    f: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
+): AST.Field<OtherW2> =
+    AST.Field(name, f(type))
+
 inline fun <OtherW1, OtherW2> AST.Parameter<OtherW1>.mapOtherW(
     f: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>
 ): AST.Parameter<OtherW2> =
     AST.Parameter(name, f(type))
+
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.MainMethod<ExprW1, StmtW1, OtherW1>.mapStmt(
+    mapType: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>,
+    mapParameter: (Kind<OtherW1, Kind<AST.Parameter<Of>, OtherW1>>) -> Kind<OtherW2, Kind<AST.Parameter<Of>, OtherW2>>,
+    mapBlock: (Kind<StmtW1, AST.Block<ExprW1, StmtW1, OtherW1>>) -> Kind<StmtW2, AST.Block<ExprW2, StmtW2, OtherW2>>,
+): AST.MainMethod<ExprW2, StmtW2, OtherW2> = AST.MainMethod(
+    name, mapType(returnType), parameters.map { mapParameter(it) }, mapBlock(block), throwsException
+)
+
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Method<ExprW1, StmtW1, OtherW1>.mapStmt(
+    mapType: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>,
+    mapParameter: (Kind<OtherW1, Kind<AST.Parameter<Of>, OtherW1>>) -> Kind<OtherW2, Kind<AST.Parameter<Of>, OtherW2>>,
+    mapBlock: (Kind<StmtW1, AST.Block<ExprW1, StmtW1, OtherW1>>) -> Kind<StmtW2, AST.Block<ExprW2, StmtW2, OtherW2>>,
+): AST.Method<ExprW2, StmtW2, OtherW2> = AST.Method(
+    name, mapType(returnType), parameters.map { mapParameter(it) }, mapBlock(block), throwsException
+)
+
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.ClassMember<ExprW1, StmtW1, OtherW1>.mapMember(
+    mapType: (Kind<OtherW1, Kind<Type<Of>, OtherW1>>) -> Kind<OtherW2, Kind<Type<Of>, OtherW2>>,
+    mapParameter: (Kind<OtherW1, Kind<AST.Parameter<Of>, OtherW1>>) -> Kind<OtherW2, Kind<AST.Parameter<Of>, OtherW2>>,
+    mapBlock: (Kind<StmtW1, AST.Block<ExprW1, StmtW1, OtherW1>>) -> Kind<StmtW2, AST.Block<ExprW2, StmtW2, OtherW2>>,
+): AST.ClassMember<ExprW2, StmtW2, OtherW2> =
+    when (this) {
+        is AST.Field -> this.mapOtherW(mapType)
+        is AST.MainMethod -> this.mapStmt(mapType, mapParameter, mapBlock)
+        is AST.Method -> this.mapStmt(mapType, mapParameter, mapBlock)
+    }
+
+inline fun <StmtW1, StmtW2, ExprW1, ExprW2, OtherW1, OtherW2> AST.Block<ExprW1, StmtW1, OtherW1>.mapStmt(
+    mapBlockStatement: (Kind<StmtW1, Kind<AST.BlockStatement<ExprW1, Of, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.BlockStatement<ExprW2, Of, OtherW2>, StmtW2>>
+): AST.Block<ExprW2, StmtW2, OtherW2> =
+    AST.Block(this.statements.map { mapBlockStatement(it) })
 
 inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<ExprW1, StmtW1, OtherW1>.mapStmt(
     mapBlockStatement: (Kind<StmtW1, Kind<AST.BlockStatement<ExprW1, Of, OtherW1>, StmtW1>>) -> Kind<StmtW2, Kind<AST.BlockStatement<ExprW2, Of, OtherW2>, StmtW2>>,
@@ -43,7 +82,7 @@ inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<Expr
     AST.Statement<ExprW2, StmtW2, OtherW2> = when (this) {
     is AST.Block -> AST.Block(
         this.statements.map { mapBlockStatement(it) }
-    ).into()
+    )
     is AST.ExpressionStatement ->
         AST.ExpressionStatement(
             mapExpression(expression)

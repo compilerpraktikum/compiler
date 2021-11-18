@@ -6,12 +6,12 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.Lenient
 import edu.kit.compiler.wrapper.LenientBlock
 import edu.kit.compiler.wrapper.LenientClassDeclaration
 import edu.kit.compiler.wrapper.LenientProgram
 import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.wrapValid
+import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.wrapValid
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 

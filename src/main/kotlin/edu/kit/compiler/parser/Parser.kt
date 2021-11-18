@@ -7,12 +7,12 @@ import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.Lenient
 import edu.kit.compiler.wrapper.LenientProgram
 import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.markErroneous
-import edu.kit.compiler.wrapper.wrapErroneous
-import edu.kit.compiler.wrapper.wrapValid
+import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.markErroneous
+import edu.kit.compiler.wrapper.wrappers.wrapErroneous
+import edu.kit.compiler.wrapper.wrappers.wrapValid
 import java.util.Optional
 
 private val Token.isRelevantForSyntax

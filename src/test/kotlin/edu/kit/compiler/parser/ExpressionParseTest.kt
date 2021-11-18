@@ -3,9 +3,9 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.Lenient
 import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.wrapValid
+import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.wrapValid
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi

@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource

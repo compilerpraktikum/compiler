@@ -9,6 +9,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
 import java.nio.file.Path
