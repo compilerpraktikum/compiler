@@ -334,24 +334,14 @@ class PrettyPrintVisitor(
 
     override fun visit(newArrayExpression: AST.NewArrayExpression<Identity<Of>, Identity<Of>>) {
         printParanthesesMaybe {
+            val element = newArrayExpression.type.into().v.into().elementType.into().v.into()
             print("new ")
-            newArrayExpression.type.into().v.into().elementType.into().v.into().baseType.accept(this)
+            element.baseType.accept(this)
             print("[")
             doParenthesizedMaybe(true) { newArrayExpression.length.accept(this) }
             print("]")
-            print("[]".repeat(arrayDepthCount(newArrayExpression.type.into().v.into(), 0)))
+            print("[]".repeat(element.dimension))
         }
-    }
-
-    fun arrayDepthCount(type: Type<Identity<Of>>, acc: Int): Int {
-        return when (type) {
-            is Type.Array -> arrayDepthCount(type.arrayType.elementType.into().v.into(), acc + 1)
-            else -> acc
-        }
-    }
-
-    fun arrayDepthCount(type: Type.Array.ArrayType<Identity<Of>>, acc: Int): Int {
-        return arrayDepthCount(type.elementType.into().v.into(), acc)
     }
 
     override fun visit(voidType: Type.Void) {

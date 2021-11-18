@@ -46,6 +46,17 @@ public val Type<Identity<Of>>.baseType: Type<Nothing>
         is Type.Boolean -> this
     }
 
+public val Type<Identity<Of>>.dimension: Int
+    get() {
+        var dim = 0
+        var type = this
+        while (type is Type.Array) {
+            dim += 1
+            type = type.arrayType.elementType.into().v.into().baseType
+        }
+        return dim
+    }
+
 /**
  * Sealed AST-Node class structure
  */
