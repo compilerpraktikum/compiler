@@ -1,9 +1,10 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.wrapper.Identity
 import edu.kit.compiler.wrapper.Kind
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.into
+import edu.kit.compiler.wrapper.wrappers.Identity
+import edu.kit.compiler.wrapper.wrappers.into
 
 interface ASTVisitor<ExprW, StmtW, MethodW, ClassW, OtherW> {
 

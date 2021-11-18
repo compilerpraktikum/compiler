@@ -1,11 +1,12 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.ast.AST.wrapBlockStatement
-import edu.kit.compiler.wrapper.Identity
 import edu.kit.compiler.wrapper.IdentityClassDeclaration
 import edu.kit.compiler.wrapper.IdentityProgram
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.into
+import edu.kit.compiler.wrapper.wrappers.Identity
+import edu.kit.compiler.wrapper.wrappers.into
 import java.io.PrintStream
 import java.util.Stack
 

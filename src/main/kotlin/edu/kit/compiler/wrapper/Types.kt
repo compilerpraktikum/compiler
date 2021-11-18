@@ -2,6 +2,11 @@ package edu.kit.compiler.wrapper
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.wrapper.wrappers.ConstValue
+import edu.kit.compiler.wrapper.wrappers.Identity
+import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.UnwrappableIdentity
+import edu.kit.compiler.wrapper.wrappers.into
 
 // ---------------------------------------- Types ----------------------------------------//
 
@@ -80,10 +85,6 @@ class Of private constructor()
  */
 interface Unwrappable<F> {
     fun <A> unwrapValue(fa: Kind<F, A>): A
-}
-
-object UnwrappableIdentity : Unwrappable<Identity<Of>> {
-    override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
 }
 fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
 

@@ -103,12 +103,22 @@ validate = \case
     Literal a -> Just $ Literal a
     Unary op inner -> Unary op . Identity <$> (lenientToMaybe inner >>= validate)
 
-data Annotated a = Annotated {ty :: String, content :: a}
+data Ann a = Ann {ty :: String, content :: a}
 
-instance Functor Annotated where
-  fmap f (Annotated ty content) = Annotated ty $ f content
+instance Functor Ann where
+  fmap f (Ann ty content) = Ann ty $ f content
 
-newtype Apply f g a = Apply (f (g a))
+newtype Compose f g a = Compose (f (g a))
 
-exampleNested :: Apply Lenient Annotated (Expr (Apply Lenient Annotated))
-exampleNested = Apply $ Valid $ Annotated "Int" $ Unary "-" $ Apply $ Valid $ Annotated "Int" $ Literal 2
+exampleNested :: Compose Lenient Ann (Expr (Compose Lenient Ann))
+exampleNested = Compose $ Valid $ Ann "Int" $ Unary "-" $ Compose $ Valid $ Ann "Int" $ Literal 2
+
+data Positioned a = Positioned {pos :: Int, val :: a}
+
+newtype Parsed a = Parsed ( Positioned (Ann a))
+
+outOf :: Expr (Compose f g) -> Expr h
+outOf = undefined 
+
+asd :: Parsed (Expr Parsed)
+asd = Parsed $ Positioned 2 $ Ann "int" $ Literal 2

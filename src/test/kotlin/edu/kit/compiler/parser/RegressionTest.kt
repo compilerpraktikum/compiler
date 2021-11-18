@@ -3,6 +3,7 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 

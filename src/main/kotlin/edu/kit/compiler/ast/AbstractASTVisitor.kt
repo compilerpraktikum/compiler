@@ -3,6 +3,7 @@ package edu.kit.compiler.ast
 import edu.kit.compiler.wrapper.Unwrappable
 import edu.kit.compiler.wrapper.into
 import edu.kit.compiler.wrapper.unwrap
+import edu.kit.compiler.wrapper.wrappers.into
 
 abstract class AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
     private val unwrapExpr: Unwrappable<ExprW>,
