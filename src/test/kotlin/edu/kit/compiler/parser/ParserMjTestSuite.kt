@@ -1,6 +1,5 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile

@@ -2,7 +2,6 @@ package edu.kit.compiler
 
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
