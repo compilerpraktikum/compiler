@@ -14,11 +14,9 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 
-private class CompilationFailedException(val sourceFile: SourceFile) : Exception("compilation failed (internal)")
-
-private fun SourceFile.failIfHasError() {
-    if (hasError) {
-        throw CompilationFailedException(this)
+private fun SourceFile.assertHasErrors() {
+    if (!hasError) {
+        throw IllegalStateException("source file should have error(s)")
     }
 }
 
@@ -80,14 +78,7 @@ class Compiler(private val config: Config) {
                     )
                     val parser = Parser(sourceFile, lexer.tokens())
 
-                    try {
-                        parser.parse()
-                    } catch (ex: NotImplementedError) {
-                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations()
-                        System.err.println("[error] invalid program")
-                        return ExitCode.ERROR_COMPILATION_FAILED
-                    }
+                    parser.parse()
                 }
                 Mode.PrettyPrintAst -> {
                     val lexer = Lexer(
@@ -96,18 +87,9 @@ class Compiler(private val config: Config) {
                     )
                     val parser = Parser(sourceFile, lexer.tokens())
 
-                    try {
-                        val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
+                    kotlin.run {
+                        val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         program.accept(PrettyPrintVisitor(System.out))
-                    } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
-                        sourceFile.printAnnotations()
-                        System.err.println("[error] $ex")
-                        return ExitCode.ERROR_COMPILATION_FAILED
-                    } catch (ex: NotImplementedError) {
-                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations()
-                        System.err.println("[error] invalid program")
-                        return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
                 Mode.SemanticCheck -> {
@@ -117,34 +99,24 @@ class Compiler(private val config: Config) {
                     )
                     val parser = Parser(sourceFile, lexer.tokens())
 
-                    try {
-                        val program = parser.parse().validate() ?: throw IllegalArgumentException("parsing failed")
+                    kotlin.run {
+                        val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         // TODO run semantic checks
-                    } catch (ex: IllegalArgumentException) { // TODO properly handle parsing failure
-                        sourceFile.printAnnotations()
-                        System.err.println("[error] $ex")
-                        return ExitCode.ERROR_COMPILATION_FAILED
-                    } catch (ex: NotImplementedError) {
-                        // TODO remove once parser properly supports multiple errors and properly uses [SourceFile.annotate]
-                        sourceFile.printAnnotations()
-                        System.err.println("[error] invalid program")
-                        return ExitCode.ERROR_COMPILATION_FAILED
                     }
                 }
             }
 
-            sourceFile.failIfHasError()
-            sourceFile.printAnnotations() // print warnings
-        } catch (e: CompilationFailedException) {
-            e.sourceFile.printAnnotations()
-            return ExitCode.ERROR_COMPILATION_FAILED
+            sourceFile.printAnnotations()
+            return if (sourceFile.hasError) {
+                ExitCode.ERROR_COMPILATION_FAILED
+            } else {
+                ExitCode.SUCCESS
+            }
         } catch (e: Exception) {
             System.err.println("Internal error: ${e.message}")
             e.printStackTrace(System.err)
             return ExitCode.ERROR_INTERNAL
         }
-
-        return ExitCode.SUCCESS
     }
 
     /**
