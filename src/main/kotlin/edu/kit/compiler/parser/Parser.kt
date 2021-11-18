@@ -2,17 +2,17 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.LenientProgram
-import edu.kit.compiler.ast.Of
 import edu.kit.compiler.ast.Type
-import edu.kit.compiler.ast.markErroneous
 import edu.kit.compiler.ast.toASTOperation
-import edu.kit.compiler.ast.wrapErroneous
-import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.Lenient
+import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.markErroneous
+import edu.kit.compiler.wrapper.wrapErroneous
+import edu.kit.compiler.wrapper.wrapValid
 import java.util.Optional
 
 private val Token.isRelevantForSyntax

@@ -1,9 +1,9 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.ast.validate
 import edu.kit.compiler.utils.TestUtils.assertIdemPotence
 import edu.kit.compiler.utils.TestUtils.createAST
 import edu.kit.compiler.utils.TestUtils.prettyPrint
+import edu.kit.compiler.wrapper.validate
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 

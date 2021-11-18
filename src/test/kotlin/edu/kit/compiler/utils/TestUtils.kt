@@ -1,13 +1,13 @@
 package edu.kit.compiler.utils
 
-import edu.kit.compiler.ast.Lenient
-import edu.kit.compiler.ast.LenientProgram
 import edu.kit.compiler.ast.PrettyPrintVisitor
-import edu.kit.compiler.ast.ProgramOfIdentity
 import edu.kit.compiler.ast.accept
-import edu.kit.compiler.ast.validate
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
+import edu.kit.compiler.wrapper.IdentityProgram
+import edu.kit.compiler.wrapper.Lenient
+import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.validate
 import org.junit.jupiter.api.Assertions
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -74,7 +74,7 @@ object TestUtils {
         assertEquals(pretty1, pretty2)
     }
 
-    fun prettyPrint(astRoot: ProgramOfIdentity): String {
+    fun prettyPrint(astRoot: IdentityProgram): String {
         val byteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
