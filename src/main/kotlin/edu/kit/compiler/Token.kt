@@ -141,7 +141,7 @@ sealed class Token {
 
     class Eof : Token() {
         override val length: Int
-            get() = 0
+            get() = 1
 
         override fun toString(): String = "EndOfFile"
 
