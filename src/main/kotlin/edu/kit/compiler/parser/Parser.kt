@@ -48,7 +48,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(peekedToken.value).wrapValid() // TODO we should further specify ""type""
+                AST.LiteralExpression(peekedToken.value).wrapValid()
             }
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
@@ -298,7 +298,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
                         val maybeLParent = peek()
                         if (maybeLParent is Token.Operator && maybeLParent.type == Token.Operator.Type.LParen) {
-                            // methodInvocation todo recurse
                             next()
 
                             val arguments = parseArguments(
@@ -325,7 +324,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                 )
                             }
                         } else {
-                            // fieldAccess todo recurse
                             if (ident.isPresent) {
                                 parsePostfixOp(AST.FieldAccessExpression(target, ident.get().name).wrapValid(), anc)
                             } else {
@@ -365,8 +363,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseUnaryExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
-        // todo not exhausting first(follow) of parsePrimary!)
-        // TODO parsePostfixExpression instead of parsePrimaryExpression !
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
@@ -396,7 +392,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         minPrecedence: Int = 1,
         anc: AnchorUnion
     ): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
-        // todo: calculate anchorsets using all expression operators
         var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
         var currentToken = peek()
 
@@ -713,7 +708,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal class member declaration. expected either a method declaration or `;`",
                         )
                         recover(anc)
-                        // todo we could try to recover this towards a method declaration and parse it, if we succeed
                         Lenient.Error(null)
                     }
                 }
@@ -724,7 +718,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "illegal class member declaration. expected either `;` or `(`.",
                 )
                 recover(anc)
-                // todo we could try to recover this towards a method declaration and parse it, if we succeed
                 Lenient.Error(null)
             }
         }
@@ -1185,13 +1178,11 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
         next()
 
-        // todo what if there is `int a = new int[2][2];`? This is a new-array-instantiation and immediate array access, is this even covered by the parser?
         val rightBracket = expectOperator(
             Token.Operator.Type.RightBracket,
             anc + FirstFollowUtils.firstSetTypeArrayRecurse
         ) { "illegal array type expression. expected `]`" }
 
-        // TODO: in case of error, return an error-node
         val maybeAnotherLBracket = peek(0)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             if (rightBracket.isPresent) {
