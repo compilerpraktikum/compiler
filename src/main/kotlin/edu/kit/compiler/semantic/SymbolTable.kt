@@ -31,7 +31,6 @@ data class Definition<NodeType>(
 
 typealias FieldDefinition = Definition<AST.Field<Identity<Of>>>
 typealias MethodDefinition = Definition<AST.Method<Identity<Of>, Identity<Of>, Identity<Of>>>
-typealias VariableDefinition = Definition<AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>>
 
 data class DefinitionWithNamespace<NodeType, NamespaceType>(
     val name: Symbol,
@@ -41,6 +40,14 @@ data class DefinitionWithNamespace<NodeType, NamespaceType>(
 
 private typealias ASTClass = AST.ClassDeclaration<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>
 typealias ClassDefinition = DefinitionWithNamespace<ASTClass, ClassNamespace>
+
+data class DefinitionWithOptionalNamespace<NodeType, NamespaceType>(
+    val name: Symbol,
+    val node: NodeType,
+    val namespace: NamespaceType?
+)
+
+typealias VariableDefinition = DefinitionWithOptionalNamespace<AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>, ClassNamespace>
 
 class GlobalNamespace {
     val classes = Namespace<ClassDefinition>()
