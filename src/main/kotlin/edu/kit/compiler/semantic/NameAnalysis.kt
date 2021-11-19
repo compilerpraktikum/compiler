@@ -6,12 +6,17 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.accept
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
+import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.IdentityBinaryExpression
 import edu.kit.compiler.wrapper.IdentityClassDeclaration
 import edu.kit.compiler.wrapper.IdentityField
 import edu.kit.compiler.wrapper.IdentityMethod
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.Unwrappable
+import edu.kit.compiler.wrapper.into
+import edu.kit.compiler.wrapper.unwrap
+import edu.kit.compiler.wrapper.wrappers.Annotated
 import edu.kit.compiler.wrapper.wrappers.Identity
 
 /**
@@ -126,11 +131,15 @@ class MethodNameAnalysisVisitor(
     private val unwrapDecl: Unwrappable<Identity<Of>>,
     private val unwrapClass: Unwrappable<Identity<Of>>,
     private val unwrapOther: Unwrappable<Identity<Of>>,
-    private val globalNamespace: GlobalNamespace
+    private val globalNamespace: GlobalNamespace,
+    private val sourceFile: SourceFile
 ) :
     AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>(
         unwrapExpr, unwrapStmt, unwrapDecl, unwrapClass, unwrapOther
     ) {
+
+    private lateinit var currentClassNamespace: ClassNamespace
+    private lateinit var currentLocalMethodNamespace: LocalMethodNamespace
 
     override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
         arrayType.accept(this)
@@ -141,15 +150,50 @@ class MethodNameAnalysisVisitor(
         TODO("remove this method")
     }
 
+    override fun visit(classDeclaration: IdentityClassDeclaration) {
+        currentClassNamespace = globalNamespace.classes.get(classDeclaration.name)?.namespace ?: TODO("throw sth")
+        // call children
+        super.visit(classDeclaration)
+    }
+
+    override fun visit(method: IdentityMethod) {
+        currentLocalMethodNamespace = LocalMethodNamespace(currentClassNamespace, sourceFile)
+
+        // call children
+        super.visit(method)
+    }
+
+    override fun visit(block: AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>) {
+        currentLocalMethodNamespace.enterScope()
+        super.visit(block)
+        currentLocalMethodNamespace.leaveScope()
+    }
+
+
     override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>) {
-        //todo symboltable from current method
-//        symbolTable.add(
-//            localVariableDeclarationStatement.name,
-//            VariableDefinition(
-//                localVariableDeclarationStatement.name,
-//                localVariableDeclarationStatement,
-//            )
-//        )
+        currentLocalMethodNamespace.addDefinition(localVariableDeclarationStatement)
+    }
+
+    override fun visit(binaryExpression: IdentityBinaryExpression) {
+        val left = binaryExpression.left.unwrap(unwrapExpr).into()
+        val right = binaryExpression.right.unwrap(unwrapExpr).into()
+
+
+        when (binaryExpression.operation) {
+            AST.BinaryExpression.Operation.ASSIGNMENT -> when (left) {
+                is AST.IdentifierExpression -> {
+                    val variableDefinition: VariableDefinition = currentLocalMethodNamespace.lookupSth //TODO visit them children of right hand
+
+                    if (variableDefinition == null) {
+                        TODO("throw sth")
+                    } else {
+                        TODO("decorate the left hand side with the definition by assigning sth like below to binaryExpression.left")
+                        Annotated(left, variableDefinition)
+                    }
+                }
+                else -> TODO(" other lvalues like arrayaccess, fieldacccess")
+            }
+        }
     }
 
 }
