@@ -700,7 +700,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return when (val fieldMethodRestToken = peek(0)) {
             is Token.Operator -> {
                 when (fieldMethodRestToken.type) {
-                    Token.Operator.Type.Semicolon -> parseField(ident, type, anc)
+                    Token.Operator.Type.Semicolon -> parseField(ident, type)
                     Token.Operator.Type.LParen -> parseMethod(ident, type, anc)
                     else -> {
                         reportError(
@@ -725,8 +725,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseField(
         ident: Optional<Token.Identifier>,
-        type: Lenient<Type<Lenient<Of>>>,
-        anc: AnchorUnion
+        type: Lenient<Type<Lenient<Of>>>
     ): Lenient<AST.Field<Lenient<Of>>> {
         next()
 
@@ -811,7 +810,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val resultBlock = AST.Block(
             if (!(maybeRightBrace is Token.Operator && maybeRightBrace.type == Token.Operator.Type.RightBrace)) {
-                parseBlockStatements(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBrace)))
+                parseBlockStatements()
             } else {
                 emptyList()
             }
@@ -826,7 +825,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseBlockStatements(anc: AnchorUnion): List<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    private fun parseBlockStatements(): List<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
         // at least one should exist at this point.
         return buildList {
             var peeked = peek(0)
@@ -933,7 +932,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace -> parseBlock(anc)
-                    Token.Operator.Type.Semicolon -> parseEmptyStatement(anc)
+                    Token.Operator.Type.Semicolon -> parseEmptyStatement()
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseExpressionStatement(anc)
@@ -1076,7 +1075,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseEmptyStatement(anc: AnchorUnion): Lenient<AST.Statement<Nothing, Nothing, Nothing>> {
+    private fun parseEmptyStatement(): Lenient<AST.Statement<Nothing, Nothing, Nothing>> {
         next()
         return AST.emptyStatement.wrapValid()
     }
