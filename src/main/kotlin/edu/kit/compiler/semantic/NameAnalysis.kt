@@ -7,6 +7,9 @@ import edu.kit.compiler.ast.accept
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.IdentityClassDeclaration
+import edu.kit.compiler.wrapper.IdentityField
+import edu.kit.compiler.wrapper.IdentityMethod
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.Unwrappable
 import edu.kit.compiler.wrapper.wrappers.Identity
@@ -74,6 +77,7 @@ class GlobalNameAnalysisVisitor(
     ) {
 
     private val globalNamespace: GlobalNamespace = GlobalNamespace()
+    private lateinit var currentClassNamespace: ClassNamespace
 
     override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
         arrayType.accept(this)
@@ -82,6 +86,21 @@ class GlobalNameAnalysisVisitor(
 
     override fun visit(operation: AST.UnaryExpression.Operation) {
         TODO("remove this method")
+    }
+
+    override fun visit(classDeclaration: IdentityClassDeclaration) {
+        currentClassNamespace = ClassNamespace(globalNamespace)
+        // call children
+        super.visit(classDeclaration)
+        globalNamespace.classes.tryPut(classDeclaration.name, ClassDefinition(classDeclaration.name, classDeclaration, currentClassNamespace))
+    }
+
+    override fun visit(field: IdentityField) {
+        currentClassNamespace.fields.tryPut(field.name, FieldDefinition(field.name, field))
+    }
+
+    override fun visit(method: IdentityMethod) {
+        currentClassNamespace.methods.tryPut(method.name, MethodDefinition(method.name, method))
     }
 }
 
