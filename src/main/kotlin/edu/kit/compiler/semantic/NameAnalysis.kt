@@ -57,7 +57,12 @@ class LocalMethodNamespace(
     fun lookupMethod(name: Symbol, inClazz: ClassNamespace? = null) = (inClazz ?: clazz).methods.get(name)
 }
 
-class NameAnalyzationVisitor(
+/**
+    First name analysis pass: Populate Global namespace by visiting all classes:
+        <li> visit all fields and put them in the class namespace
+        <li> visit all methods and put them in the class namespace
+ */
+class GlobalNameAnalysisVisitor(
     private val unwrapExpr: Unwrappable<Identity<Of>>,
     private val unwrapStmt: Unwrappable<Identity<Of>>,
     private val unwrapDecl: Unwrappable<Identity<Of>>,
@@ -68,7 +73,37 @@ class NameAnalyzationVisitor(
         unwrapExpr, unwrapStmt, unwrapDecl, unwrapClass, unwrapOther
     ) {
 
-    private val symbolTable: SymbolTable = SymbolTable()
+    private val globalNamespace: GlobalNamespace = GlobalNamespace()
+
+    override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
+        arrayType.accept(this)
+        TODO("remove this method")
+    }
+
+    override fun visit(operation: AST.UnaryExpression.Operation) {
+        TODO("remove this method")
+    }
+}
+
+/**
+    Second name analysis pass: Populate Class namespace by visiting all methods:
+        <li> visit all local variable declarations
+        <li> visit all local variable usages and map the respective declaration, if there is one. If not, throw.
+        <li> visit all methodinvocations, fieldaccess or arrayaccesses
+        <li> Some idents belong to other namespaces.
+        <li> Use a LocalMethodNamespace for each method.
+ */
+class MethodNameAnalysisVisitor(
+    private val unwrapExpr: Unwrappable<Identity<Of>>,
+    private val unwrapStmt: Unwrappable<Identity<Of>>,
+    private val unwrapDecl: Unwrappable<Identity<Of>>,
+    private val unwrapClass: Unwrappable<Identity<Of>>,
+    private val unwrapOther: Unwrappable<Identity<Of>>,
+    private val globalNamespace: GlobalNamespace
+) :
+    AbstractASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>(
+        unwrapExpr, unwrapStmt, unwrapDecl, unwrapClass, unwrapOther
+    ) {
 
     override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
         arrayType.accept(this)
@@ -80,12 +115,14 @@ class NameAnalyzationVisitor(
     }
 
     override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>) {
-        symbolTable.add(
-            localVariableDeclarationStatement.name,
-            VariableDefinition(
-                localVariableDeclarationStatement.name,
-                localVariableDeclarationStatement
-            )
-        )
+        //todo symboltable from current method
+//        symbolTable.add(
+//            localVariableDeclarationStatement.name,
+//            VariableDefinition(
+//                localVariableDeclarationStatement.name,
+//                localVariableDeclarationStatement,
+//            )
+//        )
     }
+
 }
