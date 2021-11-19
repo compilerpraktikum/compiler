@@ -1,10 +1,9 @@
 package edu.kit.compiler.semantic
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Identity
-import edu.kit.compiler.ast.Of
-import edu.kit.compiler.ast.Type
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.wrappers.Identity
 
 /**
  * Generic namespace that contains a mapping from [Symbols][Symbol] to [definitions][T].
