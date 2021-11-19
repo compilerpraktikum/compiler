@@ -92,15 +92,23 @@ class GlobalNameAnalysisVisitor(
         currentClassNamespace = ClassNamespace(globalNamespace)
         // call children
         super.visit(classDeclaration)
-        globalNamespace.classes.tryPut(classDeclaration.name, ClassDefinition(classDeclaration.name, classDeclaration, currentClassNamespace))
+        if (!globalNamespace.classes.tryPut(
+                classDeclaration.name,
+                ClassDefinition(classDeclaration.name, classDeclaration, currentClassNamespace))) {
+            TODO("throw sth")
+        }
     }
 
     override fun visit(field: IdentityField) {
-        currentClassNamespace.fields.tryPut(field.name, FieldDefinition(field.name, field))
+        if (!currentClassNamespace.fields.tryPut(field.name, FieldDefinition(field.name, field))) {
+            TODO("throw sth")
+        }
     }
 
     override fun visit(method: IdentityMethod) {
-        currentClassNamespace.methods.tryPut(method.name, MethodDefinition(method.name, method))
+        if (!currentClassNamespace.methods.tryPut(method.name, MethodDefinition(method.name, method))) {
+            TODO("throw sth")
+        }
     }
 }
 
