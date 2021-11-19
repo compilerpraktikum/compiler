@@ -18,5 +18,5 @@ fun <Node> Node.positioned(range: SourceRange): Positioned<Node> = Annotated(thi
 
 @JvmInline
 value class UnwrappableAnnotated<Ann>(val empty: Unit? = null) : Unwrappable<Annotated<Ann, Of>> {
-    override fun <A> unwrapValue(fa: Kind<Annotated<Ann, Of>, A>) = fa.into().node
+    override fun <A> unwrappableExtract(fa: Kind<Annotated<Ann, Of>, A>) = fa.into().node
 }

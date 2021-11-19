@@ -15,7 +15,7 @@ data class Identity<A>(val v: A) : Kind<Identity<Of>, A>
 fun <A> Kind<Identity<Of>, A>.into(): Identity<A> = this as Identity<A>
 
 object UnwrappableIdentity : Unwrappable<Identity<Of>> {
-    override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
+    override fun <A> unwrappableExtract(fa: Kind<Identity<Of>, A>) = fa.into().v
 }
 
-fun <A> Kind<Identity<Of>, A>.unwrapId() = UnwrappableIdentity.unwrapValue(this)
+fun <A> Kind<Identity<Of>, A>.unwrapId() = UnwrappableIdentity.unwrappableExtract(this)

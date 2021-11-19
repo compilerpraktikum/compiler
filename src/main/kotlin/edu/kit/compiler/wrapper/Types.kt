@@ -80,13 +80,18 @@ class Of private constructor()
  * extract the value inside a Wrapper.
  * See [WrappingExample.unwrappedValue] for an example
  *
+ * This is pretty much a [`Comonad F`](https://hackage.haskell.org/package/comonad-5.0.8/docs/Control-Comonad.html#t:Comonad)
  *
  * @sample WrappingExample
  */
 interface Unwrappable<F> {
-    fun <A> unwrapValue(fa: Kind<F, A>): A
+    fun <A> unwrappableExtract(fa: Kind<F, A>): A
+
+    fun <A> duplicate(wa: Kind<F, A>): Kind<F, Kind<F, A>>
+
+    fun <A, B> extend(mapWa: (Kind<F, A>) -> B, wa: Kind<F, A>): Kind<F, B>
 }
-fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
+fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrappableExtract(this)
 
 // ---------------------------------------- Implementors ----------------------------------------//
 /**

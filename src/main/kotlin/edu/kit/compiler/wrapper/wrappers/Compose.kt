@@ -12,6 +12,6 @@ fun <F, G, A> Kind<Compose<F, G, Of>, A>.into(): Compose<F, G, A> = this as Comp
 
 class UnwrappableCompose<F, G>(private inline val unwrapF: Unwrappable<F>, private inline val unwrapG: Unwrappable<G>) :
     Unwrappable<Compose<F, G, Of>> {
-    override fun <A> unwrapValue(fa: Kind<Compose<F, G, Of>, A>): A =
+    override fun <A> unwrappableExtract(fa: Kind<Compose<F, G, Of>, A>): A =
         fa.into().unCompose.unwrap(unwrapF).unwrap(unwrapG)
 }
