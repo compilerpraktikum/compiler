@@ -2,7 +2,6 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.utils.createLexer
-import edu.kit.compiler.wrapper.validate
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -21,6 +20,16 @@ class RegressionTest {
     @Test
     fun testIllegalArgumentDefinition() {
         testParse("class a { public int foo() { foo.bar(x, return) } }")
+    }
+
+    @Test
+    fun testHigherLookahead1() {
+        testParse("class A { public static void main(String[] args) { int a = new int")
+    }
+
+    @Test
+    fun testHigherLookahead2() {
+        testParse("class A { public static void main(String[] args) { int a = new int[")
     }
 
     @OptIn(ExperimentalStdlibApi::class)
