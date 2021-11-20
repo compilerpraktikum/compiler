@@ -196,7 +196,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 ) +
                 FirstFollowUtils.firstSetExpression
         )
-        next() // skip bracket
+
+        /* We cannot assume that a bracket follows, because in case of primitive arrays no lookahead has happened yet */
+        expectOperator(
+            Token.Operator.Type.LeftBracket,
+            anc +
+                anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
+                FirstFollowUtils.firstSetExpression
+        ) { "expected `[` denoting an array type" }
 
         val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)))
 
@@ -216,18 +223,23 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         anc: AnchorUnion
     ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
         val maybeAnotherLBracket = peek(0)
-        // special case for NewArrayExpression in combination with ArrayAccess
-        // (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
-        val maybeAnotherRBracket = peek(1)
 
-        return if (
-            (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
-            (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
-        ) {
-            next()
-            next()
-            Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() })
-                .wrapValid()
+        return if (maybeAnotherLBracket !is Token.Eof) {
+            // special case for NewArrayExpression in combination with ArrayAccess
+            // (in "PostfixExpression -> PrimaryExpression (PostfixOp)*" Production)
+            val maybeAnotherRBracket = peek(1)
+
+            if (
+                (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) &&
+                (maybeAnotherRBracket is Token.Operator && maybeAnotherRBracket.type == Token.Operator.Type.RightBracket)
+            ) {
+                next()
+                next()
+                Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() })
+                    .wrapValid()
+            } else {
+                basicType
+            }
         } else {
             basicType
         }
@@ -845,9 +857,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseBlockStatement(anc: AnchorUnion): Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
-        // Statement ==> "{ | ; | if | while | return | null | false | true | INTEGER_LITERAL | ( | IDENT | this | new"
-        // Statement: Auf IDENT folgt nie ein weiteres IDENT.
-        // LocalVariableDeclarationStatement ==> "int | boolean | void | IDENT" x " IDENT " x " = | ; "
         return when (val firstToken = peek(0)) {
             is Token.Keyword -> {
                 when (firstToken.type) {
