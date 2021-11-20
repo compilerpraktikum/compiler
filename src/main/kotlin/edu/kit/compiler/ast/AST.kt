@@ -4,8 +4,14 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.wrapper.Kind
 import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.Unwrappable
 import edu.kit.compiler.wrapper.into
+import edu.kit.compiler.wrapper.unwrap
 import edu.kit.compiler.wrapper.wrappers.Identity
+import edu.kit.compiler.wrapper.wrappers.Positioned
+import edu.kit.compiler.wrapper.wrappers.PositionedUnwrapper
+import edu.kit.compiler.wrapper.wrappers.UnwrappableAnnotated
+import edu.kit.compiler.wrapper.wrappers.UnwrappableIdentity
 import edu.kit.compiler.wrapper.wrappers.into
 
 sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
@@ -37,22 +43,41 @@ sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
     ) : Type<Nothing>()
 }
 
-public val Type<Identity<Of>>.baseType: Type<Nothing>
-    get() = when (this) {
-        is Type.Array -> this.arrayType.elementType.into().v.into().baseType
-        is Type.Void -> this
-        is Type.Integer -> this
-        is Type.Class -> this
-        is Type.Boolean -> this
+private tailrec fun <T> Type<T>.getBaseType(unwrap: Unwrappable<T>): Type<Nothing> = when (this) {
+    is Type.Array -> this.arrayType.elementType.unwrap(unwrap).into().getBaseType(unwrap)
+    is Type.Void -> this
+    is Type.Integer -> this
+    is Type.Class -> this
+    is Type.Boolean -> this
+}
+
+val Type<Positioned<Of>>.baseType
+    get() = getBaseType(PositionedUnwrapper)
+
+/**
+ * @unwrapTypeW is usually [UnwrappableIdentity] or [UnwrappableAnnotated]
+ */
+public fun <TypeW> Type<TypeW>.getDimension(unwrapTypeW: Unwrappable<TypeW>): Int {
+    var dim = 0
+    var type = this
+    while (type is Type.Array) {
+        dim += 1
+        type = type.arrayType.elementType.unwrap(unwrapTypeW).into().getBaseType(unwrapTypeW)
     }
+    return dim
+}
+
+val Type<Positioned<Of>>.dimension: Int
+    get() = getDimension(PositionedUnwrapper)
 
 public val Type<Identity<Of>>.dimension: Int
+    @JvmName("typedimension")
     get() {
         var dim = 0
         var type = this
         while (type is Type.Array) {
             dim += 1
-            type = type.arrayType.elementType.into().v.into().baseType
+            type = type.arrayType.elementType.into().v.into().getBaseType(UnwrappableIdentity)
         }
         return dim
     }

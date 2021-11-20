@@ -3,12 +3,35 @@ package edu.kit.compiler.utils
 import edu.kit.compiler.ast.PrettyPrintVisitor
 import edu.kit.compiler.ast.accept
 import edu.kit.compiler.lex.LexerMjTestSuite
+import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.wrapper.IdentityProgram
+import edu.kit.compiler.wrapper.Kind
+import edu.kit.compiler.wrapper.LenientBlock
+import edu.kit.compiler.wrapper.LenientClassDeclaration
+import edu.kit.compiler.wrapper.LenientExpression
 import edu.kit.compiler.wrapper.LenientProgram
+import edu.kit.compiler.wrapper.LenientStatement
+import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.Parsed
+import edu.kit.compiler.wrapper.ParsedBlock
+import edu.kit.compiler.wrapper.ParsedClassDeclaration
+import edu.kit.compiler.wrapper.ParsedExpression
+import edu.kit.compiler.wrapper.ParsedProgram
+import edu.kit.compiler.wrapper.ParsedStatement
+import edu.kit.compiler.wrapper.PositionedProgram
+import edu.kit.compiler.wrapper.fmapParsed
+import edu.kit.compiler.wrapper.into
 import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.wrapper.wrappers.FunctorAnnotated
+import edu.kit.compiler.wrapper.wrappers.FunctorIdentity
+import edu.kit.compiler.wrapper.wrappers.FunctorLenient
+import edu.kit.compiler.wrapper.wrappers.Identity
 import edu.kit.compiler.wrapper.wrappers.Lenient
-import edu.kit.compiler.wrapper.wrappers.validate
+import edu.kit.compiler.wrapper.wrappers.NaturalTransformation
+import edu.kit.compiler.wrapper.wrappers.Positioned
+import edu.kit.compiler.wrapper.wrappers.into
+import edu.kit.compiler.wrapper.wrappers.map1
 import org.junit.jupiter.api.Assertions
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -53,7 +76,7 @@ object TestUtils {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): Lenient<LenientProgram> {
+    fun createAST(input: String): Parsed<ParsedProgram> {
         val (lexer, sourceFile) = createLexer(input)
         return Parser(sourceFile, lexer.tokens()).parse()
     }
@@ -75,7 +98,7 @@ object TestUtils {
         assertEquals(pretty1, pretty2)
     }
 
-    fun prettyPrint(astRoot: IdentityProgram): String {
+    fun prettyPrint(astRoot: PositionedProgram): String {
         val byteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
@@ -84,4 +107,84 @@ object TestUtils {
 
         return byteArrayOutputStream.toString(utf8)
     }
+
+    fun identityToPositioned(program: IdentityProgram, annotation: SourceRange): PositionedProgram {
+        val transformToPositioned = object : NaturalTransformation<Identity<Of>, Positioned<Of>> {
+            override fun <A> trans(fa: Kind<Identity<Of>, A>) = Positioned(fa.into().v, annotation)
+        }
+
+        return program.map1(FunctorAnnotated(), transformToPositioned)
+    }
+
+    fun annotatedToIdentity(annProgram: PositionedProgram): IdentityProgram {
+        val transformToIdentity = object : NaturalTransformation<Positioned<Of>, Identity<Of>> {
+            override fun <A> trans(fa: Kind<Positioned<Of>, A>) = Identity(fa.into().value)
+        }
+
+        return annProgram.map1(FunctorIdentity, transformToIdentity)
+    }
+
+    object TransformParsedToLenient : NaturalTransformation<Parsed<Of>, Lenient<Of>> {
+        override fun <A> trans(fa: Kind<Parsed<Of>, A>): Kind<Lenient<Of>, A> = fa.into().unCompose.into().value
+    }
+
+    fun Parsed<ParsedProgram>.parsedToLenient(): Lenient<LenientProgram> =
+        this.fmapParsed {
+            it.map1(
+                FunctorLenient,
+                TransformParsedToLenient
+            )
+        }.unCompose.into().value.into()
+
+    @JvmName("parsedToLenientParsedBlock")
+    fun Parsed<ParsedBlock>.parsedToLenient(): Lenient<LenientBlock> =
+        this.fmapParsed {
+            it.map1(
+                FunctorLenient,
+                FunctorLenient,
+                FunctorLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient
+            )
+        }.unCompose.into().value.into()
+
+    @JvmName("parsedToLenientParsedStatement")
+    fun Parsed<ParsedStatement>.parsedToLenient(): Lenient<LenientStatement> =
+        this.fmapParsed {
+            it.map1(
+                FunctorLenient,
+                FunctorLenient,
+                FunctorLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient
+            )
+        }.unCompose.into().value.into()
+
+    @JvmName("parsedToLenientParsedClassDeclaration")
+    fun Parsed<ParsedClassDeclaration>.parsedToLenient(): Lenient<LenientClassDeclaration> =
+        this.fmapParsed {
+            it.map1(
+                FunctorLenient,
+                FunctorLenient,
+                FunctorLenient,
+                FunctorLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient
+            )
+        }.unCompose.into().value.into()
+
+    @JvmName("parsedToLenientParsedExpression")
+    fun Parsed<ParsedExpression>.parsedToLenient(): Lenient<LenientExpression> =
+        this.fmapParsed {
+            it.map1(
+                FunctorLenient,
+                FunctorLenient,
+                TransformParsedToLenient,
+                TransformParsedToLenient
+            )
+        }.unCompose.into().value.into()
 }

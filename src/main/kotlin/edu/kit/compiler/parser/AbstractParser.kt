@@ -4,9 +4,10 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.wrapper.LenientProgram
-import edu.kit.compiler.wrapper.wrappers.Lenient
-import java.util.Optional
+import edu.kit.compiler.wrapper.Parsed
+import edu.kit.compiler.wrapper.ParsedProgram
+import edu.kit.compiler.wrapper.wrappers.Positioned
+import edu.kit.compiler.wrapper.wrappers.positioned
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
@@ -47,19 +48,19 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): Lenient<LenientProgram>
+    abstract fun parse(): Parsed<ParsedProgram>
 
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Optional<T> {
+    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Positioned<T?> {
         val p = peek()
         if (p is T)
-            return Optional.of(next() as T)
+            return (next() as T).positioned(p.range)
 
         reportError(p, errorMsg())
         recover(anc)
-        return Optional.empty()
+        return null.positioned(p.range)
     }
 
     /**
@@ -70,28 +71,29 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         type: Token.Operator.Type,
         anc: AnchorUnion,
         errorMsg: () -> String
-    ): Optional<Token.Operator> {
-        val peek = peek()
-        if (peek !is Token.Operator) {
-            reportError(peek, errorMsg())
+    ): Positioned<Token.Operator?> {
+        val peeked = peek()
+        val sourceRange = SourceRange(peeked.position, 1).extend(SourceRange(peek(1).position, 1))
+        if (peeked !is Token.Operator) {
+            reportError(peeked, errorMsg())
             recover(anc)
-            return Optional.empty()
+            return null.positioned(sourceRange)
         }
 
-        return if (peek.type == type)
-            Optional.of(next() as Token.Operator)
+        return if (peeked.type == type)
+            (next() as Token.Operator)
         else {
-            reportError(peek, errorMsg())
+            reportError(peeked, errorMsg())
             recover(anc)
-            Optional.empty()
-        }
+            null
+        }.positioned(sourceRange)
     }
 
     /**
      * Read a token and expect it to be an identifier. If it is not an identifier, enter [recover] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Optional<Token.Identifier> =
+    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Positioned<Token.Identifier?> =
         expect(anc, errorMsg)
 
     /**
@@ -106,21 +108,21 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         type: Token.Keyword.Type,
         anc: AnchorUnion,
         errorMsg: () -> String
-    ): Optional<Token.Keyword> {
+    ): Positioned<Token.Keyword?> {
         val peek = peek()
         if (peek !is Token.Keyword) {
             reportError(peek, errorMsg())
             recover(anc)
-            return Optional.empty()
+            return null.positioned(peek.range)
         }
 
         return if (peek.type == type)
-            Optional.of(next() as Token.Keyword)
+            next() as Token.Keyword
         else {
             reportError(peek, errorMsg())
             recover(anc)
-            Optional.empty()
-        }
+            null
+        }.positioned(peek.range)
     }
 
     /**

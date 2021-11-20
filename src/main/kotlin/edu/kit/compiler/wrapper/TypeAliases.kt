@@ -18,7 +18,7 @@ import edu.kit.compiler.wrapper.wrappers.Positioned
 /** Type containing [Lenient]s */
 typealias LenientType = Type<Lenient<Of>>
 /** Array containing [Lenient]s */
-typealias LenientArray = Array<Lenient<Of>>
+typealias LenientArray = Type.Array<Lenient<Of>>
 /** ArrayType.ArrayType containing [Lenient]s */
 typealias LenientArrayType = Type.Array.ArrayType<Lenient<Of>>
 
@@ -85,7 +85,7 @@ typealias LenientNewArrayExpression = AST.NewArrayExpression<Lenient<Of>, Lenien
 /** Type containing [Identity]s */
 typealias IdentityType = Type<Identity<Of>>
 /** Array containing [Identity]s */
-typealias IdentityArray = Array<Identity<Of>>
+typealias IdentityArray = Type.Array<Identity<Of>>
 /** ArrayType containing [Identity]s */
 typealias IdentityArrayType = Type.Array.ArrayType<Identity<Of>>
 
@@ -152,7 +152,7 @@ typealias IdentityNewArrayExpression = AST.NewArrayExpression<Identity<Of>, Iden
 /** Type containing [Positioned]s */
 typealias PositionedType = Type<Positioned<Of>>
 /** Array containing [Positioned]s */
-typealias PositionedArray = Array<Positioned<Of>>
+typealias PositionedArray = Type.Array<Positioned<Of>>
 /** ArrayType containing [Positioned]s */
 typealias PositionedArrayType = Type.Array.ArrayType<Positioned<Of>>
 
@@ -219,7 +219,7 @@ typealias PositionedNewArrayExpression = AST.NewArrayExpression<Positioned<Of>, 
 /** Type containing [Parsed]s */
 typealias ParsedType = Type<Parsed<Of>>
 /** Array containing [Parsed]s */
-typealias ParsedArray = Array<Parsed<Of>>
+typealias ParsedArray = Type.Array<Parsed<Of>>
 /** ArrayType containing [Parsed]s */
 typealias ParsedArrayType = Type.Array.ArrayType<Parsed<Of>>
 

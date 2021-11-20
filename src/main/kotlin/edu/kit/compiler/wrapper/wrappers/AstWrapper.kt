@@ -2,8 +2,196 @@ package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.wrapper.Functor
 import edu.kit.compiler.wrapper.Kind
 import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.fmap
+import edu.kit.compiler.wrapper.into
+import java.beans.Expression
+
+// -------------------------- Unwrappable Instance ----------------------------//
+
+interface NaturalTransformation<F, G> {
+    fun <A> trans(fa: Kind<F, A>): Kind<G, A>
+}
+
+fun <OtherW1, OtherW2> Type<OtherW1>.map1(
+    functorOther: Functor<OtherW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>
+): Type<OtherW2> =
+    this.mapOtherW {
+        transOther.trans(it).fmap(functorOther) {
+            it.into().map1(functorOther, transOther)
+        }
+    }
+
+fun <OtherW1, OtherW2> Kind<OtherW1, Kind<Type<Of>, OtherW1>>.map1(
+    functorOther: Functor<OtherW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): Kind<OtherW2, Type<OtherW2>> =
+    transOther.trans(this).fmap(functorOther) {
+        it.into().map1(functorOther, transOther)
+    }
+
+fun <WrapperBefore, WrapperAfter> AST.Program<WrapperBefore, WrapperBefore, WrapperBefore, WrapperBefore, WrapperBefore>.map1(
+    functor: Functor<WrapperAfter>,
+    transformation: NaturalTransformation<WrapperBefore, WrapperAfter>
+): AST.Program<WrapperAfter, WrapperAfter, WrapperAfter, WrapperAfter, WrapperAfter> = this.map1(
+    functor,
+    functor,
+    functor,
+    functor,
+    functor,
+    transformation,
+    transformation,
+    transformation,
+    transformation,
+    transformation
+)
+
+fun <ExprW1, ExprW2, StmtW1, StmtW2, MethodW1, MethodW2, ClassW1, ClassW2, OtherW1, OtherW2> AST.Program<ExprW1, StmtW1, MethodW1, ClassW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorStmt: Functor<StmtW2>,
+    functorMethod: Functor<MethodW2>,
+    functorClass: Functor<ClassW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transStmt: NaturalTransformation<StmtW1, StmtW2>,
+    transMethod: NaturalTransformation<MethodW1, MethodW2>,
+    transClass: NaturalTransformation<ClassW1, ClassW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.Program<ExprW2, StmtW2, MethodW2, ClassW2, OtherW2> =
+    this.mapClassW { it ->
+        transClass.trans(it).fmap(functorClass) {
+            it.map1(
+                functorExpr,
+                functorStmt,
+                functorMethod,
+                functorOther,
+                transExpr,
+                transStmt,
+                transMethod,
+                transOther
+            )
+        }
+    }
+
+fun <ExprW1, ExprW2, StmtW1, StmtW2, MethodW1, MethodW2, OtherW1, OtherW2> AST.ClassDeclaration<ExprW1, StmtW1, MethodW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorStmt: Functor<StmtW2>,
+    functorMethod: Functor<MethodW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transStmt: NaturalTransformation<StmtW1, StmtW2>,
+    transMethod: NaturalTransformation<MethodW1, MethodW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.ClassDeclaration<ExprW2, StmtW2, MethodW2, OtherW2> =
+    this.mapMethodW {
+        transMethod.trans(it).fmap(functorMethod) {
+            it.mapMember({
+                it.map1(functorOther, transOther)
+            }, {
+                transOther.trans(it).fmap(functorOther) {
+                    it.into().mapOtherW {
+                        it.map1(functorOther, transOther)
+                    }
+                }
+            }, {
+                transStmt.trans(it).fmap(functorStmt) {
+                    it.mapStmt {
+                        transStmt.trans(it).fmap(functorStmt) {
+                            it.into().map1(
+                                functorExpr,
+                                functorStmt,
+                                functorOther,
+                                transExpr,
+                                transStmt,
+                                transOther
+                            )
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+inline fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.BlockStatement<ExprW1, StmtW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorStmt: Functor<StmtW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transStmt: NaturalTransformation<StmtW1, StmtW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.BlockStatement<ExprW2, StmtW2, OtherW2> =
+    this.mapBlockStmt({
+        it.map1(functorExpr, functorStmt, functorOther, transExpr, transStmt, transOther)
+    }, {
+        transExpr.trans(it).fmap(functorExpr) {
+            it.into().map1(functorExpr, functorOther, transExpr, transOther)
+        }
+    }, {
+        transOther.trans(it).fmap(functorOther) {
+            it.into().map1(functorOther, transOther)
+        }
+    })
+
+fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Block<ExprW1, StmtW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorStmt: Functor<StmtW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transStmt: NaturalTransformation<StmtW1, StmtW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.Block<ExprW2, StmtW2, OtherW2> =
+    this.mapStmt {
+        transStmt.trans(it).fmap(functorStmt) {
+            it.into().map1(functorExpr, functorStmt, functorOther, transExpr, transStmt, transOther)
+        }
+    }
+
+fun <ExprW1, ExprW2, StmtW1, StmtW2, OtherW1, OtherW2> AST.Statement<ExprW1, StmtW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorStmt: Functor<StmtW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transStmt: NaturalTransformation<StmtW1, StmtW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.Statement<ExprW2, StmtW2, OtherW2> =
+    this.mapStmt({
+        transStmt.trans(it).fmap(functorStmt) {
+            it.into().map1(functorExpr, functorStmt, functorOther, transExpr, transStmt, transOther)
+        }
+    }, {
+        transStmt.trans(it).fmap(functorStmt) {
+            it.into().map1(functorExpr, functorStmt, functorOther, transExpr, transStmt, transOther)
+        }
+    }, {
+        transExpr.trans(it).fmap(functorExpr) {
+            it.into().map1(functorExpr, functorOther, transExpr, transOther)
+        }
+    })
+
+fun <ExprW1, ExprW2, OtherW1, OtherW2> AST.Expression<ExprW1, OtherW1>.map1(
+    functorExpr: Functor<ExprW2>,
+    functorOther: Functor<OtherW2>,
+    transExpr: NaturalTransformation<ExprW1, ExprW2>,
+    transOther: NaturalTransformation<OtherW1, OtherW2>,
+): AST.Expression<ExprW2, OtherW2> =
+    this.mapExprW({
+        transExpr.trans(it).fmap(functorExpr) {
+            it.into().map1(functorExpr, functorOther, transExpr, transOther)
+        }
+    }, {
+        transOther.trans(it).fmap(functorOther) {
+            Type.Array.ArrayType(
+                it.into().elementType
+                    .let { transOther.trans(it) }
+                    .fmap(functorOther) {
+                        it.into().map1(functorOther, transOther)
+                    }
+            )
+        }
+    })
 
 /**
  * `mapClassW` converts from one `ClassWrapper` generic to another.

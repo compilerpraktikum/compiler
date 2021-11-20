@@ -1,110 +1,116 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.ast.AST.wrapBlockStatement
-import edu.kit.compiler.wrapper.IdentityClassDeclaration
-import edu.kit.compiler.wrapper.IdentityProgram
+import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.wrapper.Of
+import edu.kit.compiler.wrapper.PositionedClassDeclaration
+import edu.kit.compiler.wrapper.PositionedProgram
 import edu.kit.compiler.wrapper.into
-import edu.kit.compiler.wrapper.wrappers.Identity
+import edu.kit.compiler.wrapper.wrappers.Positioned
+import edu.kit.compiler.wrapper.wrappers.UnwrappableAnnotated
+import edu.kit.compiler.wrapper.wrappers.annotationValue
 import edu.kit.compiler.wrapper.wrappers.into
+import edu.kit.compiler.wrapper.wrappers.mapValue
+import edu.kit.compiler.wrapper.wrappers.unwrapAnnotated
 import java.io.PrintStream
 import java.util.Stack
 
+private val positionedUnwrapper = UnwrappableAnnotated<SourceRange>()
+
 class PrettyPrintVisitor(
-    val printStream: PrintStream
-) : ASTVisitor<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
+    private val printStream: PrintStream
+) : AbstractASTVisitor<Positioned<Of>, Positioned<Of>, Positioned<Of>, Positioned<Of>, Positioned<Of>>(
+    positionedUnwrapper, positionedUnwrapper, positionedUnwrapper, positionedUnwrapper, positionedUnwrapper
+) {
 
     private var currentIndentation: Int = 0
     private var startsNewLine: Boolean = false
 
-    //    private var printParanthesesInCurrentExpression = true
-    private var printParanthesesStack: Stack<Boolean> =
+    //    private var printParenthesesInCurrentExpression = true
+    private var printParenthesesStack: Stack<Boolean> =
         Stack() // Usage. In a visit method: peek() is false, we always don't. if peek() is true, the current method decides, if it needs to be printed!
 
-    override fun visit(program: IdentityProgram) {
-        printParanthesesStack.push(true) // default: print parantheses. TODO put this in the constructor!!!
+    override fun visit(program: PositionedProgram) {
+        printParenthesesStack.push(true) // default: print parentheses. TODO put this in the constructor!!!
 
         program.classes
-            .map { classDeclaration -> classDeclaration.into().v }
-            .sortedBy { it.name }
+            .map { classDeclaration -> classDeclaration.into().unwrapAnnotated() }
+            .sortedBy { it.name.text }
             .forEach { classDeclaration -> classDeclaration.accept(this) }
     }
 
-    override fun visit(classDeclaration: IdentityClassDeclaration) {
+    override fun visit(classDeclaration: PositionedClassDeclaration) {
         println("class ${classDeclaration.name.text} {")
         doIndented {
             classDeclaration.member
-                .map { classMember -> classMember.into().v }
-                .sortedBy { classMember -> classMember.memberName }
+                .map { classMember -> classMember.into().unwrapAnnotated() }
+                .sortedBy { classMember -> classMember.memberName.text }
                 .sortedByDescending { it is AST.Method || it is AST.MainMethod }
                 .forEach { classMember -> classMember.accept(this) }
         }
         println("}")
     }
 
-    override fun visit(field: AST.Field<Identity<Of>>) {
+    override fun visit(field: AST.Field<Positioned<Of>>) {
         print("public ", true)
-        field.type.into().v.into().accept(this)
+        field.descendType()
         println(" ${field.name.text};")
     }
 
-    override fun visit(mainMethod: AST.MainMethod<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(mainMethod: AST.MainMethod<Positioned<Of>, Positioned<Of>, Positioned<Of>>) {
         print("public static ", true)
-        mainMethod.returnType.into().v.into().accept(this)
-        print(" ${mainMethod.name.text}(")
 
+        mainMethod.descendReturnType()
+
+        print(" ${mainMethod.name.text}(")
         mainMethod.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
-            parameter.into().v.into().accept(this)
+            parameter.into().unwrapAnnotated().into().accept(this)
         }
-//        var i = 0
-//        for (parameter in mainMethod.parameters) {
-//            parameter.accept(this)
-//            if (i < mainMethod.parameters.size - 1) {
-//                print(", ")
-//            }
-//            i++
-//        }
         print(")")
+
         if (mainMethod.throwsException != null) {
             print(" throws " + mainMethod.throwsException.text)
         }
-        mainMethod.block.into().v.accept(this)
+
+        mainMethod.descendBlock()
         println("")
     }
 
-    override fun visit(method: AST.Method<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(method: AST.Method<Positioned<Of>, Positioned<Of>, Positioned<Of>>) {
         print("public ", true)
-        method.returnType.into().v.into().accept(this)
-        print(" ${method.name.text}(")
 
+        method.descendReturnType()
+
+        print(" ${method.name.text}(")
         method.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
-            parameter.into().v.into().accept(this)
+            parameter.into().unwrapAnnotated().into().accept(this)
         }
         print(")")
+
         if (method.throwsException != null) {
             print(" throws " + method.throwsException.text)
         }
 
-        method.block.into().v.accept(this)
+        method.descendBlock()
         println("")
     }
 
-    override fun visit(parameter: AST.Parameter<Identity<Of>>) {
+    override fun visit(parameter: AST.Parameter<Positioned<Of>>) {
         // just for indentation
-        parameter.type.into().v.into().accept(this)
+        parameter.descendType()
         print(" ${parameter.name.text}")
     }
 
-    override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Identity<Of>, Identity<Of>>) {
+    override fun visit(localVariableDeclarationStatement: AST.LocalVariableDeclarationStatement<Positioned<Of>, Positioned<Of>>) {
         print("", startsNewLine)
         startsNewLine = false
-        localVariableDeclarationStatement.type.into().v.into().accept(this)
+        localVariableDeclarationStatement.descendType()
         print(" ${localVariableDeclarationStatement.name.text}", false)
         if (localVariableDeclarationStatement.initializer != null) {
             print(" = ")
-            doParenthesizedMaybe(false) { localVariableDeclarationStatement.initializer.accept(this) }
+            doParenthesizedMaybe(false) { localVariableDeclarationStatement.descendInitializer() }
         }
         print(";")
     }
@@ -112,29 +118,33 @@ class PrettyPrintVisitor(
     /**
      * removes nested empty blocks and reduces them into one. Example `{{{}}}` -> `{}`
      */
-    private fun cleanupBlock(block: AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>): AST.Block<Identity<Of>, Identity<Of>, Identity<Of>> {
-        val statements: List<AST.BlockStatement<Identity<Of>, Identity<Of>, Identity<Of>>> = block.statements
-            .map { it.into().v.into() }
-            .map { blockStatement ->
-                when (blockStatement) {
-                    is AST.LocalVariableDeclarationStatement -> blockStatement
-                    is AST.StmtWrapper ->
-                        when (blockStatement.statement) {
-                            is AST.Block -> cleanupBlock(blockStatement.statement).wrapBlockStatement()
-                            else -> blockStatement
-                        }
+    private fun cleanupBlock(block: AST.Block<Positioned<Of>, Positioned<Of>, Positioned<Of>>): AST.Block<Positioned<Of>, Positioned<Of>, Positioned<Of>> {
+        val statements = block.statements
+            .map {
+                it.mapValue {
+                    when (val blockStatement = it.into()) {
+                        is AST.LocalVariableDeclarationStatement -> blockStatement
+                        is AST.StmtWrapper ->
+                            when (blockStatement.statement) {
+                                is AST.Block -> cleanupBlock(blockStatement.statement).wrapBlockStatement()
+                                else -> blockStatement
+                            }
+                    }
                 }
-            }.filter { blockStatement ->
-                !(
-                    blockStatement is AST.StmtWrapper<*, *, *> &&
-                        blockStatement.statement is AST.Block<*, *, *> &&
-                        blockStatement.statement.statements.isEmpty()
-                    )
+            }.filter {
+                it.unwrapAnnotated().into().let { blockStatement ->
+                    !(
+                        blockStatement is AST.StmtWrapper<*, *, *> &&
+                            blockStatement.statement is AST.Block<*, *, *> &&
+                            blockStatement.statement.statements.isEmpty()
+                        )
+                }
             }
-        return AST.Block(statements.map { Identity(it) })
+
+        return AST.Block(statements)
     }
 
-    override fun visit(block: AST.Block<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(block: AST.Block<Positioned<Of>, Positioned<Of>, Positioned<Of>>) {
         val cleanBlock = cleanupBlock(block)
 
         if (!startsNewLine) {
@@ -150,7 +160,7 @@ class PrettyPrintVisitor(
 
                 doIndented {
                     cleanBlock.statements
-                        .map { it.into().v.into() }
+                        .map { it.into().unwrapAnnotated().into() }
                         .forEach { blockStatement ->
                             blockStatement.accept(this)
                             println("")
@@ -176,14 +186,14 @@ class PrettyPrintVisitor(
         }*/
     }
 
-    override fun visit(ifStatement: AST.IfStatement<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    override fun visit(ifStatement: AST.IfStatement<Positioned<Of>, Positioned<Of>, Positioned<Of>>) {
         print("if (", startsNewLine)
-        doParenthesizedMaybe(false) { ifStatement.condition.accept(this) }
+        doParenthesizedMaybe(false) { ifStatement.descendCondition() }
         print(")")
 
         val hasElse = ifStatement.falseStatement != null
-        val trueStatement = ifStatement.trueStatement.into().v.into()
-        val falseStatement = ifStatement.falseStatement?.into()?.v?.into()
+        val trueStatement = ifStatement.trueStatement.into().unwrapAnnotated().into()
+        val falseStatement = ifStatement.falseStatement?.into()?.unwrapAnnotated()?.into()
         val hasThenBrackets = trueStatement is AST.Block
         val hasElseBrackets = falseStatement is AST.Block
         val elseif = hasElse && falseStatement is AST.IfStatement
@@ -232,13 +242,13 @@ class PrettyPrintVisitor(
         }
     }
 
-    // Begin Body -> True 1. Option { : " { }" , : " {\n ...} 2. Option Statement das nicht Block ist -> "\n", "..." einrücken
-    override fun visit(whileStatement: AST.WhileStatement<Identity<Of>, Identity<Of>, Identity<Of>>) {
+    // Begin Body -> True 1. Option { : " { }" , : " {\n ...} 2. Option Statement which is not block -> "\n", "..." indent
+    override fun visit(whileStatement: AST.WhileStatement<Positioned<Of>, Positioned<Of>, Positioned<Of>>) {
         print("while (", startsNewLine)
-        doParenthesizedMaybe(false) { whileStatement.condition.accept(this) }
+        doParenthesizedMaybe(false) { whileStatement.descendCondition() }
         print(")")
 
-        val statement = whileStatement.statement.into().v.into()
+        val statement = whileStatement.statement.into().unwrapAnnotated().into()
         if (statement !is AST.Block) {
             startsNewLine = true
             println("")
@@ -249,67 +259,61 @@ class PrettyPrintVisitor(
         print("")
     }
 
-    override fun visit(returnStatement: AST.ReturnStatement<Identity<Of>, Identity<Of>>) {
+    override fun visit(returnStatement: AST.ReturnStatement<Positioned<Of>, Positioned<Of>>) {
         print("return", startsNewLine)
         if (returnStatement.expression != null) {
             print(" ")
-            doParenthesizedMaybe(false) { returnStatement.expression.accept(this) }
+            doParenthesizedMaybe(false) { returnStatement.descendExpression() }
         }
         print(";")
     }
 
-    override fun visit(binaryExpression: AST.BinaryExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
-            doParenthesizedMaybe(true) { binaryExpression.left.accept(this) }
+    override fun visit(binaryExpression: AST.BinaryExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
+            doParenthesizedMaybe(true) { binaryExpression.descendLeft() }
             print(" " + binaryExpression.operation.repr + " ")
-            doParenthesizedMaybe(true) { binaryExpression.right.accept(this) }
+            doParenthesizedMaybe(true) { binaryExpression.descendRight() }
         }
     }
 
-    override fun visit(unaryExpression: AST.UnaryExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
+    override fun visit(unaryExpression: AST.UnaryExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
             unaryExpression.operation.accept(this)
-            doParenthesizedMaybe(true) { unaryExpression.expression.accept(this) }
+            doParenthesizedMaybe(true) { unaryExpression.descendExpression() }
         }
     }
 
-    override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
+    override fun visit(methodInvocationExpression: AST.MethodInvocationExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
             if (methodInvocationExpression.target != null) {
-                doParenthesizedMaybe(true) { methodInvocationExpression.target.accept(this) }
+                doParenthesizedMaybe(true) { methodInvocationExpression.descendTarget() }
                 print(".")
             }
+
             print("${methodInvocationExpression.method.text}(")
 
             methodInvocationExpression.arguments.forEachIndexed { i, arg ->
                 if (i > 0) print(", ")
-                doParenthesizedMaybe(false) { arg.accept(this) }
+                doParenthesizedMaybe(false) { arg.into().unwrapAnnotated().into().accept(this) }
             }
-//            var i = 0
-//            for (arg in methodInvocationExpression.arguments) {
-//                doParenthesizedMaybe(false) { arg.accept(this) }
-//                if (i < methodInvocationExpression.arguments.size - 1) {
-//                    print(", ")
-//                }
-//                i++
-//            }
+
             print(")")
         }
     }
 
-    override fun visit(fieldAccessExpression: AST.FieldAccessExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
-            doParenthesizedMaybe(true) { fieldAccessExpression.target.accept(this) }
+    override fun visit(fieldAccessExpression: AST.FieldAccessExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
+            doParenthesizedMaybe(true) { fieldAccessExpression.descendTarget() }
             print(".")
             print(fieldAccessExpression.field.text)
         }
     }
 
-    override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
-            doParenthesizedMaybe(true) { arrayAccessExpression.target.accept(this) }
+    override fun visit(arrayAccessExpression: AST.ArrayAccessExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
+            doParenthesizedMaybe(true) { arrayAccessExpression.descendTarget() }
             print("[")
-            doParenthesizedMaybe(false) { arrayAccessExpression.index.accept(this) }
+            doParenthesizedMaybe(false) { arrayAccessExpression.descendIndexExpression() }
             print("]")
         }
     }
@@ -320,25 +324,25 @@ class PrettyPrintVisitor(
     }
 
     override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
-        // never print parantheses
+        // never print parentheses
         print(literalExpression.value.toString())
     }
 
     override fun visit(newObjectExpression: AST.NewObjectExpression) {
-        printParanthesesMaybe {
+        printParenthesesMaybe {
             print("new ")
             print(newObjectExpression.clazz.text)
             print("()")
         }
     }
 
-    override fun visit(newArrayExpression: AST.NewArrayExpression<Identity<Of>, Identity<Of>>) {
-        printParanthesesMaybe {
-            val element = newArrayExpression.type.into().v.into().elementType.into().v.into()
+    override fun visit(newArrayExpression: AST.NewArrayExpression<Positioned<Of>, Positioned<Of>>) {
+        printParenthesesMaybe {
+            val element = newArrayExpression.type.annotationValue.into().elementType.annotationValue.into()
             print("new ")
             element.baseType.accept(this)
             print("[")
-            doParenthesizedMaybe(true) { newArrayExpression.length.accept(this) }
+            doParenthesizedMaybe(true) { newArrayExpression.descendLength() }
             print("]")
             print("[]".repeat(element.dimension))
         }
@@ -356,8 +360,8 @@ class PrettyPrintVisitor(
         print("boolean")
     }
 
-    override fun visit(arrayType: Type.Array<Identity<Of>>) {
-        arrayType.arrayType.elementType.into().v.into().accept(this)
+    override fun visit(arrayType: Type.Array<Positioned<Of>>) {
+        arrayType.descendType()
         print("[]")
     }
 
@@ -369,37 +373,37 @@ class PrettyPrintVisitor(
         TODO("maybe needed..")
     }
 
-    override fun visit(expressionStatement: AST.ExpressionStatement<Identity<Of>, Identity<Of>>) {
+    override fun visit(expressionStatement: AST.ExpressionStatement<Positioned<Of>, Positioned<Of>>) {
         print("", startsNewLine)
 
-        doParenthesizedMaybe(false) { expressionStatement.expression.accept(this) } // no parantheses for expressions directly under root
+        doParenthesizedMaybe(false) { expressionStatement.descendExpression() } // no parentheses for expressions directly under root
 
         print(";")
     }
 
     private fun <T> doIndented(function: () -> T) {
-        increase_indent()
+        increaseIndent()
         function()
-        decrease_indent()
+        decreaseIndent()
     }
 
-    private fun <T> printParanthesesMaybe(function: () -> T) {
-        if (printParanthesesStack.peek()) print("(")
+    private fun <T> printParenthesesMaybe(function: () -> T) {
+        if (printParenthesesStack.peek()) print("(")
         function()
-        if (printParanthesesStack.peek()) print(")")
+        if (printParenthesesStack.peek()) print(")")
     }
 
     private fun <T> doParenthesizedMaybe(printParentheses: Boolean, function: () -> T) {
-        printParanthesesStack.push(printParentheses)
+        printParenthesesStack.push(printParentheses)
         function()
-        printParanthesesStack.pop()
+        printParenthesesStack.pop()
     }
 
-    private fun increase_indent(depth: Int = 1) {
+    private fun increaseIndent(depth: Int = 1) {
         this.currentIndentation += depth
     }
 
-    private fun decrease_indent(depth: Int = 1) {
+    private fun decreaseIndent(depth: Int = 1) {
         this.currentIndentation -= depth
         if (this.currentIndentation < 0) throw IllegalStateException("Indentation < 0: " + this.currentIndentation)
     }
@@ -416,12 +420,7 @@ class PrettyPrintVisitor(
         startsNewLine = true
     }
 
-    private fun printNewLineInBody() {
-        if (startsNewLine) print("\n", false)
-        startsNewLine = false
-    }
-
-    override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
+    override fun visit(arrayType: Type.Array.ArrayType<Positioned<Of>>) {
         // Nothing to do. This is handled by the visitors containing them
     }
 

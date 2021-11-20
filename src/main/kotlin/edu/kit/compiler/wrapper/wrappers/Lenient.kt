@@ -2,6 +2,7 @@ package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
+import edu.kit.compiler.wrapper.Functor
 import edu.kit.compiler.wrapper.IdentityBlockStatement
 import edu.kit.compiler.wrapper.IdentityClassDeclaration
 import edu.kit.compiler.wrapper.IdentityClassMember
@@ -46,6 +47,11 @@ sealed class Lenient<out A> : Kind<Lenient<Of>, A> {
         is Error -> Error(this.node?.let(m))
         is Valid -> Valid(m(this.node))
     }
+}
+
+object FunctorLenient : Functor<Lenient<Of>> {
+    override fun <A, B> functorMap(f: (A) -> B, fa: Kind<Lenient<Of>, A>): Kind<Lenient<Of>, B> =
+        fa.into().map(f)
 }
 
 inline fun <A> Lenient<A>.unwrapOr(handle: () -> A): A = when (this) {

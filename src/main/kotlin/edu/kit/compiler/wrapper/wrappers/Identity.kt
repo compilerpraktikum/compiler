@@ -1,5 +1,6 @@
 package edu.kit.compiler.wrapper.wrappers
 
+import edu.kit.compiler.wrapper.Functor
 import edu.kit.compiler.wrapper.Kind
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.Unwrappable
@@ -16,4 +17,9 @@ fun <A> Kind<Identity<Of>, A>.into(): Identity<A> = this as Identity<A>
 
 object UnwrappableIdentity : Unwrappable<Identity<Of>> {
     override fun <A> unwrapValue(fa: Kind<Identity<Of>, A>) = fa.into().v
+}
+
+object FunctorIdentity : Functor<Identity<Of>> {
+    override fun <A, B> functorMap(f: (A) -> B, fa: Kind<Identity<Of>, A>): Identity<B> =
+        Identity(f(fa.into().v))
 }

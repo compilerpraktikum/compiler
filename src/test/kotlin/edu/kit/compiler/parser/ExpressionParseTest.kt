@@ -2,6 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.utils.TestUtils.expectNode
+import edu.kit.compiler.utils.TestUtils.parsedToLenient
 import edu.kit.compiler.utils.toSymbol
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.wrappers.Lenient
@@ -13,7 +14,7 @@ internal class ExpressionParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
     private fun expectAst(input: String, expectedAST: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>) =
-        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }
+        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1").wrapValid())

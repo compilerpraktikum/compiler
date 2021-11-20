@@ -72,22 +72,6 @@ interface Kind<out F, out A> {
  */
 class Of private constructor()
 
-/**
- * This interface can be implemented for Wrappers [F], that
- * allow for extracting a contained value [A] from the wrapper.
- *
- * There is an extension function [unwrap], that can be used
- * extract the value inside a Wrapper.
- * See [WrappingExample.unwrappedValue] for an example
- *
- *
- * @sample WrappingExample
- */
-interface Unwrappable<F> {
-    fun <A> unwrapValue(fa: Kind<F, A>): A
-}
-fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
-
 // ---------------------------------------- Implementors ----------------------------------------//
 /**
  * extension function to fully apply `Lenient<Of>` to `A` using `Kind<Lenient<Of>, A>`
@@ -106,7 +90,36 @@ fun <A> Kind<AST.Parameter<Of>, A>.into(): AST.Parameter<A> = this as AST.Parame
  */
 fun <A, O> Kind<AST.Expression<Of, O>, A>.into(): AST.Expression<A, O> = this as AST.Expression<A, O>
 fun <E, S, O> Kind<AST.Statement<E, Of, O>, S>.into(): AST.Statement<E, S, O> = this as AST.Statement<E, S, O>
-fun <E, S, O> Kind<AST.BlockStatement<E, Of, O>, S>.into(): AST.BlockStatement<E, S, O> = this as AST.BlockStatement<E, S, O>
+fun <E, S, O> Kind<AST.BlockStatement<E, Of, O>, S>.into(): AST.BlockStatement<E, S, O> =
+    this as AST.BlockStatement<E, S, O>
+
+/**
+ * Read as "Functor *for* F"
+ */
+interface Functor<F> {
+    fun <A, B> functorMap(f: (A) -> B, fa: Kind<F, A>): Kind<F, B>
+}
+
+fun <A, B, F> Kind<F, A>.fmap(wrapper: Functor<F>, f: (A) -> B): Kind<F, B> = wrapper.functorMap(f, this)
+
+// ---------------------------------------- Unwrappable ----------------------------------------//
+
+/**
+ * This interface can be implemented for Wrappers [F], that
+ * allow for extracting a contained value [A] from the wrapper.
+ *
+ * There is an extension function [unwrap], that can be used
+ * extract the value inside a Wrapper.
+ * See [WrappingExample.unwrappedValue] for an example
+ *
+ *
+ * @sample WrappingExample
+ */
+interface Unwrappable<F> {
+    fun <A> unwrapValue(fa: Kind<F, A>): A
+}
+
+fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrapValue(this)
 
 // ---------------------------------------- Code Examples ----------------------------------------//
 

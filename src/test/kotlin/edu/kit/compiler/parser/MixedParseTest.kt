@@ -5,6 +5,7 @@ import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.utils.TestUtils.expectNode
+import edu.kit.compiler.utils.TestUtils.parsedToLenient
 import edu.kit.compiler.utils.toSymbol
 import edu.kit.compiler.wrapper.LenientBlock
 import edu.kit.compiler.wrapper.LenientClassDeclaration
@@ -26,11 +27,11 @@ internal class MixedParseTest {
     ).wrapBlockStatement().wrapValid()
 
     private fun expectAst(input: String, expectedAST: List<Lenient<LenientClassDeclaration>>) =
-        expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
+        expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet).map { it.parsedToLenient() } }
 
     @Test
     fun testParseEmptyBlock() =
-        expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet) }
+        expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBlockOfEmptyBlocks() =
@@ -46,11 +47,11 @@ internal class MixedParseTest {
                 )
             )
                 .wrapValid()
-        ) { parseBlock(emptyAnchorSet) }
+        ) { parseBlock(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBlockWithEmptyStatement() =
-        expectNode("{;}", AST.Block(listOf(validEmptyBlockStatement)).wrapValid()) { parseBlock(emptyAnchorSet) }
+        expectNode("{;}", AST.Block(listOf(validEmptyBlockStatement)).wrapValid()) { parseBlock(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBlockWithMultipleEmptyStatement() = expectNode(
@@ -63,7 +64,7 @@ internal class MixedParseTest {
                 validEmptyBlockStatement,
             )
         ).wrapValid()
-    ) { parseBlock(emptyAnchorSet) }
+    ) { parseBlock(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testDisambiguateVarDeclarationAndExpression() = expectNode(
@@ -80,7 +81,7 @@ internal class MixedParseTest {
                     .wrapValid()
             )
         ).wrapValid()
-    ) { parseBlock(emptyAnchorSet) }
+    ) { parseBlock(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseAssignment() = expectNode(
@@ -92,19 +93,19 @@ internal class MixedParseTest {
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapValid()
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseReturn() = expectNode(
         "return;",
         AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
         AST.ReturnStatement(AST.LiteralExpression("2").wrapValid()).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBasicWhile() = expectNode(
@@ -113,7 +114,7 @@ internal class MixedParseTest {
             AST.LiteralExpression("2").wrapValid(),
             validEmptyBlock
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBasicIf() = expectNode(
@@ -123,7 +124,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             null
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBasicIfElse() = expectNode(
@@ -133,7 +134,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBasicIfElse_bool() = expectNode(
@@ -143,7 +144,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun testParseBasicIfElse_ident() = expectNode(
@@ -153,7 +154,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { parseStatement(emptyAnchorSet).parsedToLenient() }
 
     @Test
     fun debugParserMJTest_2() = expectNode(
@@ -211,7 +212,7 @@ internal class MixedParseTest {
                 ).wrapValid()
             )
         ).wrapValid()
-    ) { parse() }
+    ) { parse().parsedToLenient() }
 
     @Test
     fun debugParserMJTest_4() {
@@ -272,7 +273,7 @@ internal class MixedParseTest {
                 )
             ).wrapValid()
 
-        ) { parse() }
+        ) { parse().parsedToLenient() }
     }
 
     //    @Ignore
@@ -320,7 +321,7 @@ internal class MixedParseTest {
                 ).wrapValid()
             )
         ).wrapValid()
-    ) { parse() }
+    ) { parse().parsedToLenient() }
 
     @Ignore
     @Test
@@ -392,7 +393,7 @@ internal class MixedParseTest {
             )
         ).wrapValid()
 
-    ) { parse() }
+    ) { parse().parsedToLenient() }
 
     @Test
     fun debugParserMJTest_1() = expectNode(
@@ -445,7 +446,7 @@ internal class MixedParseTest {
             )
         ).wrapValid()
 
-    ) { parse() }
+    ) { parse().parsedToLenient() }
 
     @Test
     fun testBasicBlock() = expectAst(
