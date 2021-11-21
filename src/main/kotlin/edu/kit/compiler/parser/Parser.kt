@@ -284,7 +284,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             } else {
                 basicType
             }
-        }else {
+        } else {
             basicType
         }
     }

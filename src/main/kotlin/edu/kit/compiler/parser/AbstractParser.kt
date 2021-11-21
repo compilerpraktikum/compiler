@@ -73,12 +73,12 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         errorMsg: () -> String
     ): Positioned<Token.Operator?> {
         val peeked = peek()
-        val sourceRange = SourceRange(peeked.position, 1).extend(SourceRange(peek(1).position, 1))
         if (peeked !is Token.Operator) {
             reportError(peeked, errorMsg())
             recover(anc)
-            return null.positioned(sourceRange)
+            return null.positioned(peeked.range)
         }
+        val sourceRange = SourceRange(peeked.position, 1).extend(SourceRange(peek(1).position, 1))
 
         return if (peeked.type == type)
             (next() as Token.Operator)
