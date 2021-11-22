@@ -42,7 +42,7 @@ interface ASTVisitor<ExprW, StmtW, MethodW, ClassW, OtherW> {
 
     fun visit(identifierExpression: AST.IdentifierExpression)
 
-    fun <T> visit(literalExpression: AST.LiteralExpression<T>)
+    fun visit(literalExpression: AST.LiteralExpression)
 
     fun visit(newObjectExpression: AST.NewObjectExpression)
 
@@ -72,7 +72,7 @@ fun <E, S, D, C, O> AST.Expression<E, O>.accept(visitor: ASTVisitor<E, S, D, C, 
     is AST.BinaryExpression -> visitor.visit(this)
     is AST.FieldAccessExpression -> visitor.visit(this)
     is AST.IdentifierExpression -> visitor.visit(this)
-    is AST.LiteralExpression<*> -> visitor.visit(this)
+    is AST.LiteralExpression -> visitor.visit(this)
     is AST.MethodInvocationExpression -> visitor.visit(this)
     is AST.NewArrayExpression -> visitor.visit(this)
     is AST.NewObjectExpression -> visitor.visit(this)

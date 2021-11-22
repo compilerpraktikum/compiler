@@ -88,7 +88,7 @@ internal class MixedParseTest {
         AST.ExpressionStatement(
             AST.BinaryExpression(
                 AST.IdentifierExpression("myIdent".toSymbol()).wrapValid(),
-                AST.LiteralExpression("3").wrapValid(),
+                AST.LiteralInt("3").wrapValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapValid()
         ).wrapValid()
@@ -103,14 +103,14 @@ internal class MixedParseTest {
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
-        AST.ReturnStatement(AST.LiteralExpression("2").wrapValid()).wrapValid()
+        AST.ReturnStatement(AST.LiteralInt("2").wrapValid()).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicWhile() = expectNode(
         "while(2) {};",
         AST.WhileStatement(
-            AST.LiteralExpression("2").wrapValid(),
+            AST.LiteralInt("2").wrapValid(),
             validEmptyBlock
         ).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
@@ -119,7 +119,7 @@ internal class MixedParseTest {
     fun testParseBasicIf() = expectNode(
         "if(2) {};",
         AST.IfStatement(
-            AST.LiteralExpression("2").wrapValid(),
+            AST.LiteralInt("2").wrapValid(),
             validEmptyBlock,
             null
         ).wrapValid()
@@ -129,7 +129,7 @@ internal class MixedParseTest {
     fun testParseBasicIfElse() = expectNode(
         "if(2) {} else {};",
         AST.IfStatement(
-            AST.LiteralExpression("2").wrapValid(),
+            AST.LiteralInt("2").wrapValid(),
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
@@ -139,7 +139,7 @@ internal class MixedParseTest {
     fun testParseBasicIfElse_bool() = expectNode(
         "if(true) {} else {};",
         AST.IfStatement(
-            AST.LiteralExpression(true).wrapValid(),
+            AST.LiteralBoolean(true).wrapValid(),
             validEmptyBlock,
             validEmptyBlock
         ).wrapValid()
@@ -241,20 +241,20 @@ internal class MixedParseTest {
                                     listOf(
                                         AST.IfStatement(
                                             AST.FieldAccessExpression(
-                                                AST.LiteralExpression("null").wrapValid(),
+                                                AST.LiteralInt("null").wrapValid(),
                                                 "nothing".toSymbol()
                                             )
                                                 .wrapValid(),
                                             AST.IfStatement(
                                                 AST.MethodInvocationExpression(
-                                                    AST.LiteralExpression(true).wrapValid(),
+                                                    AST.LiteralBoolean(true).wrapValid(),
                                                     "fun".toSymbol(),
                                                     emptyList()
                                                 ).wrapValid(),
                                                 AST.IfStatement(
                                                     AST.ArrayAccessExpression(
-                                                        AST.LiteralExpression(false).wrapValid(),
-                                                        AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
+                                                        AST.LiteralBoolean(false).wrapValid(),
+                                                        AST.LiteralInt("472183921789789798798798798798787789738120391203213213")
                                                             .wrapValid()
                                                     ).wrapValid(),
                                                     AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid(),
@@ -298,19 +298,19 @@ internal class MixedParseTest {
                                             AST.ArrayAccessExpression(
                                                 AST.IdentifierExpression("a".toSymbol()).wrapValid(),
                                                 AST.BinaryExpression(
-                                                    AST.LiteralExpression("2").wrapValid(),
+                                                    AST.LiteralInt("2").wrapValid(),
                                                     AST.BinaryExpression(
                                                         AST.UnaryExpression(
                                                             AST.IdentifierExpression("i".toSymbol()).wrapValid(),
                                                             AST.UnaryExpression.Operation.MINUS
                                                         ).wrapValid(),
-                                                        AST.LiteralExpression("1").wrapValid(),
+                                                        AST.LiteralInt("1").wrapValid(),
                                                         AST.BinaryExpression.Operation.ADDITION
                                                     ).wrapValid(),
                                                     AST.BinaryExpression.Operation.MULTIPLICATION
                                                 ).wrapValid()
                                             ).wrapValid(),
-                                            AST.LiteralExpression("2").wrapValid()
+                                            AST.LiteralInt("2").wrapValid()
                                         ).wrapValid()
                                     ).wrapBlockStatement().wrapValid()
                                 )
@@ -374,11 +374,11 @@ internal class MixedParseTest {
                                     )
                                         .wrapValid(),
                                     AST.IfStatement(
-                                        AST.LiteralExpression(true),
+                                        AST.LiteralBoolean(true),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x".toSymbol()).wrapValid(),
-                                                AST.LiteralExpression("3").wrapValid(),
+                                                AST.LiteralInt("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapValid()
                                         ).wrapValid(),
@@ -427,11 +427,11 @@ internal class MixedParseTest {
                                     )
                                         .wrapValid(),
                                     AST.IfStatement(
-                                        AST.LiteralExpression(true).wrapValid(),
+                                        AST.LiteralBoolean(true).wrapValid(),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x".toSymbol()).wrapValid(),
-                                                AST.LiteralExpression("3").wrapValid(),
+                                                AST.LiteralInt("3").wrapValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapValid()
                                         ).wrapValid(),
@@ -571,7 +571,7 @@ internal class MixedParseTest {
                     ) {
                         localDeclaration("abc", Type.arrayOf(Type.arrayOf(Type.Integer.wrapValid()).wrapValid())) {
                             newArrayOf(Type.Array.ArrayType(Type.arrayOf(Type.Integer.wrapValid()).wrapValid())) {
-                                literal("22")
+                                literal(22)
                             }
                         }
                     }
@@ -611,9 +611,7 @@ internal class MixedParseTest {
                                     ).wrapValid()
                                 )
                             ) {
-                                literal(
-                                    "22"
-                                )
+                                literal(22)
                             }
                         }
                     }
@@ -639,7 +637,7 @@ internal class MixedParseTest {
                             arrayAccess({ ident("a") }) {
                                 binOp(
                                     AST.BinaryExpression.Operation.ADDITION,
-                                    { literal("10") }, { ident("b") }
+                                    { literal(10) }, { ident("b") }
                                 )
                             }
                         }

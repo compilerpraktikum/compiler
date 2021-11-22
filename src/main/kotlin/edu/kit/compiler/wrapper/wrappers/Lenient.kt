@@ -130,7 +130,7 @@ fun LenientBlockStatement.validate(): IdentityBlockStatement? {
 }
 
 private val exampleExpression =
-    AST.UnaryExpression(Lenient.Valid(AST.LiteralExpression(AST.LiteralValue.LiteralInt(2))), AST.UnaryExpression.Operation.NOT)
+    AST.UnaryExpression(Lenient.Valid(AST.LiteralInt("2")), AST.UnaryExpression.Operation.NOT)
 
 fun AST.Expression<Lenient<Of>, Lenient<Of>>.validate(): AST.Expression<Identity<Of>, Identity<Of>>? {
     return this.mapExprW({ expr ->

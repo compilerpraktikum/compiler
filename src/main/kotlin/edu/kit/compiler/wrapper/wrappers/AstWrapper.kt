@@ -139,7 +139,7 @@ inline fun <ExprW1, ExprW2, OtherW1, OtherW2> AST.Expression<ExprW1, OtherW1>.ma
         is AST.FieldAccessExpression ->
             AST.FieldAccessExpression(f(target), field)
         is AST.IdentifierExpression -> this
-        is AST.LiteralExpression<*> -> this
+        is AST.LiteralExpression -> this
         is AST.MethodInvocationExpression ->
             AST.MethodInvocationExpression(
                 target?.let { target -> f(target) },

@@ -86,11 +86,8 @@ class Of private constructor()
  */
 interface Unwrappable<F> {
     fun <A> unwrappableExtract(fa: Kind<F, A>): A
-
-    fun <A> duplicate(wa: Kind<F, A>): Kind<F, Kind<F, A>>
-
-    fun <A, B> extend(mapWa: (Kind<F, A>) -> B, wa: Kind<F, A>): Kind<F, B>
 }
+
 fun <A, F> Kind<F, A>.unwrap(wrapper: Unwrappable<F>): A = wrapper.unwrappableExtract(this)
 
 // ---------------------------------------- Implementors ----------------------------------------//
@@ -111,7 +108,8 @@ fun <A> Kind<AST.Parameter<Of>, A>.into(): AST.Parameter<A> = this as AST.Parame
  */
 fun <A, O> Kind<AST.Expression<Of, O>, A>.into(): AST.Expression<A, O> = this as AST.Expression<A, O>
 fun <E, S, O> Kind<AST.Statement<E, Of, O>, S>.into(): AST.Statement<E, S, O> = this as AST.Statement<E, S, O>
-fun <E, S, O> Kind<AST.BlockStatement<E, Of, O>, S>.into(): AST.BlockStatement<E, S, O> = this as AST.BlockStatement<E, S, O>
+fun <E, S, O> Kind<AST.BlockStatement<E, Of, O>, S>.into(): AST.BlockStatement<E, S, O> =
+    this as AST.BlockStatement<E, S, O>
 
 // ---------------------------------------- Code Examples ----------------------------------------//
 
@@ -123,9 +121,9 @@ private object WrappingExample {
 private object DocsCodeSnippets {
 
     private val exampleChaining: Lenient<AST.Expression<Of, Nothing>> =
-        Lenient.Valid(AST.LiteralExpression(2))
+        Lenient.Valid(AST.LiteralInt("2"))
     private val exampleChainingInner: Lenient<AST.Expression<Lenient<Of>, Nothing>> =
-        Lenient.Valid(AST.LiteralExpression(2))
+        Lenient.Valid(AST.LiteralInt("2"))
     private val exampleChainingRecursive: Lenient<AST.Expression<Lenient<Of>, Nothing>> =
         Lenient.Valid(
             AST.BinaryExpression(
@@ -172,15 +170,15 @@ private object DocsCodeSnippets {
     }
 
     private val exampleExpressionOfIdentity: AST.Expression<Identity<Of>, Identity<Of>> = AST.BinaryExpression(
-        Identity(AST.LiteralExpression(2)),
-        Identity(AST.LiteralExpression(3)),
+        Identity(AST.LiteralInt("2")),
+        Identity(AST.LiteralInt("3")),
         AST.BinaryExpression.Operation.ADDITION
     )
 
     private object ConstFoldExample {
         fun constFold(i: AST.Expression<ConstValue<Int, Of>, Identity<Of>>): ConstValue<Int, AST.Expression<ConstValue<Int, Of>, Identity<Of>>> =
             when (i) {
-                is AST.LiteralExpression<*> -> ConstValue(i.value as Int)
+                is AST.LiteralInt -> ConstValue(i.value.toInt())
                 is AST.UnaryExpression ->
                     when (i.operation) {
                         AST.UnaryExpression.Operation.NOT -> ConstValue(i.expression.into().c.inv())

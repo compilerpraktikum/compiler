@@ -319,9 +319,9 @@ class PrettyPrintVisitor(
         print(identifierExpression.name.text)
     }
 
-    override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
+    override fun visit(literalExpression: AST.LiteralExpression) {
         // never print parantheses
-        print(literalExpression.value.toString())
+        print(literalExpression.toString())
     }
 
     override fun visit(newObjectExpression: AST.NewObjectExpression) {

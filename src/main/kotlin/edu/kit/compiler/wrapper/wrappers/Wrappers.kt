@@ -1,6 +1,8 @@
 package edu.kit.compiler.wrapper.wrappers
 
+import edu.kit.compiler.ast.Functor
 import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.typechecking.into
 import edu.kit.compiler.wrapper.Kind
 import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.Unwrappable
@@ -20,3 +22,10 @@ fun <Node> Node.positioned(range: SourceRange): Positioned<Node> = Annotated(thi
 value class UnwrappableAnnotated<Ann>(val empty: Unit? = null) : Unwrappable<Annotated<Ann, Of>> {
     override fun <A> unwrappableExtract(fa: Kind<Annotated<Ann, Of>, A>) = fa.into().node
 }
+
+@JvmInline
+value class AnnotatedFunctor<Ann>(val empty: Unit? = null) : Functor<Annotated<Ann, Of>> {
+    override fun <A, B> functorMap(f: (A) -> B, fa: Kind<Annotated<Ann, Of>, A>): Kind<Annotated<Ann, Of>, B> = fa.into().mapAnnotated(f)
+}
+
+inline fun <Ann, A, B> Annotated<Ann, A>.mapAnnotated(f: (A) -> B): Annotated<Ann, B> = Annotated(f(node), ann)

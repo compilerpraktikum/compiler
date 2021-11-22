@@ -3,7 +3,6 @@ package edu.kit.compiler.wrapper.wrappers
 import edu.kit.compiler.wrapper.IdentityType
 import edu.kit.compiler.wrapper.Of
 
-
 /**
  * Represents the type of an expression, that is synthesized from its child nodes
  * We use a value class there, to make it harder to mixing up [SynthesizedType] and [InducedType]
@@ -23,7 +22,6 @@ typealias SynthesizedTyped<Node> = Annotated<SynthesizedType, Node>
 @JvmInline
 value class InducedType(val inducedType: IdentityType)
 
-
 /**
  * Represents a [Node] annotated with its induced type
  */
@@ -37,4 +35,4 @@ typealias LenientTyped<Node> = Compose<InducedTyped<Of>, SynthesizedTyped<Of>, N
 
 val <Node> LenientTyped<Node>.inducedType: InducedType get() = this.unCompose.into().ann
 val <Node> LenientTyped<Node>.synthesizedType: SynthesizedType get() = this.unCompose.into().node.into().ann
-val <Node> LenientTyped<Node>.astNode : Node get() = this.unCompose.into().node.into().node
+val <Node> LenientTyped<Node>.astNode: Node get() = this.unCompose.into().node.into().node

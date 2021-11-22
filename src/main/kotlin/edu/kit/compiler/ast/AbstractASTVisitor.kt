@@ -94,7 +94,7 @@ abstract class AbstractASTVisitor<ExprW, StmtW, DeclW, ClassW, OtherW>(
         // Nothing to do
     }
 
-    override fun <T> visit(literalExpression: AST.LiteralExpression<T>) {
+    override fun visit(literalExpression: AST.LiteralExpression) {
         // Nothing to do
     }
 

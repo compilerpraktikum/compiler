@@ -282,7 +282,6 @@ typealias ParsedNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [Parsed]s */
 typealias ParsedNewArrayExpression = AST.NewArrayExpression<Parsed<Of>, Parsed<Of>>
 
-
 /************************************************
  ** Typed
  ************************************************/
@@ -349,7 +348,6 @@ typealias TypedLiteralExpression = AST.LiteralExpression
 typealias TypedNewObjectExpression = AST.NewObjectExpression
 /** NewArrayExpression containing [SynthesizedTyped]s */
 typealias TypedNewArrayExpression = AST.NewArrayExpression<SynthesizedTyped<Of>, SynthesizedTyped<Of>>
-
 
 /************************************************
  ** LenientTyped

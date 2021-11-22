@@ -75,7 +75,8 @@ class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember<Lenient<Of>, Lenie
 }
 
 object ExprDsl {
-    fun <T> literal(v: T) = AST.LiteralExpression(v)
+    fun literal(v: Int) = AST.LiteralInt(v.toString())
+    fun literal(v: Boolean) = AST.LiteralBoolean(v)
     fun binOp(
         op: AST.BinaryExpression.Operation,
         left: ExprDsl.() -> AST.Expression<Lenient<Of>, Lenient<Of>>,

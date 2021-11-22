@@ -16,7 +16,7 @@ internal class ExpressionParseTest {
         expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }
 
     @Test
-    fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1").wrapValid())
+    fun testParseLiteral() = expectAst("1", AST.LiteralInt("1").wrapValid())
 
     @Test
     fun testParseIdentInExpr() = expectAst("myident", AST.IdentifierExpression("myident".toSymbol()).wrapValid())
@@ -31,7 +31,7 @@ internal class ExpressionParseTest {
     @Test
     fun testParseLocalInvocationArg() = expectAst(
         "myident(1)",
-        AST.MethodInvocationExpression(null, "myident".toSymbol(), listOf(AST.LiteralExpression("1").wrapValid())).wrapValid()
+        AST.MethodInvocationExpression(null, "myident".toSymbol(), listOf(AST.LiteralInt("1").wrapValid())).wrapValid()
     )
 
     @Test
@@ -40,7 +40,7 @@ internal class ExpressionParseTest {
         AST.MethodInvocationExpression(
             null,
             "myident".toSymbol(),
-            listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2")).map { it.wrapValid() }
+            listOf(AST.LiteralInt("1"), AST.LiteralInt("2"), AST.LiteralInt("2")).map { it.wrapValid() }
         ).wrapValid()
     )
 
@@ -50,11 +50,11 @@ internal class ExpressionParseTest {
             "1+2+3",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("1").wrapValid(),
-                    AST.LiteralExpression("2").wrapValid(),
+                    AST.LiteralInt("1").wrapValid(),
+                    AST.LiteralInt("2").wrapValid(),
                     AST.BinaryExpression.Operation.ADDITION
                 ).wrapValid(),
-                AST.LiteralExpression("3").wrapValid(),
+                AST.LiteralInt("3").wrapValid(),
                 AST.BinaryExpression.Operation.ADDITION
             ).wrapValid()
         )
@@ -65,10 +65,10 @@ internal class ExpressionParseTest {
         expectAst(
             "1+2*3",
             AST.BinaryExpression(
-                AST.LiteralExpression("1").wrapValid(),
+                AST.LiteralInt("1").wrapValid(),
                 AST.BinaryExpression(
-                    AST.LiteralExpression("2").wrapValid(),
-                    AST.LiteralExpression("3").wrapValid(),
+                    AST.LiteralInt("2").wrapValid(),
+                    AST.LiteralInt("3").wrapValid(),
                     AST.BinaryExpression.Operation.MULTIPLICATION
                 ).wrapValid(),
                 AST.BinaryExpression.Operation.ADDITION
@@ -82,15 +82,15 @@ internal class ExpressionParseTest {
             "1+2*3+4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("1").wrapValid(),
+                    AST.LiteralInt("1").wrapValid(),
                     AST.BinaryExpression(
-                        AST.LiteralExpression("2").wrapValid(),
-                        AST.LiteralExpression("3").wrapValid(),
+                        AST.LiteralInt("2").wrapValid(),
+                        AST.LiteralInt("3").wrapValid(),
                         AST.BinaryExpression.Operation.MULTIPLICATION
                     ).wrapValid(),
                     AST.BinaryExpression.Operation.ADDITION
                 ).wrapValid(),
-                AST.LiteralExpression("4").wrapValid(),
+                AST.LiteralInt("4").wrapValid(),
                 AST.BinaryExpression.Operation.ADDITION
             ).wrapValid()
         )
@@ -101,8 +101,8 @@ internal class ExpressionParseTest {
         expectAst(
             "2 = 3",
             AST.BinaryExpression(
-                AST.LiteralExpression("2").wrapValid(),
-                AST.LiteralExpression("3").wrapValid(),
+                AST.LiteralInt("2").wrapValid(),
+                AST.LiteralInt("3").wrapValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapValid()
         )
@@ -113,10 +113,10 @@ internal class ExpressionParseTest {
         expectAst(
             "2 = 3 = 4",
             AST.BinaryExpression(
-                AST.LiteralExpression("2").wrapValid(),
+                AST.LiteralInt("2").wrapValid(),
                 AST.BinaryExpression(
-                    AST.LiteralExpression("3").wrapValid(),
-                    AST.LiteralExpression("4").wrapValid(),
+                    AST.LiteralInt("3").wrapValid(),
+                    AST.LiteralInt("4").wrapValid(),
                     AST.BinaryExpression.Operation.ASSIGNMENT
                 ).wrapValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
@@ -130,23 +130,23 @@ internal class ExpressionParseTest {
             "2 + (3 = 2 = 2) * 3 + 4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("2").wrapValid(),
+                    AST.LiteralInt("2").wrapValid(),
                     AST.BinaryExpression(
                         AST.BinaryExpression(
-                            AST.LiteralExpression("3").wrapValid(),
+                            AST.LiteralInt("3").wrapValid(),
                             AST.BinaryExpression(
-                                AST.LiteralExpression("2").wrapValid(),
-                                AST.LiteralExpression("2").wrapValid(),
+                                AST.LiteralInt("2").wrapValid(),
+                                AST.LiteralInt("2").wrapValid(),
                                 AST.BinaryExpression.Operation.ASSIGNMENT
                             ).wrapValid(),
                             AST.BinaryExpression.Operation.ASSIGNMENT
                         ).wrapValid(),
-                        AST.LiteralExpression("3").wrapValid(),
+                        AST.LiteralInt("3").wrapValid(),
                         AST.BinaryExpression.Operation.MULTIPLICATION
                     ).wrapValid(),
                     AST.BinaryExpression.Operation.ADDITION
                 ).wrapValid(),
-                AST.LiteralExpression("4").wrapValid(),
+                AST.LiteralInt("4").wrapValid(),
                 AST.BinaryExpression.Operation.ADDITION
             ).wrapValid()
         )
