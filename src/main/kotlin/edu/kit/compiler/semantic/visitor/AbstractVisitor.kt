@@ -17,19 +17,23 @@ abstract class AbstractVisitor {
     }
 
     open fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+        fieldDeclaration.parsedType.accept(this)
     }
 
     open fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+        methodDeclaration.parsedReturnType.accept(this)
         methodDeclaration.parameters.forEach { it.accept(this) }
         methodDeclaration.block.accept(this)
     }
 
     open fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        mainMethodDeclaration.parsedReturnType.accept(this)
         mainMethodDeclaration.parameters.forEach { it.accept(this) }
         mainMethodDeclaration.block.accept(this)
     }
 
     open fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+        parameter.type.accept(this)
     }
 
     open fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
@@ -64,6 +68,7 @@ abstract class AbstractVisitor {
     }
 
     open fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+        newArrayExpression.type.accept(this)
         newArrayExpression.length.accept(this)
     }
 
@@ -89,6 +94,7 @@ abstract class AbstractVisitor {
     }
 
     open fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+        localVariableDeclaration.type.accept(this)
         localVariableDeclaration.initializer?.accept(this)
     }
 
