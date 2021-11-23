@@ -5,8 +5,9 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.wrapper.wrappers.Lenient
-import java.util.Optional
+import edu.kit.compiler.wrapper.wrappers.Parsed
+import edu.kit.compiler.wrapper.wrappers.wrapErroneous
+import edu.kit.compiler.wrapper.wrappers.wrapValid
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
@@ -47,19 +48,19 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * Construct the AST from the token sequence
      */
-    abstract fun parse(): Lenient<AST.Program>
+    abstract fun parse(): Parsed<AST.Program>
 
     /**
      * Expect and return a token of type [T].
      */
-    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Optional<T> {
+    protected inline fun <reified T : Token> expect(anc: AnchorUnion, errorMsg: () -> String): Parsed<T> {
         val p = peek()
         if (p is T)
-            return Optional.of(next() as T)
+            return (next() as T).wrapValid(p.range)
 
         reportError(p, errorMsg())
         recover(anc)
-        return Optional.empty()
+        return null.wrapErroneous(p.range)
     }
 
     /**
@@ -70,20 +71,22 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         type: Token.Operator.Type,
         anc: AnchorUnion,
         errorMsg: () -> String
-    ): Optional<Token.Operator> {
-        val peek = peek()
-        if (peek !is Token.Operator) {
-            reportError(peek, errorMsg())
+    ): Parsed<Token.Operator> {
+        val peeked = peek()
+        if (peeked !is Token.Operator) {
+            reportError(peeked, errorMsg())
             recover(anc)
-            return Optional.empty()
+            return null.wrapErroneous(peeked.range)
         }
+        val sourceRange = SourceRange(peeked.position, 1).extend(SourceRange(peek(1).position, 1))
 
-        return if (peek.type == type)
-            Optional.of(next() as Token.Operator)
-        else {
-            reportError(peek, errorMsg())
+        return if (peeked.type == type) {
+            next()
+            peeked.wrapValid(sourceRange)
+        } else {
+            reportError(peeked, errorMsg())
             recover(anc)
-            Optional.empty()
+            null.wrapErroneous(peeked.range)
         }
     }
 
@@ -91,7 +94,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
      * Read a token and expect it to be an identifier. If it is not an identifier, enter [recover] and read from the
      * token stream until a token within [anc] is upfront.
      */
-    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Optional<Token.Identifier> =
+    protected fun expectIdentifier(anc: AnchorUnion, errorMsg: () -> String): Parsed<Token.Identifier> =
         expect(anc, errorMsg)
 
     /**
@@ -106,20 +109,22 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
         type: Token.Keyword.Type,
         anc: AnchorUnion,
         errorMsg: () -> String
-    ): Optional<Token.Keyword> {
-        val peek = peek()
-        if (peek !is Token.Keyword) {
-            reportError(peek, errorMsg())
+    ): Parsed<Token.Keyword?> {
+        val peeked = peek()
+        if (peeked !is Token.Keyword) {
+            reportError(peeked, errorMsg())
             recover(anc)
-            return Optional.empty()
+            return null.wrapErroneous(peeked.range)
         }
 
-        return if (peek.type == type)
-            Optional.of(next() as Token.Keyword)
+        return if (peeked.type == type) {
+            next()
+            peeked.wrapValid(peeked.range)
+        }
         else {
-            reportError(peek, errorMsg())
+            reportError(peeked, errorMsg())
             recover(anc)
-            Optional.empty()
+            null.wrapValid(peeked.range)
         }
     }
 

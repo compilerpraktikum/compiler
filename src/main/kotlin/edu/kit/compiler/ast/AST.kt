@@ -2,12 +2,12 @@ package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 
 sealed class Type() {
 
     companion object {
-        fun arrayOf(elementType: Lenient<Type>) =
+        fun arrayOf(elementType: Parsed<Type>) =
             Array(Array.ArrayType(elementType))
     }
 
@@ -22,7 +22,7 @@ sealed class Type() {
     ) : Type() {
         @JvmInline
         value class ArrayType(
-            val elementType: Lenient<Type>
+            val elementType: Parsed<Type>
         ) {
             fun wrapArray() = Array(this)
         }
@@ -50,12 +50,12 @@ object AST {
      * @param OtherW Wrapper for the rest other Nodes, could fail in parsing
      */
     data class Program(
-        val classes: List<Lenient<ClassDeclaration>>,
+        val classes: List<Parsed<ClassDeclaration>>,
     )
 
     data class ClassDeclaration(
         val name: Symbol,
-        val member: List<Lenient<ClassMember>>,
+        val member: List<Parsed<ClassMember>>,
     )
 
     sealed class ClassMember {
@@ -69,14 +69,14 @@ object AST {
 
     data class Field(
         val name: Symbol,
-        val type: Lenient<Type>,
+        val type: Parsed<Type>,
     ) : ClassMember()
 
     data class Method(
         val name: Symbol,
-        val returnType: Lenient<Type>,
-        val parameters: List<Lenient<Parameter>>,
-        val block: Lenient<Block>,
+        val returnType: Parsed<Type>,
+        val parameters: List<Parsed<Parameter>>,
+        val block: Parsed<Block>,
         val throwsException: Symbol? = null,
     ) : ClassMember()
 
@@ -84,15 +84,15 @@ object AST {
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Symbol,
-        val returnType: Lenient<Type>,
-        val parameters: List<Lenient<Parameter>>,
-        val block: Lenient<Block>,
+        val returnType: Parsed<Type>,
+        val parameters: List<Parsed<Parameter>>,
+        val block: Parsed<Block>,
         val throwsException: Symbol? = null,
     ) : ClassMember()
 
     data class Parameter(
         val name: Symbol,
-        val type: Lenient<Type>,
+        val type: Parsed<Type>,
     )
 
     /************************************************
@@ -103,8 +103,8 @@ object AST {
 
     data class LocalVariableDeclarationStatement(
         val name: Symbol,
-        val type: Lenient<Type>,
-        val initializer: Lenient<Expression>?,
+        val type: Parsed<Type>,
+        val initializer: Parsed<Expression>?,
     ) : BlockStatement()
 
     data class StmtWrapper(val statement: Statement) : BlockStatement()
@@ -116,26 +116,26 @@ object AST {
     val emptyStatement = Block(listOf())
 
     data class Block(
-        val statements: List<Lenient<BlockStatement>>,
+        val statements: List<Parsed<BlockStatement>>,
     ) : Statement()
 
     data class IfStatement(
-        val condition: Lenient<Expression>,
-        val trueStatement: Lenient<Statement>,
-        val falseStatement: Lenient<Statement>?
+        val condition: Parsed<Expression>,
+        val trueStatement: Parsed<Statement>,
+        val falseStatement: Parsed<Statement>?
     ) : Statement()
 
     data class WhileStatement(
-        val condition: Lenient<Expression>,
-        val statement: Lenient<Statement>,
+        val condition: Parsed<Expression>,
+        val statement: Parsed<Statement>,
     ) : Statement()
 
     data class ReturnStatement(
-        val expression: Lenient<Expression>?,
+        val expression: Parsed<Expression>?,
     ) : Statement()
 
     data class ExpressionStatement(
-        val expression: Lenient<Expression>,
+        val expression: Parsed<Expression>,
     ) : Statement()
 
     /************************************************
@@ -145,8 +145,8 @@ object AST {
     sealed class Expression
 
     data class BinaryExpression(
-        val left: Lenient<Expression>,
-        val right: Lenient<Expression>,
+        val left: Parsed<Expression>,
+        val right: Parsed<Expression>,
         val operation: Operation
     ) : Expression() {
         enum class Operation(
@@ -186,7 +186,7 @@ object AST {
     }
 
     data class UnaryExpression(
-        val expression: Lenient<Expression>,
+        val expression: Parsed<Expression>,
         val operation: Operation
     ) : Expression() {
         enum class Operation(
@@ -198,19 +198,19 @@ object AST {
     }
 
     data class MethodInvocationExpression(
-        val target: Lenient<Expression>?,
+        val target: Parsed<Expression>?,
         val method: Symbol,
-        val arguments: List<Lenient<Expression>>
+        val arguments: List<Parsed<Expression>>
     ) : Expression()
 
     data class FieldAccessExpression(
-        val target: Lenient<Expression>,
+        val target: Parsed<Expression>,
         val field: Symbol,
     ) : Expression()
 
     data class ArrayAccessExpression(
-        val target: Lenient<Expression>,
-        val index: Lenient<Expression>,
+        val target: Parsed<Expression>,
+        val index: Parsed<Expression>,
     ) : Expression()
 
     /************************************************
@@ -230,8 +230,8 @@ object AST {
     ) : Expression()
 
     data class NewArrayExpression(
-        val type: Lenient<Type.Array.ArrayType>,
-        val length: Lenient<Expression>,
+        val type: Parsed<Type.Array.ArrayType>,
+        val length: Parsed<Expression>,
     ) : Expression()
 }
 

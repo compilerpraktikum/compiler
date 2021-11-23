@@ -8,11 +8,13 @@ import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to
- * encapsulation concerns and to free it from the [edu.kit.compiler.wrapper.wrappers.Lenient] wrapping.
+ * encapsulation concerns and to free it from the [edu.kit.compiler.wrapper.wrappers.Parsed] wrapping.
  *
  * @param sourceRange [SourceRange] that spans the contents of this node in the compilation unit
  */
-sealed class AstNode(val sourceRange: SourceRange) {
+sealed class AstNode(open val sourceRange: SourceRange) {
+
+    data class Identifier(val symbol: Symbol, override val sourceRange: SourceRange) : AstNode(sourceRange)
 
     /**
      * The entire program that is being compiled from one compilation unit
@@ -28,7 +30,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
      * @param members all class members (fields, methods and potentially main method(s))
      */
     class ClassDeclaration(
-        val name: Symbol,
+        val name: Identifier,
         val members: List<ClassMember>,
         sourceRange: SourceRange
     ) : AstNode(sourceRange) {
@@ -40,7 +42,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
      *
      * @param name field/method name
      */
-    sealed class ClassMember(val name: Symbol, sourceRange: SourceRange) :
+    sealed class ClassMember(val name: Identifier, sourceRange: SourceRange) :
         AstNode(sourceRange) {
 
         /**
@@ -49,8 +51,8 @@ sealed class AstNode(val sourceRange: SourceRange) {
          */
         sealed class SubroutineDeclaration(
             val parsedReturnType: ParsedType,
-            name: Symbol,
-            val throwsException: Symbol?,
+            name: Identifier,
+            val throwsException: Identifier?,
             val block: Statement.Block,
             val parameters: List<Parameter>,
             sourceRange: SourceRange
@@ -64,8 +66,8 @@ sealed class AstNode(val sourceRange: SourceRange) {
              */
             class MainMethodDeclaration(
                 parsedReturnType: ParsedType,
-                name: Symbol,
-                throwsException: Symbol?,
+                name: Identifier,
+                throwsException: Identifier?,
                 block: Statement.Block,
                 parameters: List<Parameter>,
                 sourceRange: SourceRange
@@ -76,8 +78,8 @@ sealed class AstNode(val sourceRange: SourceRange) {
              */
             class MethodDeclaration(
                 parsedReturnType: ParsedType,
-                name: Symbol,
-                throwsException: Symbol?,
+                name: Identifier,
+                throwsException: Identifier?,
                 block: Statement.Block,
                 parameters: List<Parameter>,
                 sourceRange: SourceRange
@@ -86,8 +88,8 @@ sealed class AstNode(val sourceRange: SourceRange) {
             /**
              * A formal method parameter
              */
-            inner class Parameter(
-                val name: Symbol,
+            class Parameter(
+                val name: Identifier,
                 val type: ParsedType,
                 sourceRange: SourceRange
             ) : AstNode(sourceRange) {
@@ -100,7 +102,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
          *
          * @param parsedType the field type as specified by the parser
          */
-        class FieldDeclaration(name: Symbol, val parsedType: ParsedType, sourceRange: SourceRange) :
+        class FieldDeclaration(name: Identifier, val parsedType: ParsedType, sourceRange: SourceRange) :
             ClassMember(name, sourceRange)
     }
 
@@ -119,7 +121,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
         /**
          * Primary expression encompassing a single identifier
          */
-        class IdentifierExpression(val symbol: Symbol, sourceRange: SourceRange) : Expression(sourceRange) {
+        class IdentifierExpression(val symbol: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
             /**
              * Definition of the referenced member
              */
@@ -152,7 +154,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
          *
          * @param clazz instantiated class name
          */
-        class NewObjectExpression(val clazz: Symbol, sourceRange: SourceRange) : Expression(sourceRange)
+        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange)
 
         class NewArrayExpression(
             val type: ParsedType.ArrayType,
@@ -190,7 +192,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
          */
         class MethodInvocationExpression(
             val target: Expression?,
-            val method: Symbol,
+            val method: Identifier,
             val arguments: List<Expression>,
             sourceRange: SourceRange
         ) : Expression(sourceRange)
@@ -203,7 +205,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
          */
         class FieldAccessExpression(
             val target: Expression,
-            val field: Symbol,
+            val field: Identifier,
             sourceRange: SourceRange
         ) : Expression(sourceRange)
 
@@ -225,7 +227,7 @@ sealed class AstNode(val sourceRange: SourceRange) {
          * Declaration (and optional assignment) statement of a local variable in a method
          */
         class LocalVariableDeclaration(
-            val name: Symbol,
+            val name: Identifier,
             val type: ParsedType,
             val initializer: Expression?,
             sourceRange: SourceRange
