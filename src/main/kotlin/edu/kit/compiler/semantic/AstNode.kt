@@ -24,25 +24,37 @@ sealed class AstNode(val sourceRange: SourceRange) {
     /**
      * A class with all its members
      *
+     * @param name class name
      * @param members all class members (fields, methods and potentially main method(s))
      */
-    class ClassDeclaration(val members: List<ClassMember>, sourceRange: SourceRange) : AstNode(sourceRange) {
+    class ClassDeclaration(
+        val name: Symbol,
+        val members: List<ClassMember>,
+        sourceRange: SourceRange
+    ) : AstNode(sourceRange) {
         lateinit var classNamespace: Namespace.ClassNamespace
     }
 
     /**
      * Class members ([SubroutineDeclaration] and [FieldDeclaration])
+     *
+     * @param name field/method name
      */
-    sealed class ClassMember(sourceRange: SourceRange) : AstNode(sourceRange) {
+    sealed class ClassMember(val name: Symbol, sourceRange: SourceRange) :
+        AstNode(sourceRange) {
+
         /**
          * @param block the method's code
+         * @param throwsException exception class identifier if this method has a `throws` clause
          */
         sealed class SubroutineDeclaration(
+            val parsedReturnType: ParsedType,
+            name: Symbol,
+            val throwsException: Symbol?,
             val block: Statement.Block,
             val parameters: List<Parameter>,
             sourceRange: SourceRange
-        ) :
-            ClassMember(sourceRange) {
+        ) : ClassMember(name, sourceRange) {
             lateinit var methodNamespace: Namespace.MethodNamespace
 
             lateinit var returnType: SemanticType
@@ -50,27 +62,46 @@ sealed class AstNode(val sourceRange: SourceRange) {
             /**
              * Special case of a [SubroutineDeclaration] that is the main entry point
              */
-            class MainMethodDeclaration(block: Statement.Block, parameters: List<Parameter>, sourceRange: SourceRange) :
-                SubroutineDeclaration(block, parameters, sourceRange)
+            class MainMethodDeclaration(
+                parsedReturnType: ParsedType,
+                name: Symbol,
+                throwsException: Symbol?,
+                block: Statement.Block,
+                parameters: List<Parameter>,
+                sourceRange: SourceRange
+            ) : SubroutineDeclaration(parsedReturnType, name, throwsException, block, parameters, sourceRange)
 
             /**
              * A method class member declaration
              */
-            class MethodDeclaration(block: Statement.Block, parameters: List<Parameter>, sourceRange: SourceRange) :
-                SubroutineDeclaration(block, parameters, sourceRange)
+            class MethodDeclaration(
+                parsedReturnType: ParsedType,
+                name: Symbol,
+                throwsException: Symbol?,
+                block: Statement.Block,
+                parameters: List<Parameter>,
+                sourceRange: SourceRange
+            ) : SubroutineDeclaration(parsedReturnType, name, throwsException, block, parameters, sourceRange)
 
             /**
              * A formal method parameter
              */
-            class Parameter(val name: Symbol, val type: ParsedType, sourceRange: SourceRange) : AstNode(sourceRange) {
+            inner class Parameter(
+                val name: Symbol,
+                val type: ParsedType,
+                sourceRange: SourceRange
+            ) : AstNode(sourceRange) {
                 lateinit var semanticType: SemanticType
             }
         }
 
         /**
          * A class field declaration
+         *
+         * @param parsedType the field type as specified by the parser
          */
-        class FieldDeclaration(sourceRange: SourceRange) : ClassMember(sourceRange)
+        class FieldDeclaration(name: Symbol, val parsedType: ParsedType, sourceRange: SourceRange) :
+            ClassMember(name, sourceRange)
     }
 
     sealed class Expression(sourceRange: SourceRange) : AstNode(sourceRange) {
@@ -124,11 +155,10 @@ sealed class AstNode(val sourceRange: SourceRange) {
         class NewObjectExpression(val clazz: Symbol, sourceRange: SourceRange) : Expression(sourceRange)
 
         class NewArrayExpression(
-            val type: SemanticType.ArrayType,
+            val type: ParsedType.ArrayType,
             val length: Expression,
             sourceRange: SourceRange
-        ) :
-            Expression(sourceRange)
+        ) : Expression(sourceRange)
 
         /**
          * Expression with two operands
@@ -154,12 +184,12 @@ sealed class AstNode(val sourceRange: SourceRange) {
         /**
          * Method call and return value
          *
-         * @param target method call target instance
+         * @param target method call target instance, or `null` if implicitly `this`
          * @param method method name
          * @param arguments concrete argument expressions
          */
         class MethodInvocationExpression(
-            val target: Expression,
+            val target: Expression?,
             val method: Symbol,
             val arguments: List<Expression>,
             sourceRange: SourceRange
@@ -194,7 +224,12 @@ sealed class AstNode(val sourceRange: SourceRange) {
         /**
          * Declaration (and optional assignment) statement of a local variable in a method
          */
-        class LocalVariableDeclaration(val name: Symbol, val type: ParsedType, sourceRange: SourceRange) :
+        class LocalVariableDeclaration(
+            val name: Symbol,
+            val type: ParsedType,
+            val initializer: Expression?,
+            sourceRange: SourceRange
+        ) :
             Statement(sourceRange)
 
         /**

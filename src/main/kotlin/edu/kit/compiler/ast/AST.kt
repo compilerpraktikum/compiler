@@ -33,27 +33,6 @@ sealed class Type() {
     ) : Type()
 }
 
-public val Type.baseType: Type
-    get() = when (this) {
-        is Type.Array -> this.arrayType.elementType.getAsValid()?.baseType
-            ?: throw IllegalStateException("invalid type")
-        is Type.Void -> this
-        is Type.Integer -> this
-        is Type.Class -> this
-        is Type.Boolean -> this
-    }
-
-public val Type.dimension: Int
-    get() {
-        var dim = 0
-        var type = this
-        while (type is Type.Array) {
-            dim += 1
-            type = type.arrayType.elementType.getAsValid()?.baseType ?: throw IllegalStateException("invalid type")
-        }
-        return dim
-    }
-
 /**
  * Sealed AST-Node class structure
  */
