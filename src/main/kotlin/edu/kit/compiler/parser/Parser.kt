@@ -7,8 +7,6 @@ import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.LenientProgram
-import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.wrappers.Lenient
 import edu.kit.compiler.wrapper.wrappers.markErroneous
 import edu.kit.compiler.wrapper.wrappers.wrapErroneous
@@ -34,7 +32,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     /**
      * Parse the lexer stream into an AST.
      */
-    override fun parse(): Lenient<LenientProgram> {
+    override fun parse(): Lenient<AST.Program> {
         val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof()).intoUnion())
         val eof = expect<Token.Eof>(anchorSetOf().intoUnion()) { "expected end of file" }
 
@@ -44,7 +42,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             AST.Program(classDeclarations).wrapErroneous()
     }
 
-    private fun parsePrimaryExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parsePrimaryExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
@@ -129,7 +127,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     /**
      *
      */
-    private fun parseNewObjectArrayExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewObjectArrayExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
@@ -175,7 +173,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseNewObjectExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewObjectExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         val ident = next() as Token.Identifier
         next() // skip open parenthesis
         val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "constructor calls must be empty. expected `)`" }
@@ -187,7 +185,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseNewArrayExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewArrayExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         val basicType = parseBasicType(
             anc +
                 anchorSetOf(
@@ -219,9 +217,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(
-        basicType: Lenient<Type.Array.ArrayType<Lenient<Of>>>,
+        basicType: Lenient<Type.Array.ArrayType>,
         anc: AnchorUnion
-    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
+    ): Lenient<Type.Array.ArrayType> {
         val maybeAnotherLBracket = peek(0)
 
         return if (maybeAnotherLBracket !is Token.Eof) {
@@ -245,8 +243,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseArguments(anc: AnchorUnion): List<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>> {
-        val arguments = mutableListOf<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>>()
+    private fun parseArguments(anc: AnchorUnion): List<Lenient<AST.Expression>> {
+        val arguments = mutableListOf<Lenient<AST.Expression>>()
         var nextToken = peek()
 
         /*
@@ -271,7 +269,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return arguments
     }
 
-    private fun parsePostfixExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parsePostfixExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp)
 
         return when (val firstPeekedToken = peek()) {
@@ -289,9 +287,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parsePostfixOp(
-        target: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>,
+        target: Lenient<AST.Expression>,
         anc: AnchorUnion
-    ): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    ): Lenient<AST.Expression> {
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
                 when (firstPeekedToken.type) {
@@ -374,7 +372,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseUnaryExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseUnaryExpression(anc: AnchorUnion): Lenient<AST.Expression> {
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
@@ -403,7 +401,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     internal fun parseExpression(
         minPrecedence: Int = 1,
         anc: AnchorUnion
-    ): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    ): Lenient<AST.Expression> {
         var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
         var currentToken = peek()
 
@@ -428,7 +426,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return result
     }
 
-    internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration>> {
         return buildList {
             while (peek(0) !is Token.Eof) {
                 // manual intervention: we read away one visibility modifier if present. Those are illegal here, but we
@@ -487,7 +485,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseClassMembers(anc: AnchorUnion): List<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    private fun parseClassMembers(anc: AnchorUnion): List<Lenient<AST.ClassMember>> {
         return buildList {
             var peeked = peek(0)
 
@@ -530,7 +528,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseClassMember(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseClassMember(anc: AnchorUnion): Lenient<AST.ClassMember> {
         val publicKeyword = expectKeyword(
             Token.Keyword.Type.Public,
             anc + anchorSetOf(
@@ -572,7 +570,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseMainMethod(anc: AnchorUnion): Lenient<AST.MainMethod<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseMainMethod(anc: AnchorUnion): Lenient<AST.MainMethod> {
         val staticKeyword = expectKeyword(
             Token.Keyword.Type.Static,
             anc +
@@ -691,7 +689,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseFieldMethodPrefix(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseFieldMethodPrefix(anc: AnchorUnion): Lenient<AST.ClassMember> {
         val type = parseType(
             anc +
                 anchorSetOf(
@@ -737,8 +735,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseField(
         ident: Optional<Token.Identifier>,
-        type: Lenient<Type<Lenient<Of>>>
-    ): Lenient<AST.Field<Lenient<Of>>> {
+        type: Lenient<Type>
+    ): Lenient<AST.Field> {
         next()
 
         return if (ident.isPresent) {
@@ -756,9 +754,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseMethod(
         ident: Optional<Token.Identifier>,
-        type: Lenient<Type<Lenient<Of>>>,
+        type: Lenient<Type>,
         anc: AnchorUnion
-    ): Lenient<AST.Method<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    ): Lenient<AST.Method> {
         next()
 
         val maybeRParenToken = peek(0)
@@ -810,7 +808,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    internal fun parseBlock(anc: AnchorUnion): Lenient<AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    internal fun parseBlock(anc: AnchorUnion): Lenient<AST.Block> {
         val openingBrace = expectOperator(
             Token.Operator.Type.LeftBrace,
             anc +
@@ -837,7 +835,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseBlockStatements(): List<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    private fun parseBlockStatements(): List<Lenient<AST.BlockStatement>> {
         // at least one should exist at this point.
         return buildList {
             var peeked = peek(0)
@@ -856,7 +854,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseBlockStatement(anc: AnchorUnion): Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseBlockStatement(anc: AnchorUnion): Lenient<AST.BlockStatement> {
         return when (val firstToken = peek(0)) {
             is Token.Keyword -> {
                 when (firstToken.type) {
@@ -936,7 +934,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    internal fun parseStatement(anc: AnchorUnion): Lenient<AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    internal fun parseStatement(anc: AnchorUnion): Lenient<AST.Statement> {
         return when (val firstToken = peek(0)) {
             is Token.Operator -> {
                 when (firstToken.type) {
@@ -988,11 +986,11 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseReturnStatement(anc: AnchorUnion): Lenient<AST.ReturnStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseReturnStatement(anc: AnchorUnion): Lenient<AST.ReturnStatement> {
         next()
 
         val maybeSemicolon = peek(0)
-        var returnValue: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>? = null
+        var returnValue: Lenient<AST.Expression>? = null
         if (!(maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon)) {
             returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
         }
@@ -1002,7 +1000,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return AST.ReturnStatement(returnValue).wrapValid()
     }
 
-    private fun parseIfStatement(anc: AnchorUnion): Lenient<AST.IfStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseIfStatement(anc: AnchorUnion): Lenient<AST.IfStatement> {
         next()
 
         val lparen = expectOperator(
@@ -1032,7 +1030,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val trueStatement = parseStatement(anc + anchorSetOf(Token.Keyword(Token.Keyword.Type.Else)))
 
         val maybeElseToken = peek(0)
-        var falseStatement: Lenient<AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>? = null
+        var falseStatement: Lenient<AST.Statement>? = null
         if (maybeElseToken is Token.Keyword && maybeElseToken.type == Token.Keyword.Type.Else) {
             next()
             falseStatement = parseStatement(anc)
@@ -1053,7 +1051,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseWhileStatement(anc: AnchorUnion): Lenient<AST.WhileStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseWhileStatement(anc: AnchorUnion): Lenient<AST.WhileStatement> {
         next()
 
         val lparen = expectOperator(
@@ -1084,12 +1082,12 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseEmptyStatement(): Lenient<AST.Statement<Nothing, Nothing, Nothing>> {
+    private fun parseEmptyStatement(): Lenient<AST.Statement> {
         next()
         return AST.emptyStatement.wrapValid()
     }
 
-    private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Lenient<AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Lenient<AST.LocalVariableDeclarationStatement> {
         val type = parseType(
             anc + anchorSetOf(
                 Token.Identifier.Placeholder,
@@ -1129,7 +1127,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseExpressionStatement(anc: AnchorUnion): Lenient<AST.ExpressionStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseExpressionStatement(anc: AnchorUnion): Lenient<AST.ExpressionStatement> {
         val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
         val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;`" }
 
@@ -1146,7 +1144,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return expectIdentifier(anc) { "missing identifier. `throws` requires an exception type" }.map { it.name }
     }
 
-    private fun parseParameters(anc: AnchorUnion): List<Lenient<AST.Parameter<Lenient<Of>>>> {
+    private fun parseParameters(anc: AnchorUnion): List<Lenient<AST.Parameter>> {
         return buildList {
             add(parseParameter(anc + anchorSetOf(Token.Operator(Token.Operator.Type.Comma))))
 
@@ -1159,7 +1157,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseParameter(anc: AnchorUnion): Lenient<AST.Parameter<Lenient<Of>>> {
+    private fun parseParameter(anc: AnchorUnion): Lenient<AST.Parameter> {
         val type = parseType(anc + anchorSetOf(Token.Identifier.Placeholder))
         val ident = expectIdentifier(anc) { "expected parameter name identifier" }
 
@@ -1170,7 +1168,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseType(anc: AnchorUnion): Lenient<Type<Lenient<Of>>> {
+    private fun parseType(anc: AnchorUnion): Lenient<Type> {
         val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
 
         val maybeLeftBracket = peek(0)
@@ -1181,9 +1179,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseTypeArrayRecurse(
-        basicType: Lenient<Type<Lenient<Of>>>,
+        basicType: Lenient<Type>,
         anc: AnchorUnion
-    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
+    ): Lenient<Type.Array.ArrayType> {
         next()
 
         val rightBracket = expectOperator(
@@ -1206,7 +1204,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseBasicType(anc: AnchorUnion): Lenient<Type<Lenient<Of>>> {
+    private fun parseBasicType(anc: AnchorUnion): Lenient<Type> {
         return when (val peekedToken = peek()) {
             is Token.Keyword -> {
                 when (peekedToken.type) {

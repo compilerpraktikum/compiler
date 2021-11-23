@@ -1,17 +1,12 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.PrettyPrintVisitor
-import edu.kit.compiler.ast.accept
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.utils.createLexer
-import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.validate
-import edu.kit.compiler.wrapper.wrappers.Identity
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
@@ -83,18 +78,18 @@ internal class PrettyPrintMJTestSuite {
         }
     }
 
-    fun prettyPrint(astRoot: AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>>): String {
+    fun prettyPrint(astRoot: AST.Program): String {
         val byteArrayOutputStream: ByteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
 
-        astRoot.accept(PrettyPrintVisitor(printStream))
+//        astRoot.accept(PrettyPrintVisitor(printStream))
 
         return byteArrayOutputStream.toString(utf8)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): AST.Program<Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>, Identity<Of>> {
+    fun createAST(input: String): AST.Program {
         val (lexer, sourceFile) = createLexer(input)
         return Parser(sourceFile, lexer.tokens()).parse().validate()!!
     }

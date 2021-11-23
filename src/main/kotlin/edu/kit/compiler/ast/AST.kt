@@ -2,57 +2,54 @@ package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.Kind
-import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.into
-import edu.kit.compiler.wrapper.wrappers.Identity
-import edu.kit.compiler.wrapper.wrappers.into
+import edu.kit.compiler.wrapper.wrappers.Lenient
 
-sealed class Type<out TypeWrapper>() : Kind<Type<Of>, TypeWrapper> {
+sealed class Type() {
 
     companion object {
-        fun <TypeWrapper> arrayOf(elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>) =
+        fun arrayOf(elementType: Lenient<Type>) =
             Array(Array.ArrayType(elementType))
     }
 
-    object Void : Type<Nothing>()
+    object Void : Type()
 
-    object Integer : Type<Nothing>()
+    object Integer : Type()
 
-    object Boolean : Type<Nothing>()
+    object Boolean : Type()
 
-    data class Array<out TypeWrapper>(
-        val arrayType: ArrayType<TypeWrapper>
-    ) : Type<TypeWrapper>() {
+    data class Array(
+        val arrayType: ArrayType
+    ) : Type() {
         @JvmInline
-        value class ArrayType<out TypeWrapper>(
-            val elementType: Kind<TypeWrapper, Kind<Type<Of>, TypeWrapper>>
-        ) : Kind<ArrayType<Of>, TypeWrapper> {
+        value class ArrayType(
+            val elementType: Lenient<Type>
+        ) {
             fun wrapArray() = Array(this)
         }
     }
 
     data class Class(
         val name: Symbol
-    ) : Type<Nothing>()
+    ) : Type()
 }
 
-public val Type<Identity<Of>>.baseType: Type<Nothing>
+public val Type.baseType: Type
     get() = when (this) {
-        is Type.Array -> this.arrayType.elementType.into().v.into().baseType
+        is Type.Array -> this.arrayType.elementType.getAsValid()?.baseType
+            ?: throw IllegalStateException("invalid type")
         is Type.Void -> this
         is Type.Integer -> this
         is Type.Class -> this
         is Type.Boolean -> this
     }
 
-public val Type<Identity<Of>>.dimension: Int
+public val Type.dimension: Int
     get() {
         var dim = 0
         var type = this
         while (type is Type.Array) {
             dim += 1
-            type = type.arrayType.elementType.into().v.into().baseType
+            type = type.arrayType.elementType.getAsValid()?.baseType ?: throw IllegalStateException("invalid type")
         }
         return dim
     }
@@ -73,16 +70,16 @@ object AST {
      * @param ClassW Wrapper for Classes
      * @param OtherW Wrapper for the rest other Nodes, could fail in parsing
      */
-    data class Program<ExprW, StmtW, MethodW, ClassW, OtherW>(
-        val classes: List<Kind<ClassW, ClassDeclaration<ExprW, StmtW, MethodW, OtherW>>>,
+    data class Program(
+        val classes: List<Lenient<ClassDeclaration>>,
     )
 
-    data class ClassDeclaration<ExprW, StmtW, MethodW, OtherW>(
+    data class ClassDeclaration(
         val name: Symbol,
-        val member: List<Kind<MethodW, ClassMember<ExprW, StmtW, OtherW>>>,
+        val member: List<Lenient<ClassMember>>,
     )
 
-    sealed class ClassMember<out ExprW, out StmtW, out OtherW> {
+    sealed class ClassMember {
         val memberName: Symbol
             get() = when (this) {
                 is Field -> name
@@ -91,88 +88,88 @@ object AST {
             }
     }
 
-    data class Field<out OtherW>(
+    data class Field(
         val name: Symbol,
-        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
-    ) : ClassMember<Nothing, Nothing, OtherW>()
+        val type: Lenient<Type>,
+    ) : ClassMember()
 
-    data class Method<out ExprW, out StmtW, out OtherW>(
+    data class Method(
         val name: Symbol,
-        val returnType: Kind<OtherW, Kind<Type<Of>, OtherW>>,
-        val parameters: List<Kind<OtherW, Kind<Parameter<Of>, OtherW>>>,
-        val block: Kind<StmtW, Block<ExprW, StmtW, OtherW>>,
+        val returnType: Lenient<Type>,
+        val parameters: List<Lenient<Parameter>>,
+        val block: Lenient<Block>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<ExprW, StmtW, OtherW>()
+    ) : ClassMember()
 
-    data class MainMethod<out ExprW, out StmtW, OtherW>(
+    data class MainMethod(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Symbol,
-        val returnType: Kind<OtherW, Kind<Type<Of>, OtherW>>,
-        val parameters: List<Kind<OtherW, Kind<Parameter<Of>, OtherW>>>,
-        val block: Kind<StmtW, Block<ExprW, StmtW, OtherW>>,
+        val returnType: Lenient<Type>,
+        val parameters: List<Lenient<Parameter>>,
+        val block: Lenient<Block>,
         val throwsException: Symbol? = null,
-    ) : ClassMember<ExprW, StmtW, OtherW>()
+    ) : ClassMember()
 
-    data class Parameter<out OtherW>(
+    data class Parameter(
         val name: Symbol,
-        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
-    ) : Kind<Parameter<Of>, OtherW>
+        val type: Lenient<Type>,
+    )
 
     /************************************************
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement<out ExprW, out StmtW, out OtherW> : Kind<BlockStatement<ExprW, Of, OtherW>, StmtW>
+    sealed class BlockStatement
 
-    data class LocalVariableDeclarationStatement<ExprW, OtherW>(
+    data class LocalVariableDeclarationStatement(
         val name: Symbol,
-        val type: Kind<OtherW, Kind<Type<Of>, OtherW>>,
-        val initializer: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
-    ) : BlockStatement<ExprW, Nothing, OtherW>()
+        val type: Lenient<Type>,
+        val initializer: Lenient<Expression>?,
+    ) : BlockStatement()
 
-    data class StmtWrapper<ExprW, StmtW, OtherW>(val statement: Statement<ExprW, StmtW, OtherW>) : BlockStatement<ExprW, StmtW, OtherW>()
+    data class StmtWrapper(val statement: Statement) : BlockStatement()
 
-    sealed class Statement<out ExprW, out StmtW, out OtherW> : Kind<Statement<ExprW, Of, OtherW>, StmtW>
+    sealed class Statement
 
-    fun <ExprW, StmtW, OtherW> Statement<ExprW, StmtW, OtherW>.wrapBlockStatement(): StmtWrapper<ExprW, StmtW, OtherW> = StmtWrapper(this)
+    fun Statement.wrapBlockStatement(): StmtWrapper = StmtWrapper(this)
 
-    val emptyStatement = Block<Nothing, Nothing, Nothing>(listOf())
+    val emptyStatement = Block(listOf())
 
-    data class Block<out ExprW, out StmtW, out OtherW>(
-        val statements: List<Kind<StmtW, Kind<BlockStatement<ExprW, Of, OtherW>, StmtW>>>,
-    ) : Statement<ExprW, StmtW, OtherW>()
+    data class Block(
+        val statements: List<Lenient<BlockStatement>>,
+    ) : Statement()
 
-    data class IfStatement<out ExprW, out StmtW, out OtherW>(
-        val condition: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-        val trueStatement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>,
-        val falseStatement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>?
-    ) : Statement<ExprW, StmtW, OtherW>()
+    data class IfStatement(
+        val condition: Lenient<Expression>,
+        val trueStatement: Lenient<Statement>,
+        val falseStatement: Lenient<Statement>?
+    ) : Statement()
 
-    data class WhileStatement<out ExprW, out StmtW, out OtherW>(
-        val condition: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-        val statement: Kind<StmtW, Kind<Statement<ExprW, Of, OtherW>, StmtW>>,
-    ) : Statement<ExprW, StmtW, OtherW>()
+    data class WhileStatement(
+        val condition: Lenient<Expression>,
+        val statement: Lenient<Statement>,
+    ) : Statement()
 
-    data class ReturnStatement<out ExprW, out OtherW>(
-        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
-    ) : Statement<ExprW, Nothing, OtherW>()
+    data class ReturnStatement(
+        val expression: Lenient<Expression>?,
+    ) : Statement()
 
-    data class ExpressionStatement<out ExprW, out OtherW>(
-        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-    ) : Statement<ExprW, Nothing, OtherW>()
+    data class ExpressionStatement(
+        val expression: Lenient<Expression>,
+    ) : Statement()
 
     /************************************************
      ** Expression
      ************************************************/
 
-    sealed class Expression<out ExprW, out OtherW> : Kind<Expression<Of, OtherW>, ExprW>
+    sealed class Expression
 
-    data class BinaryExpression<ExprW, OtherW>(
-        val left: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-        val right: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    data class BinaryExpression(
+        val left: Lenient<Expression>,
+        val right: Lenient<Expression>,
         val operation: Operation
-    ) : Expression<ExprW, OtherW>() {
+    ) : Expression() {
         enum class Operation(
             val precedence: Int,
             val associativity: Associativity,
@@ -209,10 +206,10 @@ object AST {
         }
     }
 
-    data class UnaryExpression<out ExprW, out OtherW>(
-        val expression: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    data class UnaryExpression(
+        val expression: Lenient<Expression>,
         val operation: Operation
-    ) : Expression<ExprW, OtherW>() {
+    ) : Expression() {
         enum class Operation(
             val repr: String
         ) {
@@ -221,21 +218,21 @@ object AST {
         }
     }
 
-    data class MethodInvocationExpression<ExprW, OtherW>(
-        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>?,
+    data class MethodInvocationExpression(
+        val target: Lenient<Expression>?,
         val method: Symbol,
-        val arguments: List<Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>>
-    ) : Expression<ExprW, OtherW>()
+        val arguments: List<Lenient<Expression>>
+    ) : Expression()
 
-    data class FieldAccessExpression<ExprW, OtherW>(
-        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
+    data class FieldAccessExpression(
+        val target: Lenient<Expression>,
         val field: Symbol,
-    ) : Expression<ExprW, OtherW>()
+    ) : Expression()
 
-    data class ArrayAccessExpression<ExprW, OtherW>(
-        val target: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-        val index: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-    ) : Expression<ExprW, OtherW>()
+    data class ArrayAccessExpression(
+        val target: Lenient<Expression>,
+        val index: Lenient<Expression>,
+    ) : Expression()
 
     /************************************************
      ** Primary expression
@@ -243,20 +240,20 @@ object AST {
 
     data class IdentifierExpression(
         val name: Symbol,
-    ) : Expression<Nothing, Nothing>()
+    ) : Expression()
 
     data class LiteralExpression<T>(
         val value: T,
-    ) : Expression<Nothing, Nothing>()
+    ) : Expression()
 
     data class NewObjectExpression(
         val clazz: Symbol,
-    ) : Expression<Nothing, Nothing>()
+    ) : Expression()
 
-    data class NewArrayExpression<ExprW, out OtherW>(
-        val type: Kind<OtherW, Kind<Type.Array.ArrayType<Of>, OtherW>>,
-        val length: Kind<ExprW, Kind<Expression<Of, OtherW>, ExprW>>,
-    ) : Expression<ExprW, OtherW>()
+    data class NewArrayExpression(
+        val type: Lenient<Type.Array.ArrayType>,
+        val length: Lenient<Expression>,
+    ) : Expression()
 }
 
 fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when (this) {

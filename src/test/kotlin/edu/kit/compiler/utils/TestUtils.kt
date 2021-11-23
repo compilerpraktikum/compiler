@@ -1,12 +1,8 @@
 package edu.kit.compiler.utils
 
-import edu.kit.compiler.ast.PrettyPrintVisitor
-import edu.kit.compiler.ast.accept
+import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.wrapper.IdentityProgram
-import edu.kit.compiler.wrapper.LenientProgram
-import edu.kit.compiler.wrapper.validate
 import edu.kit.compiler.wrapper.wrappers.Lenient
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Assertions
@@ -53,7 +49,7 @@ object TestUtils {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): Lenient<LenientProgram> {
+    fun createAST(input: String): Lenient<AST.Program> {
         val (lexer, sourceFile) = createLexer(input)
         return Parser(sourceFile, lexer.tokens()).parse()
     }
@@ -75,12 +71,12 @@ object TestUtils {
         assertEquals(pretty1, pretty2)
     }
 
-    fun prettyPrint(astRoot: IdentityProgram): String {
+    fun prettyPrint(astRoot: AST.Program): String {
         val byteArrayOutputStream = ByteArrayOutputStream()
         val utf8: String = StandardCharsets.UTF_8.name()
         val printStream = PrintStream(byteArrayOutputStream, true, utf8)
 
-        astRoot.accept(PrettyPrintVisitor(printStream))
+//        astRoot.accept(PrettyPrintVisitor(printStream))
 
         return byteArrayOutputStream.toString(utf8)
     }

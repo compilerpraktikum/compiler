@@ -1,14 +1,11 @@
 package edu.kit.compiler
 
-import edu.kit.compiler.ast.PrettyPrintVisitor
-import edu.kit.compiler.ast.accept
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.wrapper.validate
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
@@ -90,7 +87,7 @@ class Compiler(private val config: Config) {
 
                     kotlin.run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        program.accept(PrettyPrintVisitor(System.out))
+//                        program.accept(PrettyPrintVisitor(System.out))
                     }
                 }
                 Mode.SemanticCheck -> {

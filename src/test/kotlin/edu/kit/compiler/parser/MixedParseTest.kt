@@ -6,10 +6,6 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.LenientBlock
-import edu.kit.compiler.wrapper.LenientClassDeclaration
-import edu.kit.compiler.wrapper.LenientProgram
-import edu.kit.compiler.wrapper.Of
 import edu.kit.compiler.wrapper.wrappers.Lenient
 import edu.kit.compiler.wrapper.wrappers.wrapValid
 import org.junit.jupiter.api.Test
@@ -19,13 +15,13 @@ import kotlin.test.Ignore
 internal class MixedParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private val validEmptyBlock = LenientBlock(listOf()).wrapValid()
+    private val validEmptyBlock = AST.Block(listOf()).wrapValid()
 
-    private val validEmptyBlockStatement = LenientBlock(
+    private val validEmptyBlockStatement = AST.Block(
         listOf()
     ).wrapBlockStatement().wrapValid()
 
-    private fun expectAst(input: String, expectedAST: List<Lenient<LenientClassDeclaration>>) =
+    private fun expectAst(input: String, expectedAST: List<Lenient<AST.ClassDeclaration>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test
@@ -36,9 +32,9 @@ internal class MixedParseTest {
     fun testParseBlockOfEmptyBlocks() =
         expectNode(
             "{{{}}}",
-            LenientBlock(
+            AST.Block(
                 listOf(
-                    LenientBlock(
+                    AST.Block(
                         listOf(
                             validEmptyBlockStatement
                         )
@@ -72,7 +68,7 @@ internal class MixedParseTest {
             listOf(
                 AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol()).wrapValid()).wrapBlockStatement()
                     .wrapValid(),
-                AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                AST.LocalVariableDeclarationStatement(
                     "myident2".toSymbol(),
                     Type.Class("mytype".toSymbol()).wrapValid(),
                     null
@@ -97,7 +93,7 @@ internal class MixedParseTest {
     @Test
     fun testParseReturn() = expectNode(
         "return;",
-        AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid()
+        AST.ReturnStatement(null).wrapValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
@@ -186,7 +182,7 @@ internal class MixedParseTest {
                             ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                    AST.LocalVariableDeclarationStatement(
                                         "i".toSymbol(),
                                         Type.Integer.wrapValid(),
                                         null
@@ -223,7 +219,7 @@ internal class MixedParseTest {
                     }
                 }
             """,
-            LenientProgram(
+            AST.Program(
                 listOf(
                     AST.ClassDeclaration(
                         "_Klasse".toSymbol(),
@@ -257,7 +253,7 @@ internal class MixedParseTest {
                                                         AST.LiteralExpression("472183921789789798798798798798787789738120391203213213")
                                                             .wrapValid()
                                                     ).wrapValid(),
-                                                    AST.ReturnStatement<Lenient<Of>, Lenient<Of>>(null).wrapValid(),
+                                                    AST.ReturnStatement(null).wrapValid(),
                                                     null
                                                 ).wrapValid(),
                                                 null
@@ -367,14 +363,14 @@ internal class MixedParseTest {
                             ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                    AST.LocalVariableDeclarationStatement(
                                         "x".toSymbol(),
                                         Type.Integer.wrapValid(),
                                         null
                                     )
                                         .wrapValid(),
                                     AST.IfStatement(
-                                        AST.LiteralExpression(true),
+                                        AST.LiteralExpression(true).wrapValid(),
                                         AST.ExpressionStatement(
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x".toSymbol()).wrapValid(),
@@ -420,7 +416,7 @@ internal class MixedParseTest {
                             ),
                             AST.Block(
                                 listOf(
-                                    AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>(
+                                    AST.LocalVariableDeclarationStatement(
                                         "x".toSymbol(),
                                         Type.Integer.wrapValid(),
                                         null
