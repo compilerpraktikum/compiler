@@ -375,20 +375,3 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         startsNewLine = false
     }
 }
-
-val ParsedType.baseType: ParsedType
-    get() = when (this) {
-        is ParsedType.ArrayType -> this.elementType.baseType
-        else -> this
-    }
-
-val ParsedType.dimension: Int
-    get() {
-        var dim = 0
-        var type = this
-        while (type is ParsedType.ArrayType) {
-            dim += 1
-            type = type.elementType
-        }
-        return dim
-    }
