@@ -10,9 +10,9 @@ import edu.kit.compiler.wrapper.unwrap
 @JvmInline
 value class Compose<out F, out G, out A>(val unCompose: Kind<F, Kind<G, A>>) : Kind<Compose<F, G, Of>, A>
 
-fun <F, G, A> Kind<F, Kind<G, A>>.compose() = Compose(this)
+inline fun <F, G, A> Kind<F, Kind<G, A>>.compose() = Compose(this)
 
-fun <F, G, A> Kind<Compose<F, G, Of>, A>.into(): Compose<F, G, A> = this as Compose<F, G, A>
+inline fun <F, G, A> Kind<Compose<F, G, Of>, A>.into(): Compose<F, G, A> = this as Compose<F, G, A>
 
 // -------------------------- Instances ----------------------------//
 class UnwrappableCompose<F, G>(private inline val unwrapF: Unwrappable<F>, private inline val unwrapG: Unwrappable<G>) :

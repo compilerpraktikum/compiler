@@ -18,14 +18,14 @@ inline fun <A, Ann1, Ann2> Kind<Annotated<Ann1, Of>, A>.mapAnnotation(f: (Ann1) 
 inline fun <A, B, Ann> Kind<Annotated<Ann, Of>, A>.mapValue(f: (A) -> B): Annotated<Ann, B> =
     this.into().run { Annotated(f(value), annotation) }
 
-fun <Ann, Node> Kind<Annotated<Ann, Of>, Node>.into(): Annotated<Ann, Node> = this as Annotated<Ann, Node>
+inline fun <Ann, Node> Kind<Annotated<Ann, Of>, Node>.into(): Annotated<Ann, Node> = this as Annotated<Ann, Node>
 
 @JvmInline
 value class UnwrappableAnnotated<Ann>(val empty: Unit? = null) : Unwrappable<Annotated<Ann, Of>> {
     override fun <A> unwrapValue(fa: Kind<Annotated<Ann, Of>, A>) = fa.into().value
 }
 
-fun <Ann, Node> Annotated<Ann, Node>.unwrapAnnotated() = this.unwrap(UnwrappableAnnotated())
+inline fun <Ann, Node> Annotated<Ann, Node>.unwrapAnnotated() = this.unwrap(UnwrappableAnnotated())
 
 @JvmInline
 value class FunctorAnnotated<Ann>(val empty: Unit? = null) : Functor<Annotated<Ann, Of>> {
@@ -39,6 +39,6 @@ val <Node, Ann> Kind<Annotated<Ann, Of>, Node>.annotationValue: Node get() = thi
 // Positioned
 typealias Positioned<Node> = Annotated<SourceRange, Node>
 
-fun <Node> Node.positioned(range: SourceRange): Positioned<Node> = Annotated(this, range)
+inline fun <Node> Node.positioned(range: SourceRange): Positioned<Node> = Annotated(this, range)
 
 val PositionedUnwrapper = UnwrappableAnnotated<SourceRange>()
