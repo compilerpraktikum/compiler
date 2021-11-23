@@ -45,12 +45,12 @@ dependencies {
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
-        jvmTarget = "16"
+        jvmTarget = "17"
     }
 }
 
 java {
-    targetCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 jar {
