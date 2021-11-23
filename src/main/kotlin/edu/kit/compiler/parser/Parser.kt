@@ -868,7 +868,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 block,
                 throwsException?.orElse(null)
             ).wrapErroneous()
-        }.positioned(ident.get().range.extend(block.unCompose.annotation)).compose()
+        }.positioned(type.unCompose.into().annotation.extend(block.unCompose.annotation)).compose()
     }
 
     internal fun parseBlock(anc: AnchorUnion): Parsed<ParsedBlock> {
