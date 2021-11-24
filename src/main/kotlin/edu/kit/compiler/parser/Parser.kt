@@ -570,7 +570,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             }
         }
 
-        return if (publicKeyword is Parsed.Valid) {
+        return if (publicKeyword.isValid) {
             childNode
         } else {
             childNode.markErroneous()
