@@ -1173,80 +1173,80 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val type = parseType(anc + anchorSetOf(Token.Identifier.Placeholder))
         val ident = expectIdentifier(anc) { "expected parameter name identifier" }
 
-        return AST.Parameter(ident.map { it.name }, type).wrapValid(type.range.extend(ident.range))
+        return AST.Parameter(ident.map(Token.Identifier::name), type).wrapValid(type.range.extend(ident.range))
+    }
+
+    private fun parseType(anc: AnchorUnion): Parsed<Type> {
+        val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
+
+        val maybeLeftBracket = peek(0)
+        if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
+            return parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }
         }
+        return basicType
+    }
 
-        private fun parseType(anc: AnchorUnion): Parsed<Type> {
-            val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
+    private fun parseTypeArrayRecurse(
+        basicType: Parsed<Type>,
+        anc: AnchorUnion
+    ): Parsed<Type.Array.ArrayType> {
+        next()
 
-            val maybeLeftBracket = peek(0)
-            if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
-                return parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }
-            }
-            return basicType
-        }
+        val rightBracket = expectOperator(
+            Token.Operator.Type.RightBracket,
+            anc + FirstFollowUtils.firstSetTypeArrayRecurse
+        ) { "illegal array type expression. expected `]`" }
 
-        private fun parseTypeArrayRecurse(
-            basicType: Parsed<Type>,
-            anc: AnchorUnion
-        ): Parsed<Type.Array.ArrayType> {
-            next()
-
-            val rightBracket = expectOperator(
-                Token.Operator.Type.RightBracket,
-                anc + FirstFollowUtils.firstSetTypeArrayRecurse
-            ) { "illegal array type expression. expected `]`" }
-
-            val maybeAnotherLBracket = peek(0)
-            // TODO: check if correnct. (Probably not)
-            val range = basicType.range.extend(rightBracket.range)
-            return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
-                if (rightBracket.isValid) {
-                    Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid(range)
-                } else {
-                    Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapErroneous(range)
-                }
+        val maybeAnotherLBracket = peek(0)
+        // TODO: check if correnct. (Probably not)
+        val range = basicType.range.extend(rightBracket.range)
+        return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
+            if (rightBracket.isValid) {
+                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid(range)
             } else {
-                if (rightBracket.isValid) {
-                    Type.Array.ArrayType(basicType).wrapValid(range)
-                } else {
-                    Type.Array.ArrayType(basicType).wrapErroneous(range)
-                }
+                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapErroneous(range)
             }
-        }
-
-        private fun parseBasicType(anc: AnchorUnion): Parsed<Type> {
-            return when (val peekedToken = peek()) {
-                is Token.Keyword -> {
-                    when (peekedToken.type) {
-                        Token.Keyword.Type.Int -> {
-                            next()
-                            Type.Integer.wrapValid(peekedToken.range)
-                        }
-                        Token.Keyword.Type.Boolean -> {
-                            next()
-                            Type.Boolean.wrapValid(peekedToken.range)
-                        }
-                        Token.Keyword.Type.Void -> {
-                            next()
-                            Type.Void.wrapValid(peekedToken.range)
-                        }
-                        else -> {
-                            reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
-                            recover(anc)
-                            return Parsed.Error(peekedToken.range, null)
-                        }
-                    }
-                }
-                is Token.Identifier -> {
-                    val t = expectIdentifier(anc) { "expected type identifier" }
-                    Type.Class(t.map { it.name }).wrapValid(t.range)
-                }
-                else -> {
-                    reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
-                    recover(anc)
-                    return Parsed.Error(peekedToken.range)
-                }
+        } else {
+            if (rightBracket.isValid) {
+                Type.Array.ArrayType(basicType).wrapValid(range)
+            } else {
+                Type.Array.ArrayType(basicType).wrapErroneous(range)
             }
         }
     }
+
+    private fun parseBasicType(anc: AnchorUnion): Parsed<Type> {
+        return when (val peekedToken = peek()) {
+            is Token.Keyword -> {
+                when (peekedToken.type) {
+                    Token.Keyword.Type.Int -> {
+                        next()
+                        Type.Integer.wrapValid(peekedToken.range)
+                    }
+                    Token.Keyword.Type.Boolean -> {
+                        next()
+                        Type.Boolean.wrapValid(peekedToken.range)
+                    }
+                    Token.Keyword.Type.Void -> {
+                        next()
+                        Type.Void.wrapValid(peekedToken.range)
+                    }
+                    else -> {
+                        reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
+                        recover(anc)
+                        return Parsed.Error(peekedToken.range, null)
+                    }
+                }
+            }
+            is Token.Identifier -> {
+                val t = expectIdentifier(anc) { "expected type identifier" }
+                Type.Class(t.map { it.name }).wrapValid(t.range)
+            }
+            else -> {
+                reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
+                recover(anc)
+                return Parsed.Error(peekedToken.range)
+            }
+        }
+    }
+}
