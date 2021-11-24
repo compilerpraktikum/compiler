@@ -3,9 +3,9 @@ package edu.kit.compiler.wrapper.wrappers
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Type
 import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.ParsedType
-import kotlin.math.exp
 
 /**
  * An AST-Node wrapper, that indicates, that the contained AST-Node may or may not be valid.
@@ -13,41 +13,61 @@ import kotlin.math.exp
  * - The `Error` variant denotes, that the AST-Node itself is invalid
  * - The `Valid(c: A)` variant denotes, that the AST-Node itself is valid, but `A` might contain invalid nodes.
  */
-sealed class Parsed<out A>(open val position: SourceRange) {
+sealed class Parsed<out A>(open val range: SourceRange) {
     /**
      * Error kind, may contain a node
      *
      * @see Parsed
      */
-    data class Error<out A>(override val position: SourceRange, val node: A?) : Parsed<A>(position)
+    data class Error<out A>(override val range: SourceRange, val node: A?) : Parsed<A>(range)
 
     /**
      * Valid kind, contains the node
      *
      * @see Parsed
      */
-    data class Valid<out A>(override val position: SourceRange, val node: A) : Parsed<A>(position)
+    data class Valid<out A>(override val range: SourceRange, val node: A) : Parsed<A>(range)
 
     fun getAsValid() = when (this) {
         is Error -> null
         is Valid -> this.node
     }
 
-    val sourceRange: SourceRange
-        get() = when (this) {
-            is Error -> position
-            is Valid -> position
-        }
+    val isValid: Boolean get() = when (this) {
+        is Error -> false
+        is Valid -> true
+    }
 
     inline fun <B> map(m: (A) -> B): Parsed<B> = when (this) {
-        is Error -> Error(this.position, this.node?.let(m))
-        is Valid -> Valid(this.position, m(this.node))
+        is Error -> Error(this.range, this.node?.let(m))
+        is Valid -> Valid(this.range, m(this.node))
+    }
+
+    /**
+     * Replaces the [Error.node] and [Valid.node] values with the given [newNode]
+     * If [Error.node] is null, the value is *still* replaces by [newNode]
+     */
+    fun <B> replaceNode(newNode: B): Parsed<B> = when (this) {
+        is Error -> Error(this.range, newNode)
+        is Valid -> Valid(this.range, newNode)
+    }
+
+    /**
+     * Replaces the [Error.node] and [Valid.node] values with the value return by [newNode]
+     * If [Error.node] is null, the value is *still* replaces by [newNode]
+     */
+    fun <B> replaceNode(newNode: () -> B): Parsed<B> = replaceNode(newNode())
+
+    inline fun <B> cases(onValid: (A) -> B, onError: (A?) -> B): Parsed<B> = when (this) {
+        is Error -> Error(this.range, onError(this.node))
+        is Valid -> Valid(this.range, onValid(this.node))
     }
 
     inline fun mapPosition(m: (SourceRange) -> SourceRange): Parsed<A> = when (this) {
-        is Error -> Error(m(position), node)
-        is Valid -> Valid(m(position), node)
+        is Error -> Error(m(range), node)
+        is Valid -> Valid(m(range), node)
     }
+
 }
 
 inline fun <A> Parsed<A>.unwrapOr(handle: () -> A): A = when (this) {
@@ -62,7 +82,7 @@ fun <A> A.wrapValid(position: SourceRange): Parsed.Valid<A> = Parsed.Valid(posit
  */
 fun <A> Parsed<A>.markErroneous(): Parsed.Error<A> = when (this) {
     is Parsed.Error -> this
-    is Parsed.Valid -> Parsed.Error(this.position, this.node)
+    is Parsed.Valid -> Parsed.Error(this.range, this.node)
 }
 
 /**
@@ -70,12 +90,17 @@ fun <A> Parsed<A>.markErroneous(): Parsed.Error<A> = when (this) {
  */
 fun <A> A?.wrapErroneous(position: SourceRange): Parsed.Error<A> = Parsed.Error(position, this)
 
+private fun Symbol.toIdentifier(sourceRange: SourceRange): AstNode.Identifier = AstNode.Identifier(this, sourceRange)
+
+private fun Parsed<Symbol>.validate(): AstNode.Identifier? =
+    this.unwrapOr { return null }.toIdentifier(this.range)
+
 fun Parsed<AST.Program>.validate(): AstNode.Program? =
     unwrapOr { return null }.let { program ->
         program.classes
             .map { it.validate() ?: return null }
             .let {
-                AstNode.Program(it, sourceRange)
+                AstNode.Program(it, this.range)
             }
     }
 
@@ -83,32 +108,32 @@ fun Parsed<AST.ClassDeclaration>.validate(): AstNode.ClassDeclaration? = unwrapO
     val members = it.member.map {
         it.validate() ?: return null
     }
-    AstNode.ClassDeclaration(it.name, members, this.sourceRange)
+    AstNode.ClassDeclaration(it.name.validate() ?: return null, members, this.range)
 }
 
 fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return null }.let { classMember ->
     when (classMember) {
         is AST.Field -> AstNode.ClassMember.FieldDeclaration(
-            classMember.name,
+            classMember.name.validate() ?: return null,
             classMember.type.validate() ?: return null,
-            this.sourceRange
+            this.range
         )
         is AST.MainMethod -> AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration(
             classMember.returnType.validate() ?: return null,
-            classMember.name,
-            classMember.throwsException,
+            classMember.name.validate() ?: return null,
+            classMember.throwsException?.validate() ?: return null,
             classMember.block.validate() ?: return null,
             classMember.parameters.map { it.validate() ?: return null },
-            sourceRange
+            this.range
         )
 
         is AST.Method ->
             AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration(
                 classMember.returnType.validate() ?: return null,
-                classMember.name,
-                classMember.throwsException,
+                classMember.name.validate() ?: return null,
+                classMember.throwsException?.validate() ?: return null,
                 classMember.block.validate() ?: return null,
-                classMember.parameters.map { it.validate() ?: return null }, sourceRange
+                classMember.parameters.map { it.validate() ?: return null }, this.range
             )
     }
 }
@@ -116,9 +141,9 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
 private fun Parsed<AST.Parameter>.validate(): AstNode.ClassMember.SubroutineDeclaration.Parameter? =
     unwrapOr { return null }.let { parameter ->
         AstNode.ClassMember.SubroutineDeclaration.Parameter(
-            parameter.name,
+            parameter.name.validate() ?: return null,
             parameter.type.validate() ?: return null,
-            sourceRange
+            this.range
         )
     }
 
@@ -130,7 +155,7 @@ private fun AST.Block.validate(range: SourceRange): AstNode.Statement.Block? =
     }
 
 private fun Parsed<AST.Block>.validate(): AstNode.Statement.Block? = unwrapOr { return null }.let { block ->
-    block.validate(sourceRange)
+    block.validate(this.range)
 }
 
 class Asd<A> {
@@ -141,13 +166,13 @@ class Asd<A> {
 private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr { return null }.let { blockStatement ->
     when (blockStatement) {
         is AST.LocalVariableDeclarationStatement -> AstNode.Statement.LocalVariableDeclaration(
-            blockStatement.name,
+            blockStatement.name.validate() ?: return null,
             blockStatement.type.validate() ?: return null,
             blockStatement.initializer?.run { validate() ?: return null },
-            sourceRange
+            this.range
         )
         is AST.StmtWrapper ->
-            blockStatement.statement.validate(sourceRange)
+            blockStatement.statement.validate(this.range)
     }
 }
 
@@ -176,59 +201,63 @@ private fun AST.Statement.validate(sourceRange: SourceRange): AstNode.Statement?
 }
 
 private fun Parsed<AST.Statement>.validate(): AstNode.Statement? =
-    unwrapOr { return null }.validate(this.sourceRange)
+    unwrapOr { return null }.validate(this.range)
 
 private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { return null }.let { expression ->
     when (expression) {
         is AST.ArrayAccessExpression ->
             AstNode.Expression.ArrayAccessExpression(
                 expression.target.validate() ?: return null,
-                expression.index.validate() ?: return null, sourceRange
+                expression.index.validate() ?: return null, this.range
             )
         is AST.BinaryExpression ->
             AstNode.Expression.BinaryOperation(
                 expression.left.validate() ?: return null,
                 expression.right.validate() ?: return null,
                 expression.operation,
-                sourceRange
+                this.range
             )
         is AST.FieldAccessExpression ->
             AstNode.Expression.FieldAccessExpression(
                 expression.target.validate() ?: return null,
-                expression.field,
-                sourceRange
+                expression.field.validate() ?: return null,
+                this.range
             )
         is AST.IdentifierExpression ->
-            AstNode.Expression.IdentifierExpression(expression.name, sourceRange)
+            AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
         is AST.LiteralExpression<*> ->
             when (expression.value) {
-                "null" -> AstNode.Expression.LiteralExpression.LiteralNullExpression(sourceRange)
+                "null" -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
                 "this" -> TODO("fix 'this' is not a literal")
-                is String -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, sourceRange)
-                is Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, sourceRange)
+                is String -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value,
+                    this.range
+                )
+                is Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value,
+                    this.range
+                )
                 else -> null
             }
         is AST.MethodInvocationExpression ->
             AstNode.Expression.MethodInvocationExpression(
                 expression.target?.validate() ?: return null,
-                expression.method,
+                expression.method.validate() ?: return null,
                 expression.arguments.map {
                     it.validate() ?: return null
-                }, sourceRange
+                }, this.range
             )
         is AST.NewArrayExpression ->
             AstNode.Expression.NewArrayExpression(
                 expression.type.validate() ?: return null,
                 expression.length.validate() ?: return null,
-                sourceRange
+                this.range
             )
         is AST.NewObjectExpression ->
-            AstNode.Expression.NewObjectExpression(expression.clazz, sourceRange)
+            AstNode.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
         is AST.UnaryExpression ->
             AstNode.Expression.UnaryOperation(
                 expression.expression.validate() ?: return null,
                 expression.operation,
-                sourceRange
+                this.range
             )
     }
 }
@@ -241,7 +270,7 @@ fun Parsed<Type>.validate(): ParsedType? = unwrapOr { return null }.let { type -
     when (type) {
         is Type.Array -> ParsedType.ArrayType(type.arrayType.elementType.validate() ?: return null)
         is Type.Boolean -> ParsedType.BoolType
-        is Type.Class -> ParsedType.ComplexType(type.name)
+        is Type.Class -> ParsedType.ComplexType(type.name.validate() ?: return null)
         is Type.Integer -> ParsedType.IntType
         is Type.Void -> ParsedType.VoidType
     }
