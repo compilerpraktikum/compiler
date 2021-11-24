@@ -987,7 +987,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         next()
 
         return AST.ReturnStatement(returnValue)
-            .wrapValid(returnKeyword.range.let { returnValue?.range?.extend(it) ?: it })
+            .wrapValid(returnValue?.range?.let { returnKeyword.range.extend(it) } ?: returnKeyword.range)
     }
 
     private fun parseIfStatement(ifKeyword: Token, anc: AnchorUnion): Parsed<AST.IfStatement> {
