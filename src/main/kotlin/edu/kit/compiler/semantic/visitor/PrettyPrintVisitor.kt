@@ -296,7 +296,8 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
             print("[")
             doParenthesizedMaybe(true) { newArrayExpression.length.accept(this) }
             print("]")
-            print("[]".repeat(element.dimension))
+            // dimension - 1, because we already printed one dimension
+            print("[]".repeat(element.dimension - 1))
         }
     }
 
