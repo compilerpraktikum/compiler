@@ -273,7 +273,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
-        print(literalBoolExpression.value)
+        print(literalBoolExpression.value.toString())
     }
 
     override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
