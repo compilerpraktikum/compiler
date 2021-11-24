@@ -12,7 +12,7 @@ sealed class ParsedType {
 
     object VoidType : ParsedType()
 
-    data class ComplexType(val symbol: Symbol) : ParsedType()
+    data class ComplexType(val symbol: AstNode.Identifier) : ParsedType()
 
     data class ArrayType(val elementType: ParsedType) : ParsedType()
 }

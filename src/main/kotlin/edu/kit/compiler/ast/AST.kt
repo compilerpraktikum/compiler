@@ -29,7 +29,7 @@ sealed class Type() {
     }
 
     data class Class(
-        val name: Symbol
+        val name: Parsed<Symbol>
     ) : Type()
 }
 
@@ -54,44 +54,37 @@ object AST {
     )
 
     data class ClassDeclaration(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val member: List<Parsed<ClassMember>>,
     )
 
-    sealed class ClassMember {
-        val memberName: Symbol
-            get() = when (this) {
-                is Field -> name
-                is MainMethod -> name
-                is Method -> name
-            }
-    }
+    sealed class ClassMember
 
     data class Field(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val type: Parsed<Type>,
     ) : ClassMember()
 
     data class Method(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val returnType: Parsed<Type>,
         val parameters: List<Parsed<Parameter>>,
         val block: Parsed<Block>,
-        val throwsException: Symbol? = null,
+        val throwsException: Parsed<Symbol>? = null,
     ) : ClassMember()
 
     data class MainMethod(
         // we need not only block but the rest too, for in semantical analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val returnType: Parsed<Type>,
         val parameters: List<Parsed<Parameter>>,
         val block: Parsed<Block>,
-        val throwsException: Symbol? = null,
+        val throwsException: Parsed<Symbol>? = null,
     ) : ClassMember()
 
     data class Parameter(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val type: Parsed<Type>,
     )
 
@@ -102,7 +95,7 @@ object AST {
     sealed class BlockStatement
 
     data class LocalVariableDeclarationStatement(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
         val type: Parsed<Type>,
         val initializer: Parsed<Expression>?,
     ) : BlockStatement()
@@ -199,13 +192,13 @@ object AST {
 
     data class MethodInvocationExpression(
         val target: Parsed<Expression>?,
-        val method: Symbol,
+        val method: Parsed<Symbol>,
         val arguments: List<Parsed<Expression>>
     ) : Expression()
 
     data class FieldAccessExpression(
         val target: Parsed<Expression>,
-        val field: Symbol,
+        val field: Parsed<Symbol>,
     ) : Expression()
 
     data class ArrayAccessExpression(
@@ -218,7 +211,7 @@ object AST {
      ************************************************/
 
     data class IdentifierExpression(
-        val name: Symbol,
+        val name: Parsed<Symbol>,
     ) : Expression()
 
     data class LiteralExpression<T>(
@@ -226,7 +219,7 @@ object AST {
     ) : Expression()
 
     data class NewObjectExpression(
-        val clazz: Symbol,
+        val clazz: Parsed<Symbol>,
     ) : Expression()
 
     data class NewArrayExpression(
