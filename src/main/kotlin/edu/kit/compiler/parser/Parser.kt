@@ -1026,8 +1026,12 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             falseStatement = parseStatement(anc)
         }
 
-        val ifStatementRange =
-            ifKeyword.range.extend(trueStatement.range).let { falseStatement?.range?.extend(it) ?: it }
+        var ifStatementRange =
+            ifKeyword.range.extend(trueStatement.range)
+        if (falseStatement != null) {
+            ifStatementRange = ifStatementRange.extend(falseStatement.range)
+        }
+
         return if (lparen.isValid && rparen.isValid) {
             AST.IfStatement(
                 condition,
