@@ -10,7 +10,9 @@ sealed class SemanticType {
 
     object Void : SemanticType()
 
-    data class Class(val name: AstNode.Identifier) : SemanticType()
+    data class Class(val name: AstNode.Identifier) : SemanticType() {
+        lateinit var definition: ClassDefinition
+    }
 
     data class Array(val elementType: SemanticType) : SemanticType() {
         init {

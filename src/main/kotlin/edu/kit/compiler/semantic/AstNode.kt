@@ -14,7 +14,10 @@ import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
  */
 sealed class AstNode(open val sourceRange: SourceRange) {
 
-    data class Identifier(val symbol: Symbol, override val sourceRange: SourceRange) : AstNode(sourceRange)
+    data class Identifier(val symbol: Symbol, override val sourceRange: SourceRange) : AstNode(sourceRange) {
+        val text: String
+            get() = symbol.text
+    }
 
     /**
      * The entire program that is being compiled from one compilation unit
@@ -34,7 +37,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         val members: List<ClassMember>,
         sourceRange: SourceRange
     ) : AstNode(sourceRange) {
-        lateinit var classNamespace: Namespace.ClassNamespace
+
+        lateinit var namespace: ClassNamespace
     }
 
     /**
@@ -57,7 +61,6 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val parameters: List<Parameter>,
             sourceRange: SourceRange
         ) : ClassMember(name, sourceRange) {
-            lateinit var methodNamespace: Namespace.MethodNamespace
 
             /**
              * Special case of a [SubroutineDeclaration] that is the main entry point
@@ -123,7 +126,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Definition of the referenced member
              */
-            lateinit var definition: Definition
+            lateinit var definition: VariableDefinition
 
             override val actualType: SemanticType
                 get() = TODO("Not yet implemented")
@@ -218,6 +221,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val arguments: List<Expression>,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
+            lateinit var definition: MethodDefinition
+
             override val actualType: SemanticType
                 get() = TODO("Not yet implemented")
         }
@@ -233,6 +238,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val field: Identifier,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
+            lateinit var definition: FieldDefinition
+
             override val actualType: SemanticType
                 get() = TODO("Not yet implemented")
         }
@@ -295,8 +302,6 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          *
          * @param statements a list of [Statements][Statement]
          */
-        class Block(val statements: List<Statement>, sourceRange: SourceRange) : Statement(sourceRange) {
-            lateinit var localNamespace: Namespace.LocalNamespace
-        }
+        class Block(val statements: List<Statement>, sourceRange: SourceRange) : Statement(sourceRange)
     }
 }
