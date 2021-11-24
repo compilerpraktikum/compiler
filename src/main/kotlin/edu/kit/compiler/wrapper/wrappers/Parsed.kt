@@ -19,7 +19,7 @@ sealed class Parsed<out A>(open val range: SourceRange) {
      *
      * @see Parsed
      */
-    data class Error<out A>(override val range: SourceRange, val node: A?) : Parsed<A>(range)
+    data class Error<out A>(override val range: SourceRange, val node: A? = null) : Parsed<A>(range)
 
     /**
      * Valid kind, contains the node
@@ -67,7 +67,6 @@ sealed class Parsed<out A>(open val range: SourceRange) {
         is Error -> Error(m(range), node)
         is Valid -> Valid(m(range), node)
     }
-
 }
 
 inline fun <A> Parsed<A>.unwrapOr(handle: () -> A): A = when (this) {
@@ -188,9 +187,12 @@ private fun AST.Statement.validate(sourceRange: SourceRange): AstNode.Statement?
             falseStatement?.run { validate() ?: return null },
             sourceRange
         )
-        is AST.ReturnStatement -> AstNode.Statement.ReturnStatement(expression?.run {
-            validate() ?: return null
-        }, sourceRange)
+        is AST.ReturnStatement -> AstNode.Statement.ReturnStatement(
+            expression?.run {
+                validate() ?: return null
+            },
+            sourceRange
+        )
         is AST.WhileStatement ->
             AstNode.Statement.WhileStatement(
                 condition.validate() ?: return null,
@@ -229,10 +231,12 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             when (expression.value) {
                 "null" -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
                 "this" -> TODO("fix 'this' is not a literal")
-                is String -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value,
+                is String -> AstNode.Expression.LiteralExpression.LiteralIntExpression(
+                    expression.value,
                     this.range
                 )
-                is Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value,
+                is Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(
+                    expression.value,
                     this.range
                 )
                 else -> null
@@ -243,7 +247,8 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
                 expression.method.validate() ?: return null,
                 expression.arguments.map {
                     it.validate() ?: return null
-                }, this.range
+                },
+                this.range
             )
         is AST.NewArrayExpression ->
             AstNode.Expression.NewArrayExpression(

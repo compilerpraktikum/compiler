@@ -18,32 +18,32 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         if (mainMethodDeclaration.parsedReturnType !is ParsedType.VoidType) {
-            if (mainMethodDeclaration.name.text == "main")
+            if (mainMethodDeclaration.name.symbol.text == "main")
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    mainMethodDeclaration.sourceRange, // todo return type source range
+                    mainMethodDeclaration.name.sourceRange,
                     "the main method must return `void`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.sourceRange, "hint: change the return type to `void`")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: change the return type to `void`")
                     )
                 )
             else
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    mainMethodDeclaration.sourceRange, // todo return type source range
+                    mainMethodDeclaration.name.sourceRange,
                     "only the main method is allowed to be `static`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.sourceRange, "hint: remove the `static` modifier")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
                     )
                 )
         } else {
-            if (mainMethodDeclaration.name.text != "main") {
+            if (mainMethodDeclaration.name.symbol.text != "main") {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    mainMethodDeclaration.sourceRange, // todo method name source range
+                    mainMethodDeclaration.name.sourceRange,
                     "only the `main` method is allowed to be static",
                     listOf(
-                        SourceNote(mainMethodDeclaration.sourceRange, "hint: remove the `static` modifier")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
                     )
                 )
             }
@@ -63,7 +63,8 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
             )
         } else if (mainMethodDeclaration.parameters[0].type !is ParsedType.ArrayType ||
             (mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType !is ParsedType.ComplexType ||
-            ((mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType as ParsedType.ComplexType).symbol.text != "String"
+            ((mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType as ParsedType.ComplexType)
+                .name.symbol.text != "String"
         ) {
             sourceFile.annotate(
                 AnnotationType.ERROR,

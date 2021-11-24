@@ -22,15 +22,15 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         printParanthesesStack.push(true) // default: print parantheses. TODO put this in the constructor!!!
 
         program.classes
-            .sortedBy { it.name }
+            .sortedBy { it.name.symbol }
             .forEach { classDeclaration -> classDeclaration.accept(this) }
     }
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-        println("class ${classDeclaration.name.text} {")
+        println("class ${classDeclaration.name.symbol.text} {")
         doIndented {
             classDeclaration.members
-                .sortedBy { classMember -> classMember.name }
+                .sortedBy { classMember -> classMember.name.symbol }
                 .sortedByDescending {
                     it is AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration ||
                         it is AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration
@@ -43,7 +43,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
         print("public ", true)
         fieldDeclaration.parsedType.accept(this)
-        println(" ${fieldDeclaration.name.text};")
+        println(" ${fieldDeclaration.name.symbol.text};")
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
@@ -58,7 +58,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
 
     private fun printMethodWithoutModifiers(subroutineDeclaration: AstNode.ClassMember.SubroutineDeclaration) {
         subroutineDeclaration.parsedReturnType.accept(this)
-        print(" ${subroutineDeclaration.name.text}(")
+        print(" ${subroutineDeclaration.name.symbol.text}(")
 
         subroutineDeclaration.parameters.forEachIndexed { i, parameter ->
             if (i > 0) print(", ")
@@ -66,7 +66,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         }
         print(")")
         if (subroutineDeclaration.throwsException != null) {
-            print(" throws " + subroutineDeclaration.throwsException.text)
+            print(" throws " + subroutineDeclaration.throwsException.symbol.text)
         }
 
         subroutineDeclaration.block.accept(this)
@@ -75,14 +75,14 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
         parameter.type.accept(this)
-        print(" ${parameter.name.text}")
+        print(" ${parameter.name.symbol.text}")
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
         print("", startsNewLine)
         startsNewLine = false
         localVariableDeclaration.type.accept(this)
-        print(" ${localVariableDeclaration.name.text}", false)
+        print(" ${localVariableDeclaration.name.symbol.text}", false)
         if (localVariableDeclaration.initializer != null) {
             print(" = ")
             doParenthesizedMaybe(false) { localVariableDeclaration.initializer.accept(this) }
@@ -236,7 +236,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
                 doParenthesizedMaybe(true) { methodInvocationExpression.target.accept(this) }
                 print(".")
             }
-            print("${methodInvocationExpression.method.text}(")
+            print("${methodInvocationExpression.method.symbol.text}(")
 
             methodInvocationExpression.arguments.forEachIndexed { i, arg ->
                 if (i > 0) print(", ")
@@ -250,7 +250,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         printParenthesisMaybe {
             doParenthesizedMaybe(true) { fieldAccessExpression.target.accept(this) }
             print(".")
-            print(fieldAccessExpression.field.text)
+            print(fieldAccessExpression.field.symbol.text)
         }
     }
 
@@ -264,7 +264,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        print(identifierExpression.symbol.text)
+        print(identifierExpression.name.symbol.text)
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
@@ -283,7 +283,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         printParenthesisMaybe {
             print("new ")
-            print(newObjectExpression.clazz.text)
+            print(newObjectExpression.clazz.symbol.text)
             print("()")
         }
     }
@@ -317,8 +317,8 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         print("[]")
     }
 
-    override fun visitComplexType(classType: ParsedType.ComplexType) {
-        print(classType.symbol.text)
+    override fun visitComplexType(complexType: ParsedType.ComplexType) {
+        print(complexType.name.symbol.text)
     }
 
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {

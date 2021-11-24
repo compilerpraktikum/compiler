@@ -121,7 +121,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         /**
          * Primary expression encompassing a single identifier
          */
-        class IdentifierExpression(val symbol: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
+        class IdentifierExpression(val name: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
             /**
              * Definition of the referenced member
              */

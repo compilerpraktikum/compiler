@@ -3,7 +3,6 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
-import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.Namespace
 
@@ -19,19 +18,20 @@ class ClassMemberNameAnalysis(private val sourceFile: SourceFile) : AbstractVisi
         val memberAnalysis = MemberAnalysis(classDeclaration.name, sourceFile, classNamespace)
         classDeclaration.members.forEach { it.accept(memberAnalysis) }
 
-        Namespace.GlobalNamespace.classDefinitions.putIfAbsent(classDeclaration.name, classDeclaration)?.onError {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                classDeclaration.sourceRange, // todo: class name token
-                "type `${classDeclaration.name}` is already defined",
-                listOf(
-                    SourceNote(
-                        Namespace.GlobalNamespace.classDefinitions[classDeclaration.name]!!.sourceRange, // todo name token
-                        "class already defined here"
+        Namespace.GlobalNamespace.classDefinitions.putIfAbsent(classDeclaration.name.symbol, classDeclaration)
+            ?.onError {
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    classDeclaration.name.sourceRange,
+                    "type `${classDeclaration.name}` is already defined",
+                    listOf(
+                        SourceNote(
+                            Namespace.GlobalNamespace.classDefinitions[classDeclaration.name.symbol]!!.name.sourceRange, // todo name token
+                            "class already defined here"
+                        )
                     )
                 )
-            )
-        }
+            }
 
         classDeclaration.classNamespace = classNamespace
     }
@@ -46,20 +46,20 @@ class ClassMemberNameAnalysis(private val sourceFile: SourceFile) : AbstractVisi
  * @param classNamespace surrounding scope
  */
 private class MemberAnalysis(
-    private val surroundingClass: Symbol,
+    private val surroundingClass: AstNode.Identifier,
     private val sourceFile: SourceFile,
     private val classNamespace: Namespace.ClassNamespace
 ) : AbstractVisitor() {
 
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
-        classNamespace.fieldDefinitions.putIfAbsent(fieldDeclaration.name, fieldDeclaration)?.onError {
+        classNamespace.fieldDefinitions.putIfAbsent(fieldDeclaration.name.symbol, fieldDeclaration)?.onError {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                fieldDeclaration.sourceRange, // todo: field name token
-                "field `${fieldDeclaration.name}` is already defined in `${surroundingClass.text}`",
+                fieldDeclaration.name.sourceRange,
+                "field `${fieldDeclaration.name}` is already defined in `${surroundingClass.symbol.text}`",
                 listOf(
                     SourceNote(
-                        classNamespace.fieldDefinitions[fieldDeclaration.name]!!.sourceRange, // todo field name token
+                        classNamespace.fieldDefinitions[fieldDeclaration.name.symbol]!!.name.sourceRange,
                         "field already defined here"
                     )
                 )
@@ -68,14 +68,14 @@ private class MemberAnalysis(
     }
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        classNamespace.methodDefinitions.putIfAbsent(methodDeclaration.name, methodDeclaration)?.onError {
+        classNamespace.methodDefinitions.putIfAbsent(methodDeclaration.name.symbol, methodDeclaration)?.onError {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                methodDeclaration.sourceRange, // todo: method name token
-                "field `${methodDeclaration.name}` is already defined in `${surroundingClass.text}`",
+                methodDeclaration.name.sourceRange,
+                "field `${methodDeclaration.name}` is already defined in `${surroundingClass.symbol.text}`",
                 listOf(
                     SourceNote(
-                        classNamespace.methodDefinitions[methodDeclaration.name]!!.sourceRange, // todo method name token
+                        classNamespace.methodDefinitions[methodDeclaration.name.symbol]!!.name.sourceRange,
                         "method already defined here"
                     )
                 )
@@ -85,18 +85,19 @@ private class MemberAnalysis(
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         // the main method must not be referenced, however we can still add it, so we can give better error messages if it is
-        classNamespace.methodDefinitions.putIfAbsent(mainMethodDeclaration.name, mainMethodDeclaration)?.onError {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                mainMethodDeclaration.sourceRange, // todo: method name token
-                "field `${mainMethodDeclaration.name}` is already defined in `${surroundingClass.text}`",
-                listOf(
-                    SourceNote(
-                        classNamespace.methodDefinitions[mainMethodDeclaration.name]!!.sourceRange, // todo method name token
-                        "method already defined here"
+        classNamespace.methodDefinitions.putIfAbsent(mainMethodDeclaration.name.symbol, mainMethodDeclaration)
+            ?.onError {
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    mainMethodDeclaration.name.sourceRange,
+                    "field `${mainMethodDeclaration.name}` is already defined in `${surroundingClass.symbol.text}`",
+                    listOf(
+                        SourceNote(
+                            classNamespace.methodDefinitions[mainMethodDeclaration.name.symbol]!!.name.sourceRange,
+                            "method already defined here"
+                        )
                     )
                 )
-            )
-        }
+            }
     }
 }

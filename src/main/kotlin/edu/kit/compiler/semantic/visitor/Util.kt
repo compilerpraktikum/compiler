@@ -25,7 +25,7 @@ fun constructSemanticType(parsedType: ParsedType, typeDeclaration: AstNode.Class
                 typeDeclaration
             )
         )
-        is ParsedType.ComplexType -> SemanticType.ComplexType(typeDeclaration!!.name, typeDeclaration)
+        is ParsedType.ComplexType -> SemanticType.ComplexType(typeDeclaration!!.name.symbol, typeDeclaration)
     }
 }
 
