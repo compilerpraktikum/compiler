@@ -321,15 +321,27 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     FirstFollowUtils.firstSetPostfixOp
                             )
 
-                            val rightIdent = expectOperator(
+                            val rightParen = expectOperator(
                                 Token.Operator.Type.RParen,
                                 anc + FirstFollowUtils.firstSetPostfixOp,
                             ) { "expected `)`" }
 
-                            rightIdent.map {
-                                AST.MethodInvocationExpression(target, parsedIdent, arguments)
-                            }.mapPosition {
-                                ident.range.extend(rightIdent.range)
+                            val range = if (rightParen.isValid) {
+                                ident.range.extend(rightParen.range)
+                            } else {
+                                ident.range.extend(arguments.last().range)
+                            }
+
+                            if (rightParen.isValid) {
+                                parsePostfixOp(
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapValid(range),
+                                    anc
+                                )
+                            } else {
+                                parsePostfixOp(
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapErroneous(range),
+                                    anc
+                                )
                             }
                         } else {
                             parsePostfixOp(
