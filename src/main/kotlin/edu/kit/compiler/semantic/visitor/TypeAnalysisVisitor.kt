@@ -15,7 +15,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
         checkAndMessageIfNot("No void typed parameters.") { parameter.type !is ParsedType.VoidType }
-        parameter.semanticType = parsedTypeToSemanticType(parameter.type)
+        parameter.semanticType = constructSemanticType(parameter.type, TODO("get class declaration, check before"))
     }
 
     /**
@@ -54,16 +54,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     private fun checkAndMessageIfNot(errorMsg: String, function: () -> kotlin.Boolean) {
         if (!function()) {
             TODO("Print Error: $errorMsg")
-        }
-    }
-
-    private fun parsedTypeToSemanticType(parsedType: ParsedType): SemanticType {
-        return when (parsedType) {
-            is ParsedType.IntType -> SemanticType.IntType
-            is ParsedType.VoidType -> SemanticType.VoidType
-            is ParsedType.ArrayType -> SemanticType.ArrayType(parsedTypeToSemanticType(parsedType.elementType))
-            is ParsedType.BoolType -> SemanticType.BoolType
-            is ParsedType.ComplexType -> SemanticType.ComplexType(parsedType.name.symbol, TODO("check namespace stuff!"))
         }
     }
 
