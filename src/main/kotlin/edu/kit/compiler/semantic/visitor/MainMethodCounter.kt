@@ -34,11 +34,11 @@ class MainMethodCounter(val sourceFile: SourceFile) : AbstractVisitor() {
         } else {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                mainMethodDeclaration.sourceRange,
+                mainMethodDeclaration.name.sourceRange,
                 "only one main method is allowed per program",
                 listOf(
                     SourceNote(
-                        foundMainMethod!!.sourceRange,
+                        foundMainMethod!!.name.sourceRange,
                         "a main method is already defined here"
                     )
                 )
