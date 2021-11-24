@@ -27,7 +27,6 @@ private val Token.isRelevantForSyntax
  * @param tokens [Sequence] of [tokens][Token]
  * @param sourceFile input wrapper that handles error reporting
  */
-@ExperimentalStdlibApi
 class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     AbstractParser(tokens.filter(Token::isRelevantForSyntax), sourceFile) {
 

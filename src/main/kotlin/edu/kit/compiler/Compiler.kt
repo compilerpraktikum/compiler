@@ -42,7 +42,6 @@ class Compiler(private val config: Config) {
      *
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
-    @OptIn(ExperimentalStdlibApi::class)
     fun compile(): Int {
         if (config.mode == Mode.Echo) {
             // needs to be handled separately because SourceFile does only support valid input encodings and
