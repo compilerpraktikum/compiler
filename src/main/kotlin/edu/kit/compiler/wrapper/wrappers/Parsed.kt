@@ -104,8 +104,8 @@ fun Parsed<AST.Program>.validate(): AstNode.Program? =
     }
 
 fun Parsed<AST.ClassDeclaration>.validate(): AstNode.ClassDeclaration? = unwrapOr { return null }.let {
-    val members = it.member.map {
-        it.validate() ?: return null
+    val members = it.member.map { member ->
+        member.validate() ?: return null
     }
     AstNode.ClassDeclaration(it.name.validate() ?: return null, members, this.range)
 }
@@ -120,7 +120,7 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
         is AST.MainMethod -> AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration(
             classMember.returnType.validate() ?: return null,
             classMember.name.validate() ?: return null,
-            classMember.throwsException?.validate() ?: return null,
+            classMember.throwsException?.let { it.validate() ?: return null },
             classMember.block.validate() ?: return null,
             classMember.parameters.map { it.validate() ?: return null },
             this.range
@@ -130,7 +130,7 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
             AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration(
                 classMember.returnType.validate() ?: return null,
                 classMember.name.validate() ?: return null,
-                classMember.throwsException?.validate() ?: return null,
+                classMember.throwsException?.let { it.validate() ?: return null },
                 classMember.block.validate() ?: return null,
                 classMember.parameters.map { it.validate() ?: return null }, this.range
             )
@@ -153,13 +153,7 @@ private fun AST.Block.validate(range: SourceRange): AstNode.Statement.Block? =
         AstNode.Statement.Block(it, range)
     }
 
-private fun Parsed<AST.Block>.validate(): AstNode.Statement.Block? = unwrapOr { return null }.let { block ->
-    block.validate(this.range)
-}
-
-class Asd<A> {
-    inner class Wasd(val asds: List<A>)
-}
+private fun Parsed<AST.Block>.validate(): AstNode.Statement.Block? = unwrapOr { return null }.validate(this.range)
 
 @JvmName("validateASTBlockStatement")
 private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr { return null }.let { blockStatement ->
@@ -167,7 +161,7 @@ private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr
         is AST.LocalVariableDeclarationStatement -> AstNode.Statement.LocalVariableDeclaration(
             blockStatement.name.validate() ?: return null,
             blockStatement.type.validate() ?: return null,
-            blockStatement.initializer?.run { validate() ?: return null },
+            blockStatement.initializer?.let { it.validate() ?: return null },
             this.range
         )
         is AST.StmtWrapper ->
@@ -184,12 +178,12 @@ private fun AST.Statement.validate(sourceRange: SourceRange): AstNode.Statement?
         is AST.IfStatement -> AstNode.Statement.IfStatement(
             condition.validate() ?: return null,
             trueStatement.validate() ?: return null,
-            falseStatement?.run { validate() ?: return null },
+            falseStatement?.let { it.validate() ?: return null },
             sourceRange
         )
         is AST.ReturnStatement -> AstNode.Statement.ReturnStatement(
-            expression?.run {
-                validate() ?: return null
+            expression?.let {
+                it.validate() ?: return null
             },
             sourceRange
         )
@@ -243,7 +237,7 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             }
         is AST.MethodInvocationExpression ->
             AstNode.Expression.MethodInvocationExpression(
-                expression.target?.validate() ?: return null,
+                expression.target?.let { it.validate() ?: return null },
                 expression.method.validate() ?: return null,
                 expression.arguments.map {
                     it.validate() ?: return null
