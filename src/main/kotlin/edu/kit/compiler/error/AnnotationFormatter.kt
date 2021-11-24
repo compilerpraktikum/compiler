@@ -36,7 +36,7 @@ private fun PrintStream.formatLineWithHighlight(code: String, note: String?, cod
     if (note != null) {
         println(
             "    " +
-                TextColors.gray("note: $note")
+                TextColors.gray(note)
         )
     }
     println(
@@ -65,7 +65,7 @@ internal fun formatAnnotation(out: PrintStream, sourceFile: SourceFile, annotati
         AnnotationType.ERROR -> TextColors.red
     }
 
-    val lengthLineNumber = maxOf(annotation.range.last.line, annotation.notes.maxOfOrNull { it.first.last.line } ?: 0).toString().length
+    val lengthLineNumber = maxOf(annotation.range.last.line, annotation.notes.maxOfOrNull { it.range.last.line } ?: 0).toString().length
 
     fun Int.formatLineNumber() = toString().padStart(lengthLineNumber, ' ')
 
@@ -133,8 +133,8 @@ internal fun formatAnnotation(out: PrintStream, sourceFile: SourceFile, annotati
         formatRange(annotation.range, null, LOOKAROUND_BEFORE, LOOKAROUND_AFTER)
 
         // notes
-        annotation.notes.forEach { (range, note) ->
-            formatRange(range, note)
+        annotation.notes.forEach { (range, note, prefix) ->
+            formatRange(range, "$prefix: $note")
         }
     }
 }

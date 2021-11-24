@@ -24,7 +24,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "the main method must return `void`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: change the return type to `void`")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "change the return type to `void`", "hint")
                     )
                 )
             else
@@ -33,7 +33,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "only the main method is allowed to be `static`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
                     )
                 )
         } else {
@@ -43,7 +43,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "only the `main` method is allowed to be static",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
                     )
                 )
             }
