@@ -3,7 +3,7 @@ package edu.kit.compiler.utils
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Assertions
 import java.io.ByteArrayOutputStream
@@ -49,7 +49,7 @@ object TestUtils {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): Lenient<AST.Program> {
+    fun createAST(input: String): Parsed<AST.Program> {
         val (lexer, sourceFile) = createLexer(input)
         return Parser(sourceFile, lexer.tokens()).parse()
     }

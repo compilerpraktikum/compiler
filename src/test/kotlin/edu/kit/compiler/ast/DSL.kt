@@ -3,7 +3,7 @@ package edu.kit.compiler.ast
 import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.wrapValid
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
@@ -13,8 +13,8 @@ abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
  */
 private fun String.toSymbol() = Symbol(this, isKeyword = false)
 
-class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration>> = mutableListOf()) :
-    AstDsl<Lenient<AST.ClassDeclaration>>(res) {
+class ClassDeclarationDsl(res: MutableList<Parsed<AST.ClassDeclaration>> = mutableListOf()) :
+    AstDsl<Parsed<AST.ClassDeclaration>>(res) {
     fun clazz(name: String, block: ClassMemberDsl.() -> Unit) {
         val members = ClassMemberDsl().also { it.block() }
         this.res.add(
@@ -26,8 +26,8 @@ class ClassDeclarationDsl(res: MutableList<Lenient<AST.ClassDeclaration>> = muta
     }
 }
 
-class ClassMemberDsl(res: MutableList<Lenient<AST.ClassMember>> = mutableListOf()) :
-    AstDsl<Lenient<AST.ClassMember>>(res) {
+class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()) :
+    AstDsl<Parsed<AST.ClassMember>>(res) {
 
     fun param(name: String, type: Type) = AST.Parameter(name.toSymbol(), type.wrapValid())
 
@@ -100,7 +100,7 @@ object ExprDsl {
     ) = AST.NewArrayExpression(type.wrapValid(), ExprDsl.length().wrapValid())
 }
 
-class BlockStatementDsl(val res: MutableList<Lenient<AST.BlockStatement>> = mutableListOf()) {
+class BlockStatementDsl(val res: MutableList<Parsed<AST.BlockStatement>> = mutableListOf()) {
     fun localDeclaration(
         name: String,
         type: Type,
@@ -144,7 +144,7 @@ object StatementDsl {
     )
 }
 
-class StatementsDsl(val res: MutableList<Lenient<AST.Statement>> = mutableListOf()) {
+class StatementsDsl(val res: MutableList<Parsed<AST.Statement>> = mutableListOf()) {
     fun block(b: StatementsDsl.() -> Unit) {
         res.add(AST.Block(StatementsDsl().also(b).res.map { it.map { it.wrapBlockStatement() } }).wrapValid())
     }

@@ -6,7 +6,7 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.wrapValid
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
@@ -21,7 +21,7 @@ internal class MixedParseTest {
         listOf()
     ).wrapBlockStatement().wrapValid()
 
-    private fun expectAst(input: String, expectedAST: List<Lenient<AST.ClassDeclaration>>) =
+    private fun expectAst(input: String, expectedAST: List<Parsed<AST.ClassDeclaration>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
 
     @Test

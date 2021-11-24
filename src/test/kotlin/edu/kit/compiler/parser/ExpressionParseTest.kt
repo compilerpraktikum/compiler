@@ -3,7 +3,7 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.wrapValid
 import org.junit.jupiter.api.Test
 
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 internal class ExpressionParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private fun expectAst(input: String, expectedAST: Lenient<AST.Expression>) =
+    private fun expectAst(input: String, expectedAST: Parsed<AST.Expression>) =
         expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }
 
     @Test
