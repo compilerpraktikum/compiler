@@ -262,7 +262,7 @@ class SubroutineNameResolver(
         )
     }
 
-    override fun visitComplexType(clazz: SemanticType.Class) {
+    override fun visitClassType(clazz: SemanticType.Class) {
         clazz.definition = currentMethodNamespace.lookupClass(clazz)
     }
 
