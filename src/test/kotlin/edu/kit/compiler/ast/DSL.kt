@@ -1,6 +1,5 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.ast.AST.wrapBlockStatement
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
@@ -43,15 +42,15 @@ class ClassDeclarationDsl(res: MutableList<Parsed<AST.ClassDeclaration>> = mutab
 class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()) :
     AstDsl<Parsed<AST.ClassMember>>(res) {
 
-    fun param(name: String, type: Type) = AST.Parameter(name.toSymbol().wrapMockValid(), type.wrapMockValid())
+    fun param(name: String, type: AST.Type) = AST.Parameter(name.toSymbol().wrapMockValid(), type.wrapMockValid())
 
-    fun field(name: String, type: Type) {
+    fun field(name: String, type: AST.Type) {
         this.res.add(AST.Field(name.toSymbol().wrapMockValid(), type.wrapMockValid()).wrapMockValid())
     }
 
     fun mainMethod(
         name: String,
-        returnType: Type,
+        returnType: AST.Type,
         vararg parameters: AST.Parameter,
         throws: String? = null,
         block: BlockStatementDsl.() -> Unit
@@ -70,7 +69,7 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
 
     fun method(
         name: String,
-        returnType: Type,
+        returnType: AST.Type,
         vararg parameters: AST.Parameter,
         throws: String? = null,
         block: BlockStatementDsl.() -> Unit
@@ -116,7 +115,7 @@ object ExprDsl {
     ) = AST.FieldAccessExpression(ExprDsl.left().wrapMockValid(), field.toSymbol().wrapMockValid())
 
     fun newArrayOf(
-        type: Type.Array,
+        type: AST.Type.Array,
         length: ExprDsl.() -> AST.Expression
     ) = AST.NewArrayExpression(type.wrapMockValid(), ExprDsl.length().wrapMockValid())
 }
@@ -124,7 +123,7 @@ object ExprDsl {
 class BlockStatementDsl(val res: MutableList<Parsed<AST.BlockStatement>> = mutableListOf()) {
     fun localDeclaration(
         name: String,
-        type: Type,
+        type: AST.Type,
         initializer: (ExprDsl.() -> AST.Expression)? = null
     ) {
         res.add(

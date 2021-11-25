@@ -344,24 +344,24 @@ package edu.kit.compiler.ast
 //        }
 //    }
 //
-//    override fun visit(voidType: Type.Void) {
+//    override fun visit(voidType: AST.Type.Void) {
 //        print("void")
 //    }
 //
-//    override fun visit(integerType: Type.Integer) {
+//    override fun visit(integerType: AST.Type.Integer) {
 //        print("int")
 //    }
 //
-//    override fun visit(booleanType: Type.Boolean) {
+//    override fun visit(booleanType: AST.Type.Boolean) {
 //        print("boolean")
 //    }
 //
-//    override fun visit(arrayType: Type.Array<Identity<Of>>) {
+//    override fun visit(arrayType: AST.Type.Array<Identity<Of>>) {
 //        arrayType.arrayType.elementType.into().v.into().accept(this)
 //        print("[]")
 //    }
 //
-//    override fun visit(classType: Type.Class) {
+//    override fun visit(classType: AST.Type.Class) {
 //        print(classType.name.text)
 //    }
 //
@@ -421,7 +421,7 @@ package edu.kit.compiler.ast
 //        startsNewLine = false
 //    }
 //
-//    override fun visit(arrayType: Type.Array.ArrayType<Identity<Of>>) {
+//    override fun visit(arrayType: AST.Type.Array.ArrayType<Identity<Of>>) {
 //        // Nothing to do. This is handled by the visitors containing them
 //    }
 //
