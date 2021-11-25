@@ -51,6 +51,17 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         arrayAccessExpression.actualSemanticType = (arrayAccessExpression.target as SemanticType.ArrayType).elementType
     }
 
+    override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+        super.visitFieldAccessExpression(fieldAccessExpression)
+        checkAndMessageIfNot("") { fieldAccessExpression.target.actualSemanticType is SemanticType.ComplexType }
+        when (fieldAccessExpression.target.actualSemanticType) {
+            is SemanticType.ArrayType -> TODO("Error")
+
+        }
+        // TODO identifier ==> Definition from current namespace!
+//        fieldAccessExpression.actualSemanticType = fieldAccessExpression.field
+    }
+
     private fun checkAndMessageIfNot(errorMsg: String, function: () -> kotlin.Boolean) {
         if (!function()) {
             TODO("Print Error: $errorMsg")
