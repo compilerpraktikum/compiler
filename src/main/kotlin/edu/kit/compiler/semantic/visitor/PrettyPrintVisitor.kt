@@ -315,13 +315,13 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         print("boolean")
     }
 
-    override fun visitArrayType(arrayType: SemanticType.ArrayType) {
+    override fun visitArrayType(arrayType: SemanticType.Array) {
         arrayType.elementType.accept(this)
         print("[]")
     }
 
-    override fun visitComplexType(complexType: SemanticType.ComplexType) {
-        print(complexType.name.symbol.text)
+    override fun visitComplexType(clazz: SemanticType.Class) {
+        print(clazz.name.symbol.text)
     }
 
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {

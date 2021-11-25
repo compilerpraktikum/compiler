@@ -95,7 +95,7 @@ private class LocalNameAnalysis(
         super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
-    override fun visitComplexType(complexType: SemanticType.ComplexType) {
+    override fun visitComplexType(clazz: SemanticType.Class) {
         // todo add class declaration to type
     }
 }

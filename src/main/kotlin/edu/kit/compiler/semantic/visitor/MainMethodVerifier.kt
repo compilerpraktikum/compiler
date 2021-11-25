@@ -17,7 +17,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        if (mainMethodDeclaration.returnType !is SemanticType.VoidType) {
+        if (mainMethodDeclaration.returnType !is SemanticType.Void) {
             if (mainMethodDeclaration.name.symbol.text == "main")
                 sourceFile.annotate(
                     AnnotationType.ERROR,
@@ -61,9 +61,9 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 mainMethodDeclaration.parameters[1].sourceRange.extend(mainMethodDeclaration.parameters.last().sourceRange),
                 "the main method cannot have more than one parameter",
             )
-        } else if (mainMethodDeclaration.parameters[0].type !is SemanticType.ArrayType ||
-            (mainMethodDeclaration.parameters[0].type as SemanticType.ArrayType).elementType !is SemanticType.ComplexType ||
-            ((mainMethodDeclaration.parameters[0].type as SemanticType.ArrayType).elementType as SemanticType.ComplexType)
+        } else if (mainMethodDeclaration.parameters[0].type !is SemanticType.Array ||
+            (mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType !is SemanticType.Class ||
+            ((mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType as SemanticType.Class)
                 .name.symbol.text != "String"
         ) {
             sourceFile.annotate(

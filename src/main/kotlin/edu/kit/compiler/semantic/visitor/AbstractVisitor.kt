@@ -116,11 +116,11 @@ abstract class AbstractVisitor {
     open fun visitVoidType() {
     }
 
-    open fun visitArrayType(arrayType: SemanticType.ArrayType) {
+    open fun visitArrayType(arrayType: SemanticType.Array) {
         arrayType.elementType.accept(this)
     }
 
-    open fun visitComplexType(complexType: SemanticType.ComplexType) {
+    open fun visitComplexType(clazz: SemanticType.Class) {
     }
 }
 
@@ -178,10 +178,10 @@ fun AstNode.Statement.accept(visitor: AbstractVisitor) {
 
 fun SemanticType.accept(visitor: AbstractVisitor) {
     when (this) {
-        SemanticType.IntType -> visitor.visitIntType()
-        SemanticType.BoolType -> visitor.visitBoolType()
-        SemanticType.VoidType -> visitor.visitVoidType()
-        is SemanticType.ArrayType -> visitor.visitArrayType(this)
-        is SemanticType.ComplexType -> visitor.visitComplexType(this)
+        SemanticType.Integer -> visitor.visitIntType()
+        SemanticType.Boolean -> visitor.visitBoolType()
+        SemanticType.Void -> visitor.visitVoidType()
+        is SemanticType.Array -> visitor.visitArrayType(this)
+        is SemanticType.Class -> visitor.visitComplexType(this)
     }
 }

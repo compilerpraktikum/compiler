@@ -166,11 +166,11 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          */
         class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = SemanticType.ComplexType(clazz)
+                get() = SemanticType.Class(clazz)
         }
 
         class NewArrayExpression(
-            val type: SemanticType.ArrayType,
+            val type: SemanticType.Array,
             val length: Expression,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {

@@ -261,16 +261,16 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
     }
 }
 
-fun Parsed<Type.Array.ArrayType>.validate(): SemanticType.ArrayType? = unwrapOr { return null }.let {
-    SemanticType.ArrayType(it.elementType.validate() ?: return null)
+fun Parsed<Type.Array.ArrayType>.validate(): SemanticType.Array? = unwrapOr { return null }.let {
+    SemanticType.Array(it.elementType.validate() ?: return null)
 }
 
 fun Parsed<Type>.validate(): SemanticType? = unwrapOr { return null }.let { type ->
     when (type) {
-        is Type.Array -> SemanticType.ArrayType(type.arrayType.elementType.validate() ?: return null)
-        is Type.Boolean -> SemanticType.BoolType
-        is Type.Class -> SemanticType.ComplexType(type.name.validate() ?: return null)
-        is Type.Integer -> SemanticType.IntType
-        is Type.Void -> SemanticType.VoidType
+        is Type.Array -> SemanticType.Array(type.arrayType.elementType.validate() ?: return null)
+        is Type.Boolean -> SemanticType.Boolean
+        is Type.Class -> SemanticType.Class(type.name.validate() ?: return null)
+        is Type.Integer -> SemanticType.Integer
+        is Type.Void -> SemanticType.Void
     }
 }

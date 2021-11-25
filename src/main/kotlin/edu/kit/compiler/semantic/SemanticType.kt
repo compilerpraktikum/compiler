@@ -4,17 +4,17 @@ package edu.kit.compiler.semantic
  * Result type of semantic analysis
  */
 sealed class SemanticType {
-    object IntType : SemanticType()
+    object Integer : SemanticType()
 
-    object BoolType : SemanticType()
+    object Boolean : SemanticType()
 
-    object VoidType : SemanticType()
+    object Void : SemanticType()
 
-    data class ComplexType(val name: AstNode.Identifier) : SemanticType()
+    data class Class(val name: AstNode.Identifier) : SemanticType()
 
-    data class ArrayType(val elementType: SemanticType) : SemanticType() {
+    data class Array(val elementType: SemanticType) : SemanticType() {
         init {
-            assert(elementType !is VoidType)
+            assert(elementType !is Void)
         }
     }
 
@@ -22,26 +22,26 @@ sealed class SemanticType {
      * If this type is assigned as the semantic type of an [AstNode], the defined type is invalid and type checks should
      * silently fail (because an error message has already been generated)
      */
-    object ErrorType : SemanticType()
+    object Error : SemanticType()
 }
 
 /**
  * Recursively retrieves the base type of an array
  */
-val SemanticType.baseType: SemanticType
-    get() = when (this) {
-        is SemanticType.ArrayType -> this.elementType.baseType
+val SemanticType.Array.baseType: SemanticType
+    get() = when (elementType) {
+        is SemanticType.Array -> elementType.baseType
         else -> this
     }
 
 /**
  * Determines an array's dimension
  */
-val SemanticType.dimension: Int
+val SemanticType.Array.dimension: Int
     get() {
-        var dim = 0
-        var type = this
-        while (type is SemanticType.ArrayType) {
+        var dim = 1
+        var type = elementType
+        while (type is SemanticType.Array) {
             dim += 1
             type = type.elementType
         }
