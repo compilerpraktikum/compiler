@@ -3,7 +3,7 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.Namespace
-import edu.kit.compiler.semantic.ParsedType
+import edu.kit.compiler.semantic.SemanticType
 
 /**
  * Name analysis for subroutines.
@@ -95,7 +95,7 @@ private class LocalNameAnalysis(
         super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
-    override fun visitComplexType(complexType: ParsedType.ComplexType) {
+    override fun visitComplexType(complexType: SemanticType.ComplexType) {
         // todo add class declaration to type
     }
 }

@@ -1,7 +1,5 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.Symbol
-
 /**
  * Result type of semantic analysis
  */
@@ -12,7 +10,7 @@ sealed class SemanticType {
 
     object VoidType : SemanticType()
 
-    data class ComplexType(val className: Symbol, val classDeclaration: AstNode.ClassDeclaration) : SemanticType()
+    data class ComplexType(val name: AstNode.Identifier) : SemanticType()
 
     data class ArrayType(val elementType: SemanticType) : SemanticType() {
         init {
@@ -26,3 +24,26 @@ sealed class SemanticType {
      */
     object ErrorType : SemanticType()
 }
+
+/**
+ * Recursively retrieves the base type of an array
+ */
+val SemanticType.baseType: SemanticType
+    get() = when (this) {
+        is SemanticType.ArrayType -> this.elementType.baseType
+        else -> this
+    }
+
+/**
+ * Determines an array's dimension
+ */
+val SemanticType.dimension: Int
+    get() {
+        var dim = 0
+        var type = this
+        while (type is SemanticType.ArrayType) {
+            dim += 1
+            type = type.elementType
+        }
+        return dim
+    }

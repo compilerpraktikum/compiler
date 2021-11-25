@@ -1,7 +1,9 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.ParsedType
+import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.baseType
+import edu.kit.compiler.semantic.dimension
 import java.io.PrintStream
 import java.util.Stack
 
@@ -42,7 +44,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
 
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
         print("public ", true)
-        fieldDeclaration.parsedType.accept(this)
+        fieldDeclaration.type.accept(this)
         println(" ${fieldDeclaration.name.symbol.text};")
     }
 
@@ -57,7 +59,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     }
 
     private fun printMethodWithoutModifiers(subroutineDeclaration: AstNode.ClassMember.SubroutineDeclaration) {
-        subroutineDeclaration.parsedReturnType.accept(this)
+        subroutineDeclaration.returnType.accept(this)
         print(" ${subroutineDeclaration.name.symbol.text}(")
 
         subroutineDeclaration.parameters.forEachIndexed { i, parameter ->
@@ -313,12 +315,12 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         print("boolean")
     }
 
-    override fun visitArrayType(arrayType: ParsedType.ArrayType) {
+    override fun visitArrayType(arrayType: SemanticType.ArrayType) {
         arrayType.elementType.accept(this)
         print("[]")
     }
 
-    override fun visitComplexType(complexType: ParsedType.ComplexType) {
+    override fun visitComplexType(complexType: SemanticType.ComplexType) {
         print(complexType.name.symbol.text)
     }
 

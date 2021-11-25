@@ -5,7 +5,7 @@ import edu.kit.compiler.ast.Type
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.ParsedType
+import edu.kit.compiler.semantic.SemanticType
 
 /**
  * An AST-Node wrapper, that indicates, that the contained AST-Node may or may not be valid.
@@ -261,16 +261,16 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
     }
 }
 
-fun Parsed<Type.Array.ArrayType>.validate(): ParsedType.ArrayType? = unwrapOr { return null }.let {
-    ParsedType.ArrayType(it.elementType.validate() ?: return null)
+fun Parsed<Type.Array.ArrayType>.validate(): SemanticType.ArrayType? = unwrapOr { return null }.let {
+    SemanticType.ArrayType(it.elementType.validate() ?: return null)
 }
 
-fun Parsed<Type>.validate(): ParsedType? = unwrapOr { return null }.let { type ->
+fun Parsed<Type>.validate(): SemanticType? = unwrapOr { return null }.let { type ->
     when (type) {
-        is Type.Array -> ParsedType.ArrayType(type.arrayType.elementType.validate() ?: return null)
-        is Type.Boolean -> ParsedType.BoolType
-        is Type.Class -> ParsedType.ComplexType(type.name.validate() ?: return null)
-        is Type.Integer -> ParsedType.IntType
-        is Type.Void -> ParsedType.VoidType
+        is Type.Array -> SemanticType.ArrayType(type.arrayType.elementType.validate() ?: return null)
+        is Type.Boolean -> SemanticType.BoolType
+        is Type.Class -> SemanticType.ComplexType(type.name.validate() ?: return null)
+        is Type.Integer -> SemanticType.IntType
+        is Type.Void -> SemanticType.VoidType
     }
 }

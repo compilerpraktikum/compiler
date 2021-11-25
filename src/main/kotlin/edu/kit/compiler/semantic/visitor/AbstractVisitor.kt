@@ -1,7 +1,7 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.ParsedType
+import edu.kit.compiler.semantic.SemanticType
 
 /**
  * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
@@ -17,17 +17,17 @@ abstract class AbstractVisitor {
     }
 
     open fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
-        fieldDeclaration.parsedType.accept(this)
+        fieldDeclaration.type.accept(this)
     }
 
     open fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        methodDeclaration.parsedReturnType.accept(this)
+        methodDeclaration.returnType.accept(this)
         methodDeclaration.parameters.forEach { it.accept(this) }
         methodDeclaration.block.accept(this)
     }
 
     open fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        mainMethodDeclaration.parsedReturnType.accept(this)
+        mainMethodDeclaration.returnType.accept(this)
         mainMethodDeclaration.parameters.forEach { it.accept(this) }
         mainMethodDeclaration.block.accept(this)
     }
@@ -116,11 +116,11 @@ abstract class AbstractVisitor {
     open fun visitVoidType() {
     }
 
-    open fun visitArrayType(arrayType: ParsedType.ArrayType) {
+    open fun visitArrayType(arrayType: SemanticType.ArrayType) {
         arrayType.elementType.accept(this)
     }
 
-    open fun visitComplexType(complexType: ParsedType.ComplexType) {
+    open fun visitComplexType(complexType: SemanticType.ComplexType) {
     }
 }
 
@@ -176,12 +176,12 @@ fun AstNode.Statement.accept(visitor: AbstractVisitor) {
     }
 }
 
-fun ParsedType.accept(visitor: AbstractVisitor) {
+fun SemanticType.accept(visitor: AbstractVisitor) {
     when (this) {
-        ParsedType.IntType -> visitor.visitIntType()
-        ParsedType.BoolType -> visitor.visitBoolType()
-        ParsedType.VoidType -> visitor.visitVoidType()
-        is ParsedType.ArrayType -> visitor.visitArrayType(this)
-        is ParsedType.ComplexType -> visitor.visitComplexType(this)
+        SemanticType.IntType -> visitor.visitIntType()
+        SemanticType.BoolType -> visitor.visitBoolType()
+        SemanticType.VoidType -> visitor.visitVoidType()
+        is SemanticType.ArrayType -> visitor.visitArrayType(this)
+        is SemanticType.ComplexType -> visitor.visitComplexType(this)
     }
 }
