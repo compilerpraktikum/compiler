@@ -163,8 +163,8 @@ private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr
             blockStatement.initializer?.let { it.validate() ?: return null },
             this.range
         )
-        is AST.StmtWrapper ->
-            blockStatement.statement.validate(this.range)
+        is AST.Statement ->
+            blockStatement.validate(this.range)
     }
 }
 

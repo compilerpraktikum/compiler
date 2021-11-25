@@ -91,9 +91,7 @@ sealed class AST {
         val initializer: Parsed<Expression>?,
     ) : BlockStatement()
 
-    data class StmtWrapper(val statement: Statement) : BlockStatement()
-
-    sealed class Statement : AST()
+    sealed class Statement : BlockStatement()
 
     data class Block(
         val statements: List<Parsed<BlockStatement>>,
@@ -235,5 +233,3 @@ fun Token.Operator.Type.toASTOperation(): AST.BinaryExpression.Operation? = when
     Token.Operator.Type.Or -> AST.BinaryExpression.Operation.OR
     else -> null
 }
-
-fun AST.Statement.wrapBlockStatement(): AST.StmtWrapper = AST.StmtWrapper(this)

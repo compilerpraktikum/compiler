@@ -864,7 +864,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.False,
                     Token.Keyword.Type.True,
                     Token.Keyword.Type.This,
-                    Token.Keyword.Type.New -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Keyword.Type.New -> parseStatement(anc)
 
                     Token.Keyword.Type.Int,
                     Token.Keyword.Type.Boolean,
@@ -880,14 +880,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                 }
             }
-            is Token.Literal -> parseStatement(anc).map { AST.StmtWrapper(it) }
+            is Token.Literal -> parseStatement(anc)
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace,
                     Token.Operator.Type.Semicolon,
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
-                    Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Operator.Type.LParen -> parseStatement(anc)
 
                     else -> {
                         reportError(
@@ -910,16 +910,16 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     if (thirdToken.type == Token.Operator.Type.RightBracket) {
                                         parseLocalVariableDeclarationStatement(anc)
                                     } else {
-                                        parseStatement(anc).map { AST.StmtWrapper(it) }
+                                        parseStatement(anc)
                                     }
                                 }
-                                else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                                else -> parseStatement(anc)
                             }
                         } else {
-                            parseStatement(anc).map { AST.StmtWrapper(it) }
+                            parseStatement(anc)
                         }
                     }
-                    else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    else -> parseStatement(anc)
                 }
             }
             else -> {

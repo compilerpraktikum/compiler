@@ -48,7 +48,6 @@ private fun AST.toChildString(): String = when (this) {
     is AST.Parameter -> "name = ${name.debug()}, type = ${type.debug()}"
 
     is AST.LocalVariableDeclarationStatement -> "name = ${name.debug()}, type = ${type.debug()}, init = ${initializer.debug()}"
-    is AST.StmtWrapper -> statement.toContentString()
     is AST.Block -> "statements = ${statements.debug()}"
     is AST.IfStatement -> "condition = ${condition.debug()}, true = ${trueStatement.debug()}, false = ${falseStatement.debug()}"
     is AST.WhileStatement -> "condition = ${condition.debug()}, body = ${statement.debug()}"

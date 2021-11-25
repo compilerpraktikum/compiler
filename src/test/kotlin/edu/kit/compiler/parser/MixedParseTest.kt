@@ -2,7 +2,6 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.astOf
-import edu.kit.compiler.ast.wrapBlockStatement
 import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
@@ -18,7 +17,7 @@ internal class MixedParseTest {
 
     private val validEmptyBlockStatement = AST.Block(
         listOf()
-    ).wrapBlockStatement().wrapMockValid()
+    ).wrapMockValid()
 
     private fun expectAst(input: String, expectedAST: List<Parsed<AST.ClassDeclaration>>) =
         expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
@@ -37,10 +36,9 @@ internal class MixedParseTest {
                         listOf(
                             validEmptyBlockStatement
                         )
-                    ).wrapBlockStatement().wrapMockValid()
+                    ).wrapMockValid()
                 )
-            )
-                .wrapMockValid()
+            ).wrapMockValid()
         ) { parseBlock(emptyAnchorSet) }
 
     @Test
@@ -66,14 +64,12 @@ internal class MixedParseTest {
         AST.Block(
             listOf(
                 AST.ExpressionStatement(AST.IdentifierExpression("myident".toSymbol().wrapMockValid()).wrapMockValid())
-                    .wrapBlockStatement()
                     .wrapMockValid(),
                 AST.LocalVariableDeclarationStatement(
                     "myident2".toSymbol().wrapMockValid(),
                     AST.Type.Class("mytype".toSymbol().wrapMockValid()).wrapMockValid(),
                     null
-                )
-                    .wrapMockValid()
+                ).wrapMockValid()
             )
         ).wrapMockValid()
     ) { parseBlock(emptyAnchorSet) }
@@ -264,7 +260,7 @@ internal class MixedParseTest {
                                                 null
                                             ).wrapMockValid(),
                                             null
-                                        ).wrapBlockStatement().wrapMockValid()
+                                        ).wrapMockValid()
                                     )
                                 ).wrapMockValid()
                             ).wrapMockValid()
@@ -315,7 +311,7 @@ internal class MixedParseTest {
                                             ).wrapMockValid(),
                                             AST.LiteralExpression.Integer("2").wrapMockValid()
                                         ).wrapMockValid()
-                                    ).wrapBlockStatement().wrapMockValid()
+                                    ).wrapMockValid()
                                 )
                             ).wrapMockValid()
                         ).wrapMockValid()
@@ -391,7 +387,7 @@ internal class MixedParseTest {
                                             ).wrapMockValid()
                                         ).wrapMockValid(),
                                         null
-                                    ).wrapBlockStatement().wrapMockValid()
+                                    ).wrapMockValid()
                                 )
                             ).wrapMockValid()
                         ).wrapMockValid()
@@ -449,7 +445,7 @@ internal class MixedParseTest {
                                             ).wrapMockValid()
                                         ).wrapMockValid(),
                                         null
-                                    ).wrapBlockStatement().wrapMockValid()
+                                    ).wrapMockValid()
                                 )
                             ).wrapMockValid()
                         ).wrapMockValid()
@@ -560,10 +556,8 @@ internal class MixedParseTest {
                         AST.Parameter(
                             "arr".toSymbol().wrapMockValid(),
                             AST.Type.Array(
-                                AST.Type.Array(AST.Type.Class("Strig".toSymbol().wrapMockValid()).wrapMockValid())
-                                    .wrapMockValid()
-                            )
-                                .wrapMockValid()
+                                AST.Type.Array(AST.Type.Class("Strig".toSymbol().wrapMockValid()).wrapMockValid()).wrapMockValid()
+                            ).wrapMockValid()
                         )
                     ) {}
                 }
@@ -582,8 +576,7 @@ internal class MixedParseTest {
                         AST.Type.Void,
                         AST.Parameter(
                             "args".toSymbol().wrapMockValid(),
-                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid())
-                                .wrapMockValid()
+                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()).wrapMockValid()
                         )
                     ) {
                         localDeclaration(
@@ -615,16 +608,14 @@ internal class MixedParseTest {
                         AST.Type.Void,
                         AST.Parameter(
                             "args".toSymbol().wrapMockValid(),
-                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid())
-                                .wrapMockValid()
+                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()).wrapMockValid()
                         )
                     ) {
                         localDeclaration(
                             "abc",
                             AST.Type.Array(
                                 AST.Type.Array(
-                                    AST.Type.Array(AST.Type.Class("SomeClass".toSymbol().wrapMockValid()).wrapMockValid())
-                                        .wrapMockValid()
+                                    AST.Type.Array(AST.Type.Class("SomeClass".toSymbol().wrapMockValid()).wrapMockValid()).wrapMockValid()
                                 ).wrapMockValid()
                             )
                         ) {
@@ -658,8 +649,7 @@ internal class MixedParseTest {
                         "main", AST.Type.Void,
                         AST.Parameter(
                             "args".toSymbol().wrapMockValid(),
-                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid())
-                                .wrapMockValid()
+                            AST.Type.Array(AST.Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()).wrapMockValid()
                         )
                     ) {
                         expressionStatement {
