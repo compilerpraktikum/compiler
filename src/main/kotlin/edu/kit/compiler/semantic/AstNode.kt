@@ -108,13 +108,13 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         /**
          * Expression type synthesized from underlying primitives during analysis
          */
-        lateinit var actualSemanticType: SemanticType
+        abstract val actualType: SemanticType
 
         /**
          * Expected type (inherited type from outside context), maybe empty (e.g. in a comparison, the left argument has
          * no expected type)
          */
-        lateinit var expectedSemanticType: SemanticType
+        lateinit var expectedType: SemanticType
 
         /**
          * Primary expression encompassing a single identifier
@@ -124,6 +124,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              * Definition of the referenced member
              */
             lateinit var definition: Definition
+
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
         }
 
         /**
@@ -133,18 +136,27 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Integer value expression. The integer may be outside of legal bounds
              */
-            class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange)
+            class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+                override val actualType: SemanticType
+                    get() = TODO("Not yet implemented")
+            }
 
             /**
              * Boolean literal expression. Value has already been verified and is thus legal. Types have not been set
              * yet though.
              */
-            class LiteralBoolExpression(val value: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange)
+            class LiteralBoolExpression(val value: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+                override val actualType: SemanticType
+                    get() = TODO("Not yet implemented")
+            }
 
             /**
              * Null value expression. Cannot have an actual type.
              */
-            class LiteralNullExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange)
+            class LiteralNullExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+                override val actualType: SemanticType
+                    get() = TODO("Not yet implemented")
+            }
         }
 
         /**
@@ -152,13 +164,19 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          *
          * @param clazz instantiated class name
          */
-        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange)
+        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = SemanticType.ComplexType(clazz)
+        }
 
         class NewArrayExpression(
             val type: SemanticType.ArrayType,
             val length: Expression,
             sourceRange: SourceRange
-        ) : Expression(sourceRange)
+        ) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
 
         /**
          * Expression with two operands
@@ -168,7 +186,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val right: Expression,
             val operation: AST.BinaryExpression.Operation,
             sourceRange: SourceRange
-        ) : Expression(sourceRange)
+        ) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
 
         /**
          * Expression with one pre- or postfix operand
@@ -179,7 +200,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(
             sourceRange
-        )
+        ) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
 
         /**
          * Method call and return value
@@ -193,7 +217,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val method: Identifier,
             val arguments: List<Expression>,
             sourceRange: SourceRange
-        ) : Expression(sourceRange)
+        ) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
 
         /**
          * Field Access on an Expression
@@ -205,7 +232,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val target: Expression,
             val field: Identifier,
             sourceRange: SourceRange
-        ) : Expression(sourceRange)
+        ) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
 
         /**
          * Array Element Access
@@ -217,7 +247,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val target: Expression,
             val index: Expression,
             sourceRange: SourceRange
-        ) : Expression(sourceRange)
+        ) : Expression(sourceRange) {
+            override val actualType: SemanticType
+                get() = TODO("Not yet implemented")
+        }
     }
 
     sealed class Statement(sourceRange: SourceRange) : AstNode(sourceRange) {
