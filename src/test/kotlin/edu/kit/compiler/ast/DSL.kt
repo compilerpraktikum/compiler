@@ -108,7 +108,7 @@ object ExprDsl {
     ) = AST.FieldAccessExpression(ExprDsl.left().wrapMockValid(), field.toSymbol().wrapMockValid())
 
     fun newArrayOf(
-        type: Type.Array.ArrayType,
+        type: Type.Array,
         length: ExprDsl.() -> AST.Expression
     ) = AST.NewArrayExpression(type.wrapMockValid(), ExprDsl.length().wrapMockValid())
 }
