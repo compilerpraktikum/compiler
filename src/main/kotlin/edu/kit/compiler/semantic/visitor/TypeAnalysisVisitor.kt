@@ -1,5 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
+import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.ParsedType
@@ -216,7 +217,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     private fun checkAndMessageIfNot(errorMsg: String, function: () -> kotlin.Boolean) {
         if (!function()) {
-            TODO("Print Error: $errorMsg")
+            TODO("Print Error: $errorMsg and throw sth")
         }
     }
 
