@@ -40,4 +40,14 @@ private class TransformationMethodVisitor(private val surroundingClass: AstNode.
             super.visitMethodDeclaration(methodDeclaration)
         }
     }
+
+    override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+        FirmContext.binaryExpression(binaryOperation.operation) {
+            super.visitBinaryOperation(binaryOperation)
+        }
+    }
+
+    override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+        super.visitReturnStatement(returnStatement)
+    }
 }
