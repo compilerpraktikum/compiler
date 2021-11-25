@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
+import edu.kit.compiler.semantic.visitor.accept
 
 val VariableDefinition.identifier
     get() = when (this.node) {
@@ -259,4 +260,10 @@ class SubroutineNameResolver(
     override fun visitComplexType(clazz: SemanticType.Class) {
         clazz.definition = currentMethodNamespace.lookupClass(clazz)
     }
+}
+
+fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
+    val global = GlobalNamespace()
+    program.accept(NamespacePopulator(global, sourceFile))
+    program.accept(SubroutineNameResolver(global, sourceFile))
 }
