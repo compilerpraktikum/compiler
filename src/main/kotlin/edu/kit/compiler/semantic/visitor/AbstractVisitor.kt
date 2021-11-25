@@ -62,6 +62,9 @@ abstract class AbstractVisitor {
     open fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
     }
 
+    open fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    }
+
     open fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         methodInvocationExpression.target?.accept(this)
         methodInvocationExpression.arguments.forEach { it.accept(this) }
@@ -162,6 +165,7 @@ fun AstNode.Expression.LiteralExpression.accept(visitor: AbstractVisitor) {
         is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> visitor.visitLiteralBoolExpression(this)
         is AstNode.Expression.LiteralExpression.LiteralIntExpression -> visitor.visitLiteralIntExpression(this)
         is AstNode.Expression.LiteralExpression.LiteralNullExpression -> visitor.visitLiteralNullExpression(this)
+        is AstNode.Expression.LiteralExpression.LiteralThisExpression -> visitor.visitLiteralThisExpression(this)
     }
 }
 

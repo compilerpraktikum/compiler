@@ -45,7 +45,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(peekedToken.value).wrapValid(peekedToken.range)
+                AST.LiteralExpression.Integer(peekedToken.value).wrapValid(peekedToken.range)
             }
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
@@ -86,20 +86,19 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 when (peekedToken.type) {
                     Token.Keyword.Type.Null -> {
                         next()
-                        AST.LiteralExpression("null").wrapValid(peekedToken.range)
+                        AST.LiteralExpression.Null().wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.False -> {
                         next()
-                        AST.LiteralExpression(false).wrapValid(peekedToken.range)
+                        AST.LiteralExpression.Boolean(false).wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.True -> {
                         next()
-                        AST.LiteralExpression(true).wrapValid(peekedToken.range)
+                        AST.LiteralExpression.Boolean(true).wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.This -> {
                         next()
-                        // TODO fix: `this` is not a literal
-                        AST.LiteralExpression("this").wrapValid(peekedToken.range)
+                        AST.LiteralExpression.This().wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.New -> {
                         next()

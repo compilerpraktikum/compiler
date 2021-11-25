@@ -202,9 +202,12 @@ object AST {
         val name: Parsed<Symbol>,
     ) : Expression()
 
-    data class LiteralExpression<T>(
-        val value: T,
-    ) : Expression()
+    sealed class LiteralExpression : Expression() {
+        class Boolean(val value: kotlin.Boolean) : LiteralExpression()
+        class Integer(val value: String) : LiteralExpression()
+        class Null() : LiteralExpression()
+        class This() : LiteralExpression()
+    }
 
     data class NewObjectExpression(
         val clazz: Parsed<Symbol>,

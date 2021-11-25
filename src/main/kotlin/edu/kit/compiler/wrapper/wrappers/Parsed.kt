@@ -221,19 +221,12 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             )
         is AST.IdentifierExpression ->
             AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
-        is AST.LiteralExpression<*> ->
-            when (expression.value) {
-                "null" -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
-                "this" -> TODO("fix 'this' is not a literal")
-                is String -> AstNode.Expression.LiteralExpression.LiteralIntExpression(
-                    expression.value,
-                    this.range
-                )
-                is Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(
-                    expression.value,
-                    this.range
-                )
-                else -> null
+        is AST.LiteralExpression ->
+            when (expression) {
+                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, this.range)
+                is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
+                is AST.LiteralExpression.Null -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
+                is AST.LiteralExpression.This -> AstNode.Expression.LiteralExpression.LiteralThisExpression(this.range)
             }
         is AST.MethodInvocationExpression ->
             AstNode.Expression.MethodInvocationExpression(
