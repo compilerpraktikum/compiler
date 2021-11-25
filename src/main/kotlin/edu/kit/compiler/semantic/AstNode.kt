@@ -160,6 +160,16 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 override val actualType: SemanticType
                     get() = TODO("Not yet implemented")
             }
+
+            /**
+             * This expression.
+             */
+            class LiteralThisExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+                lateinit var definition: ClassDefinition
+
+                override val actualType: SemanticType
+                    get() = TODO("Not yet implemented")
+            }
         }
 
         /**

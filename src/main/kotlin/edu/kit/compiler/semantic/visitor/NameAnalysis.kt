@@ -26,6 +26,8 @@ class LocalMethodNamespace(
     private val global
         get() = clazz.namespace.global
 
+    private val thisDefinition = global.classes.getOrNull(clazz.name.symbol)!!
+
     private val paramsByName = parameters.associateBy { it.name.symbol }
 
     private val local = SymbolTable()
@@ -50,7 +52,6 @@ class LocalMethodNamespace(
         }
     }
 
-    // TODO error handling (-> sourceFile.annotate(...)) should probably happen in these methods
     fun lookupClass(classType: SemanticType.Class): ClassDefinition {
         val def = global.classes.getOrNull(classType.name.symbol)
         if (def == null) {
@@ -89,6 +90,7 @@ class LocalMethodNamespace(
         }
         return def
     }
+
     fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition {
         if (inClazz != null && inClazz !is SemanticType.Class) {
             sourceFile.annotate(
@@ -111,7 +113,8 @@ class LocalMethodNamespace(
         }
         return def
     }
-    fun lookupVariable(name: AstNode.Identifier): Definition<VariableNode> {
+
+    fun lookupVariable(name: AstNode.Identifier): VariableDefinition {
         local.lookup(name.symbol)?.let {
             return it
         }
@@ -127,6 +130,8 @@ class LocalMethodNamespace(
         }
         return def.wrap()
     }
+
+    fun lookupThis(): ClassDefinition = thisDefinition
 }
 
 /**
@@ -259,6 +264,10 @@ class SubroutineNameResolver(
 
     override fun visitComplexType(clazz: SemanticType.Class) {
         clazz.definition = currentMethodNamespace.lookupClass(clazz)
+    }
+
+    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+        literalThisExpression.definition = currentMethodNamespace.lookupThis()
     }
 }
 
