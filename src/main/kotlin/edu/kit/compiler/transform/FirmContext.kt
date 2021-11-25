@@ -1,6 +1,7 @@
 package edu.kit.compiler.transform
 
 import firm.Construction
+import firm.Dump
 import firm.Entity
 import firm.Firm
 import firm.Graph
@@ -50,7 +51,7 @@ object FirmContext {
     }
 
     fun subroutine(variables: Int, name: String, type: MethodType, block: () -> Unit) {
-        check(this.construction != null) { "cannot construct a method while another is being constructed" }
+        check(this.construction == null) { "cannot construct a method while another is being constructed" }
 
         val globalType = Program.getGlobalType()
         val methodEntity = Entity(globalType, name, type)
@@ -58,7 +59,8 @@ object FirmContext {
         this.construction = Construction(graph)
         block.invoke()
         this.construction!!.finish()
-        // dump graph
+
+        Dump.dumpGraph(graph, "after-construction")
         this.construction = null
     }
 }
