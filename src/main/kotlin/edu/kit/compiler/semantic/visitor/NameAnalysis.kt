@@ -107,7 +107,9 @@ class LocalMethodNamespace(
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 name.sourceRange,
-                "unknown method `${clazz.name.text}.${name.symbol.text}`"
+                "unknown method `${clazz.name.text}.${name.symbol.text}`" + if (name.symbol.text == "main" && clazz.namespace.hasMainMethod) {
+                    " (note: you cannot call the main method of a program)"
+                } else ""
             )
             TODO()
         }
@@ -199,6 +201,11 @@ class NamespacePopulator(
                 )
             )
         })
+        // do not descend
+    }
+
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        currentClassNamespace.hasMainMethod = true
         // do not descend
     }
 }

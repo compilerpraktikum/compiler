@@ -63,6 +63,7 @@ class ClassNamespace(
 ) {
     val fields = Namespace<AstNode.ClassMember.FieldDeclaration>()
     val methods = Namespace<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>()
+    var hasMainMethod = false
 }
 
 class SymbolTable {
