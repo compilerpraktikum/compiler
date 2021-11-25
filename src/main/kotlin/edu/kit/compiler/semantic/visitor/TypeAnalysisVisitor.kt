@@ -76,6 +76,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+        //TODO maybe check for name = String, if namensanalyse doesnt do that
         super.visitClassDeclaration(classDeclaration)
     }
 
@@ -91,7 +92,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
-        checkAndMessageIfNot("") {
+        checkAndMessageIfNot("Only method invocations and assignments are allowed as statements.") {
             expressionStatement.expression is AstNode.Expression.MethodInvocationExpression ||
                 (expressionStatement.expression is AstNode.Expression.BinaryOperation && expressionStatement.expression.operation == AST.BinaryExpression.Operation.ASSIGNMENT)
         }
@@ -168,17 +169,40 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitMethodInvocationExpression(methodInvocationExpression)
         //TODO what is with this
         //TODO if target == null ?
-        if (methodInvocationExpression.target)
         checkAndMessageIfNot("") {
-            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression
+            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
+                methodInvocationExpression.target is TODO("THIS_EXPRESSION as a literal")
         }
-        methodInvocationExpression.target.actualSemanticType is TODO("THIS_EXPRESSION")
 
         methodInvocationExpression.actualSemanticType = TODO("${methodInvocationExpression.method}.returnType")
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
     }
 
+    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+        TODO("check if setting ${identifierExpression.actualSemanticType} is needed. We need namespace stuff for that.")
+        checkActualTypeEqualsExpectedType(identifierExpression)
+    }
 
+    override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+        newArrayExpression.length.expectedSemanticType = SemanticType.IntType
+        super.visitNewArrayExpression(newArrayExpression)
+
+        newArrayExpression.actualSemanticType = constructSemanticType(newArrayExpression.type)
+        checkActualTypeEqualsExpectedType(newArrayExpression)
+    }
+
+    override fun visitArrayType(arrayType: ParsedType.ArrayType) {
+        checkAndMessageIfNot("No void typed arrays.") {
+            !(arrayType.elementType !is ParsedType.ArrayType && arrayType.elementType is ParsedType.VoidType)
+        }
+        super.visitArrayType(arrayType)
+    }
+
+    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+        super.visitNewObjectExpression(newObjectExpression)
+        newObjectExpression.actualSemanticType = TODO("get from namespace stuff (${newObjectExpression.clazz}), must be some ComplexType")
+        checkActualTypeEqualsExpectedType(newObjectExpression)
+    }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
         literalBoolExpression.actualSemanticType = SemanticType.BoolType

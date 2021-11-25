@@ -16,6 +16,20 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
         // don't visit method blocks, that would be waste of time
     }
 
+    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+        if (methodInvocationExpression.method.symbol.text == "main")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                methodInvocationExpression.sourceRange,
+                "the main method cannot be invoked.",
+                listOf(
+                    SourceNote(methodInvocationExpression.sourceRange, "hint: don't call the main method.")
+                )
+            )
+
+        super.visitMethodInvocationExpression(methodInvocationExpression)
+    }
+
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         if (mainMethodDeclaration.returnType !is SemanticType.Void) {
             if (mainMethodDeclaration.name.symbol.text == "main")
