@@ -4,6 +4,7 @@ import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
+import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
@@ -156,10 +157,7 @@ class NamespacePopulator(
                 classDeclaration.name.sourceRange,
                 "class `${classDeclaration.name.text}` is already defined",
                 listOf(
-                    SourceNote(
-                        it.node.name.sourceRange,
-                        "see previous definition here"
-                    )
+                    SourceNote(it.node.name.sourceRange, "see previous definition here")
                 )
             )
         })
@@ -177,36 +175,56 @@ class NamespacePopulator(
                 fieldDeclaration.name.sourceRange,
                 "field `${fieldDeclaration.name.text}` is already defined",
                 listOf(
-                    SourceNote(
-                        prev.node.name.sourceRange,
-                        "see previous definition here"
-                    )
+                    SourceNote(prev.node.name.sourceRange, "see previous definition here")
                 )
             )
         })
+
         // do not descend
     }
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+        if (methodDeclaration.name.text == "main") {
+            currentClassNamespace.mainMethodDefinition?.let {
+                printErrorDuplicateMain(methodDeclaration.name.sourceRange, it.node.sourceRange)
+                // continue anyway to prevent misleading error messages when calling main ("unknown method" even though 2 methods with the name exist)
+            }
+        }
+
         currentClassNamespace.methods.tryPut(methodDeclaration.asDefinition(), onDuplicate = { prev ->
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 methodDeclaration.name.sourceRange,
-                "field `${methodDeclaration.name.text}` is already defined",
+                "method `${methodDeclaration.name.text}` is already defined",
                 listOf(
-                    SourceNote(
-                        prev.node.name.sourceRange,
-                        "see previous definition here"
-                    )
+                    SourceNote(prev.node.name.sourceRange, "see previous definition here")
                 )
             )
         })
+
         // do not descend
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        currentClassNamespace.hasMainMethod = true
+        currentClassNamespace.mainMethodDefinition = mainMethodDeclaration.asDefinition()
+
+        val otherMainDefinition = currentClassNamespace.methods.getOrNull("main")
+        if (otherMainDefinition != null) {
+            printErrorDuplicateMain(mainMethodDeclaration.sourceRange, otherMainDefinition.node.name.sourceRange)
+        }
+
         // do not descend
+    }
+
+    private fun printErrorDuplicateMain(current: SourceRange, previous: SourceRange) {
+        sourceFile.annotate(
+            AnnotationType.ERROR,
+            current,
+            "method `main` is already defined",
+            listOf(
+                SourceNote(previous, "see previous definition here")
+            )
+        )
     }
 }
 

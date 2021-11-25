@@ -19,6 +19,9 @@ fun AstNode.ClassMember.FieldDeclaration.asDefinition() = FieldDefinition(name.s
 typealias MethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>
 fun AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() = MethodDefinition(name.symbol, this)
 
+typealias MainMethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
+fun AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
+
 sealed class VariableNode {
     class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode()
     class Parameter(val node: AstNode.ClassMember.SubroutineDeclaration.Parameter) : VariableNode()
@@ -52,6 +55,14 @@ class Namespace<T> {
      * @return the definition associated with the given [name] or `null` if no such definition exists
      */
     fun getOrNull(name: Symbol): Definition<T>? = entries[name]
+
+    fun getOrNull(name: String): Definition<T>? = entries.firstNotNullOfOrNull {
+        if (it.key.text == name) {
+            return it.value
+        } else {
+            return null
+        }
+    }
 }
 
 class GlobalNamespace {
@@ -63,7 +74,10 @@ class ClassNamespace(
 ) {
     val fields = Namespace<AstNode.ClassMember.FieldDeclaration>()
     val methods = Namespace<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>()
-    var hasMainMethod = false
+
+    var mainMethodDefinition: MainMethodDefinition? = null
+    val hasMainMethod
+        get() = mainMethodDefinition != null
 }
 
 class SymbolTable {
