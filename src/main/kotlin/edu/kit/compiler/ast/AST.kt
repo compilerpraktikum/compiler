@@ -4,12 +4,7 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.wrapper.wrappers.Parsed
 
-sealed class Type() {
-
-    companion object {
-        fun arrayOf(elementType: Parsed<Type>) =
-            Array(Array.ArrayType(elementType))
-    }
+sealed class Type {
 
     object Void : Type()
 
@@ -18,15 +13,8 @@ sealed class Type() {
     object Boolean : Type()
 
     data class Array(
-        val arrayType: ArrayType
-    ) : Type() {
-        @JvmInline
-        value class ArrayType(
-            val elementType: Parsed<Type>
-        ) {
-            fun wrapArray() = Array(this)
-        }
-    }
+        val elementType: Parsed<Type>
+    ) : Type()
 
     data class Class(
         val name: Parsed<Symbol>
@@ -223,7 +211,7 @@ object AST {
     ) : Expression()
 
     data class NewArrayExpression(
-        val type: Parsed<Type.Array.ArrayType>,
+        val type: Parsed<Type.Array>,
         val length: Parsed<Expression>,
     ) : Expression()
 }

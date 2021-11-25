@@ -209,7 +209,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
         val arrayType =
-            rBracket.map { Type.Array.ArrayType(basicType) }
+            rBracket.map { Type.Array(basicType) }
                 .mapPosition { basicType.range.extend(rBracket.range) }
 
         val recurseExpression = parseNewArrayExpressionTypeArrayRecurse(arrayType, anc)
@@ -219,9 +219,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(
-        basicType: Parsed<Type.Array.ArrayType>,
+        basicType: Parsed<Type.Array>,
         anc: AnchorUnion
-    ): Parsed<Type.Array.ArrayType> {
+    ): Parsed<Type.Array> {
         val maybeAnotherLBracket = peek(0)
 
         return if (maybeAnotherLBracket !is Token.Eof) {
@@ -235,7 +235,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             ) {
                 next()
                 next()
-                Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() })
+                Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc))
                     .wrapValid(basicType.range.extend(maybeAnotherRBracket.range))
             } else {
                 basicType
@@ -1181,7 +1181,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val maybeLeftBracket = peek(0)
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
-            return parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }
+            return parseTypeArrayRecurse(basicType, anc)
         }
         return basicType
     }
@@ -1189,7 +1189,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     private fun parseTypeArrayRecurse(
         basicType: Parsed<Type>,
         anc: AnchorUnion
-    ): Parsed<Type.Array.ArrayType> {
+    ): Parsed<Type.Array> {
         next()
 
         val rightBracket = expectOperator(
@@ -1202,15 +1202,15 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val range = basicType.range.extend(rightBracket.range)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             if (rightBracket.isValid) {
-                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid(range)
+                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapValid(range)
             } else {
-                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapErroneous(range)
+                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapErroneous(range)
             }
         } else {
             if (rightBracket.isValid) {
-                Type.Array.ArrayType(basicType).wrapValid(range)
+                Type.Array(basicType).wrapValid(range)
             } else {
-                Type.Array.ArrayType(basicType).wrapErroneous(range)
+                Type.Array(basicType).wrapErroneous(range)
             }
         }
     }
