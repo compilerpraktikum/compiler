@@ -7,6 +7,7 @@ import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.wrapper.wrappers.Parsed
+import java.lang.IllegalArgumentException
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
@@ -87,7 +88,14 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
 }
 
 object ExprDsl {
-    fun <T> literal(v: T) = AST.LiteralExpression(v)
+    fun <T> literal(v: T) = when (v) {
+        "true" -> AST.LiteralExpression.Boolean(true)
+        "false" -> AST.LiteralExpression.Boolean(false)
+        "null" -> AST.LiteralExpression.Null()
+        "this" -> AST.LiteralExpression.This()
+        is String -> AST.LiteralExpression.Integer(v)
+        else -> throw IllegalArgumentException("unknown literal type: $v")
+    }
     fun binOp(
         op: AST.BinaryExpression.Operation,
         left: ExprDsl.() -> AST.Expression,
