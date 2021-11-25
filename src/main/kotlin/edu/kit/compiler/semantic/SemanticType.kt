@@ -12,11 +12,7 @@ sealed class SemanticType {
 
     data class Class(val name: AstNode.Identifier) : SemanticType()
 
-    data class Array(val elementType: SemanticType) : SemanticType() {
-        init {
-            assert(elementType !is Void)
-        }
-    }
+    data class Array(val elementType: SemanticType) : SemanticType()
 
     /**
      * If this type is assigned as the semantic type of an [AstNode], the defined type is invalid and type checks should
