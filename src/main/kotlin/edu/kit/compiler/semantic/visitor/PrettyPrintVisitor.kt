@@ -320,7 +320,7 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         print("[]")
     }
 
-    override fun visitComplexType(clazz: SemanticType.Class) {
+    override fun visitClassType(clazz: SemanticType.Class) {
         print(clazz.name.symbol.text)
     }
 

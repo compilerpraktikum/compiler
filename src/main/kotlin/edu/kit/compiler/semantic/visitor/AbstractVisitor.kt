@@ -120,7 +120,7 @@ abstract class AbstractVisitor {
         arrayType.elementType.accept(this)
     }
 
-    open fun visitComplexType(clazz: SemanticType.Class) {
+    open fun visitClassType(clazz: SemanticType.Class) {
     }
 }
 
@@ -182,6 +182,6 @@ fun SemanticType.accept(visitor: AbstractVisitor) {
         SemanticType.Boolean -> visitor.visitBoolType()
         SemanticType.Void -> visitor.visitVoidType()
         is SemanticType.Array -> visitor.visitArrayType(this)
-        is SemanticType.Class -> visitor.visitComplexType(this)
+        is SemanticType.Class -> visitor.visitClassType(this)
     }
 }
