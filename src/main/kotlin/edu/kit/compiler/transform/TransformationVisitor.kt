@@ -42,7 +42,25 @@ private class TransformationMethodVisitor(private val surroundingClass: AstNode.
         }
     }
 
+    override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
+        FirmContext.unaryExpression(unaryOperation.operation) {
+            super.visitUnaryOperation(unaryOperation)
+        }
+    }
+
+    override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+        FirmContext.literalBool(literalBoolExpression.value)
+    }
+
+    override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+        FirmContext.literalInt(literalIntExpression.value.toInt()) // todo this cast should happen in the semantic analysis
+    }
+
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        super.visitReturnStatement(returnStatement)
+        if (returnStatement.expression != null) {
+            FirmContext.returnStatement { super.visitReturnStatement(returnStatement) }
+        } else {
+            FirmContext.returnStatement()
+        }
     }
 }

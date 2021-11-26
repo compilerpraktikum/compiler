@@ -56,6 +56,11 @@ object FirmContext {
     private var graph: Graph? = null
 
     /**
+     * A list of all return nodes of a method. Must be connected to the end node in the end.
+     */
+    private val returnNodes = mutableListOf<Node>()
+
+    /**
      * A stack for constructing expressions using a visitor. Each constructed expression is added to the current top
      * [ExpressionStackElement]. This way, when an expression is being transformed, it pushes an element onto the stack,
      * then recursively constructs the inner expressions, and then uses their results to construct itself.
@@ -111,12 +116,25 @@ object FirmContext {
         val methodEntity = Entity(globalType, name, type)
         this.graph = Graph(methodEntity, variables)
         this.construction = Construction(this.graph)
+
+        // insert start node
+        val startNode = this.construction!!.newStart()
+        this.construction!!.currentMem = this.construction!!.newProj(startNode, Mode.getM(), 0)
+
+        // construct method
         block.invoke()
+
+        // insert end node
+        returnNodes.forEach(this.graph!!.endBlock::addPred)
+        this.construction!!.newEnd(emptyArray())
+        this.graph!!.endBlock.mature()
+
         this.construction!!.finish()
 
         Dump.dumpGraph(graph, "after-construction")
         this.construction = null
         this.graph = null
+        this.returnNodes.clear()
     }
 
     /**
@@ -152,6 +170,64 @@ object FirmContext {
 
         this.graph!!.keepAlive(expression)
         this.expressionStack.peek().push(expression)
+    }
+
+    /**
+     * Construct a unary expression. This is very similar to [binaryExpression] and the given sample code can be applied
+     * directly to unary expressions.
+     *
+     * @param operation the [AST.UnaryExpression.Operation] variant that is being constructed
+     * @sample block code fragment that constructs the inner expressions
+     *
+     * @sample ConstructExpressions
+     */
+    fun unaryExpression(operation: AST.UnaryExpression.Operation, block: () -> Unit) {
+        val f = ExpressionStackElement()
+        this.expressionStack.push(f)
+        block.invoke()
+        this.expressionStack.pop()
+
+        val expression = when (operation) {
+            AST.UnaryExpression.Operation.NOT -> this.construction!!.newNot(f.firstNode)
+            AST.UnaryExpression.Operation.MINUS -> this.construction!!.newMinus(f.firstNode)
+        }
+
+        this.graph!!.keepAlive(expression)
+        this.expressionStack.peek().push(expression)
+    }
+
+    /**
+     * Push a boolean literal into the currently constructed expression
+     */
+    fun literalBool(value: Boolean) {
+        val intRepr = if (value) 1 else 0
+        this.expressionStack.peek().push(this.construction!!.newConst(intRepr, boolType.mode))
+    }
+
+    /**
+     * Push an integer literal into the currently constructed expression
+     */
+    fun literalInt(value: Int) {
+        this.expressionStack.peek().push(this.construction!!.newConst(value, intType.mode))
+    }
+
+    fun returnStatement(block: (() -> Unit)? = null) {
+        val mem = this.construction!!.currentMem
+
+        val returnNode = if (block != null) {
+            val f = ExpressionStackElement()
+            this.expressionStack.push(f)
+            block.invoke()
+            this.expressionStack.pop()
+
+            this.construction!!.newReturn(mem, arrayOf(f.firstNode))
+        } else {
+            this.construction!!.newReturn(mem, emptyArray())
+        }
+
+        this.graph!!.keepAlive(returnNode)
+
+        this.returnNodes.add(returnNode)
     }
 
     private class ExpressionStackElement {
