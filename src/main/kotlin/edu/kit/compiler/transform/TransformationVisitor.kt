@@ -10,11 +10,6 @@ import edu.kit.compiler.transform.FirmContext.intType
  * A visitor implementation that constructs the firm graph of the [AST][AstNode].
  */
 class TransformationVisitor : AbstractVisitor() {
-    override fun visitProgram(program: AstNode.Program) {
-        FirmContext.init()
-        super.visitProgram(program)
-    }
-
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         classDeclaration.accept(TransformationClassVisitor(classDeclaration))
     }
