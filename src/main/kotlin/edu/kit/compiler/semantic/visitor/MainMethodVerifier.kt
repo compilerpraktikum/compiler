@@ -5,7 +5,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.ParsedType
 
 /**
  * A visitor that ensures that all special semantic constraints of the main method are fulfilled.
@@ -21,44 +21,32 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 methodInvocationExpression.sourceRange,
-                "the main method cannot be invoked.",
-                listOf(
-                    SourceNote(methodInvocationExpression.sourceRange, "hint: don't call the main method.")
-                )
+                "the main method cannot be invoked."
             )
 
         super.visitMethodInvocationExpression(methodInvocationExpression)
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        if (mainMethodDeclaration.returnType !is SemanticType.Void) {
+        if (mainMethodDeclaration.parsedReturnType !is ParsedType.VoidType) {
             if (mainMethodDeclaration.name.symbol.text == "main")
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "the main method must return `void`",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "change the return type to `void`", "hint")
-                    )
+                    "the main method must return `void`"
                 )
             else
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "only the main method is allowed to be `static`",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
-                    )
+                    "only the main method is allowed to be `static`"
                 )
         } else {
             if (mainMethodDeclaration.name.symbol.text != "main") {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "only the `main` method is allowed to be static",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
-                    )
+                    "only the `main` method is allowed to be static"
                 )
             }
         }
@@ -75,9 +63,9 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 mainMethodDeclaration.parameters[1].sourceRange.extend(mainMethodDeclaration.parameters.last().sourceRange),
                 "the main method cannot have more than one parameter",
             )
-        } else if (mainMethodDeclaration.parameters[0].type !is SemanticType.Array ||
-            (mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType !is SemanticType.Class ||
-            ((mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType as SemanticType.Class)
+        } else if (mainMethodDeclaration.parameters[0].type !is ParsedType.ArrayType ||
+            (mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType !is ParsedType.ComplexType ||
+            ((mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType as ParsedType.ComplexType)
                 .name.symbol.text != "String"
         ) {
             sourceFile.annotate(
