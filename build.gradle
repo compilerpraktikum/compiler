@@ -69,7 +69,7 @@ shadowJar {
 
 test {
     useJUnitPlatform()
-    jvmArgs '-Xss2m'
+    jvmArgs '-Xss3m'
 }
 
 
