@@ -76,20 +76,24 @@ class NameResolutionHelper(
 
     fun lookupClass(classType: SemanticType.Class): ClassDefinition? = lookupClass(global, sourceFile, classType)
 
-    private fun getClazzByType(inClazz: SemanticType.Class?) =
-        inClazz?.let { global.classes.getOrNull(it.name.symbol)!!.node } ?: clazz
+    private fun getClazzByType(inClazz: SemanticType.Class?) = when (inClazz) {
+        null -> clazz
+        else -> global.classes.getOrNull(inClazz.name.symbol)?.node
+    }
 
     fun lookupField(name: AstNode.Identifier, inClazz: SemanticType? = null): FieldDefinition? {
         if (inClazz !is SemanticType.Class) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "field access on non-class type"
-            )
+            if (inClazz !is SemanticType.Error) { // suppress error spam
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    name.sourceRange,
+                    "field access on non-class type"
+                )
+            }
             return null
         }
 
-        val clazz = getClazzByType(inClazz)
+        val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
@@ -104,15 +108,17 @@ class NameResolutionHelper(
 
     fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
         if (inClazz != null && inClazz !is SemanticType.Class) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "field access on non-class type"
-            )
+            if (inClazz !is SemanticType.Error) { // suppress error spam
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    name.sourceRange,
+                    "field access on non-class type"
+                )
+            }
             return null
         }
 
-        val clazz = getClazzByType(inClazz as SemanticType.Class?)
+        val clazz = getClazzByType(inClazz as SemanticType.Class?) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
