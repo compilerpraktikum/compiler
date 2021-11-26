@@ -85,6 +85,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             expressionStatement.expression is AstNode.Expression.MethodInvocationExpression ||
                 (expressionStatement.expression is AstNode.Expression.BinaryOperation && expressionStatement.expression.operation == AST.BinaryExpression.Operation.ASSIGNMENT)
         }
+        expressionStatement.expression.expectedType = expressionStatement.expression.actualType
         super.visitExpressionStatement(expressionStatement)
     }
 
@@ -134,19 +135,19 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // expect that argument's types match the parameter's types in the definition.
         methodInvocationExpression.arguments
-            .zip(methodInvocationExpression.definition.node.parameters)
+            .zip(methodInvocationExpression.definition!!.node.parameters)
             .forEach { pair -> pair.first.expectedType = pair.second.type }
 
         if (methodInvocationExpression.target != null) {
             // no expectations.
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
         }
+        methodInvocationExpression.expectedType = methodInvocationExpression.actualType
         super.visitMethodInvocationExpression(methodInvocationExpression)
-
         // may not be the best message...
         errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers or \"this\"") {
             methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
-                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression
+                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression || methodInvocationExpression.target == null
         }
 
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
@@ -178,6 +179,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+        literalBoolExpression.expectedType = SemanticType.Boolean
+        super.visitLiteralBoolExpression(literalBoolExpression)
         checkActualTypeEqualsExpectedType(literalBoolExpression)
     }
 
