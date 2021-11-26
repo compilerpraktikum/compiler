@@ -184,9 +184,7 @@ internal class MixedParseTest {
                                 AST.Parameter(
                                     "args".toSymbol().wrapMockValid(),
                                     Type.Array(
-                                        Type.Array(
-                                            Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()
-                                        ).wrapMockValid()
+                                        Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()
                                     ).wrapMockValid()
                                 ).wrapMockValid()
                             ),
@@ -241,11 +239,8 @@ internal class MixedParseTest {
                                     AST.Parameter(
                                         "args".toSymbol().wrapMockValid(),
                                         Type.Array(
-                                            Type.Array(
-                                                Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()
-                                            ).wrapMockValid()
-                                        )
-                                            .wrapMockValid()
+                                            Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()
+                                        ).wrapMockValid()
                                     ).wrapMockValid()
                                 ),
                                 AST.Block(
@@ -433,11 +428,8 @@ internal class MixedParseTest {
                                 AST.Parameter(
                                     "args".toSymbol().wrapMockValid(),
                                     Type.Array(
-                                        Type.Array(
                                             Type.Class("String".toSymbol().wrapMockValid()).wrapMockValid()
-                                        ).wrapMockValid()
-                                    )
-                                        .wrapMockValid()
+                                    ).wrapMockValid()
                                 ).wrapMockValid()
                             ),
                             AST.Block(
