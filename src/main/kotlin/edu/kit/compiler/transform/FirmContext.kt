@@ -84,13 +84,17 @@ object FirmContext {
         return MethodType(parameterTypes, arrayOf(returnType))
     }
 
-    fun constructClassType(symbol: Symbol, vararg memberTypes: Type): ClassType {
+    fun constructClassType(symbol: Symbol): ClassType {
         val t = ClassType(symbol.text).apply {
             addSuperType(globalType)
-            // todo how do I add members?!
         }
         this.constructedClassTypes[symbol] = t
         return t
+    }
+
+    fun constructField(type: Type, name: Symbol, ownerName: Symbol): Entity {
+        val owner = classTypes[ownerName]!!
+        return Entity(owner, name.text, type)
     }
 
     fun subroutine(variables: Int, name: String, type: MethodType, block: () -> Unit) {

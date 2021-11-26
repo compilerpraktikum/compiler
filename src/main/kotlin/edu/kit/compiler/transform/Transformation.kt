@@ -15,6 +15,7 @@ object Transformation {
         FirmContext.init()
 
         ast.accept(ClassTypeVisitor())
+        ast.accept(FieldVisitor())
         ast.accept(TransformationVisitor())
     }
 }
