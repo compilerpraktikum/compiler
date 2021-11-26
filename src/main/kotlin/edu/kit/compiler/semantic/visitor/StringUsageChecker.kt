@@ -5,7 +5,6 @@ import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
 
 class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor() {
-
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         checkAndMessageIfNot(
             SourceRange(classDeclaration.sourceRange.start, 1),
