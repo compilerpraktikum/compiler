@@ -86,7 +86,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-//                        program.accept(PrettyPrintVisitor(System.out))
+                        program.accept(PrettyPrintVisitor(System.out))
                     }
                 }
                 Mode.SemanticCheck -> {
