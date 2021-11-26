@@ -6,11 +6,10 @@ import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 internal class NameAnalysisTest {
 
-    private fun check(shouldSucceed: Boolean, input: () -> String) {
+    private fun checkNames(shouldSucceed: Boolean, input: () -> String) {
         val (lexer, sourceFile) = createLexer(input())
         val parser = Parser(sourceFile, lexer.tokens())
         val ast = parser.parse().validate()
@@ -19,9 +18,7 @@ internal class NameAnalysisTest {
         try {
             doNameAnalysis(ast, sourceFile)
         } catch (e: NotImplementedError) {
-            kotlin.check(sourceFile.hasError) { "" }
-            sourceFile.printAnnotations()
-            assertFalse(shouldSucceed)
+            check(sourceFile.hasError) { "" }
         }
 
         sourceFile.printAnnotations()
@@ -31,7 +28,7 @@ internal class NameAnalysisTest {
 
     @Test
     fun testValidCallOtherMethod() {
-        check(true) {
+        checkNames(true) {
             """
                 class Test {
                     public int f;
@@ -47,7 +44,7 @@ internal class NameAnalysisTest {
 
     @Test
     fun testUnknownMethod() {
-        check(false) {
+        checkNames(false) {
             """
                 class Test {
                     public void main(int i) {
@@ -60,7 +57,7 @@ internal class NameAnalysisTest {
 
     @Test
     fun testUnknownMethodOtherClass() {
-        check(false) {
+        checkNames(false) {
             """
                 class Foo {
                     public int bar() {}
@@ -70,6 +67,24 @@ internal class NameAnalysisTest {
                     public Foo foo;
                     public void main(int i) {
                         foo.test();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testKnownMethodOtherClass() {
+        checkNames(true) {
+            """
+                class Foo {
+                    public int bar() {}
+                }
+
+                class Test {
+                    public Foo foo;
+                    public void main(int i) {
+                        foo.bar();
                     }
                 }
             """.trimIndent()
