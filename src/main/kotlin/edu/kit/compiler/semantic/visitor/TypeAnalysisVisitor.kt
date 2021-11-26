@@ -49,8 +49,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
             arrayAccessExpression.index.actualType is SemanticType.Integer
         }
-        // If everything's correct, the arrayAccessExpression's type is the elementtype
-        arrayAccessExpression.actualType = (arrayAccessExpression.target.actualType as SemanticType.Array).elementType
     }
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
@@ -126,22 +124,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
                 SemanticType.Boolean
         }
-
         binaryOperation.right.accept(this)
 
-        binaryOperation.actualType = when (binaryOperation.operation) {
-            AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS,
-            AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
-            AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
-            AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
-                SemanticType.Boolean
-            AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
-            AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
-            AST.BinaryExpression.Operation.DIVISION ->
-                SemanticType.Integer
-            AST.BinaryExpression.Operation.ASSIGNMENT ->
-                binaryOperation.left.expectedType
-        }
         checkActualTypeEqualsExpectedType(binaryOperation)
     }
 
@@ -181,7 +165,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         newArrayExpression.length.expectedType = SemanticType.Integer
         super.visitNewArrayExpression(newArrayExpression)
 
-        newArrayExpression.actualType = constructSemanticType(newArrayExpression.type)
         checkActualTypeEqualsExpectedType(newArrayExpression)
     }
 
@@ -200,7 +183,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
-        literalBoolExpression.actualType = SemanticType.Boolean
         checkActualTypeEqualsExpectedType(literalBoolExpression)
     }
 
@@ -208,7 +190,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // can only be positive
         TODO("check ${literalIntExpression.value} not negative, not greater 2^(31)-1")
 
-        literalIntExpression.actualType = SemanticType.Integer
         checkActualTypeEqualsExpectedType(literalIntExpression)
     }
 
@@ -224,7 +205,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         super.visitUnaryOperation(unaryOperation)
-        unaryOperation.actualType = unaryOperation.inner.expectedType
         checkActualTypeEqualsExpectedType(unaryOperation)
     }
 
