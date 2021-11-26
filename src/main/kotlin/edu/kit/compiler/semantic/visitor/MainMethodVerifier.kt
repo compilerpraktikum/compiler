@@ -5,7 +5,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.ParsedType
+import edu.kit.compiler.semantic.SemanticType
 
 /**
  * A visitor that ensures that all special semantic constraints of the main method are fulfilled.
@@ -28,7 +28,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        if (mainMethodDeclaration.parsedReturnType !is ParsedType.VoidType) {
+        if (mainMethodDeclaration.returnType !is SemanticType.Void) {
             if (mainMethodDeclaration.name.symbol.text == "main")
                 sourceFile.annotate(
                     AnnotationType.ERROR,
@@ -72,9 +72,9 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 mainMethodDeclaration.parameters[1].sourceRange.extend(mainMethodDeclaration.parameters.last().sourceRange),
                 "the main method cannot have more than one parameter",
             )
-        } else if (mainMethodDeclaration.parameters[0].type !is ParsedType.ArrayType ||
-            (mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType !is ParsedType.ComplexType ||
-            ((mainMethodDeclaration.parameters[0].type as ParsedType.ArrayType).elementType as ParsedType.ComplexType)
+        } else if (mainMethodDeclaration.parameters[0].type !is SemanticType.Array ||
+            (mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType !is SemanticType.Class ||
+            ((mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType as SemanticType.Class)
                 .name.symbol.text != "String"
         ) {
             sourceFile.annotate(

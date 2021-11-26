@@ -5,7 +5,6 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.ParsedType
 import edu.kit.compiler.semantic.SemanticType
 
 /**
@@ -19,8 +18,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     lateinit var currentExpectedMethodReturnType: SemanticType
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
-        errorIfFalse(parameter.sourceRange, "No void typed parameters.") { parameter.type !is ParsedType.VoidType }
-        parameter.semanticType = constructSemanticType(parameter.type, TODO("get class declaration, check before"))
+        errorIfFalse(parameter.sourceRange, "No void typed parameters.") { parameter.type !is SemanticType.Void }
+        parameter.type = constructSemanticType(parameter.type, TODO("get class declaration, check before"))
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
@@ -28,14 +27,14 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitLocalVariableDeclaration(localVariableDeclaration)
 
         // L-Values check!
-        errorIfFalse(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is ParsedType.VoidType }
+        errorIfFalse(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is SemanticType.Void }
         errorIfFalse(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
-            localVariableDeclaration.type is ParsedType.ComplexType && localVariableDeclaration.type.name.symbol.text == "String"
+            localVariableDeclaration.type is SemanticType.Class && localVariableDeclaration.type.name.symbol.text == "String"
         }
 
         // type check
         errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match") {
-            localVariableDeclaration.initializer?.actualSemanticType != localVariableDeclaration.type
+            localVariableDeclaration.initializer?.actualType != localVariableDeclaration.type
         }
         TODO("impl!")
     }
@@ -45,25 +44,25 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // left-to-right: check target, then check index.
 
         errorIfFalse(arrayAccessExpression.sourceRange, "Array access target is no array.") {
-            arrayAccessExpression.target.actualSemanticType is SemanticType.ArrayType
+            arrayAccessExpression.target.actualType is SemanticType.Array
         }
         errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
-            arrayAccessExpression.index.actualSemanticType is SemanticType.IntType
+            arrayAccessExpression.index.actualType is SemanticType.Integer
         }
         // If everything's correct, the arrayAccessExpression's type is the elementtype
-        arrayAccessExpression.actualSemanticType = (arrayAccessExpression.target.actualSemanticType as SemanticType.ArrayType).elementType
+        arrayAccessExpression.actualType = (arrayAccessExpression.target.actualType as SemanticType.Array).elementType
     }
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
         super.visitFieldAccessExpression(fieldAccessExpression)
         errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
-            fieldAccessExpression.target.actualSemanticType is SemanticType.ComplexType
+            fieldAccessExpression.target.actualType is SemanticType.Class
         }
-        when (fieldAccessExpression.target.actualSemanticType) {
-            is SemanticType.ArrayType -> TODO("Error")
+        when (fieldAccessExpression.target.actualType) {
+            is SemanticType.Array -> TODO("Error")
         }
         // TODO identifier ==> Definition from current namespace (wait for AstNode change)!
-//        fieldAccessExpression.actualSemanticType = fieldAccessExpression.field
+//        fieldAccessExpression.actualType = fieldAccessExpression.field
     }
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
@@ -83,10 +82,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
         errorIfTrue(returnStatement.sourceRange, "No return values on methods with return type \"void\".") {
-            currentExpectedMethodReturnType is SemanticType.VoidType && returnStatement.expression != null
+            currentExpectedMethodReturnType is SemanticType.Void && returnStatement.expression != null
         }
         if (returnStatement.expression != null) {
-            returnStatement.expression.expectedSemanticType = currentExpectedMethodReturnType
+            returnStatement.expression.expectedType = currentExpectedMethodReturnType
             super.visitReturnStatement(returnStatement)
             checkActualTypeEqualsExpectedType(returnStatement.expression)
         }
@@ -103,63 +102,63 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
         binaryOperation.left.accept(this)
 
-        binaryOperation.right.expectedSemanticType = when (binaryOperation.operation) {
+        binaryOperation.right.expectedType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
-                binaryOperation.left.actualSemanticType
+                binaryOperation.left.actualType
             AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
             AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
             AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
             AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
             AST.BinaryExpression.Operation.DIVISION ->
-                SemanticType.IntType
+                SemanticType.Integer
             AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
-                SemanticType.BoolType
+                SemanticType.Boolean
         }
-        binaryOperation.left.expectedSemanticType = when (binaryOperation.operation) {
+        binaryOperation.left.expectedType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
-                binaryOperation.expectedSemanticType
+                binaryOperation.expectedType
             AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
             AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
             AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
             AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
             AST.BinaryExpression.Operation.DIVISION ->
-                SemanticType.IntType
+                SemanticType.Integer
             AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
-                SemanticType.BoolType
+                SemanticType.Boolean
         }
 
         binaryOperation.right.accept(this)
 
-        binaryOperation.actualSemanticType = when (binaryOperation.operation) {
+        binaryOperation.actualType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS,
             AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
             AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
             AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
-                SemanticType.BoolType
+                SemanticType.Boolean
             AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
             AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
             AST.BinaryExpression.Operation.DIVISION ->
-                SemanticType.IntType
+                SemanticType.Integer
             AST.BinaryExpression.Operation.ASSIGNMENT ->
-                binaryOperation.left.expectedSemanticType
+                binaryOperation.left.expectedType
         }
         checkActualTypeEqualsExpectedType(binaryOperation)
     }
 
     override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
-        ifStatement.condition.expectedSemanticType = SemanticType.BoolType
+        ifStatement.condition.expectedType = SemanticType.Boolean
         super.visitIfStatement(ifStatement)
     }
 
     override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
-        whileStatement.condition.expectedSemanticType = SemanticType.BoolType
+        whileStatement.condition.expectedType = SemanticType.Boolean
         super.visitWhileStatement(whileStatement)
     }
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // TODO uncomment if rebased on name analysis stuff
-//        methodInvocationExpression.arguments.zip(methodInvocationExpression.definition.node.parameters).forEach { pair -> pair.first.expectedSemanticType = pair.second.type }
+//        methodInvocationExpression.arguments.zip(methodInvocationExpression.definition.node.parameters).forEach { pair -> pair.first.expectedType = pair.second.type }
 
         super.visitMethodInvocationExpression(methodInvocationExpression)
         // TODO what is with this? Do this when "this" typing is clear.
@@ -169,39 +168,39 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 //                methodInvocationExpression.target is TODO("THIS_EXPRESSION as a literal")
 //        }
 
-        methodInvocationExpression.actualSemanticType = TODO("$methodInvocationExpression.definition.node.returnType")
+        methodInvocationExpression.actualType = TODO("$methodInvocationExpression.definition.node.returnType")
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        TODO("check if setting ${identifierExpression.actualSemanticType} is needed. We need namespace stuff for that.")
+        TODO("check if setting ${identifierExpression.actualType} is needed. We need namespace stuff for that.")
         checkActualTypeEqualsExpectedType(identifierExpression)
     }
 
     override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
-        newArrayExpression.length.expectedSemanticType = SemanticType.IntType
+        newArrayExpression.length.expectedType = SemanticType.Integer
         super.visitNewArrayExpression(newArrayExpression)
 
-        newArrayExpression.actualSemanticType = constructSemanticType(newArrayExpression.type)
+        newArrayExpression.actualType = constructSemanticType(newArrayExpression.type)
         checkActualTypeEqualsExpectedType(newArrayExpression)
     }
 
-    override fun visitArrayType(arrayType: ParsedType.ArrayType) {
+    override fun visitArrayType(arrayType: SemanticType.Array) {
         // TODO fix non-existing sourceRange
         errorIfTrue(createSourceRangeDummy(), "No void typed arrays.") {
-            arrayType.elementType is ParsedType.VoidType
+            arrayType.elementType is SemanticType.Void
         }
         super.visitArrayType(arrayType)
     }
 
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         super.visitNewObjectExpression(newObjectExpression)
-        newObjectExpression.actualSemanticType = TODO("get from namespace stuff (${newObjectExpression.clazz}), must be some ComplexType")
+        newObjectExpression.actualType = TODO("get from namespace stuff (${newObjectExpression.clazz}), must be some ComplexType")
         checkActualTypeEqualsExpectedType(newObjectExpression)
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
-        literalBoolExpression.actualSemanticType = SemanticType.BoolType
+        literalBoolExpression.actualType = SemanticType.Boolean
         checkActualTypeEqualsExpectedType(literalBoolExpression)
     }
 
@@ -209,29 +208,29 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // can only be positive
         TODO("check ${literalIntExpression.value} not negative, not greater 2^(31)-1")
 
-        literalIntExpression.actualSemanticType = SemanticType.IntType
+        literalIntExpression.actualType = SemanticType.Integer
         checkActualTypeEqualsExpectedType(literalIntExpression)
     }
 
     override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
-        literalNullExpression.actualSemanticType = TODO("null should be a type or whatever")
+        literalNullExpression.actualType = TODO("null should be a type or whatever")
         checkActualTypeEqualsExpectedType(literalNullExpression)
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
-        unaryOperation.inner.expectedSemanticType = when (unaryOperation.operation) {
-            AST.UnaryExpression.Operation.MINUS -> SemanticType.IntType
-            AST.UnaryExpression.Operation.NOT -> SemanticType.BoolType
+        unaryOperation.inner.expectedType = when (unaryOperation.operation) {
+            AST.UnaryExpression.Operation.MINUS -> SemanticType.Integer
+            AST.UnaryExpression.Operation.NOT -> SemanticType.Boolean
         }
 
         super.visitUnaryOperation(unaryOperation)
-        unaryOperation.actualSemanticType = unaryOperation.inner.expectedSemanticType
+        unaryOperation.actualType = unaryOperation.inner.expectedType
         checkActualTypeEqualsExpectedType(unaryOperation)
     }
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
-        errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedSemanticType}, got ${expression.actualSemanticType}") {
-            expression.actualSemanticType == expression.expectedSemanticType
+        errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedType}, got ${expression.actualType}") {
+            expression.actualType == expression.expectedType
         }
     }
 
