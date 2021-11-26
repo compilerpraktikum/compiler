@@ -3,6 +3,7 @@ package edu.kit.compiler.error
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.InputProvider
 import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
 import kotlin.test.Test
@@ -40,8 +41,8 @@ internal class AnnotationFormatterTest {
             annotate(
                 AnnotationType.ERROR, range(80, 36), "invalid assignment: types do not match",
                 listOf(
-                    range(80, 1) to "type is int",
-                    range(84, 32) to "type is boolean",
+                    SourceNote(range(80, 1), "type is int"),
+                    SourceNote(range(84, 32), "type is boolean"),
                 )
             )
         }

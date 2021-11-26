@@ -1,14 +1,13 @@
 package edu.kit.compiler
 
-import edu.kit.compiler.ast.PrettyPrintVisitor
-import edu.kit.compiler.ast.accept
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.wrapper.validate
+import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
+import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException

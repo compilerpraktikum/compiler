@@ -1,37 +1,41 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.TestUtils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.wrappers.Lenient
-import edu.kit.compiler.wrapper.wrappers.wrapValid
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi
 internal class ExpressionParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
-    private fun expectAst(input: String, expectedAST: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>) =
+    private fun expectAst(input: String, expectedAST: Parsed<AST.Expression>) =
         expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }
 
     @Test
-    fun testParseLiteral() = expectAst("1", AST.LiteralExpression("1").wrapValid())
+    fun testParseLiteral() = expectAst("1", AST.LiteralExpression.Integer("1").wrapMockValid())
 
     @Test
-    fun testParseIdentInExpr() = expectAst("myident", AST.IdentifierExpression("myident".toSymbol()).wrapValid())
+    fun testParseIdentInExpr() =
+        expectAst("myident", AST.IdentifierExpression("myident".toSymbol().wrapMockValid()).wrapMockValid())
 
     @Test
     fun testParseLocalInvocation() =
         expectAst(
             "myident()",
-            AST.MethodInvocationExpression<Lenient<Of>, Lenient<Of>>(null, "myident".toSymbol(), listOf()).wrapValid()
+            AST.MethodInvocationExpression(null, "myident".toSymbol().wrapMockValid(), listOf()).wrapMockValid()
         )
 
     @Test
     fun testParseLocalInvocationArg() = expectAst(
         "myident(1)",
-        AST.MethodInvocationExpression(null, "myident".toSymbol(), listOf(AST.LiteralExpression("1").wrapValid())).wrapValid()
+        AST.MethodInvocationExpression(
+            null,
+            "myident".toSymbol().wrapMockValid(),
+            listOf(AST.LiteralExpression.Integer("1").wrapMockValid())
+        ).wrapMockValid()
     )
 
     @Test
@@ -39,9 +43,13 @@ internal class ExpressionParseTest {
         "myident(1,2,2)",
         AST.MethodInvocationExpression(
             null,
-            "myident".toSymbol(),
-            listOf(AST.LiteralExpression("1"), AST.LiteralExpression("2"), AST.LiteralExpression("2")).map { it.wrapValid() }
-        ).wrapValid()
+            "myident".toSymbol().wrapMockValid(),
+            listOf(
+                AST.LiteralExpression.Integer("1"),
+                AST.LiteralExpression.Integer("2"),
+                AST.LiteralExpression.Integer("2")
+            ).map { it.wrapMockValid() }
+        ).wrapMockValid()
     )
 
     @Test
@@ -50,13 +58,13 @@ internal class ExpressionParseTest {
             "1+2+3",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("1").wrapValid(),
-                    AST.LiteralExpression("2").wrapValid(),
+                    AST.LiteralExpression.Integer("1").wrapMockValid(),
+                    AST.LiteralExpression.Integer("2").wrapMockValid(),
                     AST.BinaryExpression.Operation.ADDITION
-                ).wrapValid(),
-                AST.LiteralExpression("3").wrapValid(),
+                ).wrapMockValid(),
+                AST.LiteralExpression.Integer("3").wrapMockValid(),
                 AST.BinaryExpression.Operation.ADDITION
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 
@@ -65,14 +73,14 @@ internal class ExpressionParseTest {
         expectAst(
             "1+2*3",
             AST.BinaryExpression(
-                AST.LiteralExpression("1").wrapValid(),
+                AST.LiteralExpression.Integer("1").wrapMockValid(),
                 AST.BinaryExpression(
-                    AST.LiteralExpression("2").wrapValid(),
-                    AST.LiteralExpression("3").wrapValid(),
+                    AST.LiteralExpression.Integer("2").wrapMockValid(),
+                    AST.LiteralExpression.Integer("3").wrapMockValid(),
                     AST.BinaryExpression.Operation.MULTIPLICATION
-                ).wrapValid(),
+                ).wrapMockValid(),
                 AST.BinaryExpression.Operation.ADDITION
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 
@@ -82,17 +90,17 @@ internal class ExpressionParseTest {
             "1+2*3+4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("1").wrapValid(),
+                    AST.LiteralExpression.Integer("1").wrapMockValid(),
                     AST.BinaryExpression(
-                        AST.LiteralExpression("2").wrapValid(),
-                        AST.LiteralExpression("3").wrapValid(),
+                        AST.LiteralExpression.Integer("2").wrapMockValid(),
+                        AST.LiteralExpression.Integer("3").wrapMockValid(),
                         AST.BinaryExpression.Operation.MULTIPLICATION
-                    ).wrapValid(),
+                    ).wrapMockValid(),
                     AST.BinaryExpression.Operation.ADDITION
-                ).wrapValid(),
-                AST.LiteralExpression("4").wrapValid(),
+                ).wrapMockValid(),
+                AST.LiteralExpression.Integer("4").wrapMockValid(),
                 AST.BinaryExpression.Operation.ADDITION
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 
@@ -101,10 +109,10 @@ internal class ExpressionParseTest {
         expectAst(
             "2 = 3",
             AST.BinaryExpression(
-                AST.LiteralExpression("2").wrapValid(),
-                AST.LiteralExpression("3").wrapValid(),
+                AST.LiteralExpression.Integer("2").wrapMockValid(),
+                AST.LiteralExpression.Integer("3").wrapMockValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 
@@ -113,14 +121,14 @@ internal class ExpressionParseTest {
         expectAst(
             "2 = 3 = 4",
             AST.BinaryExpression(
-                AST.LiteralExpression("2").wrapValid(),
+                AST.LiteralExpression.Integer("2").wrapMockValid(),
                 AST.BinaryExpression(
-                    AST.LiteralExpression("3").wrapValid(),
-                    AST.LiteralExpression("4").wrapValid(),
+                    AST.LiteralExpression.Integer("3").wrapMockValid(),
+                    AST.LiteralExpression.Integer("4").wrapMockValid(),
                     AST.BinaryExpression.Operation.ASSIGNMENT
-                ).wrapValid(),
+                ).wrapMockValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 
@@ -130,25 +138,25 @@ internal class ExpressionParseTest {
             "2 + (3 = 2 = 2) * 3 + 4",
             AST.BinaryExpression(
                 AST.BinaryExpression(
-                    AST.LiteralExpression("2").wrapValid(),
+                    AST.LiteralExpression.Integer("2").wrapMockValid(),
                     AST.BinaryExpression(
                         AST.BinaryExpression(
-                            AST.LiteralExpression("3").wrapValid(),
+                            AST.LiteralExpression.Integer("3").wrapMockValid(),
                             AST.BinaryExpression(
-                                AST.LiteralExpression("2").wrapValid(),
-                                AST.LiteralExpression("2").wrapValid(),
+                                AST.LiteralExpression.Integer("2").wrapMockValid(),
+                                AST.LiteralExpression.Integer("2").wrapMockValid(),
                                 AST.BinaryExpression.Operation.ASSIGNMENT
-                            ).wrapValid(),
+                            ).wrapMockValid(),
                             AST.BinaryExpression.Operation.ASSIGNMENT
-                        ).wrapValid(),
-                        AST.LiteralExpression("3").wrapValid(),
+                        ).wrapMockValid(),
+                        AST.LiteralExpression.Integer("3").wrapMockValid(),
                         AST.BinaryExpression.Operation.MULTIPLICATION
-                    ).wrapValid(),
+                    ).wrapMockValid(),
                     AST.BinaryExpression.Operation.ADDITION
-                ).wrapValid(),
-                AST.LiteralExpression("4").wrapValid(),
+                ).wrapMockValid(),
+                AST.LiteralExpression.Integer("4").wrapMockValid(),
                 AST.BinaryExpression.Operation.ADDITION
-            ).wrapValid()
+            ).wrapMockValid()
         )
     }
 }

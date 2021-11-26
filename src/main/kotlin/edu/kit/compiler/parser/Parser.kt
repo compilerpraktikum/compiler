@@ -2,18 +2,14 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.LenientProgram
-import edu.kit.compiler.wrapper.Of
-import edu.kit.compiler.wrapper.wrappers.Lenient
+import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.markErroneous
 import edu.kit.compiler.wrapper.wrappers.wrapErroneous
 import edu.kit.compiler.wrapper.wrappers.wrapValid
-import java.util.Optional
 
 private val Token.isRelevantForSyntax
     get() = when (this) {
@@ -33,21 +29,21 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     /**
      * Parse the lexer stream into an AST.
      */
-    override fun parse(): Lenient<LenientProgram> {
+    override fun parse(): Parsed<AST.Program> {
+        val programStart = peek().range
         val classDeclarations = parseClassDeclarations(anchorSetOf(Token.Eof()).intoUnion())
         val eof = expect<Token.Eof>(anchorSetOf().intoUnion()) { "expected end of file" }
 
-        return if (eof.isPresent)
-            AST.Program(classDeclarations).wrapValid()
-        else
-            AST.Program(classDeclarations).wrapErroneous()
+        return eof.replaceNode {
+            AST.Program(classDeclarations)
+        }.mapPosition { programStart.extend(eof.range) }
     }
 
-    private fun parsePrimaryExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parsePrimaryExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression(peekedToken.value).wrapValid()
+                AST.LiteralExpression.Integer(peekedToken.value).wrapValid(peekedToken.range)
             }
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
@@ -61,7 +57,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         "illegal token `${peekedToken.debugRepr}`, expected expression",
                     )
                     recover(anc)
-                    Lenient.Error(null)
+                    Parsed.Error(peekedToken.range, null)
                 }
             }
             is Token.Identifier -> {
@@ -73,32 +69,34 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     val arguments = parseArguments(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
                     val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "expected `)`" }
 
-                    if (rParen.isPresent) {
-                        AST.MethodInvocationExpression(null, reference.name, arguments).wrapValid()
-                    } else {
-                        AST.MethodInvocationExpression(null, reference.name, arguments).wrapErroneous()
+                    val invocationExpression =
+                        AST.MethodInvocationExpression(null, reference.name.wrapValid(reference.range), arguments)
+                    rParen.map {
+                        invocationExpression
+                    }.mapPosition {
+                        peekedToken.range.extend(rParen.range)
                     }
                 } else {
-                    AST.IdentifierExpression(reference.name).wrapValid()
+                    AST.IdentifierExpression(reference.name.wrapValid(reference.range)).wrapValid(reference.range)
                 }
             }
             is Token.Keyword -> {
                 when (peekedToken.type) {
                     Token.Keyword.Type.Null -> {
                         next()
-                        AST.LiteralExpression("null").wrapValid()
+                        AST.LiteralExpression.Null().wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.False -> {
                         next()
-                        AST.LiteralExpression(false).wrapValid()
+                        AST.LiteralExpression.Boolean(false).wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.True -> {
                         next()
-                        AST.LiteralExpression(true).wrapValid()
+                        AST.LiteralExpression.Boolean(true).wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.This -> {
                         next()
-                        AST.LiteralExpression("this").wrapValid()
+                        AST.LiteralExpression.This().wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.New -> {
                         next()
@@ -110,7 +108,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token `${peekedToken.debugRepr}`. expected expression",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(peekedToken.range, null)
                     }
                 }
             }
@@ -120,7 +118,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "illegal token `${peekedToken.debugRepr}`. expected expression",
                 )
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(peekedToken.range, null)
             }
         }
     }
@@ -128,7 +126,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     /**
      *
      */
-    private fun parseNewObjectArrayExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewObjectArrayExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
@@ -136,12 +134,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 else -> {
                     reportError(firstToken, "illegal token `${firstToken.debugRepr}`. expected type")
                     recover(anc)
-                    return Lenient.Error(null)
+                    return Parsed.Error(firstToken.range, null)
                 }
             }
             is Token.Identifier -> {
                 // k=2
-                when (val secondToken = peek(1)) {
+                val secondToken = peek(1)
+                val twoTokenRange = firstToken.range.extend(secondToken.range)
+                when (secondToken) {
                     is Token.Operator -> {
                         when (secondToken.type) {
                             Token.Operator.Type.LParen -> parseNewObjectExpression(anc)
@@ -152,7 +152,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     "illegal token `${secondToken.debugRepr}`. expected constructor call or array type",
                                 )
                                 recover(anc)
-                                return Lenient.Error(null)
+                                return Parsed.Error(twoTokenRange, null)
                             }
                         }
                     }
@@ -162,31 +162,28 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token `${secondToken.debugRepr}`. expected constructor call or array type",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(twoTokenRange, null)
                     }
                 }
             }
             else -> {
                 reportError(firstToken, "illegal token `${firstToken.debugRepr}`. expected type")
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(firstToken.range, null)
             }
         }
     }
 
-    private fun parseNewObjectExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewObjectExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         val ident = next() as Token.Identifier
         next() // skip open parenthesis
         val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "constructor calls must be empty. expected `)`" }
 
-        return if (rParen.isPresent) {
-            AST.NewObjectExpression(ident.name).wrapValid()
-        } else {
-            AST.NewObjectExpression(ident.name).wrapErroneous()
-        }
+        return rParen.replaceNode { AST.NewObjectExpression(ident.name.wrapValid(ident.range)) }
+            .mapPosition { ident.range.extend(rParen.range) }
     }
 
-    private fun parseNewArrayExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseNewArrayExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         val basicType = parseBasicType(
             anc +
                 anchorSetOf(
@@ -208,19 +205,20 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
-        val arrayType = if (rBracket.isPresent) {
-            parseNewArrayExpressionTypeArrayRecurse(Type.Array.ArrayType(basicType).wrapValid(), anc)
-        } else {
-            parseNewArrayExpressionTypeArrayRecurse(Type.Array.ArrayType(basicType).wrapErroneous(), anc)
-        }
+        val arrayType =
+            rBracket.map { AST.Type.Array(basicType) }
+                .mapPosition { basicType.range.extend(rBracket.range) }
 
-        return AST.NewArrayExpression(arrayType, indexExpression).wrapValid()
+        val recurseExpression = parseNewArrayExpressionTypeArrayRecurse(arrayType, anc)
+
+        return AST.NewArrayExpression(recurseExpression, indexExpression)
+            .wrapValid(basicType.range.extend(recurseExpression.range))
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(
-        basicType: Lenient<Type.Array.ArrayType<Lenient<Of>>>,
+        basicType: Parsed<AST.Type.Array>,
         anc: AnchorUnion
-    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
+    ): Parsed<AST.Type.Array> {
         val maybeAnotherLBracket = peek(0)
 
         return if (maybeAnotherLBracket !is Token.Eof) {
@@ -234,8 +232,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             ) {
                 next()
                 next()
-                Type.Array.ArrayType(parseNewArrayExpressionTypeArrayRecurse(basicType, anc).map { it.wrapArray() })
-                    .wrapValid()
+                AST.Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc))
+                    .wrapValid(basicType.range.extend(maybeAnotherRBracket.range))
             } else {
                 basicType
             }
@@ -244,8 +242,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseArguments(anc: AnchorUnion): List<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>> {
-        val arguments = mutableListOf<Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>>()
+    private fun parseArguments(anc: AnchorUnion): List<Parsed<AST.Expression>> {
+        val arguments = mutableListOf<Parsed<AST.Expression>>()
         var nextToken = peek()
 
         /*
@@ -270,7 +268,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return arguments
     }
 
-    private fun parsePostfixExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parsePostfixExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp)
 
         return when (val firstPeekedToken = peek()) {
@@ -288,9 +286,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parsePostfixOp(
-        target: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>,
+        target: Parsed<AST.Expression>,
         anc: AnchorUnion
-    ): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    ): Parsed<AST.Expression> {
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
                 when (firstPeekedToken.type) {
@@ -306,8 +304,11 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                 FirstFollowUtils.firstSetArguments +
                                 FirstFollowUtils.firstSetPostfixOp
                         ) { "expected member identifier" }
+                        val parsedIdent =
+                            ident.cases(onValid = { it.name }, onError = { Token.Identifier.Placeholder.name })
 
                         val maybeLParent = peek()
+
                         if (maybeLParent is Token.Operator && maybeLParent.type == Token.Operator.Type.LParen) {
                             next()
 
@@ -317,33 +318,34 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     FirstFollowUtils.firstSetPostfixOp
                             )
 
-                            expectOperator(
+                            val rightParen = expectOperator(
                                 Token.Operator.Type.RParen,
                                 anc + FirstFollowUtils.firstSetPostfixOp,
                             ) { "expected `)`" }
 
-                            if (ident.isPresent) {
+                            val range = if (rightParen.isValid) {
+                                ident.range.extend(rightParen.range)
+                            } else {
+                                ident.range.extend(arguments.last().range)
+                            }
+
+                            if (rightParen.isValid) {
                                 parsePostfixOp(
-                                    AST.MethodInvocationExpression(target, ident.get().name, arguments).wrapValid(),
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapValid(range),
                                     anc
                                 )
                             } else {
                                 parsePostfixOp(
-                                    AST.MethodInvocationExpression(target, Token.Identifier.Placeholder.name, arguments)
-                                        .wrapErroneous(),
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapErroneous(range),
                                     anc
                                 )
                             }
                         } else {
-                            if (ident.isPresent) {
-                                parsePostfixOp(AST.FieldAccessExpression(target, ident.get().name).wrapValid(), anc)
-                            } else {
-                                parsePostfixOp(
-                                    AST.FieldAccessExpression(target, Token.Identifier.Placeholder.name)
-                                        .wrapErroneous(),
-                                    anc
-                                )
-                            }
+                            parsePostfixOp(
+                                AST.FieldAccessExpression(target, parsedIdent)
+                                    .wrapValid(target.range.extend(parsedIdent.range)),
+                                anc
+                            )
                         }
                         // k=3 because lazy. Maybe change this if needed later on
                     }
@@ -361,11 +363,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             anc + FirstFollowUtils.firstSetPostfixOp
                         ) { "expected `]`" }
 
-                        if (rBracket.isPresent) {
-                            parsePostfixOp(AST.ArrayAccessExpression(target, index).wrapValid(), anc)
-                        } else {
-                            parsePostfixOp(AST.ArrayAccessExpression(target, index).wrapErroneous(), anc)
+                        val accessExpression = rBracket.map {
+                            AST.ArrayAccessExpression(target, index)
                         }
+                        parsePostfixOp(accessExpression, anc)
                     }
                     else -> target
                 }
@@ -373,25 +374,27 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseUnaryExpression(anc: AnchorUnion): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    private fun parseUnaryExpression(anc: AnchorUnion): Parsed<AST.Expression> {
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
                     Token.Operator.Type.Not -> {
                         next()
 
+                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
                         AST.UnaryExpression(
-                            parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators),
+                            innerExpression,
                             AST.UnaryExpression.Operation.NOT
-                        ).wrapValid()
+                        ).wrapValid(peeked.range.extend(innerExpression.range))
                     }
                     Token.Operator.Type.Minus -> {
                         next()
 
+                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
                         AST.UnaryExpression(
-                            parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators),
+                            innerExpression,
                             AST.UnaryExpression.Operation.MINUS
-                        ).wrapValid()
+                        ).wrapValid(peeked.range.extend(innerExpression.range))
                     }
                     else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators)
                 }
@@ -402,7 +405,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     internal fun parseExpression(
         minPrecedence: Int = 1,
         anc: AnchorUnion
-    ): Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>> {
+    ): Parsed<AST.Expression> {
         var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
         var currentToken = peek()
 
@@ -421,13 +424,13 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 },
                 anc + FirstFollowUtils.allExpressionOperators
             )
-            result = AST.BinaryExpression(result, rhs, op).wrapValid()
+            result = AST.BinaryExpression(result, rhs, op).wrapValid(result.range.extend(rhs.range))
             currentToken = peek()
         }
         return result
     }
 
-    internal fun parseClassDeclarations(anc: AnchorUnion): List<Lenient<AST.ClassDeclaration<Lenient<Of>, Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    internal fun parseClassDeclarations(anc: AnchorUnion): List<Parsed<AST.ClassDeclaration>> {
         return buildList {
             while (peek(0) !is Token.Eof) {
                 // manual intervention: we read away one visibility modifier if present. Those are illegal here, but we
@@ -459,6 +462,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         FirstFollowUtils.firstSetClassMembers
                 ) { "expected class name" }
 
+                val parsedIdent = ident.map { it.name }
+
                 val lBrace = expectOperator(
                     Token.Operator.Type.LeftBrace,
                     anc +
@@ -474,19 +479,17 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "missing closing brace"
                 }
 
-                if (classKeyword.isPresent && ident.isPresent && lBrace.isPresent && rBrace.isPresent && !illegalVisibilityModifier) {
-                    add(AST.ClassDeclaration(ident.get().name, classMembers).wrapValid())
+                val sourceRange = classKeyword.range.extend(rBrace.range)
+                if (classKeyword is Parsed.Valid && ident is Parsed.Valid && lBrace is Parsed.Valid && rBrace is Parsed.Valid && !illegalVisibilityModifier) {
+                    add(AST.ClassDeclaration(parsedIdent, classMembers).wrapValid(sourceRange))
                 } else {
-                    add(
-                        AST.ClassDeclaration(ident.orElse(Token.Identifier.Placeholder).name, classMembers)
-                            .wrapErroneous()
-                    )
+                    add(AST.ClassDeclaration(parsedIdent, classMembers).wrapErroneous(sourceRange))
                 }
             }
         }
     }
 
-    private fun parseClassMembers(anc: AnchorUnion): List<Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    private fun parseClassMembers(anc: AnchorUnion): List<Parsed<AST.ClassMember>> {
         return buildList {
             var peeked = peek(0)
 
@@ -529,7 +532,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseClassMember(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseClassMember(anc: AnchorUnion): Parsed<AST.ClassMember> {
         val publicKeyword = expectKeyword(
             Token.Keyword.Type.Public,
             anc + anchorSetOf(
@@ -550,7 +553,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     else -> {
                         reportError(token, "expected `static` or (return) type identifier")
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(token.range, null)
                     }
                 }
             }
@@ -560,18 +563,18 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             else -> {
                 reportError(token, "expected field or method declaration")
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(token.range, null)
             }
         }
 
-        return if (publicKeyword.isPresent) {
+        return if (publicKeyword.isValid) {
             childNode
         } else {
             childNode.markErroneous()
         }
     }
 
-    private fun parseMainMethod(anc: AnchorUnion): Lenient<AST.MainMethod<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseMainMethod(anc: AnchorUnion): Parsed<AST.MainMethod> {
         val staticKeyword = expectKeyword(
             Token.Keyword.Type.Static,
             anc +
@@ -643,7 +646,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     ) +
                     FirstFollowUtils.firstSetBlock
             )
-            Lenient.Error(null)
+            Parsed.Error(peeked.range, null)
         }
 
         val rightParen = expectOperator(
@@ -669,28 +672,29 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val block = parseBlock(anc)
 
-        return if (staticKeyword.isPresent && voidKeyword.isPresent && ident.isPresent && leftParen.isPresent &&
-            rightParen.isPresent && throwsException?.isPresent != false
+        val parsedIdent = ident.map { it.name }
+        return if (staticKeyword.isValid && voidKeyword.isValid && leftParen.isValid &&
+            rightParen.isValid
         ) {
             AST.MainMethod(
-                ident.get().name,
-                Type.Void.wrapValid(),
+                parsedIdent,
+                AST.Type.Void.wrapValid(voidKeyword.range),
                 listOf(parameter),
                 block,
-                throwsException?.get()
-            ).wrapValid()
+                throwsException
+            ).wrapValid(staticKeyword.range.extend(block.range))
         } else {
             AST.MainMethod(
-                ident.orElse(Token.Identifier.Placeholder).name,
-                Type.Void.wrapValid(),
+                parsedIdent,
+                AST.Type.Void.wrapValid(voidKeyword.range),
                 listOf(parameter),
                 block,
-                throwsException?.orElse(null)
-            ).wrapErroneous()
+                throwsException
+            ).wrapErroneous(staticKeyword.range.extend(block.range))
         }
     }
 
-    private fun parseFieldMethodPrefix(anc: AnchorUnion): Lenient<AST.ClassMember<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseFieldMethodPrefix(anc: AnchorUnion): Parsed<AST.ClassMember> {
         val type = parseType(
             anc +
                 anchorSetOf(
@@ -719,7 +723,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal class member declaration. expected either a method declaration or `;`",
                         )
                         recover(anc)
-                        Lenient.Error(null)
+                        Parsed.Error(fieldMethodRestToken.range, null)
                     }
                 }
             }
@@ -729,35 +733,28 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "illegal class member declaration. expected either `;` or `(`.",
                 )
                 recover(anc)
-                Lenient.Error(null)
+                Parsed.Error(fieldMethodRestToken.range, null)
             }
         }
     }
 
     private fun parseField(
-        ident: Optional<Token.Identifier>,
-        type: Lenient<Type<Lenient<Of>>>
-    ): Lenient<AST.Field<Lenient<Of>>> {
+        ident: Parsed<Token.Identifier>,
+        type: Parsed<AST.Type>
+    ): Parsed<AST.Field> {
         next()
 
-        return if (ident.isPresent) {
-            AST.Field(
-                ident.get().name,
-                type
-            ).wrapValid()
-        } else {
-            AST.Field(
-                ident.orElse(Token.Identifier.Placeholder).name,
-                type
-            ).wrapErroneous()
-        }
+        return AST.Field(
+            ident.map { it.name },
+            type
+        ).wrapValid(type.range.extend(ident.range))
     }
 
     private fun parseMethod(
-        ident: Optional<Token.Identifier>,
-        type: Lenient<Type<Lenient<Of>>>,
+        ident: Parsed<Token.Identifier>,
+        type: Parsed<AST.Type>,
         anc: AnchorUnion
-    ): Lenient<AST.Method<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    ): Parsed<AST.Method> {
         next()
 
         val maybeRParenToken = peek(0)
@@ -790,26 +787,26 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val block = parseBlock(anc)
 
-        if (ident.isPresent && closingParenthesis.isPresent && throwsException?.isPresent != false) {
+        if (closingParenthesis.isValid) {
             return AST.Method(
-                ident.get().name,
+                ident.map { it.name },
                 type,
                 parameters,
                 block,
-                throwsException?.get()
-            ).wrapValid()
+                throwsException
+            ).wrapValid(ident.range.extend(block.range))
         } else {
             return AST.Method(
-                ident.orElse(Token.Identifier.Placeholder).name,
+                ident.map { it.name },
                 type,
                 parameters,
                 block,
-                throwsException?.orElse(null)
-            ).wrapErroneous()
+                throwsException
+            ).wrapErroneous(ident.range.extend(block.range))
         }
     }
 
-    internal fun parseBlock(anc: AnchorUnion): Lenient<AST.Block<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    internal fun parseBlock(anc: AnchorUnion): Parsed<AST.Block> {
         val openingBrace = expectOperator(
             Token.Operator.Type.LeftBrace,
             anc +
@@ -829,14 +826,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val closingBrace = expectOperator(Token.Operator.Type.RightBrace, anc) { "expected closing brace" }
 
-        return if (openingBrace.isPresent && closingBrace.isPresent) {
-            resultBlock.wrapValid()
+        return if (openingBrace.isValid && closingBrace.isValid) {
+            resultBlock.wrapValid(openingBrace.range.extend(closingBrace.range))
         } else {
-            resultBlock.wrapErroneous()
+            resultBlock.wrapErroneous(openingBrace.range.extend(closingBrace.range))
         }
     }
 
-    private fun parseBlockStatements(): List<Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>> {
+    private fun parseBlockStatements(): List<Parsed<AST.BlockStatement>> {
         // at least one should exist at this point.
         return buildList {
             var peeked = peek(0)
@@ -855,7 +852,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseBlockStatement(anc: AnchorUnion): Lenient<AST.BlockStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseBlockStatement(anc: AnchorUnion): Parsed<AST.BlockStatement> {
         return when (val firstToken = peek(0)) {
             is Token.Keyword -> {
                 when (firstToken.type) {
@@ -866,7 +863,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.False,
                     Token.Keyword.Type.True,
                     Token.Keyword.Type.This,
-                    Token.Keyword.Type.New -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Keyword.Type.New -> parseStatement(anc)
 
                     Token.Keyword.Type.Int,
                     Token.Keyword.Type.Boolean,
@@ -878,18 +875,18 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(firstToken.range, null)
                     }
                 }
             }
-            is Token.Literal -> parseStatement(anc).map { AST.StmtWrapper(it) }
+            is Token.Literal -> parseStatement(anc)
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace,
                     Token.Operator.Type.Semicolon,
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
-                    Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Operator.Type.LParen -> parseStatement(anc)
 
                     else -> {
                         reportError(
@@ -897,7 +894,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(firstToken.range, null)
                     }
                 }
             }
@@ -912,16 +909,16 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     if (thirdToken.type == Token.Operator.Type.RightBracket) {
                                         parseLocalVariableDeclarationStatement(anc)
                                     } else {
-                                        parseStatement(anc).map { AST.StmtWrapper(it) }
+                                        parseStatement(anc)
                                     }
                                 }
-                                else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                                else -> parseStatement(anc)
                             }
                         } else {
-                            parseStatement(anc).map { AST.StmtWrapper(it) }
+                            parseStatement(anc)
                         }
                     }
-                    else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    else -> parseStatement(anc)
                 }
             }
             else -> {
@@ -930,17 +927,17 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                 )
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(firstToken.range, null)
             }
         }
     }
 
-    internal fun parseStatement(anc: AnchorUnion): Lenient<AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    internal fun parseStatement(anc: AnchorUnion): Parsed<AST.Statement> {
         return when (val firstToken = peek(0)) {
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace -> parseBlock(anc)
-                    Token.Operator.Type.Semicolon -> parseEmptyStatement()
+                    Token.Operator.Type.Semicolon -> parseEmptyStatement(firstToken)
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
                     Token.Operator.Type.LParen -> parseExpressionStatement(anc)
@@ -950,15 +947,15 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(firstToken.range, null)
                     }
                 }
             }
             is Token.Keyword -> {
                 when (firstToken.type) {
-                    Token.Keyword.Type.If -> parseIfStatement(anc)
-                    Token.Keyword.Type.While -> parseWhileStatement(anc)
-                    Token.Keyword.Type.Return -> parseReturnStatement(anc)
+                    Token.Keyword.Type.If -> parseIfStatement(firstToken, anc)
+                    Token.Keyword.Type.While -> parseWhileStatement(firstToken, anc)
+                    Token.Keyword.Type.Return -> parseReturnStatement(firstToken, anc)
                     Token.Keyword.Type.Null -> parseExpressionStatement(anc)
                     Token.Keyword.Type.False -> parseExpressionStatement(anc)
                     Token.Keyword.Type.True -> parseExpressionStatement(anc)
@@ -970,7 +967,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                         )
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(firstToken.range, null)
                     }
                 }
             }
@@ -982,26 +979,27 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     "illegal token: `${firstToken.debugRepr}`, expected statement, block, or expression",
                 )
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(firstToken.range, null)
             }
         }
     }
 
-    private fun parseReturnStatement(anc: AnchorUnion): Lenient<AST.ReturnStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseReturnStatement(returnKeyword: Token, anc: AnchorUnion): Parsed<AST.ReturnStatement> {
         next()
 
         val maybeSemicolon = peek(0)
-        var returnValue: Lenient<AST.Expression<Lenient<Of>, Lenient<Of>>>? = null
+        var returnValue: Parsed<AST.Expression>? = null
         if (!(maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon)) {
             returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
         }
 
         next()
 
-        return AST.ReturnStatement(returnValue).wrapValid()
+        return AST.ReturnStatement(returnValue)
+            .wrapValid(returnValue?.range?.let { returnKeyword.range.extend(it) } ?: returnKeyword.range)
     }
 
-    private fun parseIfStatement(anc: AnchorUnion): Lenient<AST.IfStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseIfStatement(ifKeyword: Token, anc: AnchorUnion): Parsed<AST.IfStatement> {
         next()
 
         val lparen = expectOperator(
@@ -1031,28 +1029,34 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val trueStatement = parseStatement(anc + anchorSetOf(Token.Keyword(Token.Keyword.Type.Else)))
 
         val maybeElseToken = peek(0)
-        var falseStatement: Lenient<AST.Statement<Lenient<Of>, Lenient<Of>, Lenient<Of>>>? = null
+        var falseStatement: Parsed<AST.Statement>? = null
         if (maybeElseToken is Token.Keyword && maybeElseToken.type == Token.Keyword.Type.Else) {
             next()
             falseStatement = parseStatement(anc)
         }
 
-        return if (lparen.isPresent && rparen.isPresent) {
+        var ifStatementRange =
+            ifKeyword.range.extend(trueStatement.range)
+        if (falseStatement != null) {
+            ifStatementRange = ifStatementRange.extend(falseStatement.range)
+        }
+
+        return if (lparen.isValid && rparen.isValid) {
             AST.IfStatement(
                 condition,
                 trueStatement,
                 falseStatement
-            ).wrapValid()
+            ).wrapValid(ifStatementRange)
         } else {
             AST.IfStatement(
                 condition,
                 trueStatement,
                 falseStatement
-            ).wrapErroneous()
+            ).wrapErroneous(ifStatementRange)
         }
     }
 
-    private fun parseWhileStatement(anc: AnchorUnion): Lenient<AST.WhileStatement<Lenient<Of>, Lenient<Of>, Lenient<Of>>> {
+    private fun parseWhileStatement(whileKeyword: Token, anc: AnchorUnion): Parsed<AST.WhileStatement> {
         next()
 
         val lparen = expectOperator(
@@ -1076,19 +1080,20 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val loopBodyStatement = parseStatement(anc)
 
-        return if (lparen.isPresent && rparen.isPresent) {
-            AST.WhileStatement(loopCondition, loopBodyStatement).wrapValid()
+        val whileStatementRange = whileKeyword.range.extend(rparen.range)
+        return if (lparen.isValid && rparen.isValid) {
+            AST.WhileStatement(loopCondition, loopBodyStatement).wrapValid(whileStatementRange)
         } else {
-            AST.WhileStatement(loopCondition, loopBodyStatement).wrapErroneous()
+            AST.WhileStatement(loopCondition, loopBodyStatement).wrapErroneous(whileStatementRange)
         }
     }
 
-    private fun parseEmptyStatement(): Lenient<AST.Statement<Nothing, Nothing, Nothing>> {
+    private fun parseEmptyStatement(tokenSemicolon: Token): Parsed<AST.Statement> {
         next()
-        return AST.emptyStatement.wrapValid()
+        return AST.emptyStatement.wrapValid(tokenSemicolon.range)
     }
 
-    private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Lenient<AST.LocalVariableDeclarationStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseLocalVariableDeclarationStatement(anc: AnchorUnion): Parsed<AST.LocalVariableDeclarationStatement> {
         val type = parseType(
             anc + anchorSetOf(
                 Token.Identifier.Placeholder,
@@ -1117,35 +1122,38 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;`" }
 
-        return if (varName.isPresent && semicolon.isPresent) {
-            AST.LocalVariableDeclarationStatement(varName.get().name, type, initializer).wrapValid()
+        val declarationRange = type.range.extend(semicolon.range)
+        return if (semicolon.isValid) {
+            AST.LocalVariableDeclarationStatement(varName.map { it.name }, type, initializer)
+                .wrapValid(declarationRange)
         } else {
             AST.LocalVariableDeclarationStatement(
-                varName.orElse(Token.Identifier.Placeholder).name,
+                varName.map { it.name },
                 type,
                 initializer
-            ).wrapErroneous()
+            ).wrapErroneous(declarationRange)
         }
     }
 
-    private fun parseExpressionStatement(anc: AnchorUnion): Lenient<AST.ExpressionStatement<Lenient<Of>, Lenient<Of>>> {
+    private fun parseExpressionStatement(anc: AnchorUnion): Parsed<AST.ExpressionStatement> {
         val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
         val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;`" }
 
-        return if (semicolon.isPresent) {
-            AST.ExpressionStatement(expr).wrapValid()
+        val statementRange = expr.range.extend(semicolon.range)
+        return if (semicolon.isValid) {
+            AST.ExpressionStatement(expr).wrapValid(statementRange)
         } else {
-            AST.ExpressionStatement(expr).wrapErroneous()
+            AST.ExpressionStatement(expr).wrapErroneous(statementRange)
         }
     }
 
-    private fun parseMethodRest(anc: AnchorUnion): Optional<Symbol> {
+    private fun parseMethodRest(anc: AnchorUnion): Parsed<Symbol> {
         next()
 
         return expectIdentifier(anc) { "missing identifier. `throws` requires an exception type" }.map { it.name }
     }
 
-    private fun parseParameters(anc: AnchorUnion): List<Lenient<AST.Parameter<Lenient<Of>>>> {
+    private fun parseParameters(anc: AnchorUnion): List<Parsed<AST.Parameter>> {
         return buildList {
             add(parseParameter(anc + anchorSetOf(Token.Operator(Token.Operator.Type.Comma))))
 
@@ -1158,31 +1166,27 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseParameter(anc: AnchorUnion): Lenient<AST.Parameter<Lenient<Of>>> {
+    private fun parseParameter(anc: AnchorUnion): Parsed<AST.Parameter> {
         val type = parseType(anc + anchorSetOf(Token.Identifier.Placeholder))
         val ident = expectIdentifier(anc) { "expected parameter name identifier" }
 
-        return if (ident.isPresent) {
-            AST.Parameter(ident.get().name, type).wrapValid()
-        } else {
-            AST.Parameter(Token.Identifier.Placeholder.name, type).wrapErroneous()
-        }
+        return AST.Parameter(ident.map(Token.Identifier::name), type).wrapValid(type.range.extend(ident.range))
     }
 
-    private fun parseType(anc: AnchorUnion): Lenient<Type<Lenient<Of>>> {
+    private fun parseType(anc: AnchorUnion): Parsed<AST.Type> {
         val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
 
         val maybeLeftBracket = peek(0)
         if (maybeLeftBracket is Token.Operator && maybeLeftBracket.type == Token.Operator.Type.LeftBracket) {
-            return parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }
+            return parseTypeArrayRecurse(basicType, anc)
         }
         return basicType
     }
 
     private fun parseTypeArrayRecurse(
-        basicType: Lenient<Type<Lenient<Of>>>,
+        basicType: Parsed<AST.Type>,
         anc: AnchorUnion
-    ): Lenient<Type.Array.ArrayType<Lenient<Of>>> {
+    ): Parsed<AST.Type.Array> {
         next()
 
         val rightBracket = expectOperator(
@@ -1191,55 +1195,54 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         ) { "illegal array type expression. expected `]`" }
 
         val maybeAnotherLBracket = peek(0)
+        // TODO: check if correnct. (Probably not)
+        val range = basicType.range.extend(rightBracket.range)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
-            if (rightBracket.isPresent) {
-                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapValid()
+            if (rightBracket.isValid) {
+                AST.Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapValid(range)
             } else {
-                Type.Array.ArrayType(parseTypeArrayRecurse(basicType, anc).map { it.wrapArray() }).wrapErroneous()
+                AST.Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapErroneous(range)
             }
         } else {
-            if (rightBracket.isPresent)
-                Type.Array.ArrayType(basicType).wrapValid()
-            else
-                Type.Array.ArrayType(basicType).wrapErroneous()
+            if (rightBracket.isValid) {
+                AST.Type.Array(basicType).wrapValid(range)
+            } else {
+                AST.Type.Array(basicType).wrapErroneous(range)
+            }
         }
     }
 
-    private fun parseBasicType(anc: AnchorUnion): Lenient<Type<Lenient<Of>>> {
+    private fun parseBasicType(anc: AnchorUnion): Parsed<AST.Type> {
         return when (val peekedToken = peek()) {
             is Token.Keyword -> {
                 when (peekedToken.type) {
                     Token.Keyword.Type.Int -> {
                         next()
-                        Type.Integer.wrapValid()
+                        AST.Type.Integer.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.Boolean -> {
                         next()
-                        Type.Boolean.wrapValid()
+                        AST.Type.Boolean.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.Void -> {
                         next()
-                        Type.Void.wrapValid()
+                        AST.Type.Void.wrapValid(peekedToken.range)
                     }
                     else -> {
                         reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
                         recover(anc)
-                        return Lenient.Error(null)
+                        return Parsed.Error(peekedToken.range, null)
                     }
                 }
             }
             is Token.Identifier -> {
                 val t = expectIdentifier(anc) { "expected type identifier" }
-                return if (t.isPresent) {
-                    Type.Class(t.get().name).wrapValid()
-                } else {
-                    Type.Class(Token.Identifier.Placeholder.name).wrapErroneous()
-                }
+                AST.Type.Class(t.map { it.name }).wrapValid(t.range)
             }
             else -> {
                 reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
                 recover(anc)
-                return Lenient.Error(null)
+                return Parsed.Error(peekedToken.range)
             }
         }
     }
