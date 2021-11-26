@@ -19,7 +19,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
         errorIfFalse(parameter.sourceRange, "No void typed parameters.") { parameter.type !is SemanticType.Void }
-        parameter.type = constructSemanticType(parameter.type, TODO("get class declaration, check before"))
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
@@ -36,7 +35,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match") {
             localVariableDeclaration.initializer?.actualType != localVariableDeclaration.type
         }
-        TODO("impl!")
     }
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
@@ -56,11 +54,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
             fieldAccessExpression.target.actualType is SemanticType.Class
         }
-        when (fieldAccessExpression.target.actualType) {
-            is SemanticType.Array -> TODO("Error")
-        }
-        // TODO identifier ==> Definition from current namespace (wait for AstNode change)!
-//        fieldAccessExpression.actualType = fieldAccessExpression.field
+        errorIfTrue(fieldAccessExpression.sourceRange, "Arrays have no fields.") { fieldAccessExpression.target.actualType is SemanticType.Array }
+        checkActualTypeEqualsExpectedType(fieldAccessExpression)
     }
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
@@ -71,11 +66,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         currentExpectedMethodReturnType = mainMethodDeclaration.returnType
         super.visitMainMethodDeclaration(mainMethodDeclaration)
-    }
-
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-        // TODO maybe check for name = String, if namensanalyse doesnt do that
-        super.visitClassDeclaration(classDeclaration)
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
@@ -141,24 +131,29 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
-        // TODO uncomment if rebased on name analysis stuff
-//        methodInvocationExpression.arguments.zip(methodInvocationExpression.definition.node.parameters).forEach { pair -> pair.first.expectedType = pair.second.type }
+        // expect that argument's types match the parameter's types in the definition.
+        methodInvocationExpression.arguments
+            .zip(methodInvocationExpression.definition.node.parameters)
+            .forEach { pair -> pair.first.expectedType = pair.second.type }
 
+        if (methodInvocationExpression.target != null) {
+            // no expectations.
+            methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
+        }
         super.visitMethodInvocationExpression(methodInvocationExpression)
-        // TODO what is with this? Do this when "this" typing is clear.
-        // TODO if target == null ?
-//        checkAndMessageIfNot(methodInvocationExpression.sourceRange,"") {
-//            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
-//                methodInvocationExpression.target is TODO("THIS_EXPRESSION as a literal")
-//        }
 
-        methodInvocationExpression.actualType = TODO("$methodInvocationExpression.definition.node.returnType")
+        // may not be the best message...
+        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers or \"this\"") {
+            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
+                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression
+        }
+
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        TODO("check if setting ${identifierExpression.actualType} is needed. We need namespace stuff for that.")
         checkActualTypeEqualsExpectedType(identifierExpression)
+        super.visitIdentifierExpression(identifierExpression) // NOOP
     }
 
     override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
@@ -178,7 +173,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         super.visitNewObjectExpression(newObjectExpression)
-        newObjectExpression.actualType = TODO("get from namespace stuff (${newObjectExpression.clazz}), must be some ComplexType")
         checkActualTypeEqualsExpectedType(newObjectExpression)
     }
 
@@ -188,13 +182,12 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
         // can only be positive
-        TODO("check ${literalIntExpression.value} not negative, not greater 2^(31)-1")
+        // TODO check ${literalIntExpression.value} not negative, not greater 2^(31)-1 (in other visitor)
 
         checkActualTypeEqualsExpectedType(literalIntExpression)
     }
 
     override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
-        literalNullExpression.actualType = TODO("null should be a type or whatever")
         checkActualTypeEqualsExpectedType(literalNullExpression)
     }
 
