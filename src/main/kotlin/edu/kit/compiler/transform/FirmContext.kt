@@ -85,9 +85,7 @@ object FirmContext {
      * Create a new type for a class and add it to the class type map [classTypes]
      */
     fun constructClassType(symbol: Symbol): ClassType {
-        val t = ClassType(symbol.text).apply {
-            addSuperType(globalType)
-        }
+        val t = ClassType(symbol.text)
         this.constructedClassTypes[symbol] = t
         return t
     }
