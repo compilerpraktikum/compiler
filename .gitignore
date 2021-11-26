@@ -14,5 +14,9 @@ out/
 # Firm artifacts
 *.vcg
 
+# Folder for manual testing
+workspace/
+!workspace/.gitkeep
+
 #MacOs Finder
 .DS_Store
