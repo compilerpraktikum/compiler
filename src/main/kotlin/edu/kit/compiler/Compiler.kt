@@ -98,7 +98,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        doSemanticAnalysis(program, sourceFile)
+                        doSemanticAnalysis(program, sourceFile, stringTable)
                     }
                 }
                 Mode.CompileFirm, Mode.Compile -> {
@@ -110,7 +110,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        doSemanticAnalysis(program, sourceFile)
+                        doSemanticAnalysis(program, sourceFile, stringTable)
                         // TODO convert into firm graph
                         // TODO invoke firm backend to generate executable
                     }

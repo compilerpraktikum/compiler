@@ -4,10 +4,15 @@ import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
+import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 val VariableDefinition.identifier
     get() = when (this.node) {
@@ -82,7 +87,7 @@ class NameResolutionHelper(
     }
 
     @OptIn(ExperimentalContracts::class)
-    private inline fun ifIsInvalid(inClazz: SemanticType?, range: SourceRange, exit: () -> Nothing) {
+    private inline fun ifIsInvalidForMemberAccess(inClazz: SemanticType?, range: SourceRange, operation: String, exit: () -> Nothing) {
         contract {
             returns() implies (inClazz is SemanticType.Class?)
         }
@@ -92,7 +97,7 @@ class NameResolutionHelper(
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     range,
-                    "field access on non-class type"
+                    "$operation on non-class type"
                 )
             }
             exit()
@@ -100,7 +105,7 @@ class NameResolutionHelper(
     }
 
     fun lookupField(name: AstNode.Identifier, inClazz: SemanticType?): FieldDefinition? {
-        ifIsInvalid(inClazz, name.sourceRange) { return null }
+        ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "field access") { return null }
 
         val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
@@ -116,9 +121,9 @@ class NameResolutionHelper(
     }
 
     fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
-        ifIsInvalid(inClazz, name.sourceRange) { return null }
+        ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "method call") { return null }
 
-        val clazz = getClazzByType(inClazz as SemanticType.Class?) ?: return null
+        val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
@@ -165,6 +170,15 @@ class NamespacePopulator(
     private lateinit var currentClassNamespace: ClassNamespace
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+        if (classDeclaration.name.text == "String") {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                classDeclaration.name.sourceRange,
+                "cannot shadow built-in `String` class"
+            )
+            return
+        }
+
         val namespace = ClassNamespace(global)
 
         global.classes.tryPut(classDeclaration.asDefinition(), onDuplicate = {
@@ -329,8 +343,23 @@ class SubroutineNameResolver(
     }
 }
 
-fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
-    val global = GlobalNamespace()
+private fun GlobalNamespace.createBuiltInClasses(sourceFile: SourceFile, stringTable: StringTable) {
+    val dummySourceRange = SourcePosition(sourceFile, 0).extend(0)
+    val stringSymbol = stringTable.tryRegisterIdentifier("String")
+    classes.tryPut(
+        AstNode.ClassDeclaration(
+            AstNode.Identifier(stringSymbol, dummySourceRange),
+            emptyList(),
+            dummySourceRange
+        ).asDefinition(),
+        onDuplicate = { check(false) }
+    )
+}
+
+fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringTable: StringTable) {
+    val global = GlobalNamespace().apply {
+        createBuiltInClasses(sourceFile, stringTable)
+    }
     program.accept(NamespacePopulator(global, sourceFile))
     program.accept(NameResolver(global, sourceFile))
 }
