@@ -1,6 +1,8 @@
 package edu.kit.compiler.transform
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.lex.Symbol
+import firm.ClassType
 import firm.Construction
 import firm.Dump
 import firm.Entity
@@ -19,11 +21,27 @@ import java.util.Stack
  */
 object FirmContext {
 
+    /**
+     * Firm global type singleton
+     */
+    val globalType
+        get() = Program.getGlobalType()
+
     lateinit var intType: PrimitiveType
         private set
 
     lateinit var boolType: PrimitiveType
         private set
+
+    lateinit var voidType: PrimitiveType
+        private set
+
+    private val constructedClassTypes = mutableMapOf<Symbol, ClassType>()
+
+    /**
+     * All class types available in the firm context, accessible by their symbol
+     */
+    val classTypes: Map<Symbol, ClassType> = constructedClassTypes
 
     /**
      * Current active construction. This is hidden here, because we can use the visitor pattern, if the active
@@ -37,6 +55,11 @@ object FirmContext {
      */
     private var graph: Graph? = null
 
+    /**
+     * A stack for constructing expressions using a visitor. Each constructed expression is added to the current top
+     * [ExpressionStackElement]. This way, when an expression is being transformed, it pushes an element onto the stack,
+     * then recursively constructs the inner expressions, and then uses their results to construct itself.
+     */
     private val expressionStack = Stack<ExpressionStackElement>()
 
     /**
@@ -53,17 +76,26 @@ object FirmContext {
         )
 
         intType = PrimitiveType(Mode.getIs())
-        boolType = PrimitiveType(Mode.getIs())
+        boolType = PrimitiveType(Mode.getBu())
+        voidType = PrimitiveType(Mode.getM()) // todo: is void a memory/sync mode?
     }
 
     fun constructMethodType(returnType: Type, vararg parameterTypes: Type): MethodType {
         return MethodType(parameterTypes, arrayOf(returnType))
     }
 
+    fun constructClassType(symbol: Symbol, vararg memberTypes: Type): ClassType {
+        val t = ClassType(symbol.text).apply {
+            addSuperType(globalType)
+            // todo how do I add members?!
+        }
+        this.constructedClassTypes[symbol] = t
+        return t
+    }
+
     fun subroutine(variables: Int, name: String, type: MethodType, block: () -> Unit) {
         check(this.construction == null) { "cannot construct a method while another is being constructed" }
 
-        val globalType = Program.getGlobalType()
         val methodEntity = Entity(globalType, name, type)
         this.graph = Graph(methodEntity, variables)
         this.construction = Construction(this.graph)
