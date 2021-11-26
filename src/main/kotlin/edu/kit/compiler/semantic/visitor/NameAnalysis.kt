@@ -345,13 +345,15 @@ class SubroutineNameResolver(
 
 private fun GlobalNamespace.createBuiltInClasses(sourceFile: SourceFile, stringTable: StringTable) {
     val dummySourceRange = SourcePosition(sourceFile, 0).extend(0)
-    val stringSymbol = stringTable.tryRegisterIdentifier("String")
+
     classes.tryPut(
         AstNode.ClassDeclaration(
-            AstNode.Identifier(stringSymbol, dummySourceRange),
+            AstNode.Identifier(stringTable.tryRegisterIdentifier("String"), dummySourceRange),
             emptyList(),
             dummySourceRange
-        ).asDefinition(),
+        ).apply {
+            namespace = ClassNamespace(this@createBuiltInClasses)
+        }.asDefinition(),
         onDuplicate = { check(false) }
     )
 }

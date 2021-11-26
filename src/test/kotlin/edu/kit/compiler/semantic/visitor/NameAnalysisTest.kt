@@ -225,4 +225,31 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testValidStringUsage() {
+        checkNames(true) {
+            """
+                class Test {
+                    public static void main(String[] args) {}
+                    public String test(String i, String j) {
+                        String k;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testInvalidStringUsage() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        int l = arg.length;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }
