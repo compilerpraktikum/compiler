@@ -19,26 +19,23 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     lateinit var currentExpectedMethodReturnType: SemanticType
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
-        checkAndMessageIfNot(parameter.sourceRange, "No void typed parameters.") { parameter.type !is ParsedType.VoidType }
+        errorIfFalse(parameter.sourceRange, "No void typed parameters.") { parameter.type !is ParsedType.VoidType }
         parameter.semanticType = constructSemanticType(parameter.type, TODO("get class declaration, check before"))
     }
 
-    /**
-     * L-Values:
-     */
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
         // type check on children
         super.visitLocalVariableDeclaration(localVariableDeclaration)
 
         // L-Values check!
-        checkAndMessageIfNot(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is ParsedType.VoidType }
-        checkAndMessageIfNot(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
+        errorIfFalse(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is ParsedType.VoidType }
+        errorIfFalse(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
             localVariableDeclaration.type is ParsedType.ComplexType && localVariableDeclaration.type.name.symbol.text == "String"
         }
 
         // type check
-        checkAndMessageIfNot(localVariableDeclaration.sourceRange, "Initializer and declared type don't match") {
-            (localVariableDeclaration.initializer?.actualSemanticType ?: SemanticType.ErrorType) != localVariableDeclaration.type
+        errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match") {
+            localVariableDeclaration.initializer?.actualSemanticType != localVariableDeclaration.type
         }
         TODO("impl!")
     }
@@ -47,10 +44,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitArrayAccessExpression(arrayAccessExpression)
         // left-to-right: check target, then check index.
 
-        checkAndMessageIfNot(arrayAccessExpression.sourceRange, "Array access target is no array.") {
+        errorIfFalse(arrayAccessExpression.sourceRange, "Array access target is no array.") {
             arrayAccessExpression.target.actualSemanticType is SemanticType.ArrayType
         }
-        checkAndMessageIfNot(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
+        errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
             arrayAccessExpression.index.actualSemanticType is SemanticType.IntType
         }
         // If everything's correct, the arrayAccessExpression's type is the elementtype
@@ -59,7 +56,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
         super.visitFieldAccessExpression(fieldAccessExpression)
-        checkAndMessageIfNot(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
+        errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
             fieldAccessExpression.target.actualSemanticType is SemanticType.ComplexType
         }
         when (fieldAccessExpression.target.actualSemanticType) {
@@ -85,8 +82,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        checkAndMessageIfNot(returnStatement.sourceRange, "No return values on methods with return type \"void\".") {
-            !(currentExpectedMethodReturnType is SemanticType.VoidType && returnStatement.expression != null)
+        errorIfTrue(returnStatement.sourceRange, "No return values on methods with return type \"void\".") {
+            currentExpectedMethodReturnType is SemanticType.VoidType && returnStatement.expression != null
         }
         if (returnStatement.expression != null) {
             returnStatement.expression.expectedSemanticType = currentExpectedMethodReturnType
@@ -96,7 +93,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
-        checkAndMessageIfNot(expressionStatement.sourceRange, "Only method invocations and assignments are allowed as statements.") {
+        errorIfFalse(expressionStatement.sourceRange, "Only method invocations and assignments are allowed as statements.") {
             expressionStatement.expression is AstNode.Expression.MethodInvocationExpression ||
                 (expressionStatement.expression is AstNode.Expression.BinaryOperation && expressionStatement.expression.operation == AST.BinaryExpression.Operation.ASSIGNMENT)
         }
@@ -194,8 +191,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitArrayType(arrayType: ParsedType.ArrayType) {
         // TODO fix non-existing sourceRange
-        checkAndMessageIfNot(createSourceRangeDummy(), "No void typed arrays.") {
-            !(arrayType.elementType !is ParsedType.ArrayType && arrayType.elementType is ParsedType.VoidType)
+        errorIfTrue(createSourceRangeDummy(), "No void typed arrays.") {
+            arrayType.elementType is ParsedType.VoidType
         }
         super.visitArrayType(arrayType)
     }
@@ -236,13 +233,18 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
-        checkAndMessageIfNot(expression.sourceRange, "Expected type ${expression.expectedSemanticType}, got ${expression.actualSemanticType}") {
+        errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedSemanticType}, got ${expression.actualSemanticType}") {
             expression.actualSemanticType == expression.expectedSemanticType
         }
     }
 
-    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+    private fun errorIfFalse(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
         checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
+        // TODO more?
+    }
+
+    private fun errorIfTrue(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg) { !function() }
         // TODO more?
     }
 
