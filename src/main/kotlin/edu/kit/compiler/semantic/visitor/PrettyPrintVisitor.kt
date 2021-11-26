@@ -282,6 +282,10 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
         print("null")
     }
 
+    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+        print("this")
+    }
+
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         printParenthesisMaybe {
             print("new ")
