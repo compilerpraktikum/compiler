@@ -9,6 +9,7 @@ import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
@@ -111,7 +112,7 @@ class Compiler(private val config: Config) {
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         doSemanticAnalysis(program, sourceFile, stringTable)
-                        // TODO convert into firm graph
+                        Transformation.transform(program)
                         // TODO invoke firm backend to generate executable
                     }
                 }
