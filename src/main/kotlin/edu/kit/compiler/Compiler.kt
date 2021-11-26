@@ -98,7 +98,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        // TODO run semantic checks
+                        doSemanticAnalysis(program, sourceFile)
                     }
                 }
                 Mode.CompileFirm, Mode.Compile -> {

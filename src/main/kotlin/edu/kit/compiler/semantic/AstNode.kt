@@ -14,7 +14,7 @@ import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
  */
 sealed class AstNode(open val sourceRange: SourceRange) {
 
-    data class Identifier(val symbol: Symbol, override val sourceRange: SourceRange) : AstNode(sourceRange) {
+    data class Identifier(val symbol: Symbol, val sourceRange: SourceRange) {
         val text: String
             get() = symbol.text
     }

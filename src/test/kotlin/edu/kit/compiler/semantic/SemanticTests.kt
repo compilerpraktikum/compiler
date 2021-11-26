@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 /**
  * Some manually implemented semantic tests
  */
-class SemanticTests {
+internal class SemanticTests {
 
     @Test
     fun testMain() {
