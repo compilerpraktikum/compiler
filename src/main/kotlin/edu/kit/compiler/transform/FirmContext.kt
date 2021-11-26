@@ -67,23 +67,23 @@ object FirmContext {
      */
     fun init() {
         Firm.init("x86_64-linux-gnu", arrayOf("pic=1"))
-        println(
-            String.format(
-                "Initialized libFirm Version: %1s.%2s\n",
-                Firm.getMinorVersion(),
-                Firm.getMajorVersion()
-            )
-        )
+        println("Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}")
 
         intType = PrimitiveType(Mode.getIs())
         boolType = PrimitiveType(Mode.getBu())
         voidType = PrimitiveType(Mode.getM()) // todo: is void a memory/sync mode?
     }
 
+    /**
+     * Create a type for a method and return it
+     */
     fun constructMethodType(returnType: Type, vararg parameterTypes: Type): MethodType {
         return MethodType(parameterTypes, arrayOf(returnType))
     }
 
+    /**
+     * Create a new type for a class and add it to the class type map [classTypes]
+     */
     fun constructClassType(symbol: Symbol): ClassType {
         val t = ClassType(symbol.text).apply {
             addSuperType(globalType)
@@ -92,11 +92,21 @@ object FirmContext {
         return t
     }
 
+    /**
+     * Create a field and add it to its owner class
+     */
     fun constructField(type: Type, name: Symbol, ownerName: Symbol): Entity {
         val owner = classTypes[ownerName]!!
         return Entity(owner, name.text, type)
     }
 
+    /**
+     * Construct a method. Within [block] no other method may be constructed.
+     *
+     * @param variables number of local variables within the subroutine
+     * @param type function type
+     * @param block code fragment that constructs the method's content
+     */
     fun subroutine(variables: Int, name: String, type: MethodType, block: () -> Unit) {
         check(this.construction == null) { "cannot construct a method while another is being constructed" }
 
@@ -111,6 +121,14 @@ object FirmContext {
         this.graph = null
     }
 
+    /**
+     * Construct a binary expression.
+     *
+     * @param operation the [AST.BinaryExpression.Operation] variant that is being constructed
+     * @sample block code fragment that constructs the inner expressions
+     *
+     * @sample ConstructExpressions
+     */
     fun binaryExpression(operation: AST.BinaryExpression.Operation, block: () -> Unit) {
         val f = ExpressionStackElement()
         this.expressionStack.push(f)
