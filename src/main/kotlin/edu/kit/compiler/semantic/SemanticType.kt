@@ -14,11 +14,7 @@ sealed class SemanticType {
         lateinit var definition: ClassDefinition
     }
 
-    data class Array(val elementType: SemanticType) : SemanticType() {
-        init {
-            assert(elementType !is Void)
-        }
-    }
+    data class Array(val elementType: SemanticType) : SemanticType()
 
     /**
      * If this type is assigned as the semantic type of an [AstNode], the defined type is invalid and type checks should
@@ -31,9 +27,12 @@ sealed class SemanticType {
  * Recursively retrieves the base type of an array
  */
 val SemanticType.Array.baseType: SemanticType
-    get() = when (elementType) {
-        is SemanticType.Array -> elementType.baseType
-        else -> this
+    get() {
+        var baseType = elementType
+        while (baseType is SemanticType.Array) {
+            baseType = baseType.elementType
+        }
+        return baseType
     }
 
 /**

@@ -4,27 +4,30 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.wrapper.wrappers.Parsed
 
-sealed class Type {
-
-    object Void : Type()
-
-    object Integer : Type()
-
-    object Boolean : Type()
-
-    data class Array(
-        val elementType: Parsed<Type>
-    ) : Type()
-
-    data class Class(
-        val name: Parsed<Symbol>
-    ) : Type()
-}
-
 /**
  * Sealed AST-Node class structure
  */
-object AST {
+sealed class AST {
+    companion object {
+        val emptyStatement = Block(listOf())
+    }
+
+    sealed class Type : AST() {
+
+        object Void : Type()
+
+        object Integer : Type()
+
+        object Boolean : Type()
+
+        data class Array(
+            val elementType: Parsed<Type>
+        ) : Type()
+
+        data class Class(
+            val name: Parsed<Symbol>
+        ) : Type()
+    }
 
     /************************************************
      ** Class
@@ -39,14 +42,14 @@ object AST {
      */
     data class Program(
         val classes: List<Parsed<ClassDeclaration>>,
-    )
+    ) : AST()
 
     data class ClassDeclaration(
         val name: Parsed<Symbol>,
         val member: List<Parsed<ClassMember>>,
-    )
+    ) : AST()
 
-    sealed class ClassMember
+    sealed class ClassMember : AST()
 
     data class Field(
         val name: Parsed<Symbol>,
@@ -74,13 +77,13 @@ object AST {
     data class Parameter(
         val name: Parsed<Symbol>,
         val type: Parsed<Type>,
-    )
+    ) : AST()
 
     /************************************************
      ** Statement
      ************************************************/
 
-    sealed class BlockStatement
+    sealed class BlockStatement : AST()
 
     data class LocalVariableDeclarationStatement(
         val name: Parsed<Symbol>,
@@ -88,13 +91,7 @@ object AST {
         val initializer: Parsed<Expression>?,
     ) : BlockStatement()
 
-    data class StmtWrapper(val statement: Statement) : BlockStatement()
-
-    sealed class Statement
-
-    fun Statement.wrapBlockStatement(): StmtWrapper = StmtWrapper(this)
-
-    val emptyStatement = Block(listOf())
+    sealed class Statement : BlockStatement()
 
     data class Block(
         val statements: List<Parsed<BlockStatement>>,
@@ -123,7 +120,7 @@ object AST {
      ** Expression
      ************************************************/
 
-    sealed class Expression
+    sealed class Expression : AST()
 
     data class BinaryExpression(
         val left: Parsed<Expression>,
@@ -203,8 +200,8 @@ object AST {
     ) : Expression()
 
     sealed class LiteralExpression : Expression() {
-        class Boolean(val value: kotlin.Boolean) : LiteralExpression()
         class Integer(val value: String) : LiteralExpression()
+        class Boolean(val value: kotlin.Boolean) : LiteralExpression()
         class Null() : LiteralExpression()
         class This() : LiteralExpression()
     }
@@ -214,7 +211,7 @@ object AST {
     ) : Expression()
 
     data class NewArrayExpression(
-        val type: Parsed<Type.Array>,
+        val type: Parsed<AST.Type.Array>,
         val length: Parsed<Expression>,
     ) : Expression()
 }

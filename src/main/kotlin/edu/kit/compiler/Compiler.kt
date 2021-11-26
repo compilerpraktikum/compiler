@@ -7,6 +7,8 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
+import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
+import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
@@ -40,7 +42,6 @@ class Compiler(private val config: Config) {
      *
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
-    @OptIn(ExperimentalStdlibApi::class)
     fun compile(): Int {
         if (config.mode == Mode.Echo) {
             // needs to be handled separately because SourceFile does only support valid input encodings and
@@ -56,9 +57,6 @@ class Compiler(private val config: Config) {
             }
 
             when (config.mode) {
-                Mode.Compile -> {
-                    throw NotImplementedError("Compile mode not yet implemented.")
-                }
                 Mode.Echo -> { throw IllegalStateException("echo unhandled") }
                 Mode.LexTest -> {
                     val lexer = Lexer(
@@ -86,7 +84,7 @@ class Compiler(private val config: Config) {
                     )
                     val parser = Parser(sourceFile, lexer.tokens())
 
-                    kotlin.run {
+                    run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
 //                        program.accept(PrettyPrintVisitor(System.out))
                     }
@@ -98,9 +96,23 @@ class Compiler(private val config: Config) {
                     )
                     val parser = Parser(sourceFile, lexer.tokens())
 
-                    kotlin.run {
+                    run {
+                        val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
+                        // TODO run semantic checks
+                    }
+                }
+                Mode.CompileFirm, Mode.Compile -> {
+                    val lexer = Lexer(
+                        sourceFile,
+                        stringTable,
+                    )
+                    val parser = Parser(sourceFile, lexer.tokens())
+
+                    run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         doSemanticAnalysis(program, sourceFile)
+                        // TODO convert into firm graph
+                        // TODO invoke firm backend to generate executable
                     }
                 }
             }
@@ -156,7 +168,7 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode {
-        Compile, Echo, LexTest, ParseTest, PrettyPrintAst, SemanticCheck
+        Compile, Echo, LexTest, ParseTest, PrettyPrintAst, SemanticCheck, CompileFirm
     }
 
     interface Config {

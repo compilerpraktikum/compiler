@@ -93,6 +93,8 @@ internal class PrettyPrintMJTestSuite {
     @OptIn(ExperimentalStdlibApi::class)
     fun createAST(input: String): AstNode.Program {
         val (lexer, sourceFile) = createLexer(input)
-        return Parser(sourceFile, lexer.tokens()).parse().validate()!!
+        val ast = Parser(sourceFile, lexer.tokens()).parse()
+        sourceFile.printAnnotations()
+        return ast.validate()!!
     }
 }

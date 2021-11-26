@@ -1,6 +1,5 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
@@ -78,8 +77,8 @@ class SemanticTests {
         val ast = parser.parse().validate()!!
         ast.accept(acceptor(sourceFile))
 
-        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+        sourceFile.printAnnotations()
 
-        assertEquals(!shouldSucceed, sourceFile.hasError)
+        assertEquals(shouldSucceed, !sourceFile.hasError)
     }
 }

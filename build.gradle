@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        kotlin_version = '1.5.+'
+        kotlin_version = '1.6.+'
     }
 
     repositories {
@@ -69,7 +69,7 @@ shadowJar {
 
 test {
     useJUnitPlatform()
-    jvmArgs '-Xss2m'
+    jvmArgs '-Xss3m'
 }
 
 

@@ -2,7 +2,6 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.ast.Type
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
@@ -24,7 +23,6 @@ private val Token.isRelevantForSyntax
  * @param tokens [Sequence] of [tokens][Token]
  * @param sourceFile input wrapper that handles error reporting
  */
-@ExperimentalStdlibApi
 class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     AbstractParser(tokens.filter(Token::isRelevantForSyntax), sourceFile) {
 
@@ -208,7 +206,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
         val arrayType =
-            rBracket.map { Type.Array(basicType) }
+            rBracket.map { AST.Type.Array(basicType) }
                 .mapPosition { basicType.range.extend(rBracket.range) }
 
         val recurseExpression = parseNewArrayExpressionTypeArrayRecurse(arrayType, anc)
@@ -218,9 +216,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseNewArrayExpressionTypeArrayRecurse(
-        basicType: Parsed<Type.Array>,
+        basicType: Parsed<AST.Type.Array>,
         anc: AnchorUnion
-    ): Parsed<Type.Array> {
+    ): Parsed<AST.Type.Array> {
         val maybeAnotherLBracket = peek(0)
 
         return if (maybeAnotherLBracket !is Token.Eof) {
@@ -234,7 +232,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             ) {
                 next()
                 next()
-                Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc))
+                AST.Type.Array(parseNewArrayExpressionTypeArrayRecurse(basicType, anc))
                     .wrapValid(basicType.range.extend(maybeAnotherRBracket.range))
             } else {
                 basicType
@@ -680,7 +678,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         ) {
             AST.MainMethod(
                 parsedIdent,
-                Type.Void.wrapValid(voidKeyword.range),
+                AST.Type.Void.wrapValid(voidKeyword.range),
                 listOf(parameter),
                 block,
                 throwsException
@@ -688,7 +686,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         } else {
             AST.MainMethod(
                 parsedIdent,
-                Type.Void.wrapValid(voidKeyword.range),
+                AST.Type.Void.wrapValid(voidKeyword.range),
                 listOf(parameter),
                 block,
                 throwsException
@@ -742,7 +740,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseField(
         ident: Parsed<Token.Identifier>,
-        type: Parsed<Type>
+        type: Parsed<AST.Type>
     ): Parsed<AST.Field> {
         next()
 
@@ -754,7 +752,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
     private fun parseMethod(
         ident: Parsed<Token.Identifier>,
-        type: Parsed<Type>,
+        type: Parsed<AST.Type>,
         anc: AnchorUnion
     ): Parsed<AST.Method> {
         next()
@@ -865,7 +863,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Keyword.Type.False,
                     Token.Keyword.Type.True,
                     Token.Keyword.Type.This,
-                    Token.Keyword.Type.New -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Keyword.Type.New -> parseStatement(anc)
 
                     Token.Keyword.Type.Int,
                     Token.Keyword.Type.Boolean,
@@ -881,14 +879,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                 }
             }
-            is Token.Literal -> parseStatement(anc).map { AST.StmtWrapper(it) }
+            is Token.Literal -> parseStatement(anc)
             is Token.Operator -> {
                 when (firstToken.type) {
                     Token.Operator.Type.LeftBrace,
                     Token.Operator.Type.Semicolon,
                     Token.Operator.Type.Not,
                     Token.Operator.Type.Minus,
-                    Token.Operator.Type.LParen -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    Token.Operator.Type.LParen -> parseStatement(anc)
 
                     else -> {
                         reportError(
@@ -911,16 +909,16 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                     if (thirdToken.type == Token.Operator.Type.RightBracket) {
                                         parseLocalVariableDeclarationStatement(anc)
                                     } else {
-                                        parseStatement(anc).map { AST.StmtWrapper(it) }
+                                        parseStatement(anc)
                                     }
                                 }
-                                else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                                else -> parseStatement(anc)
                             }
                         } else {
-                            parseStatement(anc).map { AST.StmtWrapper(it) }
+                            parseStatement(anc)
                         }
                     }
-                    else -> parseStatement(anc).map { AST.StmtWrapper(it) }
+                    else -> parseStatement(anc)
                 }
             }
             else -> {
@@ -1175,7 +1173,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return AST.Parameter(ident.map(Token.Identifier::name), type).wrapValid(type.range.extend(ident.range))
     }
 
-    private fun parseType(anc: AnchorUnion): Parsed<Type> {
+    private fun parseType(anc: AnchorUnion): Parsed<AST.Type> {
         val basicType = parseBasicType(anc + FirstFollowUtils.firstSetTypeArrayRecurse)
 
         val maybeLeftBracket = peek(0)
@@ -1186,9 +1184,9 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseTypeArrayRecurse(
-        basicType: Parsed<Type>,
+        basicType: Parsed<AST.Type>,
         anc: AnchorUnion
-    ): Parsed<Type.Array> {
+    ): Parsed<AST.Type.Array> {
         next()
 
         val rightBracket = expectOperator(
@@ -1201,34 +1199,34 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val range = basicType.range.extend(rightBracket.range)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             if (rightBracket.isValid) {
-                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapValid(range)
+                AST.Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapValid(range)
             } else {
-                Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapErroneous(range)
+                AST.Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapErroneous(range)
             }
         } else {
             if (rightBracket.isValid) {
-                Type.Array(basicType).wrapValid(range)
+                AST.Type.Array(basicType).wrapValid(range)
             } else {
-                Type.Array(basicType).wrapErroneous(range)
+                AST.Type.Array(basicType).wrapErroneous(range)
             }
         }
     }
 
-    private fun parseBasicType(anc: AnchorUnion): Parsed<Type> {
+    private fun parseBasicType(anc: AnchorUnion): Parsed<AST.Type> {
         return when (val peekedToken = peek()) {
             is Token.Keyword -> {
                 when (peekedToken.type) {
                     Token.Keyword.Type.Int -> {
                         next()
-                        Type.Integer.wrapValid(peekedToken.range)
+                        AST.Type.Integer.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.Boolean -> {
                         next()
-                        Type.Boolean.wrapValid(peekedToken.range)
+                        AST.Type.Boolean.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.Void -> {
                         next()
-                        Type.Void.wrapValid(peekedToken.range)
+                        AST.Type.Void.wrapValid(peekedToken.range)
                     }
                     else -> {
                         reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
@@ -1239,7 +1237,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             }
             is Token.Identifier -> {
                 val t = expectIdentifier(anc) { "expected type identifier" }
-                Type.Class(t.map { it.name }).wrapValid(t.range)
+                AST.Type.Class(t.map { it.name }).wrapValid(t.range)
             }
             else -> {
                 reportError(peekedToken, "illegal token `${peekedToken.debugRepr}`. expected type")
