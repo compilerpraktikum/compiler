@@ -7,21 +7,20 @@ import edu.kit.compiler.semantic.dimension
 import java.io.PrintStream
 import java.util.Stack
 
-class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
-    private var currentIndentation: Int = 0
-    private var startsNewLine: Boolean = false
-
-    //    private var printParanthesesInCurrentExpression = true
+class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor() {
+    private var currentIndentation = 0
+    private var startsNewLine = false
 
     /**
      * Usage. In a visit method: peek() is false, we always don't. if peek() is true, the current method decides,
      * if it needs to be printed!
      */
-    private var printParanthesesStack: Stack<Boolean> =
-        Stack()
+    private var printParenthesesStack = Stack<Boolean>().apply {
+        push(true)
+    }
 
     override fun visitProgram(program: AstNode.Program) {
-        printParanthesesStack.push(true) // default: print parantheses. TODO put this in the constructor!!!
+        printParenthesesStack.push(true) // default: print parentheses. TODO put this in the constructor!!!
 
         program.classes
             .sortedBy { it.name.symbol }
@@ -341,15 +340,15 @@ class PrettyPrintVisitor(val printStream: PrintStream) : AbstractVisitor() {
     }
 
     private fun <T> printParenthesisMaybe(function: () -> T) {
-        if (printParanthesesStack.peek()) print("(")
+        if (printParenthesesStack.peek()) print("(")
         function()
-        if (printParanthesesStack.peek()) print(")")
+        if (printParenthesesStack.peek()) print(")")
     }
 
     private fun <T> doParenthesizedMaybe(printParentheses: Boolean, function: () -> T) {
-        printParanthesesStack.push(printParentheses)
+        printParenthesesStack.push(printParentheses)
         function()
-        printParanthesesStack.pop()
+        printParenthesesStack.pop()
     }
 
     private fun increaseIndent(depth: Int = 1) {
