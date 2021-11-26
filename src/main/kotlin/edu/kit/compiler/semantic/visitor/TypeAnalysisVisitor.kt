@@ -101,7 +101,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-
         binaryOperation.left.accept(this)
 
         binaryOperation.right.expectedSemanticType = when (binaryOperation.operation) {
@@ -118,7 +117,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
         binaryOperation.left.expectedSemanticType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
-                binaryOperation.left.expectedSemanticType // TODO
+                binaryOperation.expectedSemanticType
             AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
             AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
             AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
@@ -158,11 +157,9 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
-        TODO("Check for each parameter in ${methodInvocationExpression.method}.parameters if they're matching with ${methodInvocationExpression.arguments}")
-
-//        methodInvocationExpression.arguments.zip(TODO("${methodInvocationExpression.method}.parameters")) .forEach {
-//
-//        }
+        // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
+        // TODO uncomment if rebased on name analysis stuff
+//        methodInvocationExpression.arguments.zip(methodInvocationExpression.definition.node.parameters).forEach { pair -> pair.first.expectedSemanticType = pair.second.type }
 
         super.visitMethodInvocationExpression(methodInvocationExpression)
         // TODO what is with this? Do this when "this" typing is clear.
@@ -172,7 +169,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 //                methodInvocationExpression.target is TODO("THIS_EXPRESSION as a literal")
 //        }
 
-        methodInvocationExpression.actualSemanticType = TODO("${methodInvocationExpression.method}.returnType")
+        methodInvocationExpression.actualSemanticType = TODO("$methodInvocationExpression.definition.node.returnType")
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
     }
 
