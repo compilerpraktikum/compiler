@@ -21,10 +21,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 methodInvocationExpression.sourceRange,
-                "the main method cannot be invoked.",
-                listOf(
-                    SourceNote(methodInvocationExpression.sourceRange, "hint: don't call the main method.")
-                )
+                "the main method cannot be invoked."
             )
 
         super.visitMethodInvocationExpression(methodInvocationExpression)
