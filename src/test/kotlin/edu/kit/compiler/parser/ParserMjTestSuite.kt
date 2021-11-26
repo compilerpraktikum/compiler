@@ -45,8 +45,10 @@ internal class ParserMjTestSuite {
         val lexer = Lexer(input, stringTable)
 
         val parser = Parser(input, lexer.tokens())
+        parser.parse()
 
-        val success = parser.parse().validate() != null
+        val success = !input.hasError
+
         input.printAnnotations()
 
         if (testConfig.name.endsWith("invalid.mj")) {
