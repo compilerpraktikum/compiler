@@ -31,9 +31,12 @@ sealed class SemanticType {
  * Recursively retrieves the base type of an array
  */
 val SemanticType.Array.baseType: SemanticType
-    get() = when (elementType) {
-        is SemanticType.Array -> elementType.baseType
-        else -> this
+    get() {
+        var baseType = elementType
+        while (baseType is SemanticType.Array) {
+            baseType = baseType.elementType
+        }
+        return baseType
     }
 
 /**

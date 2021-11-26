@@ -56,7 +56,10 @@ object TestUtils {
     @OptIn(ExperimentalStdlibApi::class)
     fun createAST(input: String): Parsed<AST.Program> {
         val (lexer, sourceFile) = createLexer(input)
-        return Parser(sourceFile, lexer.tokens()).parse()
+
+        val ast = Parser(sourceFile, lexer.tokens()).parse()
+        sourceFile.printAnnotations()
+        return ast
     }
 
     fun assertIdemPotence(input: String) {
