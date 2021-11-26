@@ -90,4 +90,143 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testUnknownClassAsField() {
+        checkNames(false) {
+            """
+                class Test {
+                    public Foo foo;
+                    public void main(int i) {
+                        foo.bar();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testUnknownClassAsParameter() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(Foo foo) {
+                        foo.bar();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testUnknownClassAsVariable() {
+        checkNames(false) {
+            """
+                class Test {
+                    public Foo foo;
+                    public void main(int i) {
+                        Foo foo;
+                        foo.bar();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowValid() {
+        checkNames(true) {
+            """
+                class Test {
+                    public int i;
+                    public void main(int i) {
+                    }
+                }
+
+                class Sup {
+                    public int i;
+                    public void main() {
+                        int i;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowInvalidParameter() {
+        checkNames(false) {
+            """
+                class Test {
+                    public int i;
+                    public void main(int i) {
+                        int i;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowInvalidBlock() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main() {
+                        int i;
+                        int j;
+                        int i;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowInvalidBlockNested() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main() {
+                        int i;
+                        {
+                            int i;
+                        }
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowValidBlockNested() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main() {
+                        int j;
+                        {
+                            int i;
+                        }
+                        {
+                            int i;
+                        }
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testParameterAccess() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(int i) {
+                        i + i;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }

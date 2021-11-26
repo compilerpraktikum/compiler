@@ -16,12 +16,24 @@ val VariableDefinition.identifier
         is VariableNode.Parameter -> this.node.node.name
     }
 
+fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType: SemanticType.Class): Definition<AstNode.ClassDeclaration> {
+    val def = global.classes.getOrNull(classType.name.symbol)
+    if (def == null) {
+        sourceFile.annotate(
+            AnnotationType.ERROR,
+            classType.name.sourceRange,
+            "unknown class `${classType.name.text}`"
+        )
+        TODO()
+    }
+    return def
+}
+
 /**
  * Handles name lookups within the block of a method. Requires all classes + their fields and methods from first analysis pass.
  */
-class LocalMethodNamespace(
+class NameResolutionHelper(
     private val clazz: AstNode.ClassDeclaration,
-    parameters: List<AstNode.ClassMember.SubroutineDeclaration.Parameter>,
     private val sourceFile: AnnotatableFile,
 ) {
     private val global
@@ -29,9 +41,18 @@ class LocalMethodNamespace(
 
     private val thisDefinition = global.classes.getOrNull(clazz.name.symbol)!!
 
-    private val paramsByName = parameters.associateBy { it.name.symbol }
-
     private val local = SymbolTable()
+
+    fun registerParameters(parameters: List<AstNode.ClassMember.SubroutineDeclaration.Parameter>) {
+        enterScope()
+        parameters.forEach {
+            local.add(it.asDefinition().wrap())
+        }
+    }
+
+    fun unregisterParameters() {
+        leaveScope()
+    }
 
     fun enterScope() = local.enterScope()
     fun leaveScope() = local.leaveScope()
@@ -40,7 +61,7 @@ class LocalMethodNamespace(
         val name: Symbol = node.name.symbol
         val prevDefinition = local.lookup(name)
         if (prevDefinition == null) {
-            local.add(Definition(name, node))
+            local.add(node.asDefinition().wrap())
         } else {
             sourceFile.annotate(
                 AnnotationType.ERROR,
@@ -53,18 +74,7 @@ class LocalMethodNamespace(
         }
     }
 
-    fun lookupClass(classType: SemanticType.Class): ClassDefinition {
-        val def = global.classes.getOrNull(classType.name.symbol)
-        if (def == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                classType.name.sourceRange,
-                "unknown class `${classType.name.text}`"
-            )
-            TODO()
-        }
-        return def
-    }
+    fun lookupClass(classType: SemanticType.Class): ClassDefinition = lookupClass(global, sourceFile, classType)
 
     private fun getClazzByType(inClazz: SemanticType.Class?) =
         inClazz?.let { global.classes.getOrNull(it.name.symbol)!!.node } ?: clazz
@@ -143,7 +153,7 @@ class LocalMethodNamespace(
 @Suppress("SpellCheckingInspection")
 class NamespacePopulator(
     private val global: GlobalNamespace,
-    private val sourceFile: SourceFile,
+    private val sourceFile: AnnotatableFile,
 ) : AbstractVisitor() {
 
     private lateinit var currentClassNamespace: ClassNamespace
@@ -231,12 +241,12 @@ class NamespacePopulator(
 /**
  * Second name analysis pass:
  */
-class SubroutineNameResolver(
+class NameResolver(
     private val global: GlobalNamespace,
-    private val sourceFile: SourceFile,
+    private val sourceFile: AnnotatableFile,
 ) : AbstractVisitor() {
+
     lateinit var currentClass: AstNode.ClassDeclaration
-    lateinit var currentMethodNamespace: LocalMethodNamespace
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         currentClass = classDeclaration
@@ -244,29 +254,46 @@ class SubroutineNameResolver(
         super.visitClassDeclaration(classDeclaration)
     }
 
+    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+        val type = fieldDeclaration.type
+        if (type is SemanticType.Class) {
+            type.definition = lookupClass(global, sourceFile, type)
+        }
+    }
+
+    private inline fun <reified T : AstNode.ClassMember.SubroutineDeclaration> handleMethod(definition: T) {
+        val namespace = NameResolutionHelper(currentClass, sourceFile)
+        namespace.registerParameters(definition.parameters)
+        definition.accept(SubroutineNameResolver(namespace))
+        namespace.unregisterParameters()
+    }
+
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        currentMethodNamespace = LocalMethodNamespace(currentClass, methodDeclaration.parameters, sourceFile)
-        super.visitMethodDeclaration(methodDeclaration)
+        handleMethod(methodDeclaration)
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        currentMethodNamespace = LocalMethodNamespace(currentClass, mainMethodDeclaration.parameters, sourceFile)
-        super.visitMainMethodDeclaration(mainMethodDeclaration)
+        handleMethod(mainMethodDeclaration)
     }
+}
+
+class SubroutineNameResolver(
+    private val namespace: NameResolutionHelper,
+) : AbstractVisitor() {
 
     override fun visitBlock(block: AstNode.Statement.Block) {
-        currentMethodNamespace.enterScope()
+        namespace.enterScope()
         super.visitBlock(block)
-        currentMethodNamespace.leaveScope()
+        namespace.leaveScope()
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
-        currentMethodNamespace.addDefinition(localVariableDeclaration)
+        namespace.addDefinition(localVariableDeclaration)
         super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        identifierExpression.definition = currentMethodNamespace.lookupVariable(
+        identifierExpression.definition = namespace.lookupVariable(
             identifierExpression.name
         )
     }
@@ -274,7 +301,7 @@ class SubroutineNameResolver(
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
         super.visitFieldAccessExpression(fieldAccessExpression)
 
-        fieldAccessExpression.definition = currentMethodNamespace.lookupField(
+        fieldAccessExpression.definition = namespace.lookupField(
             fieldAccessExpression.field, fieldAccessExpression.target.actualType
         )
     }
@@ -282,22 +309,22 @@ class SubroutineNameResolver(
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         super.visitMethodInvocationExpression(methodInvocationExpression)
 
-        methodInvocationExpression.definition = currentMethodNamespace.lookupMethod(
+        methodInvocationExpression.definition = namespace.lookupMethod(
             methodInvocationExpression.method, methodInvocationExpression.target?.actualType
         )
     }
 
     override fun visitClassType(clazz: SemanticType.Class) {
-        clazz.definition = currentMethodNamespace.lookupClass(clazz)
+        clazz.definition = namespace.lookupClass(clazz)
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
-        literalThisExpression.definition = currentMethodNamespace.lookupThis()
+        literalThisExpression.definition = namespace.lookupThis()
     }
 }
 
 fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
     val global = GlobalNamespace()
     program.accept(NamespacePopulator(global, sourceFile))
-    program.accept(SubroutineNameResolver(global, sourceFile))
+    program.accept(NameResolver(global, sourceFile))
 }

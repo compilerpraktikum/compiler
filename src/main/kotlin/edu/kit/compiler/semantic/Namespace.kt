@@ -3,24 +3,12 @@ package edu.kit.compiler.semantic
 import edu.kit.compiler.lex.Symbol
 
 /**
- * Definition of a class member or local variable
+ * Definition of a class, class member or local variable
  */
 class Definition<NodeType>(
     val name: Symbol,
     val node: NodeType,
 )
-
-typealias ClassDefinition = Definition<AstNode.ClassDeclaration>
-fun AstNode.ClassDeclaration.asDefinition() = ClassDefinition(name.symbol, this)
-
-typealias FieldDefinition = Definition<AstNode.ClassMember.FieldDeclaration>
-fun AstNode.ClassMember.FieldDeclaration.asDefinition() = FieldDefinition(name.symbol, this)
-
-typealias MethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>
-fun AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() = MethodDefinition(name.symbol, this)
-
-typealias MainMethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
-fun AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
 
 sealed class VariableNode() {
     class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode()
@@ -29,12 +17,29 @@ sealed class VariableNode() {
 }
 typealias VariableDefinition = Definition<VariableNode>
 
+typealias FieldDefinition = Definition<AstNode.ClassMember.FieldDeclaration>
+fun AstNode.ClassMember.FieldDeclaration.asDefinition() = FieldDefinition(name.symbol, this)
+@JvmName("wrapFieldDefinition")
+fun FieldDefinition.wrap() = VariableDefinition(name, VariableNode.Field(node))
+
+typealias ParameterDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.Parameter>
+fun AstNode.ClassMember.SubroutineDeclaration.Parameter.asDefinition() = ParameterDefinition(name.symbol, this)
+@JvmName("wrapParameterDefinition")
+fun ParameterDefinition.wrap() = VariableDefinition(name, VariableNode.Parameter(node))
+
 typealias LocalVariableDefinition = Definition<AstNode.Statement.LocalVariableDeclaration>
+fun AstNode.Statement.LocalVariableDeclaration.asDefinition() = LocalVariableDefinition(name.symbol, this)
 @JvmName("wrapLocalVariableDefinition")
 fun LocalVariableDefinition.wrap() = VariableDefinition(name, VariableNode.LocalVariable(node))
 
-@JvmName("wrapFieldDefinition")
-fun Definition<AstNode.ClassMember.FieldDeclaration>.wrap() = VariableDefinition(name, VariableNode.Field(node))
+typealias ClassDefinition = Definition<AstNode.ClassDeclaration>
+fun AstNode.ClassDeclaration.asDefinition() = ClassDefinition(name.symbol, this)
+
+typealias MethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>
+fun AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() = MethodDefinition(name.symbol, this)
+
+typealias MainMethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
+fun AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
 
 /**
  * Generic namespace that contains a mapping from [Symbols][Symbol] to [definitions][T].
@@ -109,11 +114,11 @@ class SymbolTable {
         currentScope = scope.parent
     }
 
-    fun add(definition: LocalVariableDefinition) {
+    fun add(definition: VariableDefinition) {
         check(currentScope.parent != null) { "cannot add definition to root scope. call enterScope() before adding definitions" }
         val name = definition.name
         currentScope.changes.add(Change(name, name.definition))
-        name.definition = definition.wrap()
+        name.definition = definition
     }
 
     fun lookup(name: Symbol): VariableDefinition? = name.definition
