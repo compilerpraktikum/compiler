@@ -130,7 +130,11 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             lateinit var definition: VariableDefinition
 
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (definition.node) {
+                    is VariableNode.Field -> (definition.node as VariableNode.Field).node.type
+                    is VariableNode.Parameter -> (definition.node as VariableNode.Parameter).node.type
+                    is VariableNode.LocalVariable -> (definition.node as VariableNode.LocalVariable).node.type
+                }
         }
 
         /**
@@ -159,7 +163,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralNullExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Null
             }
 
             /**
@@ -169,7 +173,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 lateinit var definition: ClassDefinition
 
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Class(definition.node.name)
             }
         }
 
@@ -247,7 +251,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             lateinit var definition: MethodDefinition
 
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = definition.node.returnType
         }
 
         /**
@@ -264,7 +268,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             lateinit var definition: FieldDefinition
 
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = definition.node.type
         }
 
         /**

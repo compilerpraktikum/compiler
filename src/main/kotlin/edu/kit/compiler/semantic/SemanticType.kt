@@ -8,6 +8,8 @@ sealed class SemanticType {
 
     object Boolean : SemanticType()
 
+    object Null : SemanticType()
+
     object Void : SemanticType()
 
     data class Class(val name: AstNode.Identifier) : SemanticType() {

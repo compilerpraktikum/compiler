@@ -22,7 +22,7 @@ fun AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() =
 typealias MainMethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
 fun AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
 
-sealed class VariableNode {
+sealed class VariableNode() {
     class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode()
     class Parameter(val node: AstNode.ClassMember.SubroutineDeclaration.Parameter) : VariableNode()
     class LocalVariable(val node: AstNode.Statement.LocalVariableDeclaration) : VariableNode()
