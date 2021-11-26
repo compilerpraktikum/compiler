@@ -11,5 +11,8 @@ out/
 **.jar
 !gradle/wrapper/*.jar
 
+# Firm artifacts
+*.vcg
+
 #MacOs Finder
 .DS_Store
