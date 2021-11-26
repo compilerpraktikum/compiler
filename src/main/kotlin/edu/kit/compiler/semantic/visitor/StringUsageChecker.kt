@@ -1,28 +1,24 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.SemanticType
 
-class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor()  {
+class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-        if (classDeclaration.name.symbol.text == "String")
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                SourceRange(classDeclaration.sourceRange.start, 1),
-                "You cannot define a class named \"String\", since it is  pre-defined."
-            )
+        checkAndMessageIfNot(
+            SourceRange(classDeclaration.sourceRange.start, 1),
+            "You cannot define a class named \"String\", since it is  pre-defined."
+        ) {
+            classDeclaration.name.symbol.text == "String"
+        }
         super.visitClassDeclaration(classDeclaration)
     }
 
-
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
-        checkAndMessageIfNot("No Instantiations of String.") { newObjectExpression.clazz.symbol.text != "String" }
+        checkAndMessageIfNot(newObjectExpression.sourceRange, "No Instantiations of String.") { newObjectExpression.clazz.symbol.text != "String" }
     }
-
 
 // TODO string access?
 //
@@ -42,10 +38,8 @@ class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor()  {
 //    }
 //
 
-
-    private fun checkAndMessageIfNot(errorMsg: String, function: () -> kotlin.Boolean) {
-        if (!function()) {
-            TODO("Print Error: $errorMsg and throw sth")
-        }
+    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
+        // TODO more?
     }
 }
