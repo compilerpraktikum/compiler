@@ -126,13 +126,14 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Definition of the referenced member
              */
-            lateinit var definition: VariableDefinition
+            var definition: VariableDefinition? = null
 
             override val actualType: SemanticType
-                get() = when (val node = definition.node) {
+                get() = when (val node = definition?.node) {
                     is VariableNode.Field -> node.node.type
                     is VariableNode.Parameter -> node.node.type
                     is VariableNode.LocalVariable -> node.node.type
+                    null -> SemanticType.Error
                 }
         }
 
@@ -250,10 +251,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val arguments: List<Expression>,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
-            lateinit var definition: MethodDefinition
+            var definition: MethodDefinition? = null
 
             override val actualType: SemanticType
-                get() = definition.node.returnType
+                get() = definition?.node?.returnType ?: SemanticType.Error
         }
 
         /**
@@ -267,10 +268,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val field: Identifier,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
-            lateinit var definition: FieldDefinition
+            var definition: FieldDefinition? = null
 
             override val actualType: SemanticType
-                get() = definition.node.type
+                get() = definition?.node?.type ?: SemanticType.Error
         }
 
         /**

@@ -15,11 +15,7 @@ internal class NameAnalysisTest {
         val ast = parser.parse().validate()
         sourceFile.printAnnotations()
         ast!!
-        try {
-            doNameAnalysis(ast, sourceFile)
-        } catch (e: NotImplementedError) {
-            check(sourceFile.hasError) { "" }
-        }
+        doNameAnalysis(ast, sourceFile)
 
         sourceFile.printAnnotations()
 

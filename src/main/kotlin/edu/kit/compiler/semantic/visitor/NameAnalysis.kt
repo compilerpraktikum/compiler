@@ -16,7 +16,7 @@ val VariableDefinition.identifier
         is VariableNode.Parameter -> this.node.node.name
     }
 
-fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType: SemanticType.Class): Definition<AstNode.ClassDeclaration> {
+fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType: SemanticType.Class): ClassDefinition? {
     val def = global.classes.getOrNull(classType.name.symbol)
     if (def == null) {
         sourceFile.annotate(
@@ -24,7 +24,7 @@ fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType:
             classType.name.sourceRange,
             "unknown class `${classType.name.text}`"
         )
-        TODO()
+        return null
     }
     return def
 }
@@ -74,19 +74,19 @@ class NameResolutionHelper(
         }
     }
 
-    fun lookupClass(classType: SemanticType.Class): ClassDefinition = lookupClass(global, sourceFile, classType)
+    fun lookupClass(classType: SemanticType.Class): ClassDefinition? = lookupClass(global, sourceFile, classType)
 
     private fun getClazzByType(inClazz: SemanticType.Class?) =
         inClazz?.let { global.classes.getOrNull(it.name.symbol)!!.node } ?: clazz
 
-    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType? = null): FieldDefinition {
+    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType? = null): FieldDefinition? {
         if (inClazz !is SemanticType.Class) {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 name.sourceRange,
                 "field access on non-class type"
             )
-            TODO()
+            return null
         }
 
         val clazz = getClazzByType(inClazz)
@@ -97,19 +97,19 @@ class NameResolutionHelper(
                 name.sourceRange,
                 "unknown field `${clazz.name.text}.${name.symbol.text}`"
             )
-            TODO()
+            return null
         }
         return def
     }
 
-    fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition {
+    fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
         if (inClazz != null && inClazz !is SemanticType.Class) {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 name.sourceRange,
                 "field access on non-class type"
             )
-            TODO()
+            return null
         }
 
         val clazz = getClazzByType(inClazz as SemanticType.Class?)
@@ -122,12 +122,12 @@ class NameResolutionHelper(
                     " (note: you cannot call the main method of a program)"
                 } else ""
             )
-            TODO()
+            return null
         }
         return def
     }
 
-    fun lookupVariable(name: AstNode.Identifier): VariableDefinition {
+    fun lookupVariable(name: AstNode.Identifier): VariableDefinition? {
         local.lookup(name.symbol)?.let {
             return it
         }
@@ -139,7 +139,7 @@ class NameResolutionHelper(
                 name.sourceRange,
                 "unknown variable `${name.symbol.text}`"
             )
-            TODO()
+            return null
         }
         return def.wrap()
     }
