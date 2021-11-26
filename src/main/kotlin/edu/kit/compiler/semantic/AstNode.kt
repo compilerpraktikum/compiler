@@ -5,7 +5,6 @@ import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode.ClassMember.FieldDeclaration
 import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
-import edu.kit.compiler.semantic.visitor.constructSemanticType
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to
@@ -130,10 +129,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             lateinit var definition: VariableDefinition
 
             override val actualType: SemanticType
-                get() = when (definition.node) {
-                    is VariableNode.Field -> (definition.node as VariableNode.Field).node.type
-                    is VariableNode.Parameter -> (definition.node as VariableNode.Parameter).node.type
-                    is VariableNode.LocalVariable -> (definition.node as VariableNode.LocalVariable).node.type
+                get() = when (val node = definition.node) {
+                    is VariableNode.Field -> node.node.type
+                    is VariableNode.Parameter -> node.node.type
+                    is VariableNode.LocalVariable -> node.node.type
                 }
         }
 
@@ -193,7 +192,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = constructSemanticType(type)
+                get() = type
         }
 
         /**
@@ -217,7 +216,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                     AST.BinaryExpression.Operation.DIVISION ->
                         SemanticType.Integer
                     AST.BinaryExpression.Operation.ASSIGNMENT ->
-                        left.expectedType
+                        left.actualType
                 }
         }
 
@@ -232,7 +231,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange
         ) {
             override val actualType: SemanticType
-                get() = inner.expectedType
+                get() = when (operation) {
+                    AST.UnaryExpression.Operation.NOT -> SemanticType.Boolean
+                    AST.UnaryExpression.Operation.MINUS -> SemanticType.Integer
+                }
         }
 
         /**
@@ -283,8 +285,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                // If everything's correct, the arrayAccessExpression's type is the elementtype
-                get() = (this.target.actualType as SemanticType.Array).elementType
+                get() = when (val type = this.target.actualType) {
+                    is SemanticType.Array -> type.elementType
+                    else -> SemanticType.Error
+                }
         }
     }
 
