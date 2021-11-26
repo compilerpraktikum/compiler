@@ -21,7 +21,10 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 methodInvocationExpression.sourceRange,
-                "the main method cannot be invoked."
+                "the main method cannot be invoked.",
+                listOf(
+                    SourceNote(methodInvocationExpression.sourceRange, "hint: don't call the main method.")
+                )
             )
 
         super.visitMethodInvocationExpression(methodInvocationExpression)
@@ -33,20 +36,29 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "the main method must return `void`"
+                    "the main method must return `void`",
+                    listOf(
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: change the return type to `void`")
+                    )
                 )
             else
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "only the main method is allowed to be `static`"
+                    "only the main method is allowed to be `static`",
+                    listOf(
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
+                    )
                 )
         } else {
             if (mainMethodDeclaration.name.symbol.text != "main") {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "only the `main` method is allowed to be static"
+                    "only the `main` method is allowed to be static",
+                    listOf(
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
+                    )
                 )
             }
         }
