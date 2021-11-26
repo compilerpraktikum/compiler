@@ -81,17 +81,26 @@ class NameResolutionHelper(
         else -> global.classes.getOrNull(inClazz.name.symbol)?.node
     }
 
-    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType? = null): FieldDefinition? {
-        if (inClazz !is SemanticType.Class) {
+    @OptIn(ExperimentalContracts::class)
+    private inline fun ifIsInvalid(inClazz: SemanticType?, range: SourceRange, exit: () -> Nothing) {
+        contract {
+            returns() implies (inClazz is SemanticType.Class?)
+        }
+
+        if (inClazz != null && inClazz !is SemanticType.Class) {
             if (inClazz !is SemanticType.Error) { // suppress error spam
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    name.sourceRange,
+                    range,
                     "field access on non-class type"
                 )
             }
-            return null
+            exit()
         }
+    }
+
+    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType?): FieldDefinition? {
+        ifIsInvalid(inClazz, name.sourceRange) { return null }
 
         val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
@@ -107,16 +116,7 @@ class NameResolutionHelper(
     }
 
     fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
-        if (inClazz != null && inClazz !is SemanticType.Class) {
-            if (inClazz !is SemanticType.Error) { // suppress error spam
-                sourceFile.annotate(
-                    AnnotationType.ERROR,
-                    name.sourceRange,
-                    "field access on non-class type"
-                )
-            }
-            return null
-        }
+        ifIsInvalid(inClazz, name.sourceRange) { return null }
 
         val clazz = getClazzByType(inClazz as SemanticType.Class?) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
