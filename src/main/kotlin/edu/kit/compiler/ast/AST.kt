@@ -203,10 +203,10 @@ object AST {
     ) : Expression()
 
     sealed class LiteralExpression : Expression() {
-        class Boolean(val value: kotlin.Boolean) : LiteralExpression()
-        class Integer(val value: String) : LiteralExpression()
-        class Null() : LiteralExpression()
-        class This() : LiteralExpression()
+        data class Boolean(val value: kotlin.Boolean) : LiteralExpression()
+        data class Integer(val value: String) : LiteralExpression()
+        object Null : LiteralExpression()
+        object This : LiteralExpression()
     }
 
     data class NewObjectExpression(

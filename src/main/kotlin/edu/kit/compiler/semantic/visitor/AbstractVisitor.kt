@@ -6,124 +6,127 @@ import edu.kit.compiler.semantic.SemanticType
 /**
  * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
  */
-abstract class AbstractVisitor {
+abstract class AbstractVisitor : AnyVisitor {
 
-    open fun visitProgram(program: AstNode.Program) {
+    override fun visitProgram(program: AstNode.Program) {
         program.classes.forEach { it.accept(this) }
     }
 
-    open fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         classDeclaration.members.forEach { it.accept(this) }
     }
 
-    open fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
         fieldDeclaration.type.accept(this)
     }
 
-    open fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         methodDeclaration.returnType.accept(this)
         methodDeclaration.parameters.forEach { it.accept(this) }
         methodDeclaration.block.accept(this)
     }
 
-    open fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         mainMethodDeclaration.returnType.accept(this)
         mainMethodDeclaration.parameters.forEach { it.accept(this) }
         mainMethodDeclaration.block.accept(this)
     }
 
-    open fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+    override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
         parameter.type.accept(this)
     }
 
-    open fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
+    override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
         arrayAccessExpression.target.accept(this)
         arrayAccessExpression.index.accept(this)
     }
 
-    open fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+    override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
         binaryOperation.left.accept(this)
         binaryOperation.right.accept(this)
     }
 
-    open fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+    override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
         fieldAccessExpression.target.accept(this)
     }
 
-    open fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
     }
 
-    open fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+    override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
     }
 
-    open fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+    override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
     }
 
-    open fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
+    override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
     }
 
-    open fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
     }
 
-    open fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         methodInvocationExpression.target?.accept(this)
         methodInvocationExpression.arguments.forEach { it.accept(this) }
     }
 
-    open fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+    override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
         newArrayExpression.type.accept(this)
         newArrayExpression.length.accept(this)
     }
 
-    open fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
     }
 
-    open fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
+    override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
         unaryOperation.inner.accept(this)
     }
 
-    open fun visitBlock(block: AstNode.Statement.Block) {
+    override fun visitBlock(block: AstNode.Statement.Block) {
         block.statements.forEach { it.accept(this) }
     }
 
-    open fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
+    override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
         expressionStatement.expression.accept(this)
     }
 
-    open fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+    override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
         ifStatement.condition.accept(this)
         ifStatement.thenCase.accept(this)
         ifStatement.elseCase?.accept(this)
     }
 
-    open fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
         localVariableDeclaration.type.accept(this)
         localVariableDeclaration.initializer?.accept(this)
     }
 
-    open fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+    override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
         returnStatement.expression?.accept(this)
     }
 
-    open fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+    override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
         whileStatement.condition.accept(this)
         whileStatement.statement.accept(this)
     }
 
-    open fun visitIntType() {
+    override fun visitIntType() {
     }
 
-    open fun visitBoolType() {
+    override fun visitBoolType() {
     }
 
-    open fun visitVoidType() {
+    override fun visitVoidType() {
     }
 
-    open fun visitArrayType(arrayType: SemanticType.Array) {
+    override fun visitArrayType(arrayType: SemanticType.Array) {
         arrayType.elementType.accept(this)
     }
 
-    open fun visitClassType(clazz: SemanticType.Class) {
+    override fun visitClassType(clazz: SemanticType.Class) {
+    }
+
+    override fun visitTypeError(semanticType: SemanticType.Error) {
     }
 }
 

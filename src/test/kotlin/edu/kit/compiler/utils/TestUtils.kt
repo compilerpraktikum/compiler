@@ -1,6 +1,7 @@
 package edu.kit.compiler.utils
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.WipeSourceRangeVisitor
 import edu.kit.compiler.lex.LexerMjTestSuite
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.AstNode
@@ -45,9 +46,10 @@ object TestUtils {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun <T> expectNode(input: String, expectedNode: T, runParser: Parser.() -> T) {
+    fun <T> expectNode(input: String, expectedNode: T, runParser: Parser.(WipeSourceRangeVisitor) -> T) {
         val (lexer, sourceFile) = createLexer(input)
-        val res: T = Parser(sourceFile, lexer.tokens()).runParser()
+        val wipeSourceRangeVisitor = WipeSourceRangeVisitor()
+        val res: T = Parser(sourceFile, lexer.tokens()).runParser(wipeSourceRangeVisitor)
         Assertions.assertEquals(expectedNode, res)
     }
 

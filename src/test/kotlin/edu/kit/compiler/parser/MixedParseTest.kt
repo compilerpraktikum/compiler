@@ -22,11 +22,20 @@ internal class MixedParseTest {
     ).wrapBlockStatement().wrapMockValid()
 
     private fun expectAst(input: String, expectedAST: List<Parsed<AST.ClassDeclaration>>) =
-        expectNode(input, expectedAST) { parseClassDeclarations(emptyAnchorSet) }
+        expectNode(
+            input,
+            expectedAST
+        ) { sourceRangeWiper ->
+            parseClassDeclarations(emptyAnchorSet).map { s ->
+                sourceRangeWiper.visitClassDeclaration(
+                    s
+                )
+            }
+        }
 
     @Test
     fun testParseEmptyBlock() =
-        expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet) }
+        expectNode("{}", validEmptyBlock) { it.visitBlock(parseBlock(emptyAnchorSet)) }
 
     @Test
     fun testParseBlockOfEmptyBlocks() =
@@ -42,11 +51,11 @@ internal class MixedParseTest {
                 )
             )
                 .wrapMockValid()
-        ) { parseBlock(emptyAnchorSet) }
+        ) { it.visitBlock(parseBlock(emptyAnchorSet)) }
 
     @Test
     fun testParseBlockWithEmptyStatement() =
-        expectNode("{;}", AST.Block(listOf(validEmptyBlockStatement)).wrapMockValid()) { parseBlock(emptyAnchorSet) }
+        expectNode("{;}", AST.Block(listOf(validEmptyBlockStatement)).wrapMockValid()) { it.visitBlock(parseBlock(emptyAnchorSet)) }
 
     @Test
     fun testParseBlockWithMultipleEmptyStatement() = expectNode(
@@ -59,7 +68,7 @@ internal class MixedParseTest {
                 validEmptyBlockStatement,
             )
         ).wrapMockValid()
-    ) { parseBlock(emptyAnchorSet) }
+    ) { it.visitBlock(parseBlock(emptyAnchorSet)) }
 
     @Test
     fun testDisambiguateVarDeclarationAndExpression() = expectNode(
@@ -77,7 +86,7 @@ internal class MixedParseTest {
                     .wrapMockValid()
             )
         ).wrapMockValid()
-    ) { parseBlock(emptyAnchorSet) }
+    ) { it.visitBlock(parseBlock(emptyAnchorSet)) }
 
     @Test
     fun testParseAssignment() = expectNode(
@@ -89,19 +98,19 @@ internal class MixedParseTest {
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapMockValid()
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseReturn() = expectNode(
         "return;",
         AST.ReturnStatement(null).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
         AST.ReturnStatement(AST.LiteralExpression.Integer("2").wrapMockValid()).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseBasicWhile() = expectNode(
@@ -110,7 +119,7 @@ internal class MixedParseTest {
             AST.LiteralExpression.Integer("2").wrapMockValid(),
             validEmptyBlock
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseBasicIf() = expectNode(
@@ -120,7 +129,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             null
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseBasicIfElse() = expectNode(
@@ -130,7 +139,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseBasicIfElse_bool() = expectNode(
@@ -140,7 +149,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun testParseBasicIfElse_ident() = expectNode(
@@ -150,7 +159,7 @@ internal class MixedParseTest {
             validEmptyBlock,
             validEmptyBlock
         ).wrapMockValid()
-    ) { parseStatement(emptyAnchorSet) }
+    ) { it.visitStatement(parseStatement(emptyAnchorSet)) }
 
     @Test
     fun debugParserMJTest_2() = expectNode(
@@ -209,7 +218,7 @@ internal class MixedParseTest {
                 ).wrapMockValid()
             )
         ).wrapMockValid()
-    ) { parse() }
+    ) { it.visitProgram(parse()) }
 
     @Test
     fun debugParserMJTest_4() {
@@ -243,7 +252,7 @@ internal class MixedParseTest {
                                     listOf(
                                         AST.IfStatement(
                                             AST.FieldAccessExpression(
-                                                AST.LiteralExpression.Null().wrapMockValid(),
+                                                AST.LiteralExpression.Null.wrapMockValid(),
                                                 "nothing".toSymbol().wrapMockValid()
                                             )
                                                 .wrapMockValid(),
@@ -274,7 +283,7 @@ internal class MixedParseTest {
                 )
             ).wrapMockValid()
 
-        ) { parse() }
+        ) { it.visitProgram(parse()) }
     }
 
     //    @Ignore
@@ -324,7 +333,7 @@ internal class MixedParseTest {
                 ).wrapMockValid()
             )
         ).wrapMockValid()
-    ) { parse() }
+    ) { it.visitProgram(parse()) }
 
     @Ignore
     @Test
@@ -401,7 +410,7 @@ internal class MixedParseTest {
             )
         ).wrapMockValid()
 
-    ) { parse() }
+    ) { it.visitProgram(parse()) }
 
     @Test
     fun debugParserMJTest_1() = expectNode(
@@ -459,7 +468,7 @@ internal class MixedParseTest {
             )
         ).wrapMockValid()
 
-    ) { parse() }
+    ) { it.visitProgram(parse()) }
 
     @Test
     fun testBasicBlock() = expectAst(

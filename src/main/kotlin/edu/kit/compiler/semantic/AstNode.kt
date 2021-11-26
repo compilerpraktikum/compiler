@@ -24,7 +24,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
      *
      * @param classes all classes defined in the compilation unit
      */
-    class Program(val classes: List<ClassDeclaration>, sourceRange: SourceRange) : AstNode(sourceRange)
+    data class Program(val classes: List<ClassDeclaration>, override val sourceRange: SourceRange) : AstNode(sourceRange)
 
     /**
      * A class with all its members
@@ -139,7 +139,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Integer value expression. The integer may be outside of legal bounds
              */
-            class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            data class LiteralIntExpression(val value: String, override val sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = TODO("Not yet implemented")
             }
@@ -148,7 +148,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              * Boolean literal expression. Value has already been verified and is thus legal. Types have not been set
              * yet though.
              */
-            class LiteralBoolExpression(val value: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            data class LiteralBoolExpression(val value: Boolean, override val sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = TODO("Not yet implemented")
             }
@@ -156,7 +156,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Null value expression. Cannot have an actual type.
              */
-            class LiteralNullExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            data class LiteralNullExpression(override val sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = TODO("Not yet implemented")
             }
@@ -164,7 +164,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * This expression.
              */
-            class LiteralThisExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            data class LiteralThisExpression(override val sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 lateinit var definition: ClassDefinition
 
                 override val actualType: SemanticType

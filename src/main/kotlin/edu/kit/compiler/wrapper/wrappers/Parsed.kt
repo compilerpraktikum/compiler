@@ -33,10 +33,11 @@ sealed class Parsed<out A>(open val range: SourceRange) {
         is Valid -> this.node
     }
 
-    val isValid: Boolean get() = when (this) {
-        is Error -> false
-        is Valid -> true
-    }
+    val isValid: Boolean
+        get() = when (this) {
+            is Error -> false
+            is Valid -> true
+        }
 
     inline fun <B> map(m: (A) -> B): Parsed<B> = when (this) {
         is Error -> Error(this.range, this.node?.let(m))
@@ -61,6 +62,30 @@ sealed class Parsed<out A>(open val range: SourceRange) {
     inline fun <B> cases(onValid: (A) -> B, onError: (A?) -> B): Parsed<B> = when (this) {
         is Error -> Error(this.range, onError(this.node))
         is Valid -> Valid(this.range, onValid(this.node))
+    }
+
+    interface Packer {
+        fun <B> pack(c: B): Parsed<B>
+    }
+
+    inline fun <B> casePack(f: (A, Packer) -> Parsed<B>): Parsed<B> = when (this) {
+        is Valid -> f(
+            this.node,
+            object : Packer {
+                override fun <B> pack(c: B): Parsed<B> = Valid(this@Parsed.range, c)
+            }
+        )
+        is Error ->
+            if (this.node == null) {
+                Error(this.range, this.node)
+            } else {
+                f(
+                    this.node,
+                    object : Packer {
+                        override fun <B> pack(c: B): Parsed<B> = Error(this@Parsed.range, c)
+                    }
+                )
+            }
     }
 
     inline fun mapPosition(m: (SourceRange) -> SourceRange): Parsed<A> = when (this) {
@@ -223,8 +248,14 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
         is AST.LiteralExpression ->
             when (expression) {
-                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, this.range)
-                is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
+                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(
+                    expression.value,
+                    this.range
+                )
+                is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(
+                    expression.value,
+                    this.range
+                )
                 is AST.LiteralExpression.Null -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
                 is AST.LiteralExpression.This -> AstNode.Expression.LiteralExpression.LiteralThisExpression(this.range)
             }
