@@ -1,15 +1,12 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 internal class NameAnalysisTest {
 
