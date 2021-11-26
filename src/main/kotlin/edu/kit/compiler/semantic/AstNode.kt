@@ -5,6 +5,7 @@ import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode.ClassMember.FieldDeclaration
 import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
+import edu.kit.compiler.semantic.visitor.constructSemanticType
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to
@@ -141,7 +142,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Integer
             }
 
             /**
@@ -150,7 +151,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralBoolExpression(val value: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Boolean
             }
 
             /**
@@ -188,7 +189,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = constructSemanticType(type)
         }
 
         /**
@@ -201,7 +202,19 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (operation) {
+                    AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS,
+                    AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
+                    AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
+                    AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
+                        SemanticType.Boolean
+                    AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
+                    AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
+                    AST.BinaryExpression.Operation.DIVISION ->
+                        SemanticType.Integer
+                    AST.BinaryExpression.Operation.ASSIGNMENT ->
+                        left.expectedType
+                }
         }
 
         /**
@@ -215,7 +228,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange
         ) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = inner.expectedType
         }
 
         /**
@@ -266,7 +279,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                // If everything's correct, the arrayAccessExpression's type is the elementtype
+                get() = (this.target.actualType as SemanticType.Array).elementType
         }
     }
 
