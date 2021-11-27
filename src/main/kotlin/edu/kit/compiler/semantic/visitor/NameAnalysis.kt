@@ -97,8 +97,8 @@ class NameResolutionHelper(
             if (inClazz !is SemanticType.Error) { // suppress error spam
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    range,
-                    "$operation on non-class type"
+                    range, // TODO the identifier is not really the problem here, so highlighting it is kinda odd
+                    "$operation on non-class type `${inClazz.display()}`",
                 )
             }
             exit()

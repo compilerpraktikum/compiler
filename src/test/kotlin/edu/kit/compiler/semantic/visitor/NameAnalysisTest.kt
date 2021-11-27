@@ -308,4 +308,90 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testInvalidSystemUsage() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System;
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System.in;
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System.out;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testShadowSystem() {
+        checkNames(false) {
+            """
+                class System {}
+
+                class Test {
+                    public void main(String arg) {
+                        System.out.println();
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public int System;
+                    public void test() {
+                        System.out.println();
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public void test() {
+                        int System;
+                        System.out.println();
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public void test() {
+                        int System;
+                        System.out.println();
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(true) {
+            """
+                class Test {
+                    public void test() {
+                        System.out.println();
+                        int System;
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }

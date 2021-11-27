@@ -63,9 +63,9 @@ class Namespace<T> {
 
     fun getOrNull(name: String): Definition<T>? = entries.firstNotNullOfOrNull {
         if (it.key.text == name) {
-            return it.value
+            it.value
         } else {
-            return null
+            null
         }
     }
 }

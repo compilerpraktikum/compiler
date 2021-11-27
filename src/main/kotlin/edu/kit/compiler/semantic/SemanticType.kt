@@ -25,6 +25,16 @@ sealed class SemanticType {
     object Error : SemanticType()
 }
 
+fun SemanticType.display(): String = when (this) {
+    SemanticType.Integer -> "int"
+    SemanticType.Boolean -> "boolean"
+    SemanticType.Null -> "null"
+    SemanticType.Void -> "void"
+    is SemanticType.Class -> name.text
+    is SemanticType.Array -> baseType.display() + "[]".repeat(dimension)
+    SemanticType.Error -> "[ERROR]"
+}
+
 /**
  * Recursively retrieves the base type of an array
  */
