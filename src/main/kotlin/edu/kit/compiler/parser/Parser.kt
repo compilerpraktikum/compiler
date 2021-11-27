@@ -39,16 +39,16 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }.mapPosition { programStart.extend(eof.range) }
     }
 
-    private fun parsePrimaryExpression(anc: AnchorUnion): Parsed<AST.Expression> {
+    private fun parsePrimaryExpression(anc: AnchorUnion, isParentized: Boolean): Parsed<AST.Expression> {
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression.Integer(peekedToken.value).wrapValid(peekedToken.range)
+                AST.LiteralExpression.Integer(peekedToken.value, isParentized).wrapValid(peekedToken.range)
             }
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
                     next()
-                    val innerExpr = parseExpression(1, anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
+                    val innerExpr = parseExpression(1, anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)), true)
                     expectOperator(Token.Operator.Type.RParen, anc) { "expected closing parenthesis." }
                     innerExpr
                 } else {
@@ -100,7 +100,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                     Token.Keyword.Type.New -> {
                         next()
-                        parseNewObjectArrayExpression(anc)
+                        parseNewObjectArrayExpression(anc, isParentized)
                     }
                     else -> {
                         reportError(
@@ -126,11 +126,11 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     /**
      *
      */
-    private fun parseNewObjectArrayExpression(anc: AnchorUnion): Parsed<AST.Expression> {
+    private fun parseNewObjectArrayExpression(anc: AnchorUnion, isParentized: Boolean): Parsed<AST.Expression> {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
-                    parseNewArrayExpression(anc)
+                    parseNewArrayExpression(anc, isParentized)
                 else -> {
                     reportError(firstToken, "illegal token `${firstToken.debugRepr}`. expected type")
                     recover(anc)
@@ -145,7 +145,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     is Token.Operator -> {
                         when (secondToken.type) {
                             Token.Operator.Type.LParen -> parseNewObjectExpression(anc)
-                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc)
+                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc, isParentized)
                             else -> {
                                 reportError(
                                     secondToken,
@@ -183,7 +183,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             .mapPosition { ident.range.extend(rParen.range) }
     }
 
-    private fun parseNewArrayExpression(anc: AnchorUnion): Parsed<AST.Expression> {
+    private fun parseNewArrayExpression(anc: AnchorUnion, isParentized: Boolean): Parsed<AST.Expression> {
         val basicType = parseBasicType(
             anc +
                 anchorSetOf(
@@ -201,7 +201,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 FirstFollowUtils.firstSetExpression
         ) { "expected `[` denoting an array type" }
 
-        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)))
+        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)), isParentized= isParentized)
 
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
@@ -262,14 +262,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         anchorSetOf(Token.Operator(Token.Operator.Type.RParen))
                 ) { "arguments must be comma-separated" }
             }
-            arguments += parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
+            arguments += parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)), isParentized = false)
             nextToken = peek()
         }
         return arguments
     }
 
-    private fun parsePostfixExpression(anc: AnchorUnion): Parsed<AST.Expression> {
-        val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp)
+    private fun parsePostfixExpression(anc: AnchorUnion, isParentized: Boolean): Parsed<AST.Expression> {
+        val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp, isParentized)
 
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
@@ -355,7 +355,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         val index = parseExpression(
                             anc = anc +
                                 anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
-                                FirstFollowUtils.firstSetPostfixOp
+                                FirstFollowUtils.firstSetPostfixOp,
+                            isParentized = false
                         )
 
                         val rBracket = expectOperator(
@@ -374,14 +375,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         }
     }
 
-    private fun parseUnaryExpression(anc: AnchorUnion): Parsed<AST.Expression> {
+    private fun parseUnaryExpression(anc: AnchorUnion, isParentized: Boolean): Parsed<AST.Expression> {
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
                     Token.Operator.Type.Not -> {
                         next()
 
-                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
+                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators, false)
                         AST.UnaryExpression(
                             innerExpression,
                             AST.UnaryExpression.Operation.NOT
@@ -390,23 +391,24 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     Token.Operator.Type.Minus -> {
                         next()
 
-                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
+                        val innerExpression = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators, false)
                         AST.UnaryExpression(
                             innerExpression,
                             AST.UnaryExpression.Operation.MINUS
                         ).wrapValid(peeked.range.extend(innerExpression.range))
                     }
-                    else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators)
+                    else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParentized)
                 }
-            else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators)
+            else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParentized)
         }
     }
 
     internal fun parseExpression(
         minPrecedence: Int = 1,
-        anc: AnchorUnion
+        anc: AnchorUnion,
+        isParentized: Boolean
     ): Parsed<AST.Expression> {
-        var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators)
+        var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators, isParentized)
         var currentToken = peek()
 
         while (
@@ -422,7 +424,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     AST.BinaryExpression.Operation.Associativity.LEFT -> op.precedence + 1
                     else -> op.precedence
                 },
-                anc + FirstFollowUtils.allExpressionOperators
+                anc + FirstFollowUtils.allExpressionOperators,
+                isParentized
             )
             result = AST.BinaryExpression(result, rhs, op).wrapValid(result.range.extend(rhs.range))
             currentToken = peek()
@@ -990,7 +993,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val maybeSemicolon = peek(0)
         var returnValue: Parsed<AST.Expression>? = null
         if (!(maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon)) {
-            returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
+            returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParentized = false)
         }
 
         next()
@@ -1016,7 +1019,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val condition = parseExpression(
             anc = anc +
                 anchorSetOf(Token.Operator(Token.Operator.Type.RParen), Token.Keyword(Token.Keyword.Type.Else)) +
-                FirstFollowUtils.firstSetStatement
+                FirstFollowUtils.firstSetStatement,
+            isParentized = false
         )
 
         val rparen = expectOperator(
@@ -1070,7 +1074,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val loopCondition = parseExpression(
             anc = anc +
                 anchorSetOf(Token.Operator(Token.Operator.Type.RParen)) +
-                FirstFollowUtils.firstSetStatement
+                FirstFollowUtils.firstSetStatement,
+            isParentized = false
         )
 
         val rparen = expectOperator(
@@ -1113,7 +1118,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             is Token.Operator ->
                 if (nextToken.type == Token.Operator.Type.Assign) {
                     next()
-                    parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
+                    parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParentized = false)
                 } else {
                     null
                 }
@@ -1136,7 +1141,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseExpressionStatement(anc: AnchorUnion): Parsed<AST.ExpressionStatement> {
-        val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)))
+        val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParentized = false)
         val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;`" }
 
         val statementRange = expr.range.extend(semicolon.range)

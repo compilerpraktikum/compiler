@@ -312,9 +312,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // TODO überlegen ob vlt doch equals methode überschreiben?
         if (type0 is SemanticType.Class && type1 is SemanticType.Class) {
             type0.name.symbol.text == type1.name.symbol.text
-        } else if (type0 is SemanticType.Array && type1 is SemanticType.Array && type0.elementType is SemanticType.Class && type1.elementType is SemanticType.Class) {
-            type0.elementType.name.symbol.text == type1.elementType.name.symbol.text
+        } else if (type0 is SemanticType.Array && type1 is SemanticType.Array) {
+            compareSemanticTypes(type0.elementType, type1.elementType)
         } else if (type0 is SemanticType.Class && type1 is SemanticType.Null || type1 is SemanticType.Class && type0 is SemanticType.Null) {
+            true
+        } else if (type0 is SemanticType.Array && type1 is SemanticType.Null || type1 is SemanticType.Array && type0 is SemanticType.Null) {
             true
         } else {
             type0 == type1

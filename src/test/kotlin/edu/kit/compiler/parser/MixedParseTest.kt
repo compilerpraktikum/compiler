@@ -80,7 +80,7 @@ internal class MixedParseTest {
         AST.ExpressionStatement(
             AST.BinaryExpression(
                 AST.IdentifierExpression("myIdent".toSymbol().wrapMockValid()).wrapMockValid(),
-                AST.LiteralExpression.Integer("3").wrapMockValid(),
+                AST.LiteralExpression.Integer("3", false).wrapMockValid(),
                 AST.BinaryExpression.Operation.ASSIGNMENT
             ).wrapMockValid()
         ).wrapMockValid()
@@ -95,14 +95,14 @@ internal class MixedParseTest {
     @Test
     fun testParseReturnValue() = expectNode(
         "return(2);",
-        AST.ReturnStatement(AST.LiteralExpression.Integer("2").wrapMockValid()).wrapMockValid()
+        AST.ReturnStatement(AST.LiteralExpression.Integer("2", false).wrapMockValid()).wrapMockValid()
     ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBasicWhile() = expectNode(
         "while(2) {};",
         AST.WhileStatement(
-            AST.LiteralExpression.Integer("2").wrapMockValid(),
+            AST.LiteralExpression.Integer("2", false).wrapMockValid(),
             validEmptyBlock
         ).wrapMockValid()
     ) { parseStatement(emptyAnchorSet) }
@@ -111,7 +111,7 @@ internal class MixedParseTest {
     fun testParseBasicIf() = expectNode(
         "if(2) {};",
         AST.IfStatement(
-            AST.LiteralExpression.Integer("2").wrapMockValid(),
+            AST.LiteralExpression.Integer("2", false).wrapMockValid(),
             validEmptyBlock,
             null
         ).wrapMockValid()
@@ -121,7 +121,7 @@ internal class MixedParseTest {
     fun testParseBasicIfElse() = expectNode(
         "if(2) {} else {};",
         AST.IfStatement(
-            AST.LiteralExpression.Integer("2").wrapMockValid(),
+            AST.LiteralExpression.Integer("2", false).wrapMockValid(),
             validEmptyBlock,
             validEmptyBlock
         ).wrapMockValid()
@@ -246,7 +246,7 @@ internal class MixedParseTest {
                                                 AST.IfStatement(
                                                     AST.ArrayAccessExpression(
                                                         AST.LiteralExpression.Boolean(false).wrapMockValid(),
-                                                        AST.LiteralExpression.Integer("472183921789789798798798798798787789738120391203213213")
+                                                        AST.LiteralExpression.Integer("472183921789789798798798798798787789738120391203213213", false)
                                                             .wrapMockValid()
                                                     ).wrapMockValid(),
                                                     AST.ReturnStatement(null).wrapMockValid(),
@@ -291,20 +291,20 @@ internal class MixedParseTest {
                                                 AST.IdentifierExpression("a".toSymbol().wrapMockValid())
                                                     .wrapMockValid(),
                                                 AST.BinaryExpression(
-                                                    AST.LiteralExpression.Integer("2").wrapMockValid(),
+                                                    AST.LiteralExpression.Integer("2", false).wrapMockValid(),
                                                     AST.BinaryExpression(
                                                         AST.UnaryExpression(
                                                             AST.IdentifierExpression("i".toSymbol().wrapMockValid())
                                                                 .wrapMockValid(),
                                                             AST.UnaryExpression.Operation.MINUS
                                                         ).wrapMockValid(),
-                                                        AST.LiteralExpression.Integer("1").wrapMockValid(),
+                                                        AST.LiteralExpression.Integer("1", false).wrapMockValid(),
                                                         AST.BinaryExpression.Operation.ADDITION
                                                     ).wrapMockValid(),
                                                     AST.BinaryExpression.Operation.MULTIPLICATION
                                                 ).wrapMockValid()
                                             ).wrapMockValid(),
-                                            AST.LiteralExpression.Integer("2").wrapMockValid()
+                                            AST.LiteralExpression.Integer("2", false).wrapMockValid()
                                         ).wrapMockValid()
                                     ).wrapMockValid()
                                 )
@@ -377,7 +377,7 @@ internal class MixedParseTest {
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x".toSymbol().wrapMockValid())
                                                     .wrapMockValid(),
-                                                AST.LiteralExpression.Integer("3").wrapMockValid(),
+                                                AST.LiteralExpression.Integer("3", false).wrapMockValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapMockValid()
                                         ).wrapMockValid(),
@@ -432,7 +432,7 @@ internal class MixedParseTest {
                                             AST.BinaryExpression(
                                                 AST.IdentifierExpression("x".toSymbol().wrapMockValid())
                                                     .wrapMockValid(),
-                                                AST.LiteralExpression.Integer("3").wrapMockValid(),
+                                                AST.LiteralExpression.Integer("3", false).wrapMockValid(),
                                                 AST.BinaryExpression.Operation.ASSIGNMENT
                                             ).wrapMockValid()
                                         ).wrapMockValid(),

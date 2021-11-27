@@ -144,7 +144,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Integer value expression. The integer may be outside of legal bounds
              */
-            class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = SemanticType.Integer
             }

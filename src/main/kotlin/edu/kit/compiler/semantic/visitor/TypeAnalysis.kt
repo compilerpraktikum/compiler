@@ -23,3 +23,7 @@ fun doSearchForReturnStatement(program: AstNode.Program, sourceFile: SourceFile)
 fun doAssignmentLHSChecking(program: AstNode.Program, sourceFile: SourceFile) {
     program.accept(AssignmentLHSChecker(sourceFile))
 }
+
+fun doConstantBoundariesCheck(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(ConstantBoundariesChecker(sourceFile))
+}

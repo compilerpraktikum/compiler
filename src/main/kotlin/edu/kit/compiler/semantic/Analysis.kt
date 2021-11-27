@@ -3,6 +3,7 @@ package edu.kit.compiler.semantic
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.semantic.visitor.doAssignmentLHSChecking
+import edu.kit.compiler.semantic.visitor.doConstantBoundariesCheck
 import edu.kit.compiler.semantic.visitor.doMainMethodAnalysis
 import edu.kit.compiler.semantic.visitor.doSearchForReturnStatement
 import edu.kit.compiler.semantic.visitor.doStringUsageChecking
@@ -15,4 +16,5 @@ fun doSemanticAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringT
     doStringUsageChecking(program, sourceFile) // macht nix kaputt, aber evtl duplicate von namensanalyse?
     doSearchForReturnStatement(program, sourceFile)
     doAssignmentLHSChecking(program, sourceFile)
+    doConstantBoundariesCheck(program, sourceFile)
 }

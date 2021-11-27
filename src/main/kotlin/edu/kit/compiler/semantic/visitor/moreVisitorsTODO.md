@@ -20,5 +20,4 @@
 
 ## no this in (static) main method!                                             DONE
 
-## UNCLASSIFIED
-* 20
+## nested array equal check without equals method                               DONE

@@ -222,7 +222,7 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
         is AST.LiteralExpression ->
             when (expression) {
-                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, this.range)
+                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, expression.isParenthisized, this.range)
                 is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
                 is AST.LiteralExpression.Null -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
                 is AST.LiteralExpression.This -> AstNode.Expression.LiteralExpression.LiteralThisExpression(this.range)
