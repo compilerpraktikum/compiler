@@ -5,6 +5,7 @@ import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.semantic.doNameAnalysis
+import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.doTypeAnalysis
 import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.wrapper.wrappers.validate
@@ -54,8 +55,7 @@ internal class SemanticMJTestSuite {
         input.printAnnotations()
         ast!!
         try {
-            doNameAnalysis(ast, input, stringTable)
-            doTypeAnalysis(ast, input)
+            doSemanticAnalysis(ast, input, stringTable)
         } catch (e: NotImplementedError) {
             kotlin.check(input.hasError) { "" }
             input.printAnnotations()

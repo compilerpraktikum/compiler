@@ -103,6 +103,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             returnStatement.expression.expectedType = currentExpectedMethodReturnType
             super.visitReturnStatement(returnStatement)
             checkActualTypeEqualsExpectedType(returnStatement.expression)
+        } else {
+            errorIfFalse(returnStatement.sourceRange, "Must return a value (of type ${currentExpectedMethodReturnType}).") { currentExpectedMethodReturnType is SemanticType.Void }
         }
     }
 
@@ -225,11 +227,13 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         if (methodInvocationExpression.target?.actualType is SemanticType.Error) {
             return
         }
-        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers, newObjectExpressions, or \"this\"") {
-            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
-                methodInvocationExpression.target is AstNode.Expression.NewObjectExpression ||
-                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression || methodInvocationExpression.target == null
-        }
+        //TODO if langeweile, evtl wieder einbauen
+//        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers, newObjectExpressions, methodinvokations, or \"this\"") {
+//            methodInvocationExpression.target is AstNode.Expression.MethodInvocationExpression ||
+//            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
+//                methodInvocationExpression.target is AstNode.Expression.NewObjectExpression ||
+//                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression || methodInvocationExpression.target == null
+//        }
 
         checkActualTypeEqualsExpectedType(methodInvocationExpression)
     }
@@ -304,8 +308,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
      * Not commutative because of null allowance.
      */
     private fun compareSemanticTypes(type0: SemanticType, type1: SemanticType): Boolean =
+        // TODO überlegen ob vlt doch equals methode überschreiben?
         if (type0 is SemanticType.Class && type1 is SemanticType.Class) {
             type0.name.symbol.text == type1.name.symbol.text
+        } else if (type0 is SemanticType.Array && type1 is SemanticType.Array && type0.elementType is SemanticType.Class && type1.elementType is SemanticType.Class) {
+            type0.elementType.name.symbol.text == type1.elementType.name.symbol.text
         } else if (type0 is SemanticType.Class && type1 is SemanticType.Null || type1 is SemanticType.Class && type0 is SemanticType.Null) {
             true
         } else {

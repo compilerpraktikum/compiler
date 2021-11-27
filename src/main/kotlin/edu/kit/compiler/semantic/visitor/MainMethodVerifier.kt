@@ -12,6 +12,8 @@ import edu.kit.compiler.semantic.SemanticType
  */
 class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
+    var checkingMainMethodCurrently = false
+
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         // don't visit method blocks, that would be waste of time
     }
@@ -83,5 +85,16 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 "the parameter of the `main` method must have type `String[]`",
             )
         }
+
+        checkingMainMethodCurrently = true
+        super.visitMainMethodDeclaration(mainMethodDeclaration)
+        checkingMainMethodCurrently = false
+    }
+
+    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+        checkAndAnnotateSourceFileIfNot(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"args\" in main method body") {
+            checkingMainMethodCurrently && identifierExpression.name.symbol.text != "args"
+        }
+        super.visitIdentifierExpression(identifierExpression)
     }
 }

@@ -10,7 +10,7 @@ class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor() {
             SourceRange(classDeclaration.sourceRange.start, 1),
             "You cannot define a class named \"String\", since it is  pre-defined."
         ) {
-            classDeclaration.name.symbol.text == "String"
+            classDeclaration.name.symbol.text != "String"
         }
         super.visitClassDeclaration(classDeclaration)
     }

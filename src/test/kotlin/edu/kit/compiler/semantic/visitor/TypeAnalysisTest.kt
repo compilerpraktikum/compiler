@@ -2,6 +2,7 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doNameAnalysis
+import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
@@ -17,8 +18,9 @@ class TypeAnalysisTest {
         sourceFile.printAnnotations()
         ast!!
         try {
-            doNameAnalysis(ast, sourceFile, stringTable)
-            doTypeAnalysis(ast, sourceFile)
+//            doNameAnalysis(ast, sourceFile, stringTable)
+//            doTypeAnalysis(ast, sourceFile)
+            doSemanticAnalysis(ast, sourceFile, stringTable)
         } catch (e: NotImplementedError) {
             kotlin.check(sourceFile.hasError) { "" }
             sourceFile.printAnnotations()
