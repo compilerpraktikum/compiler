@@ -251,10 +251,20 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val arguments: List<Expression>,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
-            var definition: MethodDefinition? = null
+            var type: Type? = null
 
             override val actualType: SemanticType
-                get() = definition?.node?.returnType ?: SemanticType.Error
+                get() = type?.returnType ?: SemanticType.Error
+
+            sealed class Type {
+                abstract val returnType: SemanticType
+
+                class Normal(val definition: MethodDefinition) : Type() {
+                    override val returnType: SemanticType
+                        get() = definition.node.returnType
+                }
+                class Internal(val name: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
+            }
         }
 
         /**

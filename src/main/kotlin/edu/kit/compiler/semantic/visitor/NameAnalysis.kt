@@ -40,6 +40,7 @@ fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType:
 class NameResolutionHelper(
     private val clazz: AstNode.ClassDeclaration,
     private val sourceFile: AnnotatableFile,
+    private val systemSymbol: Symbol,
 ) {
     private val global
         get() = clazz.namespace.global
@@ -156,6 +157,12 @@ class NameResolutionHelper(
     }
 
     fun lookupThis(): ClassDefinition = thisDefinition
+
+    fun hasAnyDefinitionForSystem(): Boolean {
+        return global.classes.getOrNull("System") != null ||
+            clazz.namespace.fields.getOrNull("System") != null ||
+            local.contains(systemSymbol)
+    }
 }
 
 /**
@@ -264,6 +271,7 @@ class NamespacePopulator(
 class NameResolver(
     private val global: GlobalNamespace,
     private val sourceFile: AnnotatableFile,
+    private val systemSymbol: Symbol,
 ) : AbstractVisitor() {
 
     lateinit var currentClass: AstNode.ClassDeclaration
@@ -282,9 +290,9 @@ class NameResolver(
     }
 
     private inline fun <reified T : AstNode.ClassMember.SubroutineDeclaration> handleMethod(definition: T) {
-        val namespace = NameResolutionHelper(currentClass, sourceFile)
+        val namespace = NameResolutionHelper(currentClass, sourceFile, systemSymbol)
         namespace.registerParameters(definition.parameters)
-        definition.accept(SubroutineNameResolver(namespace))
+        definition.accept(SubroutineNameResolver(namespace, sourceFile))
         namespace.unregisterParameters()
     }
 
@@ -299,6 +307,7 @@ class NameResolver(
 
 class SubroutineNameResolver(
     private val namespace: NameResolutionHelper,
+    private val sourceFile: AnnotatableFile
 ) : AbstractVisitor() {
 
     override fun visitBlock(block: AstNode.Statement.Block) {
@@ -327,11 +336,84 @@ class SubroutineNameResolver(
     }
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+        val handled = tryHandleSystemCall(methodInvocationExpression)
+        if (handled) {
+            return
+        }
+
         super.visitMethodInvocationExpression(methodInvocationExpression)
 
-        methodInvocationExpression.definition = namespace.lookupMethod(
+        methodInvocationExpression.type = namespace.lookupMethod(
             methodInvocationExpression.method, methodInvocationExpression.target?.actualType
-        )
+        )?.let { AstNode.Expression.MethodInvocationExpression.Type.Normal(it) }
+    }
+
+    companion object {
+        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", SemanticType.Integer, emptyList())
+        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", SemanticType.Integer, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", SemanticType.Integer, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", SemanticType.Integer, emptyList())
+    }
+
+    private fun tryHandleSystemCall(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression): Boolean {
+        val fieldAccessExpr = methodInvocationExpression.target
+        if (fieldAccessExpr !is AstNode.Expression.FieldAccessExpression) {
+            return false
+        }
+
+        val identifierExpr = fieldAccessExpr.target
+        if (identifierExpr !is AstNode.Expression.IdentifierExpression) {
+            return false
+        }
+
+        if (identifierExpr.name.text == "System" && !namespace.hasAnyDefinitionForSystem()) {
+            val fieldName = fieldAccessExpr.field.text
+            val methodName = methodInvocationExpression.method.text
+            when (fieldName) {
+                "in" -> {
+                    when (methodName) {
+                        "read" -> methodInvocationExpression.type = SYSTEM_IN_READ
+                        else -> {
+                            sourceFile.annotate(
+                                AnnotationType.ERROR,
+                                methodInvocationExpression.sourceRange,
+                                "unknown method `System.in.$methodName`"
+                            )
+                        }
+                    }
+                }
+                "out" -> {
+                    when (methodName) {
+                        "println" -> {
+                            methodInvocationExpression.type = SYSTEM_OUT_PRINTLN
+                        }
+                        "write" -> {
+                            methodInvocationExpression.type = SYSTEM_OUT_WRITE
+                        }
+                        "flush" -> {
+                            methodInvocationExpression.type = SYSTEM_OUT_FLUSH
+                        }
+                        else -> {
+                            sourceFile.annotate(
+                                AnnotationType.ERROR,
+                                methodInvocationExpression.sourceRange,
+                                "unknown method `System.out.$methodName`"
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    sourceFile.annotate(
+                        AnnotationType.ERROR,
+                        fieldAccessExpr.sourceRange,
+                        "unknown field `System.$fieldName`"
+                    )
+                }
+            }
+            return true
+        }
+
+        return false
     }
 
     override fun visitClassType(clazz: SemanticType.Class) {
@@ -343,7 +425,7 @@ class SubroutineNameResolver(
     }
 }
 
-private fun GlobalNamespace.createBuiltInClasses(sourceFile: SourceFile, stringTable: StringTable) {
+private fun GlobalNamespace.defineBuiltIns(sourceFile: SourceFile, stringTable: StringTable) {
     val dummySourceRange = SourcePosition(sourceFile, 0).extend(0)
 
     classes.tryPut(
@@ -352,7 +434,7 @@ private fun GlobalNamespace.createBuiltInClasses(sourceFile: SourceFile, stringT
             emptyList(),
             dummySourceRange
         ).apply {
-            namespace = ClassNamespace(this@createBuiltInClasses)
+            namespace = ClassNamespace(this@defineBuiltIns)
         }.asDefinition(),
         onDuplicate = { check(false) }
     )
@@ -360,8 +442,8 @@ private fun GlobalNamespace.createBuiltInClasses(sourceFile: SourceFile, stringT
 
 fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringTable: StringTable) {
     val global = GlobalNamespace().apply {
-        createBuiltInClasses(sourceFile, stringTable)
+        defineBuiltIns(sourceFile, stringTable)
     }
     program.accept(NamespacePopulator(global, sourceFile))
-    program.accept(NameResolver(global, sourceFile))
+    program.accept(NameResolver(global, sourceFile, stringTable.tryRegisterIdentifier("System")))
 }
