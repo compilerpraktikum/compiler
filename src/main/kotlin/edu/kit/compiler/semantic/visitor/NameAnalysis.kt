@@ -154,15 +154,6 @@ class NameResolutionHelper(
             return it
         }
 
-        if (isStatic) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "cannot access instance field from static method"
-            )
-            return null
-        }
-
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
@@ -171,7 +162,15 @@ class NameResolutionHelper(
                 "unknown variable `${name.symbol.text}`"
             )
             return null
+        } else if (isStatic) {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                name.sourceRange,
+                "cannot access instance field from static method"
+            )
+            return null
         }
+
         return def.wrap()
     }
 
@@ -202,22 +201,20 @@ class NamespacePopulator(
                 classDeclaration.name.sourceRange,
                 "cannot shadow built-in `String` class"
             )
-            return
+        } else {
+            global.classes.tryPut(classDeclaration.asDefinition(), onDuplicate = {
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    classDeclaration.name.sourceRange,
+                    "class `${classDeclaration.name.text}` is already defined",
+                    listOf(
+                        SourceNote(it.node.name.sourceRange, "see previous definition here")
+                    )
+                )
+            })
         }
 
         val namespace = ClassNamespace(global)
-
-        global.classes.tryPut(classDeclaration.asDefinition(), onDuplicate = {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                classDeclaration.name.sourceRange,
-                "class `${classDeclaration.name.text}` is already defined",
-                listOf(
-                    SourceNote(it.node.name.sourceRange, "see previous definition here")
-                )
-            )
-        })
-
         classDeclaration.namespace = namespace
         currentClassNamespace = namespace
 

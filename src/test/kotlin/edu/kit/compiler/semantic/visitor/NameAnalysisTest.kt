@@ -442,4 +442,15 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testClassNamedString() {
+        checkNames(false) {
+            """
+                class String {
+                    public static void main(String[] args) {}
+                }
+            """.trimIndent()
+        }
+    }
 }
