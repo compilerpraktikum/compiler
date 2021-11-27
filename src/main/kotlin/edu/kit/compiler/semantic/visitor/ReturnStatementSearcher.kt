@@ -6,7 +6,7 @@ import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import java.util.Stack
 
-class BasicReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
+class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
 
     var foundAReturnStatement: Boolean = false
     var weAreAtTopLevel: Boolean = true

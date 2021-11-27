@@ -17,7 +17,7 @@ fun doStringUsageChecking(program: AstNode.Program, sourceFile: SourceFile) {
 }
 
 fun doSearchForReturnStatement(program: AstNode.Program, sourceFile: SourceFile) {
-    program.accept(BasicReturnStatementSearcher(sourceFile))
+    program.accept(ReturnStatementSearcher(sourceFile))
 }
 
 fun doAssignmentLHSChecking(program: AstNode.Program, sourceFile: SourceFile) {
