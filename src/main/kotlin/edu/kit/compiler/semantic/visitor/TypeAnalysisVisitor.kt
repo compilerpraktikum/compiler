@@ -210,7 +210,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             else -> TODO("wahrscheinlich einfach abbrechen")
         }
         println("#############################methodinvocation5")
-
+        println(methodInvocationExpression.actualType)
         if (methodInvocationExpression.target != null) {
             // no expectations.
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
