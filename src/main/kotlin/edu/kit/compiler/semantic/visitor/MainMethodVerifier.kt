@@ -13,6 +13,7 @@ import edu.kit.compiler.semantic.SemanticType
 class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
     var checkingMainMethodCurrently = false
+    var argsName = "args"
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         // don't visit method blocks, that would be waste of time
@@ -85,15 +86,21 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 "the parameter of the `main` method must have type `String[]`",
             )
         }
+        if (mainMethodDeclaration.parameters.isNotEmpty()) argsName = mainMethodDeclaration.parameters[0].name.text
 
         checkingMainMethodCurrently = true
         super.visitMainMethodDeclaration(mainMethodDeclaration)
         checkingMainMethodCurrently = false
     }
 
+    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+        checkAndAnnotateSourceFileIfNot(sourceFile, literalThisExpression.sourceRange, "Usage of this in \"static context\" (main method).") { !checkingMainMethodCurrently }
+        super.visitLiteralThisExpression(literalThisExpression)
+    }
+
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"args\" in main method body") {
-            checkingMainMethodCurrently && identifierExpression.name.symbol.text != "args"
+        checkAndAnnotateSourceFileIfNot(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"$argsName\" in main method body") {
+            checkingMainMethodCurrently && identifierExpression.name.symbol.text != argsName
         }
         super.visitIdentifierExpression(identifierExpression)
     }

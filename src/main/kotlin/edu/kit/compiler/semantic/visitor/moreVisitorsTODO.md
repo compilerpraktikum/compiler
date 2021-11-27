@@ -1,12 +1,8 @@
 # Weitere Visitoren
 
-## Assignment a = 23 = 8
-* 12
-* 14
-* 88-103
+## Assignment a = 23 = 8                                                        DONE
 
-## Assignment LHS can only be variable
-* 17-24
+## Assignment LHS can only be variable                                          DONE
 
 ## Konstanten boundaries
 * 44
@@ -17,14 +13,12 @@
 ## int ohNo = System.out.flush();
 * 80
 
-## Check if method has (at least one) return
-* 83
-* 120 -124
+## Check if all control paths have a return statements (do we want/ need that before firm?)
+* 121 -124
 * 134 - 138
 * 140
 
-## thisinstatic main method
-* 187
-* 188
+## no this in (static) main method!                                             DONE
 
-##
+## UNCLASSIFIED
+* 20

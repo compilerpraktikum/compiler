@@ -15,3 +15,11 @@ fun doMainMethodAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
 fun doStringUsageChecking(program: AstNode.Program, sourceFile: SourceFile) {
     program.accept(StringUsageChecker(sourceFile))
 }
+
+fun doSearchForReturnStatement(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(BasicReturnStatementSearcher(sourceFile))
+}
+
+fun doAssignmentLHSChecking(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(AssignmentLHSChecker(sourceFile))
+}
