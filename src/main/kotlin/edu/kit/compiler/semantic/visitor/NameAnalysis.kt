@@ -308,7 +308,7 @@ class NameResolver(
         }
     }
 
-    private inline fun <reified T : AstNode.ClassMember.SubroutineDeclaration> handleMethod(definition: T, isStatic: Boolean) {
+    private fun handleMethod(definition: AstNode.ClassMember.SubroutineDeclaration, isStatic: Boolean) {
         val namespace = NameResolutionHelper(currentClass, sourceFile, systemSymbol, isStatic)
         namespace.registerParameters(definition.parameters)
         definition.accept(SubroutineNameResolver(namespace, sourceFile))
@@ -328,6 +328,12 @@ class SubroutineNameResolver(
     private val namespace: NameResolutionHelper,
     private val sourceFile: AnnotatableFile
 ) : AbstractVisitor() {
+    companion object {
+        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", SemanticType.Integer, emptyList())
+        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", SemanticType.Integer, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", SemanticType.Integer, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", SemanticType.Integer, emptyList())
+    }
 
     override fun visitBlock(block: AstNode.Statement.Block) {
         namespace.enterScope()
@@ -367,13 +373,6 @@ class SubroutineNameResolver(
         )?.let { AstNode.Expression.MethodInvocationExpression.Type.Normal(it) }
     }
 
-    companion object {
-        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", SemanticType.Integer, emptyList())
-        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", SemanticType.Integer, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", SemanticType.Integer, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", SemanticType.Integer, emptyList())
-    }
-
     private fun tryHandleSystemCall(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression): Boolean {
         val fieldAccessExpr = methodInvocationExpression.target
         if (fieldAccessExpr !is AstNode.Expression.FieldAccessExpression) {
@@ -396,7 +395,7 @@ class SubroutineNameResolver(
                             sourceFile.annotate(
                                 AnnotationType.ERROR,
                                 methodInvocationExpression.sourceRange,
-                                "unknown method `System.in.$methodName`"
+                                "unknown built-in method `System.in.$methodName`"
                             )
                         }
                     }
@@ -416,7 +415,7 @@ class SubroutineNameResolver(
                             sourceFile.annotate(
                                 AnnotationType.ERROR,
                                 methodInvocationExpression.sourceRange,
-                                "unknown method `System.out.$methodName`"
+                                "unknown built-in method `System.out.$methodName`"
                             )
                         }
                     }
@@ -425,7 +424,7 @@ class SubroutineNameResolver(
                     sourceFile.annotate(
                         AnnotationType.ERROR,
                         fieldAccessExpr.sourceRange,
-                        "unknown field `System.$fieldName`"
+                        "unknown built-in field `System.$fieldName`"
                     )
                 }
             }
