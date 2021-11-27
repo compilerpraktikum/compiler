@@ -423,6 +423,19 @@ class SubroutineNameResolver(
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
         literalThisExpression.definition = namespace.lookupThis()
     }
+
+    // not really part of name analysis but given that all the other String checks are in this file it's best to put it here too
+    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+        if (newObjectExpression.clazz.text == "String") {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                newObjectExpression.clazz.sourceRange,
+                "cannot instantiate built-in class `String`"
+            )
+        }
+
+        super.visitNewObjectExpression(newObjectExpression)
+    }
 }
 
 private fun GlobalNamespace.defineBuiltIns(sourceFile: SourceFile, stringTable: StringTable) {
