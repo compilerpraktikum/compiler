@@ -252,4 +252,60 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testStringInstantiation() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        String s = new String();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testValidSystemCalls() {
+        // note: types are not checked here, so these calls are all valid
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System.in.read();
+                        System.out.println();
+                        System.out.write();
+                        System.out.flush();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testInvalidSystemField() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System.test.println();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testInvalidSystemCall() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void main(String arg) {
+                        System.out.print();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }

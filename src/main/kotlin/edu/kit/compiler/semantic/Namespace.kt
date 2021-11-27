@@ -123,5 +123,5 @@ class SymbolTable {
 
     fun lookup(name: Symbol): VariableDefinition? = name.definition
 
-    fun contains(name: Symbol) = lookup(name) == null
+    fun contains(name: Symbol) = lookup(name) != null
 }
