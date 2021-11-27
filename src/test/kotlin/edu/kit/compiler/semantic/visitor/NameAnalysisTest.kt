@@ -418,4 +418,28 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testCallingMain() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String[] arg) {}
+                    public void test() {
+                        main();
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public static void main(String[] arg) {}
+                    public void test() {
+                        main();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }

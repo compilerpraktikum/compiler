@@ -262,12 +262,18 @@ class NamespacePopulator(
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        currentClassNamespace.mainMethodDefinition = mainMethodDeclaration.asDefinition()
+        if (currentClassNamespace.mainMethodDefinition != null) {
+            printErrorDuplicateMain(mainMethodDeclaration.name.sourceRange, currentClassNamespace.mainMethodDefinition!!.node.name.sourceRange)
+            return
+        }
 
         val otherMainDefinition = currentClassNamespace.methods.getOrNull("main")
         if (otherMainDefinition != null) {
-            printErrorDuplicateMain(mainMethodDeclaration.sourceRange, otherMainDefinition.node.name.sourceRange)
+            printErrorDuplicateMain(mainMethodDeclaration.name.sourceRange, otherMainDefinition.node.name.sourceRange)
+            // continue anyway to prevent misleading error messages (missing main method)
         }
+
+        currentClassNamespace.mainMethodDefinition = mainMethodDeclaration.asDefinition()
 
         // do not descend
     }
