@@ -14,7 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.nio.charset.MalformedInputException
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 internal class SemanticMJTestSuite {

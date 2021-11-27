@@ -23,13 +23,17 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+        if (localVariableDeclaration.initializer != null) {
+            localVariableDeclaration.initializer.expectedType = localVariableDeclaration.type
+        }
         // type check on children
         super.visitLocalVariableDeclaration(localVariableDeclaration)
 
         // L-Values check!
-        errorIfFalse(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is SemanticType.Void }
-        errorIfFalse(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
-            localVariableDeclaration.type is SemanticType.Class && localVariableDeclaration.type.name.symbol.text == "String"
+        errorIfTrue(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is SemanticType.Void }
+        errorIfTrue(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
+            // TODO this needs tobe checked elsewhere
+            localVariableDeclaration.type is SemanticType.Class && localVariableDeclaration.type.name.symbol.text == "String" && localVariableDeclaration.initializer != null
         }
 
         // type check
@@ -51,7 +55,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
-        super.visitFieldAccessExpression(fieldAccessExpression)
+        // test.testvar = 1; test => target
+        // ExpressionStatement -> BinOP ASSIGN - > left => Fieldaccess && right => Int
+        // ExpressionStatement.actualType = ?
+//        fieldAccessExpression
+//        super.visitFieldAcces.Expression(fieldAccessExpression)
         errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
             fieldAccessExpression.target.actualType is SemanticType.Class
         }
@@ -90,7 +98,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-        binaryOperation.left.accept(this)
 
         binaryOperation.right.expectedType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
@@ -116,6 +123,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
                 SemanticType.Boolean
         }
+        binaryOperation.left.accept(this)
         binaryOperation.right.accept(this)
 
         checkActualTypeEqualsExpectedType(binaryOperation)
@@ -206,6 +214,15 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
+        // trick17 TODO remove after debugging.
+        try {
+            expression.expectedType
+        } catch (uninitializedPropertyAccessException: UninitializedPropertyAccessException) {
+            errorIfTrue(expression.sourceRange, "BUG Expression has no expected type!") { true }
+            // TODO ON/OFF-comment "return" to know where itt fails
+//            return
+        }
+
         errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedType}, got ${expression.actualType}") {
             expression.actualType == expression.expectedType
         }
