@@ -571,7 +571,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             childNode
         } else {
             childNode.markErroneous()
-        }
+        }.mapPosition { publicKeyword.range.extend(it) }
     }
 
     private fun parseMainMethod(anc: AnchorUnion): Parsed<AST.MainMethod> {
