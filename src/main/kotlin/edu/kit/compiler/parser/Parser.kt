@@ -13,7 +13,7 @@ import edu.kit.compiler.wrapper.wrappers.wrapValid
 
 private val Token.isRelevantForSyntax
     get() = when (this) {
-        is Token.Whitespace, is Token.Comment, is Token.ErrorToken -> false
+        is Token.Whitespace, is Token.Comment -> false
         else -> true
     }
 
