@@ -22,6 +22,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitParameter(parameter)
     }
 
+    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+        errorIfTrue(fieldDeclaration.sourceRange, "No \"void\" variables.") { fieldDeclaration.type is SemanticType.Void }
+        super.visitFieldDeclaration(fieldDeclaration)
+    }
+
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
         if (localVariableDeclaration.initializer != null) {
             localVariableDeclaration.initializer.expectedType = localVariableDeclaration.type
@@ -31,10 +36,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
         // L-Values check!
         errorIfTrue(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is SemanticType.Void }
-        errorIfTrue(localVariableDeclaration.sourceRange, "No \"String\" instantiation.") {
-            // TODO this needs tobe checked elsewhere
-            localVariableDeclaration.type is SemanticType.Class && localVariableDeclaration.type.name.symbol.text == "String" && localVariableDeclaration.initializer != null
-        }
 
         // type check
         errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match, expected ${localVariableDeclaration.type}, got ${localVariableDeclaration.initializer?.actualType}") {
