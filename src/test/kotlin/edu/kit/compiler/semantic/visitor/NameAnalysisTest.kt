@@ -394,4 +394,28 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testAccessFromStaticMethod() {
+        checkNames(false) {
+            """
+                class Test {
+                    public int i;
+                    public static void main(String arg) {
+                        i;
+                    }
+                }
+            """.trimIndent()
+        }
+        checkNames(false) {
+            """
+                class Test {
+                    public int test() {}
+                    public static void main(String arg) {
+                        test();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }

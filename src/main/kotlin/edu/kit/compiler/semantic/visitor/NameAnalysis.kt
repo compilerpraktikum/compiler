@@ -41,6 +41,7 @@ class NameResolutionHelper(
     private val clazz: AstNode.ClassDeclaration,
     private val sourceFile: AnnotatableFile,
     private val systemSymbol: Symbol,
+    private val isStatic: Boolean,
 ) {
     private val global
         get() = clazz.namespace.global
@@ -105,7 +106,7 @@ class NameResolutionHelper(
         }
     }
 
-    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType?): FieldDefinition? {
+    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType): FieldDefinition? {
         ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "field access") { return null }
 
         val clazz = getClazzByType(inClazz) ?: return null
@@ -123,6 +124,15 @@ class NameResolutionHelper(
 
     fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
         ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "method call") { return null }
+
+        if (isStatic && inClazz == null) {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                name.sourceRange,
+                "cannot call instance method from static method"
+            )
+            return null
+        }
 
         val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
@@ -142,6 +152,15 @@ class NameResolutionHelper(
     fun lookupVariable(name: AstNode.Identifier): VariableDefinition? {
         local.lookup(name.symbol)?.let {
             return it
+        }
+
+        if (isStatic) {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                name.sourceRange,
+                "cannot access instance field from static method"
+            )
+            return null
         }
 
         val def = clazz.namespace.fields.getOrNull(name.symbol)
@@ -289,19 +308,19 @@ class NameResolver(
         }
     }
 
-    private inline fun <reified T : AstNode.ClassMember.SubroutineDeclaration> handleMethod(definition: T) {
-        val namespace = NameResolutionHelper(currentClass, sourceFile, systemSymbol)
+    private inline fun <reified T : AstNode.ClassMember.SubroutineDeclaration> handleMethod(definition: T, isStatic: Boolean) {
+        val namespace = NameResolutionHelper(currentClass, sourceFile, systemSymbol, isStatic)
         namespace.registerParameters(definition.parameters)
         definition.accept(SubroutineNameResolver(namespace, sourceFile))
         namespace.unregisterParameters()
     }
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        handleMethod(methodDeclaration)
+        handleMethod(methodDeclaration, false)
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        handleMethod(mainMethodDeclaration)
+        handleMethod(mainMethodDeclaration, true)
     }
 }
 
