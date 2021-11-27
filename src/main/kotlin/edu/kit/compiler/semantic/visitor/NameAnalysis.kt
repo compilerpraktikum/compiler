@@ -405,15 +405,9 @@ class SubroutineNameResolver(
                 }
                 "out" -> {
                     when (methodName) {
-                        "println" -> {
-                            methodInvocationExpression.type = SYSTEM_OUT_PRINTLN
-                        }
-                        "write" -> {
-                            methodInvocationExpression.type = SYSTEM_OUT_WRITE
-                        }
-                        "flush" -> {
-                            methodInvocationExpression.type = SYSTEM_OUT_FLUSH
-                        }
+                        "println" -> methodInvocationExpression.type = SYSTEM_OUT_PRINTLN
+                        "write" -> methodInvocationExpression.type = SYSTEM_OUT_WRITE
+                        "flush" -> methodInvocationExpression.type = SYSTEM_OUT_FLUSH
                         else -> {
                             sourceFile.annotate(
                                 AnnotationType.ERROR,
@@ -431,6 +425,10 @@ class SubroutineNameResolver(
                     )
                 }
             }
+
+            // we do not need to handle the nested expressions in target, but parameters should still be resolved
+            methodInvocationExpression.arguments.forEach { it.accept(this) }
+
             return true
         }
 
