@@ -183,6 +183,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          * @param clazz instantiated class name
          */
         class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
+
             override val actualType: SemanticType
                 get() = SemanticType.Class(clazz)
         }

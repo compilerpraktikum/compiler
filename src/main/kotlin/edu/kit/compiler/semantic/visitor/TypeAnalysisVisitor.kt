@@ -37,12 +37,18 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         // type check
-        errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match") {
-            localVariableDeclaration.initializer?.actualType != localVariableDeclaration.type
+        errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match, expected ${localVariableDeclaration.type}, got ${localVariableDeclaration.initializer?.actualType}") {
+            if (localVariableDeclaration.initializer != null) {
+                compareSemanticTypes(localVariableDeclaration.type, localVariableDeclaration.initializer.actualType)
+            } else true
         }
     }
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
+        println("####visitArrayAccessExpression\n    ${arrayAccessExpression.index}\n    ${arrayAccessExpression.index.actualType}")
+
+        arrayAccessExpression.index.expectedType = SemanticType.Integer
+        arrayAccessExpression.target.expectedType = SemanticType.Array(arrayAccessExpression.expectedType)
         super.visitArrayAccessExpression(arrayAccessExpression)
         // left-to-right: check target, then check index.
 
@@ -52,14 +58,24 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
             arrayAccessExpression.index.actualType is SemanticType.Integer
         }
+        println("-----${arrayAccessExpression.expectedType}")
+        println("-----${arrayAccessExpression.target.expectedType}")
+        println("-----${arrayAccessExpression.target.actualType}")
+        println("-----${arrayAccessExpression.target}")
+        checkActualTypeEqualsExpectedType(arrayAccessExpression)
     }
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+        // expected is set TO INT
+        // test.testvar <= testvar is Int?
         // test.testvar = 1; test => target
         // ExpressionStatement -> BinOP ASSIGN - > left => Fieldaccess && right => Int
         // ExpressionStatement.actualType = ?
 //        fieldAccessExpression
 //        super.visitFieldAcces.Expression(fieldAccessExpression)
+        if (fieldAccessExpression.target.actualType is SemanticType.Error) {
+            return
+        }
         errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
             fieldAccessExpression.target.actualType is SemanticType.Class
         }
@@ -73,8 +89,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        println("############################main start")
         currentExpectedMethodReturnType = mainMethodDeclaration.returnType
         super.visitMainMethodDeclaration(mainMethodDeclaration)
+        println("############################main end")
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
@@ -98,7 +116,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+        // binop.expectedTyp is set
+        // exMPLE ASSIGN test.testvar = 1 <- Int
 
+        // right.expected = Int
         binaryOperation.right.expectedType = when (binaryOperation.operation) {
             AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
                 binaryOperation.left.actualType
@@ -112,7 +133,9 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
                 SemanticType.Boolean
         }
         binaryOperation.left.expectedType = when (binaryOperation.operation) {
-            AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS, AST.BinaryExpression.Operation.ASSIGNMENT ->
+            AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS ->
+                binaryOperation.left.actualType
+            AST.BinaryExpression.Operation.ASSIGNMENT ->
                 binaryOperation.expectedType
             AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
             AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
@@ -139,22 +162,72 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitWhileStatement(whileStatement)
     }
 
+    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+
+        // TODO remove this method, only 4 debug
+        println("#############################" + classDeclaration.name.text)
+
+        super.visitClassDeclaration(classDeclaration)
+    }
+
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // expect that argument's types match the parameter's types in the definition.
-        methodInvocationExpression.arguments
-            .zip(methodInvocationExpression.definition!!.node.parameters)
-            .forEach { pair -> pair.first.expectedType = pair.second.type }
+        println("#############################methodinvocation0 ${methodInvocationExpression.type}")
+        var argumentsListLengthValid = true
+        when (methodInvocationExpression.type) {
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> {
+                // check length of parameter and arg list
+                println("#############################methodinvocation2")
+                if (methodInvocationExpression.arguments.size !=
+                    (methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters.size
+                ) {
+                    errorIfTrue(methodInvocationExpression.sourceRange, "Argument list length != Parameter list length") { true }
+                    argumentsListLengthValid = false
+                }
+                println("#############################methodinvocation4")
+                methodInvocationExpression.arguments
+                    .zip((methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters)
+                    .forEach { pair -> pair.first.expectedType = pair.second.type }
+                println("#############################methodinvocation4.5")
+            }
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
+                // check length of parameter and arg list
+                if (methodInvocationExpression.arguments.size !=
+                    (methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Internal).parameters.size
+                ) {
+                    errorIfTrue(methodInvocationExpression.sourceRange, "Argument list length != Parameter list length") { true }
+                    argumentsListLengthValid = false
+                }
+                methodInvocationExpression.arguments
+                    .zip((methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Internal).parameters)
+                    .forEach { pair -> pair.first.expectedType = pair.second }
+            }
+            // null
+            else -> TODO("wahrscheinlich einfach abbrechen")
+        }
+        println("#############################methodinvocation5")
 
         if (methodInvocationExpression.target != null) {
             // no expectations.
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
         }
+
         methodInvocationExpression.expectedType = methodInvocationExpression.actualType
-        super.visitMethodInvocationExpression(methodInvocationExpression)
+
+        if (argumentsListLengthValid) {
+            super.visitMethodInvocationExpression(methodInvocationExpression)
+        }
+
+        println("#############################methodinvocation10")
         // may not be the best message...
-        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers or \"this\"") {
+
+        if (methodInvocationExpression.target?.actualType is SemanticType.Error) {
+            return
+        }
+        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers, newObjectExpressions, or \"this\"") {
             methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
+                methodInvocationExpression.target is AstNode.Expression.NewObjectExpression ||
                 methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression || methodInvocationExpression.target == null
         }
 
@@ -174,7 +247,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitArrayType(arrayType: SemanticType.Array) {
-        // TODO fix non-existing sourceRange
+        // TODO fix non-existing sourceRangeƒ
         errorIfTrue(createSourceRangeDummy(), "No void typed arrays.") {
             arrayType.elementType is SemanticType.Void
         }
@@ -187,7 +260,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
-        literalBoolExpression.expectedType = SemanticType.Boolean
         super.visitLiteralBoolExpression(literalBoolExpression)
         checkActualTypeEqualsExpectedType(literalBoolExpression)
     }
@@ -224,9 +296,21 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedType}, got ${expression.actualType}") {
-            expression.actualType == expression.expectedType
+            compareSemanticTypes(expression.expectedType, expression.actualType)
         }
     }
+
+    /**
+     * Not commutative because of null allowance.
+     */
+    private fun compareSemanticTypes(type0: SemanticType, type1: SemanticType): Boolean =
+        if (type0 is SemanticType.Class && type1 is SemanticType.Class) {
+            type0.name.symbol.text == type1.name.symbol.text
+        } else if (type0 is SemanticType.Class && type1 is SemanticType.Null || type1 is SemanticType.Class && type0 is SemanticType.Null) {
+            true
+        } else {
+            type0 == type1
+        }
 
     private fun errorIfFalse(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
         checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
@@ -239,5 +323,5 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     // TODO this should not be necessary!
-    private fun createSourceRangeDummy() = SourceRange(SourcePosition(sourceFile, 0), 0)
+    private fun createSourceRangeDummy() = SourceRange(SourcePosition(sourceFile, 1), 0)
 }

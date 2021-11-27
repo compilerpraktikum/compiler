@@ -54,7 +54,7 @@ internal class SemanticMJTestSuite {
         input.printAnnotations()
         ast!!
         try {
-            doNameAnalysis(ast, input)
+            doNameAnalysis(ast, input, stringTable)
             doTypeAnalysis(ast, input)
         } catch (e: NotImplementedError) {
             kotlin.check(input.hasError) { "" }
