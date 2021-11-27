@@ -241,7 +241,7 @@ class NamespacePopulator(
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         if (methodDeclaration.name.text == "main") {
-            currentClassNamespace.mainMethodDefinition?.let {
+            currentClassNamespace.mainMethodDefinition?.also {
                 printErrorDuplicateMain(methodDeclaration.name.sourceRange, it.node.sourceRange)
                 // continue anyway to prevent misleading error messages when calling main ("unknown method" even though 2 methods with the name exist)
             }
