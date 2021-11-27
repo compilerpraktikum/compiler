@@ -1,7 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
@@ -41,6 +40,7 @@ class TypeAnalysisTest {
                     public void a(int f) {
                         b(f);
                     }
+                    public static void main(String[] args) {}
 
                     public void b(int f) {}
                 }
@@ -58,6 +58,7 @@ class TypeAnalysisTest {
                         Test test = new Test();
                         test.f = 44;
                     }
+                    public static void main(String[] args) {}
                 }
 
             """.trimIndent()
@@ -69,6 +70,7 @@ class TypeAnalysisTest {
         check(true) {
             """
                 class Test {
+                    public static void main(String[] args) {}
                     public void a(int someVal) {
                         int idx = 5;
                         int[] arr = new int[5];

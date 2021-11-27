@@ -92,7 +92,7 @@ object ExprDsl {
         "false" -> AST.LiteralExpression.Boolean(false)
         "null" -> AST.LiteralExpression.Null()
         "this" -> AST.LiteralExpression.This()
-        is String -> AST.LiteralExpression.Integer(v, false)    //TODO remove hardcoded!!!
+        is String -> AST.LiteralExpression.Integer(v, false) // TODO remove hardcoded!!!
         else -> throw IllegalArgumentException("unknown literal type: $v")
     }
     fun binOp(

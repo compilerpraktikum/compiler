@@ -201,7 +201,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 FirstFollowUtils.firstSetExpression
         ) { "expected `[` denoting an array type" }
 
-        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)), isParentized= isParentized)
+        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)), isParentized = isParentized)
 
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 

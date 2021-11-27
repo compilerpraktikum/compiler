@@ -4,9 +4,7 @@ import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.semantic.doSemanticAnalysis
-import edu.kit.compiler.semantic.visitor.doTypeAnalysis
 import edu.kit.compiler.utils.TestUtils
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Timeout

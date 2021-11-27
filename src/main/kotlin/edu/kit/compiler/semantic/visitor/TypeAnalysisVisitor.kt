@@ -105,7 +105,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             super.visitReturnStatement(returnStatement)
             checkActualTypeEqualsExpectedType(returnStatement.expression)
         } else {
-            errorIfFalse(returnStatement.sourceRange, "Must return a value (of type ${currentExpectedMethodReturnType}).") { currentExpectedMethodReturnType is SemanticType.Void }
+            errorIfFalse(returnStatement.sourceRange, "Must return a value (of type $currentExpectedMethodReturnType).") { currentExpectedMethodReturnType is SemanticType.Void }
         }
     }
 
@@ -228,7 +228,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         if (methodInvocationExpression.target?.actualType is SemanticType.Error) {
             return
         }
-        //TODO if langeweile, evtl wieder einbauen
+        // TODO if langeweile, evtl wieder einbauen
 //        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers, newObjectExpressions, methodinvokations, or \"this\"") {
 //            methodInvocationExpression.target is AstNode.Expression.MethodInvocationExpression ||
 //            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
