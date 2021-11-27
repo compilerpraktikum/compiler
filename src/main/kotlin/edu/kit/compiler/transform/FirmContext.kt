@@ -12,7 +12,10 @@ import firm.MethodType
 import firm.Mode
 import firm.PrimitiveType
 import firm.Program
+import firm.Relation
 import firm.Type
+import firm.bindings.binding_ircons
+import firm.nodes.Div
 import firm.nodes.Node
 import java.util.Stack
 
@@ -155,20 +158,63 @@ object FirmContext {
             AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
             AST.BinaryExpression.Operation.OR -> this.construction!!.newOr(f.firstNode, f.secondNode)
             AST.BinaryExpression.Operation.AND -> this.construction!!.newAnd(f.firstNode, f.secondNode)
-            AST.BinaryExpression.Operation.EQUALS -> TODO()
-            AST.BinaryExpression.Operation.NOT_EQUALS -> TODO()
-            AST.BinaryExpression.Operation.LESS_THAN -> TODO()
-            AST.BinaryExpression.Operation.GREATER_THAN -> TODO()
-            AST.BinaryExpression.Operation.LESS_EQUALS -> TODO()
-            AST.BinaryExpression.Operation.GREATER_EQUALS -> TODO()
+            AST.BinaryExpression.Operation.EQUALS -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.Equal
+            )
+            AST.BinaryExpression.Operation.NOT_EQUALS -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.LessGreater
+            )
+            AST.BinaryExpression.Operation.LESS_THAN -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.Less
+            )
+            AST.BinaryExpression.Operation.GREATER_THAN -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.Greater
+            )
+            AST.BinaryExpression.Operation.LESS_EQUALS -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.LessEqual
+            )
+            AST.BinaryExpression.Operation.GREATER_EQUALS -> this.construction!!.newCmp(
+                f.firstNode,
+                f.secondNode,
+                Relation.GreaterEqual
+            )
             AST.BinaryExpression.Operation.ADDITION -> this.construction!!.newAdd(f.firstNode, f.secondNode)
             AST.BinaryExpression.Operation.SUBTRACTION -> this.construction!!.newSub(f.firstNode, f.secondNode)
             AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction!!.newMul(f.firstNode, f.secondNode)
-            AST.BinaryExpression.Operation.DIVISION -> TODO()
-            AST.BinaryExpression.Operation.MODULO -> TODO()
+            AST.BinaryExpression.Operation.DIVISION -> {
+                val m = this.construction!!.currentMem
+                val div = this.construction!!.newDiv(
+                    m,
+                    f.firstNode,
+                    f.secondNode,
+                    binding_ircons.op_pin_state.op_pin_state_pinned
+                )
+                this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
+                construction!!.newProj(div, intType.mode, Div.pnRes)
+            }
+            AST.BinaryExpression.Operation.MODULO -> {
+                val m = this.construction!!.currentMem
+                val div = this.construction!!.newMod(
+                    m,
+                    f.firstNode,
+                    f.secondNode,
+                    binding_ircons.op_pin_state.op_pin_state_pinned
+                )
+                this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
+                construction!!.newProj(div, intType.mode, Div.pnRes)
+            }
         }
 
-        this.graph!!.keepAlive(expression)
         this.expressionStack.peek().push(expression)
     }
 
@@ -192,7 +238,6 @@ object FirmContext {
             AST.UnaryExpression.Operation.MINUS -> this.construction!!.newMinus(f.firstNode)
         }
 
-        this.graph!!.keepAlive(expression)
         this.expressionStack.peek().push(expression)
     }
 
@@ -212,20 +257,18 @@ object FirmContext {
     }
 
     fun returnStatement(block: (() -> Unit)? = null) {
-        val mem = this.construction!!.currentMem
-
         val returnNode = if (block != null) {
             val f = ExpressionStackElement()
             this.expressionStack.push(f)
             block.invoke()
             this.expressionStack.pop()
 
+            val mem = this.construction!!.currentMem
             this.construction!!.newReturn(mem, arrayOf(f.firstNode))
         } else {
+            val mem = this.construction!!.currentMem
             this.construction!!.newReturn(mem, emptyArray())
         }
-
-        this.graph!!.keepAlive(returnNode)
 
         this.returnNodes.add(returnNode)
     }
