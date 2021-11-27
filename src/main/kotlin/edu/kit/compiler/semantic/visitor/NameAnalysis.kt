@@ -53,7 +53,7 @@ class NameResolutionHelper(
     fun registerParameters(parameters: List<AstNode.ClassMember.SubroutineDeclaration.Parameter>) {
         enterScope()
         parameters.forEach {
-            local.add(it.asDefinition().wrap())
+            addDefinition(it.asDefinition().wrap(), it.name.sourceRange)
         }
     }
 
@@ -64,21 +64,24 @@ class NameResolutionHelper(
     fun enterScope() = local.enterScope()
     fun leaveScope() = local.leaveScope()
 
-    fun addDefinition(node: AstNode.Statement.LocalVariableDeclaration) {
-        val name: Symbol = node.name.symbol
-        val prevDefinition = local.lookup(name)
+    private fun addDefinition(definition: VariableDefinition, identifierSourceRange: SourceRange) {
+        val prevDefinition = local.lookup(definition.name)
         if (prevDefinition == null) {
-            local.add(node.asDefinition().wrap())
+            local.add(definition)
         } else {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                node.name.sourceRange,
-                "local variable with the name '${name.text}' already exists",
+                identifierSourceRange,
+                "local variable with the name '${definition.name.text}' already exists",
                 listOf(
                     SourceNote(prevDefinition.identifier.sourceRange, "see previous declaration here")
                 )
             )
         }
+    }
+
+    fun addDefinition(node: AstNode.Statement.LocalVariableDeclaration) {
+        addDefinition(node.asDefinition().wrap(), node.name.sourceRange)
     }
 
     fun lookupClass(classType: SemanticType.Class): ClassDefinition? = lookupClass(global, sourceFile, classType)

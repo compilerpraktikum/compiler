@@ -453,4 +453,15 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testDuplicatedParameterName() {
+        checkNames(false) {
+            """
+                class Test {
+                    public void test(int i, int i) {}
+                }
+            """.trimIndent()
+        }
+    }
 }
