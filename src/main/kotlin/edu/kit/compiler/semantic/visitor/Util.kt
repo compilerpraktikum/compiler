@@ -22,6 +22,8 @@ fun errorIfFalse(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: Str
             errorMsg
         )
     }
-}fun errorIfTrue(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+}
+
+fun errorIfTrue(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
     errorIfFalse(sourceFile, sourceRange, errorMsg) { !function() }
 }
