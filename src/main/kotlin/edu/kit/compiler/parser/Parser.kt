@@ -41,14 +41,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
-    private fun parsePrimaryExpression(anc: AnchorUnion, isParenthized: Boolean): Parsed<AST.Expression> {
+    private fun parsePrimaryExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
         return when (val peekedToken = peek()) {
             is Token.Literal -> {
                 next()
-                AST.LiteralExpression.Integer(peekedToken.value, isParenthized).wrapValid(peekedToken.range)
+                AST.LiteralExpression.Integer(peekedToken.value, isParenthesized).wrapValid(peekedToken.range)
             }
             is Token.Operator -> {
                 if (peekedToken.type == Token.Operator.Type.LParen) {
@@ -105,7 +105,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                     Token.Keyword.Type.New -> {
                         next()
-                        parseNewObjectArrayExpression(anc, isParenthized)
+                        parseNewObjectArrayExpression(anc, isParenthesized)
                     }
                     else -> {
                         reportError(
@@ -130,14 +130,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
-    private fun parseNewObjectArrayExpression(anc: AnchorUnion, isParenthized: Boolean): Parsed<AST.Expression> {
+    private fun parseNewObjectArrayExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
         return when (val firstToken = peek()) {
             is Token.Keyword -> when (firstToken.type) {
                 Token.Keyword.Type.Int, Token.Keyword.Type.Boolean, Token.Keyword.Type.Void ->
-                    parseNewArrayExpression(anc, isParenthized)
+                    parseNewArrayExpression(anc, isParenthesized)
                 else -> {
                     reportError(firstToken, "illegal token `${firstToken.debugRepr}`. expected type")
                     recover(anc)
@@ -152,7 +152,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     is Token.Operator -> {
                         when (secondToken.type) {
                             Token.Operator.Type.LParen -> parseNewObjectExpression(anc)
-                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc, isParenthized)
+                            Token.Operator.Type.LeftBracket -> parseNewArrayExpression(anc, isParenthesized)
                             else -> {
                                 reportError(
                                     secondToken,
@@ -191,10 +191,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
-    private fun parseNewArrayExpression(anc: AnchorUnion, isParenthized: Boolean): Parsed<AST.Expression> {
+    private fun parseNewArrayExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
         val basicType = parseBasicType(
             anc +
                 anchorSetOf(
@@ -212,7 +212,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 FirstFollowUtils.firstSetExpression
         ) { "expected `[` denoting an array type" }
 
-        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)), isParenthized = isParenthized)
+        val indexExpression = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)), isParenthesized = isParenthesized)
 
         val rBracket = expectOperator(Token.Operator.Type.RightBracket, anc) { "expected `]`" }
 
@@ -273,18 +273,18 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                         anchorSetOf(Token.Operator(Token.Operator.Type.RParen))
                 ) { "arguments must be comma-separated" }
             }
-            arguments += parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)), isParenthized = false)
+            arguments += parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)), isParenthesized = false)
             nextToken = peek()
         }
         return arguments
     }
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
-    private fun parsePostfixExpression(anc: AnchorUnion, isParenthized: Boolean): Parsed<AST.Expression> {
-        val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp, isParenthized)
+    private fun parsePostfixExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
+        val primaryExpression = parsePrimaryExpression(anc + FirstFollowUtils.firstSetPostfixOp, isParenthesized)
 
         return when (val firstPeekedToken = peek()) {
             is Token.Operator ->
@@ -371,7 +371,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             anc = anc +
                                 anchorSetOf(Token.Operator(Token.Operator.Type.RightBracket)) +
                                 FirstFollowUtils.firstSetPostfixOp,
-                            isParenthized = false
+                            isParenthesized = false
                         )
 
                         val rBracket = expectOperator(
@@ -391,10 +391,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
-    private fun parseUnaryExpression(anc: AnchorUnion, isParenthized: Boolean): Parsed<AST.Expression> {
+    private fun parseUnaryExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
         return when (val peeked = peek()) {
             is Token.Operator ->
                 when (peeked.type) {
@@ -416,22 +416,22 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             AST.UnaryExpression.Operation.MINUS
                         ).wrapValid(peeked.range.extend(innerExpression.range))
                     }
-                    else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthized)
+                    else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthesized)
                 }
-            else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthized)
+            else -> parsePostfixExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthesized)
         }
     }
 
     /**
-     * @param isParenthized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     internal fun parseExpression(
         minPrecedence: Int = 1,
         anc: AnchorUnion,
-        isParenthized: Boolean
+        isParenthesized: Boolean
     ): Parsed<AST.Expression> {
-        var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthized)
+        var result = parseUnaryExpression(anc + FirstFollowUtils.allExpressionOperators, isParenthesized)
         var currentToken = peek()
 
         while (
@@ -448,7 +448,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     else -> op.precedence
                 },
                 anc + FirstFollowUtils.allExpressionOperators,
-                isParenthized
+                isParenthesized
             )
             result = AST.BinaryExpression(result, rhs, op).wrapValid(result.range.extend(rhs.range))
             currentToken = peek()
@@ -1016,7 +1016,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val maybeSemicolon = peek(0)
         var returnValue: Parsed<AST.Expression>? = null
         if (!(maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon)) {
-            returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthized = false)
+            returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthesized = false)
         }
 
         next()
@@ -1043,7 +1043,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             anc = anc +
                 anchorSetOf(Token.Operator(Token.Operator.Type.RParen), Token.Keyword(Token.Keyword.Type.Else)) +
                 FirstFollowUtils.firstSetStatement,
-            isParenthized = false
+            isParenthesized = false
         )
 
         val rparen = expectOperator(
@@ -1098,7 +1098,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             anc = anc +
                 anchorSetOf(Token.Operator(Token.Operator.Type.RParen)) +
                 FirstFollowUtils.firstSetStatement,
-            isParenthized = false
+            isParenthesized = false
         )
 
         val rparen = expectOperator(
@@ -1141,7 +1141,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             is Token.Operator ->
                 if (nextToken.type == Token.Operator.Type.Assign) {
                     next()
-                    parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthized = false)
+                    parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthesized = false)
                 } else {
                     null
                 }
@@ -1164,7 +1164,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     private fun parseExpressionStatement(anc: AnchorUnion): Parsed<AST.ExpressionStatement> {
-        val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthized = false)
+        val expr = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthesized = false)
         val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;`" }
 
         val statementRange = expr.range.extend(semicolon.range)
