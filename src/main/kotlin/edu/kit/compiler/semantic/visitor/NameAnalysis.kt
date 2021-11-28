@@ -109,6 +109,10 @@ class NameResolutionHelper(
      */
     fun lookupClass(classType: SemanticType.Class): ClassDefinition? = lookupClass(global, sourceFile, classType)
 
+    /**
+     * Get [class definition][ClassDefinition] for the class type given in [inClazz].
+     * @return [class definition][ClassDefinition] corresponding to the given class type or `null` if no such class exists
+     */
     private fun getClazzByType(inClazz: SemanticType.Class?) = when (inClazz) {
         null -> clazz
         else -> global.classes.getOrNull(inClazz.name.symbol)?.node
@@ -141,6 +145,9 @@ class NameResolutionHelper(
     fun lookupField(name: AstNode.Identifier, inClazz: SemanticType): FieldDefinition? {
         ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "field access") { return null }
 
+        /* If the definition of [inClazz] cannot be found we can skip any further error handing because the definition
+         * of the variable itself already checks that the class definition exists.
+         */
         val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
@@ -170,6 +177,7 @@ class NameResolutionHelper(
             return null
         }
 
+        // see note in lookupField
         val clazz = getClazzByType(inClazz) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
         if (def == null) {
