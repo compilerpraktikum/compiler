@@ -65,8 +65,7 @@ internal fun formatAnnotation(out: PrintStream, sourceFile: SourceFile, annotati
         AnnotationType.ERROR -> TextColors.red
     }
 
-    val lengthLineNumber = maxOf(annotation.range.last.line, annotation.notes.maxOfOrNull { it.range.last.line } ?: 0).toString().length
-
+    val lengthLineNumber = maxOf(annotation.range.last.line, annotation.notes.maxOfOrNull { it.range.last.line } ?: 0).toString().length + LOOKAROUND_AFTER
     fun Int.formatLineNumber() = toString().padStart(lengthLineNumber, ' ')
 
     fun PrintStream.formatRange(range: SourceRange, note: String?, lookaroundBefore: Int = 0, lookaroundAfter: Int = 0) {
