@@ -14,7 +14,10 @@ import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
  */
 sealed class AstNode(open val sourceRange: SourceRange) {
 
-    data class Identifier(val symbol: Symbol, override val sourceRange: SourceRange) : AstNode(sourceRange)
+    data class Identifier(val symbol: Symbol, val sourceRange: SourceRange) {
+        val text: String
+            get() = symbol.text
+    }
 
     /**
      * The entire program that is being compiled from one compilation unit
@@ -34,7 +37,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         val members: List<ClassMember>,
         sourceRange: SourceRange
     ) : AstNode(sourceRange) {
-        lateinit var classNamespace: Namespace.ClassNamespace
+
+        lateinit var namespace: ClassNamespace
     }
 
     /**
@@ -57,7 +61,6 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val parameters: List<Parameter>,
             sourceRange: SourceRange
         ) : ClassMember(name, sourceRange) {
-            lateinit var methodNamespace: Namespace.MethodNamespace
 
             /**
              * Special case of a [SubroutineDeclaration] that is the main entry point
@@ -123,10 +126,15 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Definition of the referenced member
              */
-            lateinit var definition: Definition
+            var definition: VariableDefinition? = null
 
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (val node = definition?.node) {
+                    is VariableNode.Field -> node.node.type
+                    is VariableNode.Parameter -> node.node.type
+                    is VariableNode.LocalVariable -> node.node.type
+                    null -> SemanticType.Error
+                }
         }
 
         /**
@@ -138,7 +146,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralIntExpression(val value: String, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Integer
             }
 
             /**
@@ -147,7 +155,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralBoolExpression(val value: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Boolean
             }
 
             /**
@@ -155,17 +163,17 @@ sealed class AstNode(open val sourceRange: SourceRange) {
              */
             class LiteralNullExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Null
             }
 
             /**
              * This expression.
              */
             class LiteralThisExpression(sourceRange: SourceRange) : LiteralExpression(sourceRange) {
-                lateinit var definition: Definition
+                lateinit var definition: ClassDefinition
 
                 override val actualType: SemanticType
-                    get() = TODO("Not yet implemented")
+                    get() = SemanticType.Class(definition.node.name)
             }
         }
 
@@ -185,7 +193,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = type
         }
 
         /**
@@ -198,7 +206,19 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (operation) {
+                    AST.BinaryExpression.Operation.EQUALS, AST.BinaryExpression.Operation.NOT_EQUALS,
+                    AST.BinaryExpression.Operation.GREATER_EQUALS, AST.BinaryExpression.Operation.GREATER_THAN,
+                    AST.BinaryExpression.Operation.LESS_EQUALS, AST.BinaryExpression.Operation.LESS_THAN,
+                    AST.BinaryExpression.Operation.AND, AST.BinaryExpression.Operation.OR ->
+                        SemanticType.Boolean
+                    AST.BinaryExpression.Operation.MULTIPLICATION, AST.BinaryExpression.Operation.MODULO,
+                    AST.BinaryExpression.Operation.ADDITION, AST.BinaryExpression.Operation.SUBTRACTION,
+                    AST.BinaryExpression.Operation.DIVISION ->
+                        SemanticType.Integer
+                    AST.BinaryExpression.Operation.ASSIGNMENT ->
+                        left.actualType
+                }
         }
 
         /**
@@ -212,7 +232,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange
         ) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (operation) {
+                    AST.UnaryExpression.Operation.NOT -> SemanticType.Boolean
+                    AST.UnaryExpression.Operation.MINUS -> SemanticType.Integer
+                }
         }
 
         /**
@@ -228,8 +251,20 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val arguments: List<Expression>,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
+            var type: Type? = null
+
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = type?.returnType ?: SemanticType.Error
+
+            sealed class Type {
+                abstract val returnType: SemanticType
+
+                class Normal(val definition: MethodDefinition) : Type() {
+                    override val returnType: SemanticType
+                        get() = definition.node.returnType
+                }
+                class Internal(val name: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
+            }
         }
 
         /**
@@ -243,8 +278,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val field: Identifier,
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
+            var definition: FieldDefinition? = null
+
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = definition?.node?.type ?: SemanticType.Error
         }
 
         /**
@@ -259,7 +296,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = TODO("Not yet implemented")
+                get() = when (val type = this.target.actualType) {
+                    is SemanticType.Array -> type.elementType
+                    else -> SemanticType.Error
+                }
         }
     }
 
@@ -305,8 +345,6 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          *
          * @param statements a list of [Statements][Statement]
          */
-        class Block(val statements: List<Statement>, sourceRange: SourceRange) : Statement(sourceRange) {
-            lateinit var localNamespace: Namespace.LocalNamespace
-        }
+        class Block(val statements: List<Statement>, sourceRange: SourceRange) : Statement(sourceRange)
     }
 }

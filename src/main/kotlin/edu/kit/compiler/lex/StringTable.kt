@@ -1,5 +1,6 @@
 package edu.kit.compiler.lex
 
+import edu.kit.compiler.semantic.VariableDefinition
 import java.lang.IllegalArgumentException
 
 /**
@@ -10,6 +11,8 @@ data class Symbol(
     val isKeyword: Boolean,
 ) : Comparable<Symbol> {
     override fun compareTo(other: Symbol) = text.compareTo(other.text)
+
+    var definition: VariableDefinition? = null
 }
 
 /**

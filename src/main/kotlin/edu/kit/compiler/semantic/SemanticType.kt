@@ -8,9 +8,13 @@ sealed class SemanticType {
 
     object Boolean : SemanticType()
 
+    object Null : SemanticType()
+
     object Void : SemanticType()
 
-    data class Class(val name: AstNode.Identifier) : SemanticType()
+    data class Class(val name: AstNode.Identifier) : SemanticType() {
+        var definition: ClassDefinition? = null
+    }
 
     data class Array(val elementType: SemanticType) : SemanticType()
 
@@ -19,6 +23,16 @@ sealed class SemanticType {
      * silently fail (because an error message has already been generated)
      */
     object Error : SemanticType()
+}
+
+fun SemanticType.display(): String = when (this) {
+    SemanticType.Integer -> "int"
+    SemanticType.Boolean -> "boolean"
+    SemanticType.Null -> "null"
+    SemanticType.Void -> "void"
+    is SemanticType.Class -> name.text
+    is SemanticType.Array -> baseType.display() + "[]".repeat(dimension)
+    SemanticType.Error -> "[ERROR]"
 }
 
 /**

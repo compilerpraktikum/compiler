@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.parser.Parser
+import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.wrapper.wrappers.validate
@@ -97,7 +98,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        // TODO run semantic checks
+                        doSemanticAnalysis(program, sourceFile, stringTable)
                     }
                 }
                 Mode.CompileFirm, Mode.Compile -> {
@@ -109,7 +110,7 @@ class Compiler(private val config: Config) {
 
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
-                        // TODO run semantic checks
+                        doSemanticAnalysis(program, sourceFile, stringTable)
                         // TODO convert into firm graph
                         // TODO invoke firm backend to generate executable
                     }
