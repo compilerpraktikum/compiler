@@ -6,17 +6,17 @@ import edu.kit.compiler.semantic.AstNode
 
 class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor() {
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-        checkAndMessageIfNot(
-            SourceRange(classDeclaration.sourceRange.start, 1),
-            "You cannot define a class named \"String\", since it is  pre-defined."
+        errorIfTrue(
+            classDeclaration.name.sourceRange,
+            "You cannot define a class named \"String\", since it is pre-defined."
         ) {
-            classDeclaration.name.symbol.text != "String"
+            classDeclaration.name.symbol.text == "String"
         }
         super.visitClassDeclaration(classDeclaration)
     }
 
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
-        checkAndMessageIfNot(newObjectExpression.sourceRange, "No Instantiations of String.") { newObjectExpression.clazz.symbol.text != "String" }
+        errorIfTrue(newObjectExpression.sourceRange, "No instantiations of String.") { newObjectExpression.clazz.symbol.text == "String" }
     }
 
 // TODO string access?
@@ -37,8 +37,7 @@ class StringUsageChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 //    }
 //
 
-    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
-        // TODO more?
+    private fun errorIfTrue(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+        errorIfTrue(sourceFile, sourceRange, errorMsg, function)
     }
 }

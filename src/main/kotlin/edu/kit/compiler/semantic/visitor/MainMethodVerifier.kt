@@ -94,12 +94,12 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, literalThisExpression.sourceRange, "Usage of this in \"static context\" (main method).") { !checkingMainMethodCurrently }
+        errorIfFalse(sourceFile, literalThisExpression.sourceRange, "Usage of this in \"static context\" (main method).") { !checkingMainMethodCurrently }
         super.visitLiteralThisExpression(literalThisExpression)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"$argsName\" in main method body") {
+        errorIfFalse(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"$argsName\" in main method body") {
             checkingMainMethodCurrently && identifierExpression.name.symbol.text != argsName
         }
         super.visitIdentifierExpression(identifierExpression)

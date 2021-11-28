@@ -19,6 +19,6 @@ class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
     }
 
     private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
+        errorIfFalse(sourceFile, sourceRange, errorMsg, function)
     }
 }

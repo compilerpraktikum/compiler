@@ -270,9 +270,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        // can only be positive
-        // TODO check ${literalIntExpression.value} not negative, not greater 2^(31)-1 (in other visitor)
-
         checkActualTypeEqualsExpectedType(literalIntExpression)
     }
 
@@ -291,15 +288,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
-        // trick17 TODO remove after debugging.
-        try {
-            expression.expectedType
-        } catch (uninitializedPropertyAccessException: UninitializedPropertyAccessException) {
-            errorIfTrue(expression.sourceRange, "BUG Expression has no expected type!") { true }
-            // TODO ON/OFF-comment "return" to know where itt fails
-//            return
-        }
-
         errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedType}, got ${expression.actualType}") {
             compareSemanticTypes(expression.expectedType, expression.actualType)
         }
@@ -323,13 +311,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
     private fun errorIfFalse(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg, function)
-        // TODO more?
+        errorIfFalse(sourceFile, sourceRange, errorMsg, function)
     }
 
     private fun errorIfTrue(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, sourceRange, errorMsg) { !function() }
-        // TODO more?
+        errorIfTrue(sourceFile, sourceRange, errorMsg, function)
     }
 
     // TODO this should not be necessary!

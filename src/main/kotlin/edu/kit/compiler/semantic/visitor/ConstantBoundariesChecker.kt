@@ -18,7 +18,7 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        checkAndAnnotateSourceFileIfNot(sourceFile, literalIntExpression.sourceRange, "The integer literal value is out of range.") {
+        errorIfFalse(sourceFile, literalIntExpression.sourceRange, "The integer literal value is out of range.") {
             if (parentIsUnaryMinus) {
                 if (literalIntExpression.isParentized) {
                     BigInteger(literalIntExpression.value) < BigInteger("2147483648")

@@ -14,7 +14,7 @@ fun <T> T.onError(block: T.() -> Unit) = run(block)
 /**
  * Annotate a given source file with an error if the given function evaluates to false.
  */
-fun checkAndAnnotateSourceFileIfNot(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+fun errorIfFalse(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
     if (!function()) {
         sourceFile.annotate(
             AnnotationType.ERROR,
@@ -22,4 +22,6 @@ fun checkAndAnnotateSourceFileIfNot(sourceFile: SourceFile, sourceRange: SourceR
             errorMsg
         )
     }
+}fun errorIfTrue(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+    errorIfFalse(sourceFile, sourceRange, errorMsg) { !function() }
 }
