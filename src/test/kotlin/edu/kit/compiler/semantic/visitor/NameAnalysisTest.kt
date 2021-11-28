@@ -93,9 +93,6 @@ internal class NameAnalysisTest {
             """
                 class Test {
                     public Foo foo;
-                    public void main(int i) {
-                        foo.bar();
-                    }
                 }
             """.trimIndent()
         }
@@ -106,9 +103,7 @@ internal class NameAnalysisTest {
         checkNames(false) {
             """
                 class Test {
-                    public void main(Foo foo) {
-                        foo.bar();
-                    }
+                    public void main(Foo foo) {}
                 }
             """.trimIndent()
         }
@@ -119,11 +114,20 @@ internal class NameAnalysisTest {
         checkNames(false) {
             """
                 class Test {
-                    public Foo foo;
                     public void main(int i) {
                         Foo foo;
-                        foo.bar();
                     }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testUnknownClassAsReturnType() {
+        checkNames(false) {
+            """
+                class Test {
+                    public Foo main(int i) {}
                 }
             """.trimIndent()
         }
