@@ -195,7 +195,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
                     .forEach { pair -> pair.first.expectedType = pair.second }
             }
             // null
-            else -> TODO("wahrscheinlich einfach abbrechen")
+            else -> return // TODO("wahrscheinlich einfach abbrechen")
         }
 
         if (methodInvocationExpression.target != null) {
