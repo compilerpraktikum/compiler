@@ -12,8 +12,22 @@ import edu.kit.compiler.semantic.SemanticType
  */
 class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
+    var checkingMainMethodCurrently = false
+    var argsName = "args"
+
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         // don't visit method blocks, that would be waste of time
+    }
+
+    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+        if (methodInvocationExpression.method.symbol.text == "main")
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                methodInvocationExpression.sourceRange,
+                "the main method cannot be invoked."
+            )
+
+        super.visitMethodInvocationExpression(methodInvocationExpression)
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
@@ -24,7 +38,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "the main method must return `void`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "change the return type to `void`", "hint")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: change the return type to `void`")
                     )
                 )
             else
@@ -33,7 +47,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "only the main method is allowed to be `static`",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
                     )
                 )
         } else {
@@ -43,7 +57,7 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                     mainMethodDeclaration.name.sourceRange,
                     "only the `main` method is allowed to be static",
                     listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "remove the `static` modifier", "hint")
+                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
                     )
                 )
             }
@@ -72,5 +86,22 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 "the parameter of the `main` method must have type `String[]`",
             )
         }
+        if (mainMethodDeclaration.parameters.isNotEmpty()) argsName = mainMethodDeclaration.parameters[0].name.text
+
+        checkingMainMethodCurrently = true
+        super.visitMainMethodDeclaration(mainMethodDeclaration)
+        checkingMainMethodCurrently = false
+    }
+
+    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+        errorIfFalse(sourceFile, literalThisExpression.sourceRange, "Usage of this in \"static context\" (main method).") { !checkingMainMethodCurrently }
+        super.visitLiteralThisExpression(literalThisExpression)
+    }
+
+    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+        errorIfFalse(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"$argsName\" in main method body") {
+            checkingMainMethodCurrently && identifierExpression.name.symbol.text != argsName
+        }
+        super.visitIdentifierExpression(identifierExpression)
     }
 }

@@ -68,6 +68,7 @@ abstract class AbstractVisitor {
     open fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         methodInvocationExpression.target?.accept(this)
         methodInvocationExpression.arguments.forEach { it.accept(this) }
+        methodInvocationExpression.actualType
     }
 
     open fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
