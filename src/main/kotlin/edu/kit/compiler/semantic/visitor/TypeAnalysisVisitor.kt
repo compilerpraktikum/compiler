@@ -46,7 +46,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
-        println("####visitArrayAccessExpression\n    ${arrayAccessExpression.index}\n    ${arrayAccessExpression.index.actualType}")
 
         arrayAccessExpression.index.expectedType = SemanticType.Integer
         arrayAccessExpression.target.expectedType = SemanticType.Array(arrayAccessExpression.expectedType)
@@ -59,10 +58,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
             arrayAccessExpression.index.actualType is SemanticType.Integer
         }
-        println("-----${arrayAccessExpression.expectedType}")
-        println("-----${arrayAccessExpression.target.expectedType}")
-        println("-----${arrayAccessExpression.target.actualType}")
-        println("-----${arrayAccessExpression.target}")
         checkActualTypeEqualsExpectedType(arrayAccessExpression)
     }
 
@@ -90,10 +85,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        println("############################main start")
         currentExpectedMethodReturnType = mainMethodDeclaration.returnType
         super.visitMainMethodDeclaration(mainMethodDeclaration)
-        println("############################main end")
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
@@ -166,33 +159,28 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-
-        // TODO remove this method, only 4 debug
-        println("#############################" + classDeclaration.name.text)
-
         super.visitClassDeclaration(classDeclaration)
     }
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // expect that argument's types match the parameter's types in the definition.
-        println("#############################methodinvocation0 ${methodInvocationExpression.type}")
         var argumentsListLengthValid = true
         when (methodInvocationExpression.type) {
             is AstNode.Expression.MethodInvocationExpression.Type.Normal -> {
                 // check length of parameter and arg list
-                println("#############################methodinvocation2")
+
                 if (methodInvocationExpression.arguments.size !=
                     (methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters.size
                 ) {
                     errorIfTrue(methodInvocationExpression.sourceRange, "Argument list length != Parameter list length") { true }
                     argumentsListLengthValid = false
                 }
-                println("#############################methodinvocation4")
                 methodInvocationExpression.arguments
                     .zip((methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters)
-                    .forEach { pair -> pair.first.expectedType = pair.second.type }
-                println("#############################methodinvocation4.5")
+                    .forEach { pair ->
+                        pair.first.expectedType = pair.second.type
+                    }
             }
             is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
                 // check length of parameter and arg list
@@ -209,8 +197,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             // null
             else -> TODO("wahrscheinlich einfach abbrechen")
         }
-        println("#############################methodinvocation5")
-        println(methodInvocationExpression.actualType)
+
         if (methodInvocationExpression.target != null) {
             // no expectations.
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
@@ -222,7 +209,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             super.visitMethodInvocationExpression(methodInvocationExpression)
         }
 
-        println("#############################methodinvocation10")
         // may not be the best message...
 
         if (methodInvocationExpression.target?.actualType is SemanticType.Error) {

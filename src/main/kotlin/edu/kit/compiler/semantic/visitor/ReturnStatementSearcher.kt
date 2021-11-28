@@ -64,25 +64,21 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
             return
         }
         recursionDepthCounter++
-        println(" ".repeat(recursionDepthCounter * 2) + "IFSTATEMENT depth=$recursionDepthCounter  stackSize=${foundAReturnStatementInIfStack.size}")
+
 //        i = 1
         ifStatement.thenCase.accept(this) // wenn return da i = 2
         // / liste position ist rekursiontiefe
         var foundReturnInThenCase = false
-        println(" ".repeat(recursionDepthCounter * 2) + "sizecheckTHEN:   depth=$recursionDepthCounter, stackSize=${foundAReturnStatementInIfStack.size}")
         if (2 == foundAReturnStatementInIfStack.size) {
 //        if (recursionDepthCounter == foundAReturnStatementInIfStack.size + (recursionDepthCounter - 2)) {
             foundReturnInThenCase = foundAReturnStatementInIfStack.pop()
-            println(" ".repeat(recursionDepthCounter * 2) + "THEN:  $foundReturnInThenCase")
         }
 
         ifStatement.elseCase.accept(this)
 
         var foundReturnInElseCase = false
-        println(" ".repeat(recursionDepthCounter * 2) + "sizecheckELSE:   depth=$recursionDepthCounter, stackSize=${foundAReturnStatementInIfStack.size}")
         if (2 == foundAReturnStatementInIfStack.size) {
             foundReturnInElseCase = foundAReturnStatementInIfStack.pop()
-            println(" ".repeat(recursionDepthCounter * 2) + "Else:  $foundReturnInElseCase")
         }
 
 //        foundAReturnStatementInIfStack.push(foundReturnInThenCase && foundReturnInElseCase)
