@@ -110,29 +110,29 @@ class NameResolutionHelper(
     fun lookupClass(classType: SemanticType.Class): ClassDefinition? = lookupClass(global, sourceFile, classType)
 
     /**
-     * Get [class definition][ClassDefinition] for the class type given in [inClazz].
+     * Get [class definition][ClassDefinition] for the class type given in [inClass].
      * @return [class definition][ClassDefinition] corresponding to the given class type or `null` if no such class exists
      */
-    private fun getClazzByType(inClazz: SemanticType.Class?) = when (inClazz) {
+    private fun getClassByType(inClass: SemanticType.Class?) = when (inClass) {
         null -> clazz
-        else -> global.classes.getOrNull(inClazz.name.symbol)?.node
+        else -> global.classes.getOrNull(inClass.name.symbol)?.node
     }
 
     /**
      * Check if lhs of member access (field access or method call) is a valid target for member access (= has class type).
      */
     @OptIn(ExperimentalContracts::class)
-    private inline fun ifIsInvalidForMemberAccess(inClazz: SemanticType?, range: SourceRange, operation: String, exit: () -> Nothing) {
+    private inline fun ifIsInvalidForMemberAccess(inClass: SemanticType?, range: SourceRange, operation: String, exit: () -> Nothing) {
         contract {
-            returns() implies (inClazz is SemanticType.Class?)
+            returns() implies (inClass is SemanticType.Class?)
         }
 
-        if (inClazz != null && inClazz !is SemanticType.Class) {
-            if (inClazz !is SemanticType.Error) { // suppress error spam
+        if (inClass != null && inClass !is SemanticType.Class) {
+            if (inClass !is SemanticType.Error) { // suppress error spam
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     range, // TODO the identifier is not really the problem here, so highlighting it is kinda odd
-                    "$operation on non-class type `${inClazz.display()}`",
+                    "$operation on non-class type `${inClass.display()}`",
                 )
             }
             exit()
@@ -140,15 +140,15 @@ class NameResolutionHelper(
     }
 
     /**
-     * Look up a field with the given [name] in the given [class][inClazz].
+     * Look up a field with the given [name] in the given [class][inClass].
      */
-    fun lookupField(name: AstNode.Identifier, inClazz: SemanticType): FieldDefinition? {
-        ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "field access") { return null }
+    fun lookupField(name: AstNode.Identifier, inClass: SemanticType): FieldDefinition? {
+        ifIsInvalidForMemberAccess(inClass, name.sourceRange, "field access") { return null }
 
-        /* If the definition of [inClazz] cannot be found we can skip any further error handing because the definition
+        /* If the definition of [inClass] cannot be found we can skip any further error handing because the definition
          * of the variable itself already checks that the class definition exists.
          */
-        val clazz = getClazzByType(inClazz) ?: return null
+        val clazz = getClassByType(inClass) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
@@ -162,13 +162,13 @@ class NameResolutionHelper(
     }
 
     /**
-     * Look up a method with the given [name] in the given [class][inClazz].
-     * @param[inClazz] class in which the method is looked up (defaults to the current class if `null`)
+     * Look up a method with the given [name] in the given [class][inClass].
+     * @param[inClass] class in which the method is looked up (defaults to the current class if `null`)
      */
-    fun lookupMethod(name: AstNode.Identifier, inClazz: SemanticType? = null): MethodDefinition? {
-        ifIsInvalidForMemberAccess(inClazz, name.sourceRange, "method call") { return null }
+    fun lookupMethod(name: AstNode.Identifier, inClass: SemanticType? = null): MethodDefinition? {
+        ifIsInvalidForMemberAccess(inClass, name.sourceRange, "method call") { return null }
 
-        if (isStatic && inClazz == null) {
+        if (isStatic && inClass == null) {
             sourceFile.annotate(
                 AnnotationType.ERROR,
                 name.sourceRange,
@@ -178,7 +178,7 @@ class NameResolutionHelper(
         }
 
         // see note in lookupField
-        val clazz = getClazzByType(inClazz) ?: return null
+        val clazz = getClassByType(inClass) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
         if (def == null) {
             sourceFile.annotate(
