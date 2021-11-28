@@ -13,7 +13,7 @@ import edu.kit.compiler.wrapper.wrappers.wrapValid
 
 private val Token.isRelevantForSyntax
     get() = when (this) {
-        //TODO should maybe also contain Token.ErrorToken. That case was removed because óf Issue #85.
+        // TODO should maybe also contain Token.ErrorToken. That case was removed because óf Issue #85.
         is Token.Whitespace, is Token.Comment -> false
         else -> true
     }
@@ -127,7 +127,6 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
             }
         }
     }
-
 
     /**
      * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
