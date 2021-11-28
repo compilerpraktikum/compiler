@@ -12,7 +12,7 @@ internal class ExpressionParseTest {
     private val emptyAnchorSet = anchorSetOf().intoUnion()
 
     private fun expectAst(input: String, expectedAST: Parsed<AST.Expression>) =
-        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet, isParentized = false) }
+        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet, isParenthized = false) }
 
     @Test
     fun testParseLiteral() = expectAst("1", AST.LiteralExpression.Integer("1", false).wrapMockValid())
