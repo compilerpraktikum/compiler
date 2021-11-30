@@ -8,7 +8,6 @@ import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.semantic.visitor.doAssignmentLHSChecking
 import edu.kit.compiler.semantic.visitor.doConstantBoundariesCheck
 import edu.kit.compiler.semantic.visitor.doSearchForReturnStatement
-import edu.kit.compiler.semantic.visitor.doStringUsageChecking
 import edu.kit.compiler.semantic.visitor.doTypeAnalysis
 
 fun doMainMethodAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
@@ -20,7 +19,6 @@ fun doSemanticAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringT
     doNameAnalysis(program, sourceFile, stringTable)
     doTypeAnalysis(program, sourceFile)
     doMainMethodAnalysis(program, sourceFile)
-    doStringUsageChecking(program, sourceFile)
     doSearchForReturnStatement(program, sourceFile)
     doAssignmentLHSChecking(program, sourceFile)
     doConstantBoundariesCheck(program, sourceFile)
