@@ -1,7 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import java.util.Stack
@@ -31,8 +30,8 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
             resetStackAndCounter()
         }
 
-        checkAndMessageIfNot(methodDeclaration.sourceRange, "missing return statement in non-void function") {
-            methodDeclaration.returnType == SemanticType.Void || foundAReturnStatement
+        sourceFile.errorIfNot(methodDeclaration.returnType == SemanticType.Void || foundAReturnStatement) {
+            "missing return statement in non-void function" at methodDeclaration.sourceRange
         }
         foundAReturnStatement = false
     }
@@ -94,11 +93,6 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
             foundAReturnStatementInIfStack.push(true)
         }
         super.visitReturnStatement(returnStatement)
-    }
-
-    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
-        errorIfFalse(sourceFile, sourceRange, errorMsg, function)
-        // TODO more?
     }
 }
 

@@ -66,13 +66,15 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
-        errorIfFalse(sourceFile, literalThisExpression.sourceRange, "cannot use `this` in static context (main method)") { false }
+        sourceFile.error {
+            "cannot use `this` in static context (main method)" at literalThisExpression.sourceRange
+        }
         super.visitLiteralThisExpression(literalThisExpression)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        errorIfFalse(sourceFile, identifierExpression.sourceRange, "usage of parameter `$argsName` in main method body not allowed") {
-            identifierExpression.name.symbol.text != argsName
+        sourceFile.errorIf(identifierExpression.name.symbol.text == argsName) {
+            "usage of parameter `$argsName` in main method body not allowed" at identifierExpression.sourceRange
         }
         super.visitIdentifierExpression(identifierExpression)
     }

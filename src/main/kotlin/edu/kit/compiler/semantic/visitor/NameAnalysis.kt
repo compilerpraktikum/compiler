@@ -1,9 +1,7 @@
 package edu.kit.compiler.semantic
 
 import edu.kit.compiler.lex.AnnotatableFile
-import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
@@ -11,6 +9,10 @@ import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.semantic.visitor.at
+import edu.kit.compiler.semantic.visitor.error
+import edu.kit.compiler.semantic.visitor.errorIf
+import edu.kit.compiler.semantic.visitor.note
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -24,11 +26,9 @@ val VariableDefinition.identifier
 fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType: SemanticType.Class): ClassDefinition? {
     val def = global.classes.getOrNull(classType.name.symbol)
     if (def == null) {
-        sourceFile.annotate(
-            AnnotationType.ERROR,
-            classType.name.sourceRange,
-            "unknown class `${classType.name.text}`"
-        )
+        sourceFile.error {
+            "unknown class `${classType.name.text}`" at classType.name.sourceRange
+        }
         return null
     }
     return def
@@ -86,14 +86,11 @@ class NameResolutionHelper(
         if (prevDefinition == null) {
             local.add(definition)
         } else {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                identifierSourceRange,
-                "local variable with the name '${definition.name.text}' already exists",
-                listOf(
-                    SourceNote(prevDefinition.identifier.sourceRange, "see previous declaration here")
-                )
-            )
+            sourceFile.error {
+                "local variable with the name '${definition.name.text}' already exists" at identifierSourceRange note (
+                    "see previous declaration here" at prevDefinition.identifier.sourceRange
+                    )
+            }
         }
     }
 
@@ -129,11 +126,9 @@ class NameResolutionHelper(
 
         if (inClass != null && inClass !is SemanticType.Class) {
             if (inClass !is SemanticType.Error) { // suppress error spam
-                sourceFile.annotate(
-                    AnnotationType.ERROR,
-                    range, // TODO the identifier is not really the problem here, so highlighting it is kinda odd
-                    "$operation on non-class type ${inClass.display()}",
-                )
+                sourceFile.error {
+                    "$operation on non-class type ${inClass.display()}" at range // TODO the identifier is not really the problem here, so highlighting it is kinda odd
+                }
             }
             exit()
         }
@@ -151,11 +146,9 @@ class NameResolutionHelper(
         val clazz = getClassByType(inClass) ?: return null
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "unknown field `${clazz.name.text}.${name.symbol.text}`"
-            )
+            sourceFile.error {
+                "unknown field `${clazz.name.text}.${name.symbol.text}`" at name.sourceRange
+            }
             return null
         }
         return def
@@ -172,22 +165,19 @@ class NameResolutionHelper(
         val clazz = getClassByType(inClass) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
         if (def == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "unknown method `${clazz.name.text}.${name.symbol.text}`" + if (name.symbol.text == "main" && clazz.namespace.hasMainMethod) {
+            sourceFile.error {
+                val mainMethodNote = if (name.symbol.text == "main" && clazz.namespace.hasMainMethod) {
                     " (note: you cannot call the main method of a program)"
                 } else ""
-            )
+                ("unknown method `${clazz.name.text}.${name.symbol.text}`$mainMethodNote") at name.sourceRange
+            }
             return null
         }
 
         if (isStatic && inClass == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "cannot call instance method from static method"
-            )
+            sourceFile.error {
+                "cannot call instance method from static method" at name.sourceRange
+            }
             return null
         }
 
@@ -204,18 +194,14 @@ class NameResolutionHelper(
 
         val def = clazz.namespace.fields.getOrNull(name.symbol)
         if (def == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "unknown variable `${name.symbol.text}`"
-            )
+            sourceFile.error {
+                "unknown variable `${name.symbol.text}`" at name.sourceRange
+            }
             return null
         } else if (isStatic) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "cannot access instance field from static method"
-            )
+            sourceFile.error {
+                "cannot access instance field from static method" at name.sourceRange
+            }
             return null
         }
 
@@ -250,21 +236,16 @@ class NamespacePopulator(
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         if (classDeclaration.name.text == "String") {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                classDeclaration.name.sourceRange,
-                "cannot shadow built-in `String` class"
-            )
+            sourceFile.error {
+                "cannot shadow built-in `String` class" at classDeclaration.name.sourceRange
+            }
         } else {
             global.classes.tryPut(classDeclaration.asDefinition(), onDuplicate = {
-                sourceFile.annotate(
-                    AnnotationType.ERROR,
-                    classDeclaration.name.sourceRange,
-                    "class `${classDeclaration.name.text}` is already defined",
-                    listOf(
-                        SourceNote(it.node.name.sourceRange, "see previous definition here")
-                    )
-                )
+                sourceFile.error {
+                    "class `${classDeclaration.name.text}` is already defined" at classDeclaration.name.sourceRange note (
+                        "see previous definition here" at it.node.name.sourceRange
+                        )
+                }
             })
         }
 
@@ -277,14 +258,11 @@ class NamespacePopulator(
 
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
         currentClassNamespace.fields.tryPut(fieldDeclaration.asDefinition(), onDuplicate = { prev ->
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                fieldDeclaration.name.sourceRange,
-                "field `${fieldDeclaration.name.text}` is already defined",
-                listOf(
-                    SourceNote(prev.node.name.sourceRange, "see previous definition here")
-                )
-            )
+            sourceFile.error {
+                "field `${fieldDeclaration.name.text}` is already defined" at fieldDeclaration.name.sourceRange note (
+                    "see previous definition here" at prev.node.name.sourceRange
+                    )
+            }
         })
 
         // do not descend
@@ -299,14 +277,11 @@ class NamespacePopulator(
         }
 
         currentClassNamespace.methods.tryPut(methodDeclaration.asDefinition(), onDuplicate = { prev ->
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                methodDeclaration.name.sourceRange,
-                "method `${methodDeclaration.name.text}` is already defined",
-                listOf(
-                    SourceNote(prev.node.name.sourceRange, "see previous definition here")
-                )
-            )
+            sourceFile.error {
+                "method `${methodDeclaration.name.text}` is already defined" at methodDeclaration.name.sourceRange note (
+                    "see previous definition here" at prev.node.name.sourceRange
+                    )
+            }
         })
 
         // do not descend
@@ -330,14 +305,11 @@ class NamespacePopulator(
     }
 
     private fun printErrorDuplicateMain(current: SourceRange, previous: SourceRange) {
-        sourceFile.annotate(
-            AnnotationType.ERROR,
-            current,
-            "method `main` is already defined",
-            listOf(
-                SourceNote(previous, "see previous definition here")
-            )
-        )
+        sourceFile.error {
+            "method `main` is already defined" at current note (
+                "see previous definition here" at previous
+                )
+        }
     }
 }
 
@@ -449,11 +421,9 @@ class SubroutineNameResolver(
                     when (methodName) {
                         "read" -> methodInvocationExpression.type = SYSTEM_IN_READ
                         else -> {
-                            sourceFile.annotate(
-                                AnnotationType.ERROR,
-                                methodInvocationExpression.sourceRange,
-                                "unknown built-in method `System.in.$methodName`"
-                            )
+                            sourceFile.error {
+                                "unknown built-in method `System.in.$methodName`" at methodInvocationExpression.sourceRange
+                            }
                         }
                     }
                 }
@@ -463,20 +433,16 @@ class SubroutineNameResolver(
                         "write" -> methodInvocationExpression.type = SYSTEM_OUT_WRITE
                         "flush" -> methodInvocationExpression.type = SYSTEM_OUT_FLUSH
                         else -> {
-                            sourceFile.annotate(
-                                AnnotationType.ERROR,
-                                methodInvocationExpression.sourceRange,
-                                "unknown built-in method `System.out.$methodName`"
-                            )
+                            sourceFile.error {
+                                "unknown built-in method `System.out.$methodName`" at methodInvocationExpression.sourceRange
+                            }
                         }
                     }
                 }
                 else -> {
-                    sourceFile.annotate(
-                        AnnotationType.ERROR,
-                        fieldAccessExpr.sourceRange,
-                        "unknown built-in field `System.$fieldName`"
-                    )
+                    sourceFile.error {
+                        "unknown built-in field `System.$fieldName`" at fieldAccessExpr.sourceRange
+                    }
                 }
             }
 
@@ -499,12 +465,8 @@ class SubroutineNameResolver(
 
     // not really part of name analysis but given that all the other String checks are in this file it's best to put it here too
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
-        if (newObjectExpression.clazz.text == "String") {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                newObjectExpression.clazz.sourceRange,
-                "cannot instantiate built-in class `String`"
-            )
+        sourceFile.errorIf(newObjectExpression.clazz.text == "String") {
+            "cannot instantiate built-in class `String`" at newObjectExpression.clazz.sourceRange
         }
 
         super.visitNewObjectExpression(newObjectExpression)
