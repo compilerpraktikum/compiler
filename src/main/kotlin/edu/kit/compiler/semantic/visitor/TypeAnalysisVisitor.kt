@@ -41,7 +41,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // type check
         errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match, expected ${localVariableDeclaration.type.display()}, got ${localVariableDeclaration.initializer?.actualType?.display() ?: ""}") {
             if (localVariableDeclaration.initializer != null) {
-                compareSemanticTypes(localVariableDeclaration.type, localVariableDeclaration.initializer.actualType)
+                areTypesCompatible(localVariableDeclaration.type, localVariableDeclaration.initializer.actualType)
             } else true
         }
     }
@@ -259,32 +259,33 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
         errorIfFalse(expression.sourceRange, "expected type ${expression.expectedType.display()}, but got ${expression.actualType.display()}") {
-            compareSemanticTypes(expression.expectedType, expression.actualType)
+            areTypesCompatible(expression.expectedType, expression.actualType)
         }
     }
 
-    /**
-     * Not commutative because of null allowance.
-     */
-    private fun compareSemanticTypes(type0: SemanticType, type1: SemanticType): Boolean =
-        // TODO überlegen ob vlt doch equals methode überschreiben?
-        if (type0 is SemanticType.Class && type1 is SemanticType.Class) {
-            type0.name.symbol.text == type1.name.symbol.text
-        } else if (type0 is SemanticType.Array && type1 is SemanticType.Array) {
-            compareSemanticTypes(type0.elementType, type1.elementType)
-        } else if (type0 is SemanticType.Class && type1 is SemanticType.Null || type1 is SemanticType.Class && type0 is SemanticType.Null) {
-            true
-        } else if (type0 is SemanticType.Array && type1 is SemanticType.Null || type1 is SemanticType.Array && type0 is SemanticType.Null) {
-            true
-        } else {
-            type0 == type1
+    private fun areTypesCompatible(expected: SemanticType, actual: SemanticType): Boolean {
+        fun isNullCompatible(type: SemanticType) = type == SemanticType.Null || type is SemanticType.Class || type is SemanticType.Array
+
+        if (expected == SemanticType.Null) {
+            return isNullCompatible(actual)
+        } else if (actual == SemanticType.Null) {
+            return isNullCompatible(expected)
         }
 
-    private fun errorIfFalse(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+        if (expected is SemanticType.Class) {
+            return actual is SemanticType.Class && expected.name.symbol == actual.name.symbol
+        } else if (expected is SemanticType.Array) {
+            return actual is SemanticType.Array && areTypesCompatible(expected.elementType, actual.elementType)
+        }
+
+        return expected === actual
+    }
+
+    private fun errorIfFalse(sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
         errorIfFalse(sourceFile, sourceRange, errorMsg, function)
     }
 
-    private fun errorIfTrue(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+    private fun errorIfTrue(sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
         errorIfTrue(sourceFile, sourceRange, errorMsg, function)
     }
 
