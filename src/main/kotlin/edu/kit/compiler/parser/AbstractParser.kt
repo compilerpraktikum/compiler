@@ -78,11 +78,10 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
             recover(anc)
             return null.wrapErroneous(peeked.range)
         }
-        val sourceRange = SourceRange(peeked.position, 1).extend(SourceRange(peek(1).position, 1))
 
         return if (peeked.type == type) {
             next()
-            peeked.wrapValid(sourceRange)
+            peeked.wrapValid(peeked.range)
         } else {
             reportError(peeked, errorMsg())
             recover(anc)
