@@ -132,7 +132,7 @@ class NameResolutionHelper(
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     range, // TODO the identifier is not really the problem here, so highlighting it is kinda odd
-                    "$operation on non-class type `${inClass.display()}`",
+                    "$operation on non-class type ${inClass.display()}",
                 )
             }
             exit()
@@ -168,15 +168,6 @@ class NameResolutionHelper(
     fun lookupMethod(name: AstNode.Identifier, inClass: SemanticType? = null): MethodDefinition? {
         ifIsInvalidForMemberAccess(inClass, name.sourceRange, "method call") { return null }
 
-        if (isStatic && inClass == null) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                name.sourceRange,
-                "cannot call instance method from static method"
-            )
-            return null
-        }
-
         // see note in lookupField
         val clazz = getClassByType(inClass) ?: return null
         val def = clazz.namespace.methods.getOrNull(name.symbol)
@@ -190,6 +181,16 @@ class NameResolutionHelper(
             )
             return null
         }
+
+        if (isStatic && inClass == null) {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                name.sourceRange,
+                "cannot call instance method from static method"
+            )
+            return null
+        }
+
         return def
     }
 

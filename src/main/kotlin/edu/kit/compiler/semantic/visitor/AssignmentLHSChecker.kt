@@ -9,10 +9,13 @@ class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
         if (binaryOperation.operation == AST.BinaryExpression.Operation.ASSIGNMENT) {
-            checkAndMessageIfNot(binaryOperation.left.sourceRange, "Left hand side of an assignment must be an IdentifierExpression, a FieldAccessExpression or an ArrayAccessExpression") {
-                binaryOperation.left is AstNode.Expression.IdentifierExpression ||
-                    binaryOperation.left is AstNode.Expression.FieldAccessExpression ||
-                    binaryOperation.left is AstNode.Expression.ArrayAccessExpression
+            checkAndMessageIfNot(binaryOperation.left.sourceRange, "target of assignment is not an lvalue (identifier, field access or array access)") {
+                when (binaryOperation.left) {
+                    is AstNode.Expression.IdentifierExpression,
+                    is AstNode.Expression.FieldAccessExpression,
+                    is AstNode.Expression.ArrayAccessExpression -> true
+                    else -> false
+                }
             }
         }
         super.visitBinaryOperation(binaryOperation)
@@ -21,4 +24,8 @@ class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
     private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
         errorIfFalse(sourceFile, sourceRange, errorMsg, function)
     }
+}
+
+fun doAssignmentLHSChecking(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(AssignmentLHSChecker(sourceFile))
 }

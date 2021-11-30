@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.display
 
 /**
  * Type analysis. Run name analysis beforehand.
@@ -18,12 +19,12 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     lateinit var currentExpectedMethodReturnType: SemanticType
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
-        errorIfFalse(parameter.sourceRange, "No void typed parameters.") { parameter.type !is SemanticType.Void }
+        errorIfFalse(parameter.sourceRange, "parameter cannot have type `void`") { parameter.type !is SemanticType.Void }
         super.visitParameter(parameter)
     }
 
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
-        errorIfTrue(fieldDeclaration.sourceRange, "No \"void\" variables.") { fieldDeclaration.type is SemanticType.Void }
+        errorIfTrue(fieldDeclaration.sourceRange, "field cannot have type `void`") { fieldDeclaration.type is SemanticType.Void }
         super.visitFieldDeclaration(fieldDeclaration)
     }
 
@@ -35,10 +36,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitLocalVariableDeclaration(localVariableDeclaration)
 
         // L-Values check!
-        errorIfTrue(localVariableDeclaration.sourceRange, "No \"void\" variables.") { localVariableDeclaration.type is SemanticType.Void }
+        errorIfTrue(localVariableDeclaration.sourceRange, "variable cannot have type `void`") { localVariableDeclaration.type is SemanticType.Void }
 
         // type check
-        errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match, expected ${localVariableDeclaration.type}, got ${localVariableDeclaration.initializer?.actualType}") {
+        errorIfFalse(localVariableDeclaration.sourceRange, "Initializer and declared type don't match, expected ${localVariableDeclaration.type.display()}, got ${localVariableDeclaration.initializer?.actualType?.display() ?: ""}") {
             if (localVariableDeclaration.initializer != null) {
                 compareSemanticTypes(localVariableDeclaration.type, localVariableDeclaration.initializer.actualType)
             } else true
@@ -52,10 +53,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitArrayAccessExpression(arrayAccessExpression)
         // left-to-right: check target, then check index.
 
-        errorIfFalse(arrayAccessExpression.sourceRange, "Array access target is no array.") {
+        errorIfFalse(arrayAccessExpression.sourceRange, "array access on non-array type ${arrayAccessExpression.target.actualType.display()}") {
             arrayAccessExpression.target.actualType is SemanticType.Array
         }
-        errorIfFalse(arrayAccessExpression.sourceRange, "Only \"Int\"-typed array indices.") {
+        errorIfFalse(arrayAccessExpression.sourceRange, "expected index expression of type `int`, got type ${arrayAccessExpression.index.actualType.display()}") {
             arrayAccessExpression.index.actualType is SemanticType.Integer
         }
         checkActualTypeEqualsExpectedType(arrayAccessExpression)
@@ -72,10 +73,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         if (fieldAccessExpression.target.actualType is SemanticType.Error) {
             return
         }
-        errorIfFalse(fieldAccessExpression.sourceRange, "Field access can only apply to targets of complex type.") {
-            fieldAccessExpression.target.actualType is SemanticType.Class
-        }
-        errorIfTrue(fieldAccessExpression.sourceRange, "Arrays have no fields.") { fieldAccessExpression.target.actualType is SemanticType.Array }
         checkActualTypeEqualsExpectedType(fieldAccessExpression)
     }
 
@@ -90,20 +87,22 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        errorIfTrue(returnStatement.sourceRange, "No return values on methods with return type \"void\".") {
-            currentExpectedMethodReturnType is SemanticType.Void && returnStatement.expression != null
-        }
         if (returnStatement.expression != null) {
+            errorIfTrue(returnStatement.sourceRange, "cannot return value from method with return type `void`") {
+                currentExpectedMethodReturnType is SemanticType.Void
+            }
             returnStatement.expression.expectedType = currentExpectedMethodReturnType
             super.visitReturnStatement(returnStatement)
             checkActualTypeEqualsExpectedType(returnStatement.expression)
         } else {
-            errorIfFalse(returnStatement.sourceRange, "Must return a value (of type $currentExpectedMethodReturnType).") { currentExpectedMethodReturnType is SemanticType.Void }
+            errorIfFalse(returnStatement.sourceRange, "method with return type ${currentExpectedMethodReturnType.display()} must return a value") {
+                currentExpectedMethodReturnType is SemanticType.Void
+            }
         }
     }
 
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
-        errorIfFalse(expressionStatement.sourceRange, "Only method invocations and assignments are allowed as statements.") {
+        errorIfFalse(expressionStatement.sourceRange, "statement has no side-effects") {
             expressionStatement.expression is AstNode.Expression.MethodInvocationExpression ||
                 (expressionStatement.expression is AstNode.Expression.BinaryOperation && expressionStatement.expression.operation == AST.BinaryExpression.Operation.ASSIGNMENT)
         }
@@ -166,36 +165,21 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // expect that argument's types match the parameter's types in the definition.
         var argumentsListLengthValid = true
-        when (methodInvocationExpression.type) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> {
-                // check length of parameter and arg list
 
-                if (methodInvocationExpression.arguments.size !=
-                    (methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters.size
-                ) {
-                    errorIfTrue(methodInvocationExpression.sourceRange, "Argument list length != Parameter list length") { true }
-                    argumentsListLengthValid = false
-                }
-                methodInvocationExpression.arguments
-                    .zip((methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Normal).definition.node.parameters)
-                    .forEach { pair ->
-                        pair.first.expectedType = pair.second.type
-                    }
+        fun checkArguments(paramTypes: List<SemanticType>) {
+            val args = methodInvocationExpression.arguments
+            if (args.size != paramTypes.size) {
+                errorIfTrue(methodInvocationExpression.sourceRange, "method `${methodInvocationExpression.method.text}` requires ${paramTypes.size} arguments, but got ${args.size}") { true }
+                argumentsListLengthValid = false
             }
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
-                // check length of parameter and arg list
-                if (methodInvocationExpression.arguments.size !=
-                    (methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Internal).parameters.size
-                ) {
-                    errorIfTrue(methodInvocationExpression.sourceRange, "Argument list length != Parameter list length") { true }
-                    argumentsListLengthValid = false
-                }
-                methodInvocationExpression.arguments
-                    .zip((methodInvocationExpression.type as AstNode.Expression.MethodInvocationExpression.Type.Internal).parameters)
-                    .forEach { pair -> pair.first.expectedType = pair.second }
-            }
-            // null
-            else -> return // TODO("wahrscheinlich einfach abbrechen")
+
+            args.zip(paramTypes).forEach { (arg, paramType) -> arg.expectedType = paramType }
+        }
+
+        when (val methodType = methodInvocationExpression.type) {
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(methodType.definition.node.parameters.map { it.type })
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(methodType.parameters)
+            null -> return
         }
 
         if (methodInvocationExpression.target != null) {
@@ -239,7 +223,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitArrayType(arrayType: SemanticType.Array) {
         // TODO fix non-existing sourceRangeƒ
-        errorIfTrue(createSourceRangeDummy(), "No void typed arrays.") {
+        errorIfTrue(createSourceRangeDummy(), "array of type `void` not allowed") {
             arrayType.elementType is SemanticType.Void
         }
         super.visitArrayType(arrayType)
@@ -274,7 +258,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     private fun checkActualTypeEqualsExpectedType(expression: AstNode.Expression) {
-        errorIfFalse(expression.sourceRange, "Expected type ${expression.expectedType}, got ${expression.actualType}") {
+        errorIfFalse(expression.sourceRange, "expected type ${expression.expectedType.display()}, but got ${expression.actualType.display()}") {
             compareSemanticTypes(expression.expectedType, expression.actualType)
         }
     }
@@ -306,4 +290,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     // TODO this should not be necessary!
     private fun createSourceRangeDummy() = SourceRange(SourcePosition(sourceFile, 1), 0)
+}
+
+fun doTypeAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(TypeAnalysisVisitor(sourceFile))
 }

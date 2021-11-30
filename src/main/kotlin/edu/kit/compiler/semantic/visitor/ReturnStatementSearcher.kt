@@ -31,7 +31,7 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
             resetStackAndCounter()
         }
 
-        checkAndMessageIfNot(methodDeclaration.sourceRange, "Missing return statement.") {
+        checkAndMessageIfNot(methodDeclaration.sourceRange, "missing return statement in non-void function") {
             methodDeclaration.returnType == SemanticType.Void || foundAReturnStatement
         }
         foundAReturnStatement = false
@@ -96,8 +96,12 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         super.visitReturnStatement(returnStatement)
     }
 
-    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> kotlin.Boolean) {
+    private fun checkAndMessageIfNot(sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
         errorIfFalse(sourceFile, sourceRange, errorMsg, function)
         // TODO more?
     }
+}
+
+fun doSearchForReturnStatement(program: AstNode.Program, sourceFile: SourceFile) {
+    program.accept(ReturnStatementSearcher(sourceFile))
 }

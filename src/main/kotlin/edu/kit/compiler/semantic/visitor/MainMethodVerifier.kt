@@ -2,8 +2,7 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceNote
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 
@@ -12,95 +11,68 @@ import edu.kit.compiler.semantic.SemanticType
  */
 class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    var checkingMainMethodCurrently = false
-    var argsName = "args"
+    private var argsName: String? = null
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        // don't visit method blocks, that would be waste of time
-    }
-
-    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
-        if (methodInvocationExpression.method.symbol.text == "main")
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                methodInvocationExpression.sourceRange,
-                "the main method cannot be invoked."
-            )
-
-        super.visitMethodInvocationExpression(methodInvocationExpression)
+        // do not descend normal method
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        if (mainMethodDeclaration.returnType !is SemanticType.Void) {
-            if (mainMethodDeclaration.name.symbol.text == "main")
+        if (mainMethodDeclaration.name.symbol.text == "main") {
+            if (mainMethodDeclaration.returnType !is SemanticType.Void) {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
                     mainMethodDeclaration.name.sourceRange,
-                    "the main method must return `void`",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: change the return type to `void`")
-                    )
+                    "main method must return `void`"
                 )
-            else
-                sourceFile.annotate(
-                    AnnotationType.ERROR,
-                    mainMethodDeclaration.name.sourceRange,
-                    "only the main method is allowed to be `static`",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
-                    )
-                )
+            }
         } else {
-            if (mainMethodDeclaration.name.symbol.text != "main") {
+            sourceFile.annotate(
+                AnnotationType.ERROR,
+                mainMethodDeclaration.name.sourceRange,
+                "only the main method is allowed to be static"
+            )
+        }
+
+        when (mainMethodDeclaration.parameters.size) {
+            0 -> {
                 sourceFile.annotate(
                     AnnotationType.ERROR,
-                    mainMethodDeclaration.name.sourceRange,
-                    "only the `main` method is allowed to be static",
-                    listOf(
-                        SourceNote(mainMethodDeclaration.name.sourceRange, "hint: remove the `static` modifier")
+                    mainMethodDeclaration.block.sourceRange.start.extend(1),
+                    "main method must have exactly one parameter of type `String[]`",
+                )
+            }
+            1 -> {
+                val param = mainMethodDeclaration.parameters[0]
+                if (param.type !is SemanticType.Array || param.type.elementType !is SemanticType.Class || param.type.elementType.name.text != "String") {
+                    sourceFile.annotate(
+                        AnnotationType.ERROR,
+                        mainMethodDeclaration.parameters[0].sourceRange,
+                        "parameter of main method must have type `String[]`",
                     )
+                }
+                argsName = param.name.text
+            }
+            else -> {
+                sourceFile.annotate(
+                    AnnotationType.ERROR,
+                    mainMethodDeclaration.parameters[1].sourceRange.extend(mainMethodDeclaration.parameters.last().sourceRange),
+                    "main method cannot have more than one parameter",
                 )
             }
         }
 
-        if (mainMethodDeclaration.parameters.isEmpty()) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                SourceRange(mainMethodDeclaration.block.sourceRange.start, 1),
-                "the main method must have exactly one parameter of type `String[]`",
-            )
-        } else if (mainMethodDeclaration.parameters.size > 2) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                mainMethodDeclaration.parameters[1].sourceRange.extend(mainMethodDeclaration.parameters.last().sourceRange),
-                "the main method cannot have more than one parameter",
-            )
-        } else if (mainMethodDeclaration.parameters[0].type !is SemanticType.Array ||
-            (mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType !is SemanticType.Class ||
-            ((mainMethodDeclaration.parameters[0].type as SemanticType.Array).elementType as SemanticType.Class)
-                .name.symbol.text != "String"
-        ) {
-            sourceFile.annotate(
-                AnnotationType.ERROR,
-                mainMethodDeclaration.parameters[0].sourceRange,
-                "the parameter of the `main` method must have type `String[]`",
-            )
-        }
-        if (mainMethodDeclaration.parameters.isNotEmpty()) argsName = mainMethodDeclaration.parameters[0].name.text
-
-        checkingMainMethodCurrently = true
         super.visitMainMethodDeclaration(mainMethodDeclaration)
-        checkingMainMethodCurrently = false
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
-        errorIfFalse(sourceFile, literalThisExpression.sourceRange, "Usage of this in \"static context\" (main method).") { !checkingMainMethodCurrently }
+        errorIfFalse(sourceFile, literalThisExpression.sourceRange, "cannot use `this` in static context (main method)") { false }
         super.visitLiteralThisExpression(literalThisExpression)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
-        errorIfFalse(sourceFile, identifierExpression.sourceRange, "No usage of parameter \"$argsName\" in main method body") {
-            checkingMainMethodCurrently && identifierExpression.name.symbol.text != argsName
+        errorIfFalse(sourceFile, identifierExpression.sourceRange, "usage of parameter `$argsName` in main method body not allowed") {
+            identifierExpression.name.symbol.text != argsName
         }
         super.visitIdentifierExpression(identifierExpression)
     }
