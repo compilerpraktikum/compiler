@@ -334,6 +334,11 @@ class NameResolver(
         val type = fieldDeclaration.type
         if (type is SemanticType.Class) {
             type.definition = lookupClass(global, sourceFile, type)
+        } else if (type is SemanticType.Array) {
+            val baseType = type.baseType
+            if (baseType is SemanticType.Class) {
+                baseType.definition = lookupClass(global, sourceFile, baseType)
+            }
         }
     }
 

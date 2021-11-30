@@ -74,13 +74,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             return // no need to check the initializer because it would need to have type `void` which doesn't make any sense
         }
 
-        if (localVariableDeclaration.initializer != null && localVariableDeclaration.initializer.actualType != SemanticType.Error) {
-            errorIfNot(areTypesCompatible(localVariableDeclaration.type, localVariableDeclaration.initializer.actualType)) {
-                suppressTypeErrors = true
-                "incompatible type of initializer: expected ${localVariableDeclaration.type.display()}, but got ${localVariableDeclaration.initializer.actualType.display()}" at localVariableDeclaration.initializer.sourceRange
-            }
-        }
-
         super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
@@ -230,6 +223,12 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+        if (methodInvocationExpression.target != null) {
+            // no expectations.
+            methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
+            methodInvocationExpression.target.accept(this)
+        }
+
         // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
         // expect that argument's types match the parameter's types in the definition.
         var argumentsListLengthValid = true
@@ -249,16 +248,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         when (val methodType = methodInvocationExpression.type) {
             is AstNode.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(methodType.definition.node.parameters.map { it.type })
             is AstNode.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(methodType.parameters)
-            null -> return
+            null -> return // error in name analysis -> cannot check arguments or return type
         }
-
-        if (methodInvocationExpression.target != null) {
-            // no expectations.
-            methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
-            methodInvocationExpression.target.accept(this)
-        }
-
-        methodInvocationExpression.expectedType = methodInvocationExpression.actualType
 
         if (argumentsListLengthValid) {
             methodInvocationExpression.arguments.forEach {
@@ -267,19 +258,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
                 }
             }
         }
-
-        // may not be the best message...
-
-        if (methodInvocationExpression.target?.actualType is SemanticType.Error) {
-            return
-        }
-        // TODO if langeweile, evtl wieder einbauen
-//        errorIfFalse(methodInvocationExpression.sourceRange, "You can only invoke methods on identifiers, newObjectExpressions, methodinvokations, or \"this\"") {
-//            methodInvocationExpression.target is AstNode.Expression.MethodInvocationExpression ||
-//            methodInvocationExpression.target is AstNode.Expression.IdentifierExpression ||
-//                methodInvocationExpression.target is AstNode.Expression.NewObjectExpression ||
-//                methodInvocationExpression.target is AstNode.Expression.LiteralExpression.LiteralThisExpression || methodInvocationExpression.target == null
-//        }
 
         checkTypesCompatible(methodInvocationExpression)
     }
