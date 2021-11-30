@@ -2,6 +2,7 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import java.lang.IllegalStateException
 
 /**
  * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
@@ -188,5 +189,6 @@ fun SemanticType.accept(visitor: AbstractVisitor) {
         SemanticType.Void -> visitor.visitVoidType()
         is SemanticType.Array -> visitor.visitArrayType(this)
         is SemanticType.Class -> visitor.visitClassType(this)
+        else -> throw IllegalStateException("internal error")
     }
 }
