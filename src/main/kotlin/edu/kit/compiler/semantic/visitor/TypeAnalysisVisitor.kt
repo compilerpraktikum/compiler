@@ -3,6 +3,7 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourcePosition
+import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
@@ -233,11 +234,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // expect that argument's types match the parameter's types in the definition.
         var argumentsListLengthValid = true
 
-        fun checkArguments(paramTypes: List<SemanticType>) {
+        fun checkArguments(paramTypes: List<SemanticType>, methodName: String, range: SourceRange) {
             val args = methodInvocationExpression.arguments
             if (args.size != paramTypes.size) {
                 errorIf(true) {
-                    "method `${methodInvocationExpression.method.text}` requires ${paramTypes.size} arguments, but got ${args.size}" at methodInvocationExpression.sourceRange
+                    "method `$methodName` requires ${paramTypes.size} argument(s), but got ${args.size}" at range
                 }
                 argumentsListLengthValid = false
             }
@@ -246,8 +247,16 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         when (val methodType = methodInvocationExpression.type) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(methodType.definition.node.parameters.map { it.type })
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(methodType.parameters)
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(
+                methodType.definition.node.parameters.map { it.type },
+                methodInvocationExpression.method.text,
+                methodInvocationExpression.method.sourceRange.extend(methodInvocationExpression.sourceRange)
+            )
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(
+                methodType.parameters,
+                methodType.fullName,
+                methodInvocationExpression.sourceRange
+            )
             null -> return // error in name analysis -> cannot check arguments or return type
         }
 

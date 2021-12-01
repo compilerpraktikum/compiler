@@ -365,10 +365,10 @@ class SubroutineNameResolver(
     private val sourceFile: AnnotatableFile
 ) : AbstractVisitor() {
     companion object {
-        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", SemanticType.Integer, emptyList())
-        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", SemanticType.Void, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", SemanticType.Void, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", SemanticType.Void, emptyList())
+        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", "System.in.read", SemanticType.Integer, emptyList())
+        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", "System.out.println", SemanticType.Void, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", "System.out.write", SemanticType.Void, listOf(SemanticType.Integer))
+        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", "System.out.flush", SemanticType.Void, emptyList())
     }
 
     override fun visitBlock(block: AstNode.Statement.Block) {
