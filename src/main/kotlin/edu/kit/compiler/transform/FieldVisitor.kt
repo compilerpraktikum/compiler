@@ -15,7 +15,7 @@ class FieldVisitor : AbstractVisitor() {
             SemanticType.Void -> FirmContext.voidType
             is SemanticType.Array -> TODO()
             is SemanticType.Class -> FirmContext.classTypes[type.name.symbol]!!
-            SemanticType.Error -> throw AssertionError("no transformation for invalid ASTs")
+            SemanticType.Null, SemanticType.Error -> throw AssertionError("no transformation for invalid ASTs")
         }
 
         FirmContext.constructField(type, fieldDeclaration.name.symbol, TODO("get class from declaration"))
