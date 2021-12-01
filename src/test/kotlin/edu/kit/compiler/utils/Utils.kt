@@ -13,6 +13,13 @@ fun createLexer(input: String, fileName: String = "/path/to/file"): Triple<Lexer
     return Triple(Lexer(sourceFile, stringTable), sourceFile, stringTable)
 }
 
+fun getTestCasePathName(index: Int): String {
+    val stackFrame = Exception().stackTrace[index] ?: return "unknown"
+    return "/tests/${stackFrame.fileName}/${stackFrame.methodName}"
+}
+
+fun createLexer(input: String, stackIndex: Int) = createLexer(input, getTestCasePathName(stackIndex))
+
 fun <T> Sequence<T>.takeWhileInclusive(predicate: (T) -> Boolean): Sequence<T> {
     var shouldContinue = true
     return this.takeWhile {

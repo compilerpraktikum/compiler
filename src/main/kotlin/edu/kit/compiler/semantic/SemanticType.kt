@@ -25,14 +25,19 @@ sealed class SemanticType {
     object Error : SemanticType()
 }
 
-fun SemanticType.display(): String = when (this) {
+private fun SemanticType.displayInternal(): String = when (this) {
     SemanticType.Integer -> "int"
     SemanticType.Boolean -> "boolean"
     SemanticType.Null -> "null"
     SemanticType.Void -> "void"
     is SemanticType.Class -> name.text
-    is SemanticType.Array -> baseType.display() + "[]".repeat(dimension)
+    is SemanticType.Array -> baseType.displayInternal() + "[]".repeat(dimension)
     SemanticType.Error -> "[ERROR]"
+}
+
+fun SemanticType.display(withBackTicks: Boolean = true) = when (withBackTicks) {
+    true -> "`${displayInternal()}`"
+    false -> displayInternal()
 }
 
 /**

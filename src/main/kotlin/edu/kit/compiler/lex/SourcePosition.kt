@@ -29,7 +29,7 @@ data class SourceRange(
 
     fun extend(other: SourceRange): SourceRange {
         require(start.file == other.start.file) { "can only extend source ranges of the same source file" }
-        require(start.offset <= other.start.offset) { "ranges must be in correct order" }
+        require(start.offset <= other.last.offset) { "ranges must be in correct order" }
         val combinedLength = (other.start.offset + other.length) - start.offset
         return SourceRange(start, combinedLength)
     }

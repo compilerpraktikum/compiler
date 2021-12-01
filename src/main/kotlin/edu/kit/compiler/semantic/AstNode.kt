@@ -264,7 +264,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                     override val returnType: SemanticType
                         get() = definition.node.returnType
                 }
-                class Internal(val name: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
+                class Internal(val name: String, val fullName: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
             }
         }
 

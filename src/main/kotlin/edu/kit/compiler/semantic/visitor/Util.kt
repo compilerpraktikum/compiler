@@ -1,23 +1,33 @@
 
 package edu.kit.compiler.semantic.visitor
 
+import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.lex.SourceNote
 import edu.kit.compiler.lex.SourceRange
 
-/**
- * Annotate a given source file with an error if the given function evaluates to false.
- */
-fun errorIfFalse(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
-    if (!function()) {
-        sourceFile.annotate(
-            AnnotationType.ERROR,
-            sourceRange,
-            errorMsg
-        )
+fun AnnotatableFile.error(lazyAnnotation: () -> AnnotationBuilder) = this.annotate(lazyAnnotation().toAnnotation(AnnotationType.ERROR))
+fun AnnotatableFile.errorIf(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) {
+    if (condition) {
+        this.annotate(lazyAnnotation().toAnnotation(AnnotationType.ERROR))
+    }
+}
+fun AnnotatableFile.errorIfNot(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) = errorIf(!condition, lazyAnnotation)
+
+class AnnotationBuilder(
+    val range: SourceRange,
+    val message: String,
+) {
+    var notes: List<SourceNote>? = null
+
+    fun toAnnotation(type: AnnotationType) = SourceFile.Annotation(type, range, message, notes ?: emptyList())
+    fun toNote(): SourceNote {
+        check(notes == null)
+        return SourceNote(range, message)
     }
 }
 
-fun errorIfTrue(sourceFile: SourceFile, sourceRange: SourceRange, errorMsg: String, function: () -> Boolean) {
-    errorIfFalse(sourceFile, sourceRange, errorMsg) { !function() }
-}
+infix fun String.at(range: SourceRange) = AnnotationBuilder(range, this)
+infix fun AnnotationBuilder.note(note: AnnotationBuilder) = this.apply { notes = listOf(note.toNote()) }
+infix fun AnnotationBuilder.note(notes: List<AnnotationBuilder>) = this.apply { this.notes = notes.map(AnnotationBuilder::toNote) }

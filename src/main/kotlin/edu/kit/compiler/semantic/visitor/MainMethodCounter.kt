@@ -3,7 +3,7 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.lex.AnnotationType
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceNote
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 
 /**
@@ -18,7 +18,7 @@ class MainMethodCounter(val sourceFile: SourceFile) : AbstractVisitor() {
         if (foundMainMethod == null) {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                SourceRange(program.sourceRange.start, 1),
+                program.sourceRange.start.extend(1),
                 "missing main method"
             )
         }
@@ -34,12 +34,12 @@ class MainMethodCounter(val sourceFile: SourceFile) : AbstractVisitor() {
         } else {
             sourceFile.annotate(
                 AnnotationType.ERROR,
-                mainMethodDeclaration.sourceRange,
+                mainMethodDeclaration.name.sourceRange,
                 "only one main method is allowed per program",
                 listOf(
                     SourceNote(
-                        foundMainMethod!!.sourceRange,
-                        "a main method is already defined here"
+                        foundMainMethod!!.name.sourceRange,
+                        "see previous main method declaration here"
                     )
                 )
             )

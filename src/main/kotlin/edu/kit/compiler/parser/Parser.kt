@@ -41,7 +41,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     private fun parsePrimaryExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
@@ -54,8 +54,8 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 if (peekedToken.type == Token.Operator.Type.LParen) {
                     next()
                     val innerExpr = parseExpression(1, anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)), true)
-                    expectOperator(Token.Operator.Type.RParen, anc) { "expected closing parenthesis." }
-                    innerExpr
+                    val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "expected closing parenthesis." }
+                    innerExpr.mapPosition { peekedToken.range.extend(rParen.range) }
                 } else {
                     reportError(
                         peekedToken,
@@ -74,12 +74,10 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     val arguments = parseArguments(anc + anchorSetOf(Token.Operator(Token.Operator.Type.RParen)))
                     val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "expected `)`" }
 
-                    val invocationExpression =
-                        AST.MethodInvocationExpression(null, reference.name.wrapValid(reference.range), arguments)
                     rParen.map {
-                        invocationExpression
+                        AST.MethodInvocationExpression(null, reference.name.wrapValid(reference.range), arguments)
                     }.mapPosition {
-                        peekedToken.range.extend(rParen.range)
+                        reference.range.extend(it)
                     }
                 } else {
                     AST.IdentifierExpression(reference.name.wrapValid(reference.range)).wrapValid(reference.range)
@@ -105,7 +103,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                     Token.Keyword.Type.New -> {
                         next()
-                        parseNewObjectArrayExpression(anc, isParenthesized)
+                        parseNewObjectArrayExpression(anc, isParenthesized).mapPosition { peekedToken.range.extend(it) }
                     }
                     else -> {
                         reportError(
@@ -129,7 +127,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     private fun parseNewObjectArrayExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
@@ -190,7 +188,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     private fun parseNewArrayExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
@@ -279,7 +277,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     private fun parsePostfixExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
@@ -337,20 +335,14 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                                 anc + FirstFollowUtils.firstSetPostfixOp,
                             ) { "expected `)`" }
 
-                            val range = if (rightParen.isValid) {
-                                ident.range.extend(rightParen.range)
-                            } else {
-                                ident.range.extend(arguments.last().range)
-                            }
-
                             if (rightParen.isValid) {
                                 parsePostfixOp(
-                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapValid(range),
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapValid(target.range.extend(rightParen.range)),
                                     anc
                                 )
                             } else {
                                 parsePostfixOp(
-                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapErroneous(range),
+                                    AST.MethodInvocationExpression(target, parsedIdent, arguments).wrapErroneous(target.range.extend(arguments.last().range)),
                                     anc
                                 )
                             }
@@ -378,8 +370,12 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                             anc + FirstFollowUtils.firstSetPostfixOp
                         ) { "expected `]`" }
 
-                        val accessExpression = rBracket.map {
-                            AST.ArrayAccessExpression(target, index)
+                        val accessExpression = AST.ArrayAccessExpression(target, index).let {
+                            if (rBracket.isValid) {
+                                it.wrapValid(target.range.extend(rBracket.range))
+                            } else {
+                                it.wrapErroneous(target.range.extend(index.range))
+                            }
                         }
                         parsePostfixOp(accessExpression, anc)
                     }
@@ -390,7 +386,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     private fun parseUnaryExpression(anc: AnchorUnion, isParenthesized: Boolean): Parsed<AST.Expression> {
@@ -422,7 +418,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
     }
 
     /**
-     * @param isParenthesized Only used for putting parantheses into the AST (only for literals).
+     * @param isParenthesized Only used for putting parentheses into the AST (only for literals).
      *                      Required for being able to differentiate -(2147483648) (invalid) and -2147483648 (valid)
      */
     internal fun parseExpression(
@@ -539,7 +535,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                  * (or the end of class as usual).
                  */
 
-                if (peeked !in anc.provide() /* there are only more members if we aren't in follow(classmembers) */) {
+                if (peeked !in anc.provide() /* there are only more members if we aren't in follow(classMembers) */) {
                     val semiLegalAnchorSet =
                         FirstFollowUtils.firstSetFieldMethodPrefix + FirstFollowUtils.firstSetMainMethodPrefix
                     if (peeked in semiLegalAnchorSet.provide()) {
@@ -1222,7 +1218,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         ) { "illegal array type expression. expected `]`" }
 
         val maybeAnotherLBracket = peek(0)
-        // TODO: check if correnct. (Probably not)
+        // TODO: check if correct. (Probably not)
         val range = basicType.range.extend(rightBracket.range)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
             if (rightBracket.isValid) {
