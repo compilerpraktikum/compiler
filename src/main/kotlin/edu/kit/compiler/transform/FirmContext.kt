@@ -64,11 +64,11 @@ object FirmContext {
     private val returnNodes = mutableListOf<Node>()
 
     /**
-     * A stack for constructing expressions using a visitor. Each constructed expression is added to the current top
-     * [ExpressionStackElement]. This way, when an expression is being transformed, it pushes an element onto the stack,
-     * then recursively constructs the inner expressions, and then uses their results to construct itself.
+     * A stack for constructing expressions using a visitor. Each constructed expression is added onto the stack,
+     * each expression that needs arguments just takes them from the stack. Since the AST is guaranteed to be valid,
+     * this cannot fail.
      */
-    private val expressionStack = Stack<ExpressionStackElement>()
+    private val expressionStack = Stack<Node>()
 
     /**
      * Initialize the firm framework
@@ -148,55 +148,53 @@ object FirmContext {
      *
      * @sample ConstructExpressions
      */
-    fun binaryExpression(operation: AST.BinaryExpression.Operation, block: () -> Unit) {
-        val f = ExpressionStackElement()
-        this.expressionStack.push(f)
-        block.invoke()
-        this.expressionStack.pop()
+    fun binaryExpression(operation: AST.BinaryExpression.Operation) {
+        val secondNode = expressionStack.pop()
+        val firstNode = expressionStack.pop()
 
         val expression = when (operation) {
             AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
-            AST.BinaryExpression.Operation.OR -> this.construction!!.newOr(f.firstNode, f.secondNode)
-            AST.BinaryExpression.Operation.AND -> this.construction!!.newAnd(f.firstNode, f.secondNode)
+            AST.BinaryExpression.Operation.OR -> this.construction!!.newOr(firstNode, secondNode)
+            AST.BinaryExpression.Operation.AND -> this.construction!!.newAnd(firstNode, secondNode)
             AST.BinaryExpression.Operation.EQUALS -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.Equal
             )
             AST.BinaryExpression.Operation.NOT_EQUALS -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.LessGreater
             )
             AST.BinaryExpression.Operation.LESS_THAN -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.Less
             )
             AST.BinaryExpression.Operation.GREATER_THAN -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.Greater
             )
             AST.BinaryExpression.Operation.LESS_EQUALS -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.LessEqual
             )
             AST.BinaryExpression.Operation.GREATER_EQUALS -> this.construction!!.newCmp(
-                f.firstNode,
-                f.secondNode,
+                firstNode,
+                secondNode,
                 Relation.GreaterEqual
             )
-            AST.BinaryExpression.Operation.ADDITION -> this.construction!!.newAdd(f.firstNode, f.secondNode)
-            AST.BinaryExpression.Operation.SUBTRACTION -> this.construction!!.newSub(f.firstNode, f.secondNode)
-            AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction!!.newMul(f.firstNode, f.secondNode)
+            AST.BinaryExpression.Operation.ADDITION -> this.construction!!.newAdd(firstNode, secondNode)
+            AST.BinaryExpression.Operation.SUBTRACTION -> this.construction!!.newSub(firstNode, secondNode)
+            AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction!!.newMul(firstNode, secondNode)
             AST.BinaryExpression.Operation.DIVISION -> {
                 val m = this.construction!!.currentMem
                 val div = this.construction!!.newDiv(
                     m,
-                    f.firstNode,
-                    f.secondNode,
+                    firstNode,
+                    secondNode,
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
                 this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
@@ -206,8 +204,8 @@ object FirmContext {
                 val m = this.construction!!.currentMem
                 val div = this.construction!!.newMod(
                     m,
-                    f.firstNode,
-                    f.secondNode,
+                    firstNode,
+                    secondNode,
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
                 this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
@@ -215,7 +213,7 @@ object FirmContext {
             }
         }
 
-        this.expressionStack.peek().push(expression)
+        this.expressionStack.push(expression)
     }
 
     /**
@@ -227,18 +225,13 @@ object FirmContext {
      *
      * @sample ConstructExpressions
      */
-    fun unaryExpression(operation: AST.UnaryExpression.Operation, block: () -> Unit) {
-        val f = ExpressionStackElement()
-        this.expressionStack.push(f)
-        block.invoke()
-        this.expressionStack.pop()
-
+    fun unaryExpression(operation: AST.UnaryExpression.Operation) {
         val expression = when (operation) {
-            AST.UnaryExpression.Operation.NOT -> this.construction!!.newNot(f.firstNode)
-            AST.UnaryExpression.Operation.MINUS -> this.construction!!.newMinus(f.firstNode)
+            AST.UnaryExpression.Operation.NOT -> this.construction!!.newNot(expressionStack.pop())
+            AST.UnaryExpression.Operation.MINUS -> this.construction!!.newMinus(expressionStack.pop())
         }
 
-        this.expressionStack.peek().push(expression)
+        this.expressionStack.push(expression)
     }
 
     /**
@@ -246,62 +239,25 @@ object FirmContext {
      */
     fun literalBool(value: Boolean) {
         val intRepr = if (value) 1 else 0
-        this.expressionStack.peek().push(this.construction!!.newConst(intRepr, boolType.mode))
+        this.expressionStack.push(this.construction!!.newConst(intRepr, boolType.mode))
     }
 
     /**
      * Push an integer literal into the currently constructed expression
      */
     fun literalInt(value: Int) {
-        this.expressionStack.peek().push(this.construction!!.newConst(value, intType.mode))
+        this.expressionStack.push(this.construction!!.newConst(value, intType.mode))
     }
 
-    fun returnStatement(block: (() -> Unit)? = null) {
-        val returnNode = if (block != null) {
-            val f = ExpressionStackElement()
-            this.expressionStack.push(f)
-            block.invoke()
-            this.expressionStack.pop()
+    fun returnStatement(withExpression: Boolean) {
+        val mem = this.construction!!.currentMem
 
-            val mem = this.construction!!.currentMem
-            this.construction!!.newReturn(mem, arrayOf(f.firstNode))
+        val returnNode = if (withExpression) {
+            this.construction!!.newReturn(mem, arrayOf(expressionStack.pop()))
         } else {
-            val mem = this.construction!!.currentMem
             this.construction!!.newReturn(mem, emptyArray())
         }
 
         this.returnNodes.add(returnNode)
-    }
-
-    private class ExpressionStackElement {
-        /**
-         * Inner node of an expression. Will be initialized when the respective expression is fully constructed and then
-         * consumed by the outer expression.
-         */
-        lateinit var firstNode: Node
-
-        /**
-         * Whether the first node has been initialized yet
-         */
-        private var firstNodeInitialized: Boolean = false
-
-        /**
-         * Second node of a binary expression. May stay uninitialized, if the expression this frame belongs to is a
-         * unary expression (but since the AST is legal, it will never be accessed in that case, i.e. the contract is
-         * not violated.
-         */
-        lateinit var secondNode: Node
-
-        /**
-         * Push a constructed firm expression node into this stack element.
-         */
-        fun push(node: Node) {
-            if (firstNodeInitialized) {
-                secondNode = node
-            } else {
-                firstNode = node
-                firstNodeInitialized = true
-            }
-        }
     }
 }

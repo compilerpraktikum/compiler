@@ -37,15 +37,13 @@ private class TransformationMethodVisitor(private val surroundingClass: AstNode.
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-        FirmContext.binaryExpression(binaryOperation.operation) {
-            super.visitBinaryOperation(binaryOperation)
-        }
+        super.visitBinaryOperation(binaryOperation)
+        FirmContext.binaryExpression(binaryOperation.operation)
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
-        FirmContext.unaryExpression(unaryOperation.operation) {
-            super.visitUnaryOperation(unaryOperation)
-        }
+        super.visitUnaryOperation(unaryOperation)
+        FirmContext.unaryExpression(unaryOperation.operation)
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
@@ -53,14 +51,19 @@ private class TransformationMethodVisitor(private val surroundingClass: AstNode.
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        FirmContext.literalInt(literalIntExpression.value.toInt()) // todo this cast should happen in the semantic analysis
+        FirmContext.literalInt(literalIntExpression.value.toInt()) // todo we need to include unary-minus into the literal
+    }
+
+    override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+        super.visitIfStatement(ifStatement)
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
         if (returnStatement.expression != null) {
-            FirmContext.returnStatement { super.visitReturnStatement(returnStatement) }
+            super.visitReturnStatement(returnStatement)
+            FirmContext.returnStatement(true)
         } else {
-            FirmContext.returnStatement()
+            FirmContext.returnStatement(false)
         }
     }
 }
