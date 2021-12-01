@@ -87,7 +87,7 @@ class NameResolutionHelper(
             local.add(definition)
         } else {
             sourceFile.error {
-                "local variable with the name '${definition.name.text}' already exists" at identifierSourceRange note (
+                "local variable with the name `${definition.name.text}` already exists" at identifierSourceRange note (
                     "see previous declaration here" at prevDefinition.identifier.sourceRange
                     )
             }
@@ -232,12 +232,14 @@ class NamespacePopulator(
     private val sourceFile: AnnotatableFile,
 ) : AbstractVisitor() {
 
-    private lateinit var currentClassNamespace: ClassNamespace
+    private lateinit var currentClass: AstNode.ClassDeclaration
+    private val currentClassNamespace: ClassNamespace
+        get() = currentClass.namespace
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         if (classDeclaration.name.text == "String") {
             sourceFile.error {
-                "cannot shadow built-in `String` class" at classDeclaration.name.sourceRange
+                "cannot shadow built-in class `String`" at classDeclaration.name.sourceRange
             }
         } else {
             global.classes.tryPut(classDeclaration.asDefinition(), onDuplicate = {
@@ -251,7 +253,7 @@ class NamespacePopulator(
 
         val namespace = ClassNamespace(global)
         classDeclaration.namespace = namespace
-        currentClassNamespace = namespace
+        currentClass = classDeclaration
 
         super.visitClassDeclaration(classDeclaration) // descend
     }
@@ -259,7 +261,7 @@ class NamespacePopulator(
     override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
         currentClassNamespace.fields.tryPut(fieldDeclaration.asDefinition(), onDuplicate = { prev ->
             sourceFile.error {
-                "field `${fieldDeclaration.name.text}` is already defined" at fieldDeclaration.name.sourceRange note (
+                "field `${currentClass.name.text}.${fieldDeclaration.name.text}` is already defined" at fieldDeclaration.name.sourceRange note (
                     "see previous definition here" at prev.node.name.sourceRange
                     )
             }
@@ -278,7 +280,7 @@ class NamespacePopulator(
 
         currentClassNamespace.methods.tryPut(methodDeclaration.asDefinition(), onDuplicate = { prev ->
             sourceFile.error {
-                "method `${methodDeclaration.name.text}` is already defined" at methodDeclaration.name.sourceRange note (
+                "method `${currentClass.name.text}.${methodDeclaration.name.text}` is already defined" at methodDeclaration.name.sourceRange note (
                     "see previous definition here" at prev.node.name.sourceRange
                     )
             }
@@ -306,7 +308,7 @@ class NamespacePopulator(
 
     private fun printErrorDuplicateMain(current: SourceRange, previous: SourceRange) {
         sourceFile.error {
-            "method `main` is already defined" at current note (
+            "method `${currentClass.name.text}.main` is already defined" at current note (
                 "see previous definition here" at previous
                 )
         }
@@ -471,7 +473,7 @@ class SubroutineNameResolver(
     // not really part of name analysis but given that all the other String checks are in this file it's best to put it here too
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         sourceFile.errorIf(newObjectExpression.clazz.text == "String") {
-            "cannot instantiate built-in class `String`" at newObjectExpression.clazz.sourceRange
+            "cannot instantiate built-in class `String`" at newObjectExpression.sourceRange
         }
 
         super.visitNewObjectExpression(newObjectExpression)
