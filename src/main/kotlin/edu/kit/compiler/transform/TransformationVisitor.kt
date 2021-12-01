@@ -58,6 +58,10 @@ private class TransformationMethodVisitor(private val surroundingClass: AstNode.
         FirmContext.ifStatement(ifStatement.elseCase != null, ifStatement, this)
     }
 
+    override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+        FirmContext.whileStatement(whileStatement, this)
+    }
+
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
         if (returnStatement.expression != null) {
             super.visitReturnStatement(returnStatement)

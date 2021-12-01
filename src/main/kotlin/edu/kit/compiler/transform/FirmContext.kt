@@ -354,6 +354,25 @@ object FirmContext {
         falseBlock.addPred(construction!!.newProj(cond, Mode.getX(), Cond.pnFalse))
     }
 
+    fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: AbstractVisitor) {
+        val conditionBlock = construction!!.newBlock()
+        val doBlock = construction!!.newBlock()
+        val afterBlock = construction!!.newBlock()
+
+        conditionBlock.addPred(construction!!.newJmp())
+        construction!!.currentBlock = conditionBlock
+        doCond(whileStatement.condition, doBlock, afterBlock, transformer)
+
+        doBlock.mature()
+        construction!!.currentBlock = doBlock
+        whileStatement.statement.accept(transformer)
+        conditionBlock.addPred(construction!!.newJmp())
+        conditionBlock.mature()
+
+        afterBlock.mature()
+        construction!!.currentBlock = afterBlock
+    }
+
     fun ifStatement(withElse: Boolean, ifStatement: AstNode.Statement.IfStatement, transformer: AbstractVisitor) {
         val thenBlock = construction!!.newBlock()
         val afterBlock = construction!!.newBlock()
