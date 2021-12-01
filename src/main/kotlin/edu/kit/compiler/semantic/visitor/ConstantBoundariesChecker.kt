@@ -3,7 +3,10 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
+import java.lang.Long
 import java.math.BigInteger
+import kotlin.Boolean
+import kotlin.toUInt
 
 class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
@@ -19,7 +22,7 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
         errorIfFalse(sourceFile, literalIntExpression.sourceRange, "The integer literal value is out of range.") {
-            if (parentIsUnaryMinus) {
+            val valid = if (parentIsUnaryMinus) {
                 if (literalIntExpression.isParentized) {
                     BigInteger(literalIntExpression.value) < BigInteger("2147483648")
                 } else {
@@ -27,6 +30,11 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
                 }
             } else BigInteger(literalIntExpression.value) < BigInteger("2147483648")
             // todo add annotation to parser and check here!
+
+            if (valid) {
+                literalIntExpression.parsedValue = Long.parseUnsignedLong(literalIntExpression.value).toUInt()
+            }
+            valid
         }
         literalIntExpression.value
         super.visitLiteralIntExpression(literalIntExpression)

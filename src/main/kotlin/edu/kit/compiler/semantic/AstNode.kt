@@ -147,6 +147,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = SemanticType.Integer
+
+                var parsedValue: UInt = 0u
             }
 
             /**
