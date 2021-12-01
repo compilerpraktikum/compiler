@@ -2,6 +2,9 @@ package edu.kit.compiler.transform
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.visitor.AbstractVisitor
+import edu.kit.compiler.semantic.visitor.accept
 import firm.ClassType
 import firm.Construction
 import firm.Dump
@@ -15,6 +18,8 @@ import firm.Program
 import firm.Relation
 import firm.Type
 import firm.bindings.binding_ircons
+import firm.nodes.Block
+import firm.nodes.Cond
 import firm.nodes.Div
 import firm.nodes.Node
 import java.util.Stack
@@ -144,7 +149,6 @@ object FirmContext {
      * Construct a binary expression.
      *
      * @param operation the [AST.BinaryExpression.Operation] variant that is being constructed
-     * @sample block code fragment that constructs the inner expressions
      *
      * @sample ConstructExpressions
      */
@@ -221,7 +225,6 @@ object FirmContext {
      * directly to unary expressions.
      *
      * @param operation the [AST.UnaryExpression.Operation] variant that is being constructed
-     * @sample block code fragment that constructs the inner expressions
      *
      * @sample ConstructExpressions
      */
@@ -247,6 +250,139 @@ object FirmContext {
      */
     fun literalInt(value: Int) {
         this.expressionStack.push(this.construction!!.newConst(value, intType.mode))
+    }
+
+    private fun doCondShortEval(
+        expr: AstNode.Expression.BinaryOperation,
+        trueBlock: Block,
+        falseBlock: Block,
+        transformer: AbstractVisitor,
+        op: AST.BinaryExpression.Operation
+    ) {
+        val rightBlock = construction!!.newBlock()
+        when (op) {
+            AST.BinaryExpression.Operation.OR -> doCond(expr.left, trueBlock, rightBlock, transformer)
+            AST.BinaryExpression.Operation.AND -> doCond(expr.left, rightBlock, falseBlock, transformer)
+            else -> throw AssertionError()
+        }
+
+        rightBlock.mature()
+        construction!!.currentBlock = rightBlock
+
+        doCond(expr.right, trueBlock, falseBlock, transformer)
+    }
+
+    fun doCond(expr: AstNode.Expression, trueBlock: Block, falseBlock: Block, transformer: AbstractVisitor) {
+        when (expr) {
+            is AstNode.Expression.ArrayAccessExpression -> TODO()
+            is AstNode.Expression.BinaryOperation -> {
+                when (expr.operation) {
+                    AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
+                    AST.BinaryExpression.Operation.OR -> {
+                        doCondShortEval(expr, trueBlock, falseBlock, transformer, AST.BinaryExpression.Operation.OR)
+                    }
+                    AST.BinaryExpression.Operation.AND -> {
+                        doCondShortEval(expr, trueBlock, falseBlock, transformer, AST.BinaryExpression.Operation.AND)
+                    }
+                    AST.BinaryExpression.Operation.EQUALS ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Equal, transformer)
+                    AST.BinaryExpression.Operation.NOT_EQUALS ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.LessGreater, transformer)
+                    AST.BinaryExpression.Operation.LESS_THAN ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Less, transformer)
+                    AST.BinaryExpression.Operation.GREATER_THAN ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Greater, transformer)
+                    AST.BinaryExpression.Operation.LESS_EQUALS ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.LessEqual, transformer)
+                    AST.BinaryExpression.Operation.GREATER_EQUALS ->
+                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.GreaterEqual, transformer)
+                    AST.BinaryExpression.Operation.ADDITION,
+                    AST.BinaryExpression.Operation.SUBTRACTION,
+                    AST.BinaryExpression.Operation.MULTIPLICATION,
+                    AST.BinaryExpression.Operation.DIVISION,
+                    AST.BinaryExpression.Operation.MODULO -> throw AssertionError("cannot have a numeric operation as a condition")
+                }
+            }
+            is AstNode.Expression.FieldAccessExpression -> TODO()
+            is AstNode.Expression.IdentifierExpression -> TODO()
+            is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
+                if (expr.value) {
+                    trueBlock.addPred(construction!!.newJmp())
+                } else {
+                    falseBlock.addPred(construction!!.newJmp())
+                }
+            }
+            is AstNode.Expression.MethodInvocationExpression -> TODO()
+            is AstNode.Expression.UnaryOperation -> when (expr.operation) {
+                AST.UnaryExpression.Operation.NOT -> doCond(expr.inner, falseBlock, trueBlock, transformer)
+                AST.UnaryExpression.Operation.MINUS -> throw AssertionError("cannot have a numeric operation as a condition")
+            }
+            is AstNode.Expression.NewArrayExpression,
+            is AstNode.Expression.NewObjectExpression,
+            is AstNode.Expression.LiteralExpression.LiteralIntExpression,
+            is AstNode.Expression.LiteralExpression.LiteralNullExpression,
+            is AstNode.Expression.LiteralExpression.LiteralThisExpression -> throw AssertionError("cannot have non-boolean expression as condition")
+        }
+    }
+
+    /**
+     * Create a condition and the respective jumps for a relation expression.
+     *
+     * @param left left argument of the relation
+     * @param right right argument of the relation
+     * @param trueBlock where to jump if the arguments are in relation
+     * @param falseBlock where to jump if the arguments are not in relation
+     * @param relation the relation to test for
+     * @param transformer the transformer that is being used to generate code
+     */
+    private fun doCondRelation(
+        left: AstNode.Expression,
+        right: AstNode.Expression,
+        trueBlock: Block,
+        falseBlock: Block,
+        relation: Relation,
+        transformer: AbstractVisitor
+    ) {
+        left.accept(transformer)
+        val leftNode = expressionStack.pop()
+        right.accept(transformer)
+        val rightNode = expressionStack.pop()
+
+        val cmp = construction!!.newCmp(leftNode, rightNode, relation)
+        val cond = construction!!.newCond(cmp)
+        trueBlock.addPred(construction!!.newProj(cond, Mode.getX(), Cond.pnTrue))
+        falseBlock.addPred(construction!!.newProj(cond, Mode.getX(), Cond.pnFalse))
+    }
+
+    fun ifStatement(withElse: Boolean, ifStatement: AstNode.Statement.IfStatement, transformer: AbstractVisitor) {
+        val thenBlock = construction!!.newBlock()
+        val afterBlock = construction!!.newBlock()
+
+        val elseBlock = if (withElse) {
+            construction!!.newBlock()
+        } else {
+            afterBlock
+        }
+
+        doCond(ifStatement.condition, thenBlock, elseBlock, transformer)
+        thenBlock.mature()
+
+        if (withElse)
+            elseBlock.mature()
+
+        construction!!.currentBlock = thenBlock
+
+        afterBlock.addPred(construction!!.newJmp())
+        ifStatement.thenCase.accept(transformer)
+
+        if (withElse) {
+            construction!!.currentBlock = elseBlock
+            ifStatement.elseCase?.accept(transformer)
+            afterBlock.addPred(construction!!.newJmp())
+        }
+
+        afterBlock.mature()
+        construction!!.currentBlock = afterBlock
     }
 
     fun returnStatement(withExpression: Boolean) {
