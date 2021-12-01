@@ -121,9 +121,7 @@ class TypeAnalysisTest {
 
     @Test
     fun testDeeplyNested() {
-        check(false, listOf(
-            "array access on non-array type `int`"
-        )) {
+        check(false, listOf("array access on non-array type `int`")) {
             """
             class Test {
                 public static void main(String[] args) {}
@@ -135,9 +133,7 @@ class TypeAnalysisTest {
             }
             """.trimIndent()
         }
-        check(false, listOf(
-            "unknown class `Foo`"
-        )) {
+        check(false, listOf("unknown class `Foo`")) {
             """
             class Test {
                 public static void main(String[] args) {}
@@ -171,9 +167,12 @@ class TypeAnalysisTest {
 
     @Test
     fun testErrorMessages() {
-        check(false, listOf(
-            "incompatible types: expected `int`, but got `boolean`"
-        )) {
+        check(
+            false,
+            listOf(
+                "incompatible types: expected `int`, but got `boolean`"
+            )
+        ) {
             """
             class Test {
                 public static void main(String[] args) {}
@@ -185,10 +184,13 @@ class TypeAnalysisTest {
             }
             """.trimIndent()
         }
-        check(false, listOf(
-            "method `bar` requires 1 argument(s), but got 2",
-            "incompatible types: expected `boolean`, but got `int`"
-        )) {
+        check(
+            false,
+            listOf(
+                "method `bar` requires 1 argument(s), but got 2",
+                "incompatible types: expected `boolean`, but got `int`"
+            )
+        ) {
             """
             class Test {
                 public static void main(String[] args) {}
@@ -201,10 +203,13 @@ class TypeAnalysisTest {
             }
             """.trimIndent()
         }
-        check(false, listOf(
-            "method `bar` requires 1 argument(s), but got 2",
-            "incompatible types: expected `boolean`, but got `int`"
-        )) {
+        check(
+            false,
+            listOf(
+                "method `bar` requires 1 argument(s), but got 2",
+                "incompatible types: expected `boolean`, but got `int`"
+            )
+        ) {
             """
             class Test {
                 public static void main(String[] args) {}
