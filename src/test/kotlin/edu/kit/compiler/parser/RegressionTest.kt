@@ -32,6 +32,11 @@ class RegressionTest {
         testParse("class A { public static void main(String[] args) { int a = new int[")
     }
 
+    @Test
+    fun testIncompleteMethodCall() {
+        testParse("class A { public void test() { foo.bar(")
+    }
+
     @OptIn(ExperimentalStdlibApi::class)
     private fun testParse(input: String, shouldSucceed: Boolean = false) {
         val (lexer, sourceFile) = createLexer(input)
