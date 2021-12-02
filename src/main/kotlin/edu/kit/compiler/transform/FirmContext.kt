@@ -41,7 +41,10 @@ object FirmContext {
      * construction is held in the background (and never exposed). This comes with the limitation that only one method
      * can be constructed at a time, but this is inherent to the AST visitor pattern anyway.
      */
-    private var construction: Construction? = null
+    private val construction: Construction
+        get() = currentConstruction!!
+
+    private var currentConstruction: Construction? = null
 
     /**
      * Graph of current active [construction]
@@ -78,27 +81,27 @@ object FirmContext {
      * @param block code fragment that constructs the method's content
      */
     fun subroutine(methodEntity: Entity, variables: Int, block: () -> Unit) {
-        check(this.construction == null) { "cannot construct a method while another is being constructed" }
+        check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
 
         this.graph = Graph(methodEntity, variables)
-        this.construction = Construction(this.graph)
+        this.currentConstruction = Construction(this.graph)
 
         // insert start node
-        val startNode = this.construction!!.newStart()
-        this.construction!!.currentMem = this.construction!!.newProj(startNode, Mode.getM(), 0)
+        val startNode = this.construction.newStart()
+        this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), 0)
 
         // construct method
         block.invoke()
 
         // insert end node
         returnNodes.forEach(this.graph!!.endBlock::addPred)
-        this.construction!!.newEnd(emptyArray())
+        this.construction.newEnd(emptyArray())
         this.graph!!.endBlock.mature()
 
-        this.construction!!.finish()
+        this.construction.finish()
 
         Dump.dumpGraph(graph, "after-construction")
-        this.construction = null
+        this.currentConstruction = null
         this.graph = null
         this.returnNodes.clear()
     }
@@ -116,62 +119,62 @@ object FirmContext {
 
         val expression = when (operation) {
             AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
-            AST.BinaryExpression.Operation.OR -> this.construction!!.newOr(firstNode, secondNode)
-            AST.BinaryExpression.Operation.AND -> this.construction!!.newAnd(firstNode, secondNode)
-            AST.BinaryExpression.Operation.EQUALS -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.OR -> this.construction.newOr(firstNode, secondNode)
+            AST.BinaryExpression.Operation.AND -> this.construction.newAnd(firstNode, secondNode)
+            AST.BinaryExpression.Operation.EQUALS -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.Equal
             )
-            AST.BinaryExpression.Operation.NOT_EQUALS -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.NOT_EQUALS -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.LessGreater
             )
-            AST.BinaryExpression.Operation.LESS_THAN -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.LESS_THAN -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.Less
             )
-            AST.BinaryExpression.Operation.GREATER_THAN -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.GREATER_THAN -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.Greater
             )
-            AST.BinaryExpression.Operation.LESS_EQUALS -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.LESS_EQUALS -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.LessEqual
             )
-            AST.BinaryExpression.Operation.GREATER_EQUALS -> this.construction!!.newCmp(
+            AST.BinaryExpression.Operation.GREATER_EQUALS -> this.construction.newCmp(
                 firstNode,
                 secondNode,
                 Relation.GreaterEqual
             )
-            AST.BinaryExpression.Operation.ADDITION -> this.construction!!.newAdd(firstNode, secondNode)
-            AST.BinaryExpression.Operation.SUBTRACTION -> this.construction!!.newSub(firstNode, secondNode)
-            AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction!!.newMul(firstNode, secondNode)
+            AST.BinaryExpression.Operation.ADDITION -> this.construction.newAdd(firstNode, secondNode)
+            AST.BinaryExpression.Operation.SUBTRACTION -> this.construction.newSub(firstNode, secondNode)
+            AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction.newMul(firstNode, secondNode)
             AST.BinaryExpression.Operation.DIVISION -> {
-                val m = this.construction!!.currentMem
-                val div = this.construction!!.newDiv(
+                val m = this.construction.currentMem
+                val div = this.construction.newDiv(
                     m,
                     firstNode,
                     secondNode,
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
-                this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
-                construction!!.newProj(div, typeRegistry.intType.mode, Div.pnRes)
+                this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
+                construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
             }
             AST.BinaryExpression.Operation.MODULO -> {
-                val m = this.construction!!.currentMem
-                val div = this.construction!!.newMod(
+                val m = this.construction.currentMem
+                val div = this.construction.newMod(
                     m,
                     firstNode,
                     secondNode,
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
-                this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
-                construction!!.newProj(div, typeRegistry.intType.mode, Div.pnRes)
+                this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
+                construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
             }
         }
 
@@ -188,8 +191,8 @@ object FirmContext {
      */
     fun unaryExpression(operation: AST.UnaryExpression.Operation) {
         val expression = when (operation) {
-            AST.UnaryExpression.Operation.NOT -> this.construction!!.newNot(expressionStack.pop())
-            AST.UnaryExpression.Operation.MINUS -> this.construction!!.newMinus(expressionStack.pop())
+            AST.UnaryExpression.Operation.NOT -> this.construction.newNot(expressionStack.pop())
+            AST.UnaryExpression.Operation.MINUS -> this.construction.newMinus(expressionStack.pop())
         }
 
         this.expressionStack.push(expression)
@@ -200,14 +203,14 @@ object FirmContext {
      */
     fun literalBool(value: Boolean) {
         val intRepr = if (value) 1 else 0
-        this.expressionStack.push(this.construction!!.newConst(intRepr, typeRegistry.boolType.mode))
+        this.expressionStack.push(this.construction.newConst(intRepr, typeRegistry.boolType.mode))
     }
 
     /**
      * Push an integer literal into the currently constructed expression
      */
     fun literalInt(value: Int) {
-        this.expressionStack.push(this.construction!!.newConst(value, typeRegistry.intType.mode))
+        this.expressionStack.push(this.construction.newConst(value, typeRegistry.intType.mode))
     }
 
     private fun doCondShortEval(
@@ -217,7 +220,7 @@ object FirmContext {
         transformer: AbstractVisitor,
         op: AST.BinaryExpression.Operation
     ) {
-        val rightBlock = construction!!.newBlock()
+        val rightBlock = construction.newBlock()
         when (op) {
             AST.BinaryExpression.Operation.OR -> doCond(expr.left, trueBlock, rightBlock, transformer)
             AST.BinaryExpression.Operation.AND -> doCond(expr.left, rightBlock, falseBlock, transformer)
@@ -225,7 +228,7 @@ object FirmContext {
         }
 
         rightBlock.mature()
-        construction!!.currentBlock = rightBlock
+        construction.currentBlock = rightBlock
 
         doCond(expr.right, trueBlock, falseBlock, transformer)
     }
@@ -265,9 +268,9 @@ object FirmContext {
             is AstNode.Expression.IdentifierExpression -> TODO()
             is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
                 if (expr.value) {
-                    trueBlock.addPred(construction!!.newJmp())
+                    trueBlock.addPred(construction.newJmp())
                 } else {
-                    falseBlock.addPred(construction!!.newJmp())
+                    falseBlock.addPred(construction.newJmp())
                 }
             }
             is AstNode.Expression.MethodInvocationExpression -> TODO()
@@ -306,37 +309,37 @@ object FirmContext {
         right.accept(transformer)
         val rightNode = expressionStack.pop()
 
-        val cmp = construction!!.newCmp(leftNode, rightNode, relation)
-        val cond = construction!!.newCond(cmp)
-        trueBlock.addPred(construction!!.newProj(cond, Mode.getX(), Cond.pnTrue))
-        falseBlock.addPred(construction!!.newProj(cond, Mode.getX(), Cond.pnFalse))
+        val cmp = construction.newCmp(leftNode, rightNode, relation)
+        val cond = construction.newCond(cmp)
+        trueBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnTrue))
+        falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
     }
 
     fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: AbstractVisitor) {
-        val conditionBlock = construction!!.newBlock()
-        val doBlock = construction!!.newBlock()
-        val afterBlock = construction!!.newBlock()
+        val conditionBlock = construction.newBlock()
+        val doBlock = construction.newBlock()
+        val afterBlock = construction.newBlock()
 
-        conditionBlock.addPred(construction!!.newJmp())
-        construction!!.currentBlock = conditionBlock
+        conditionBlock.addPred(construction.newJmp())
+        construction.currentBlock = conditionBlock
         doCond(whileStatement.condition, doBlock, afterBlock, transformer)
 
         doBlock.mature()
-        construction!!.currentBlock = doBlock
+        construction.currentBlock = doBlock
         whileStatement.statement.accept(transformer)
-        conditionBlock.addPred(construction!!.newJmp())
+        conditionBlock.addPred(construction.newJmp())
         conditionBlock.mature()
 
         afterBlock.mature()
-        construction!!.currentBlock = afterBlock
+        construction.currentBlock = afterBlock
     }
 
     fun ifStatement(withElse: Boolean, ifStatement: AstNode.Statement.IfStatement, transformer: AbstractVisitor) {
-        val thenBlock = construction!!.newBlock()
-        val afterBlock = construction!!.newBlock()
+        val thenBlock = construction.newBlock()
+        val afterBlock = construction.newBlock()
 
         val elseBlock = if (withElse) {
-            construction!!.newBlock()
+            construction.newBlock()
         } else {
             afterBlock
         }
@@ -347,28 +350,28 @@ object FirmContext {
         if (withElse)
             elseBlock.mature()
 
-        construction!!.currentBlock = thenBlock
+        construction.currentBlock = thenBlock
 
-        afterBlock.addPred(construction!!.newJmp())
+        afterBlock.addPred(construction.newJmp())
         ifStatement.thenCase.accept(transformer)
 
         if (withElse) {
-            construction!!.currentBlock = elseBlock
+            construction.currentBlock = elseBlock
             ifStatement.elseCase?.accept(transformer)
-            afterBlock.addPred(construction!!.newJmp())
+            afterBlock.addPred(construction.newJmp())
         }
 
         afterBlock.mature()
-        construction!!.currentBlock = afterBlock
+        construction.currentBlock = afterBlock
     }
 
     fun returnStatement(withExpression: Boolean) {
-        val mem = this.construction!!.currentMem
+        val mem = this.construction.currentMem
 
         val returnNode = if (withExpression) {
-            this.construction!!.newReturn(mem, arrayOf(expressionStack.pop()))
+            this.construction.newReturn(mem, arrayOf(expressionStack.pop()))
         } else {
-            this.construction!!.newReturn(mem, emptyArray())
+            this.construction.newReturn(mem, emptyArray())
         }
 
         this.returnNodes.add(returnNode)
