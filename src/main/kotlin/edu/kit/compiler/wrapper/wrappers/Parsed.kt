@@ -88,6 +88,15 @@ fun <A> Parsed<A>.markErroneous(): Parsed.Error<A> = when (this) {
  */
 fun <A> A?.wrapErroneous(position: SourceRange): Parsed.Error<A> = Parsed.Error(position, this)
 
+/**
+ * Wrap an element in a [Parsed] based on the value of [valid].
+ * @return [Parsed.Valid] if [valid] was `true`, [Parsed.Error] otherwise
+ */
+fun <A> A.wrapConditionally(valid: Boolean, range: SourceRange): Parsed<A> = when (valid) {
+    true -> wrapValid(range)
+    false -> wrapErroneous(range)
+}
+
 private fun Symbol.toIdentifier(sourceRange: SourceRange): AstNode.Identifier = AstNode.Identifier(this, sourceRange)
 
 private fun Parsed<Symbol>.validate(): AstNode.Identifier? =
