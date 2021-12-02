@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 internal class NameAnalysisTest {
 
     private fun checkNames(shouldSucceed: Boolean, input: () -> String) {
-        val (lexer, sourceFile, stringTable) = createLexer(input())
+        val (lexer, sourceFile, stringTable) = createLexer(input(), 3)
         val parser = Parser(sourceFile, lexer.tokens())
         val ast = parser.parse().validate()
         sourceFile.printAnnotations()

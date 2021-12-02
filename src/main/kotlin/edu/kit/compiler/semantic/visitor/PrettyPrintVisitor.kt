@@ -116,20 +116,15 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         if (cleanBlock.statements.isEmpty()) {
             print("{ }", startsNewLine)
         } else {
-            if (cleanBlock.statements.isEmpty()) {
-                print("{ }", startsNewLine)
-            } else {
-                println("{", startsNewLine)
-
-                doIndented {
-                    cleanBlock.statements
-                        .forEach { blockStatement ->
-                            blockStatement.accept(this)
-                            println("")
-                        }
-                }
-                print("}", startsNewLine)
+            println("{", startsNewLine)
+            doIndented {
+                cleanBlock.statements
+                    .forEach { blockStatement ->
+                        blockStatement.accept(this)
+                        println()
+                    }
             }
+            print("}", startsNewLine)
         }
     }
 
@@ -374,10 +369,5 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         print(s, indent)
         printStream.println()
         startsNewLine = true
-    }
-
-    private fun printNewLineInBody() {
-        if (startsNewLine) print("\n", false)
-        startsNewLine = false
     }
 }

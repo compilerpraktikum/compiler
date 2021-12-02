@@ -61,7 +61,6 @@ internal class SemanticMJTestSuite {
         }
 
         input.printAnnotations()
-        println(input.hasError)
         if (testConfig.name.endsWith("invalid.mj")) {
             assert(input.hasError) {
                 "expected failure, but got success for file ${testConfig.name}"

@@ -61,13 +61,7 @@ class Namespace<T> {
      */
     fun getOrNull(name: Symbol): Definition<T>? = entries[name]
 
-    fun getOrNull(name: String): Definition<T>? = entries.firstNotNullOfOrNull {
-        if (it.key.text == name) {
-            it.value
-        } else {
-            null
-        }
-    }
+    fun getOrNull(name: String): Definition<T>? = entries.asSequence().find { it.key.text == name }?.value
 }
 
 class GlobalNamespace {

@@ -15,7 +15,11 @@ enum class AnnotationType(private val str: String) {
 }
 
 interface AnnotatableFile {
-    fun annotate(type: AnnotationType, range: SourceRange, message: String, notes: List<SourceNote> = emptyList())
+    fun annotate(annotation: SourceFile.Annotation)
+
+    fun annotate(type: AnnotationType, range: SourceRange, message: String, notes: List<SourceNote> = emptyList()) {
+        annotate(SourceFile.Annotation(type, range, message, notes))
+    }
 
     fun annotate(type: AnnotationType, position: SourcePosition, message: String, notes: List<SourceNote> = emptyList()) {
         annotate(type, position.extend(1), message, notes)
@@ -111,10 +115,10 @@ private constructor(
 
     private val annotations: MutableMap<Int, ArrayList<Annotation>> = TreeMap() // line -> annotations
 
-    override fun annotate(type: AnnotationType, range: SourceRange, message: String, notes: List<Annotation.Note>) {
-        annotations.computeIfAbsent(range.start.line) { ArrayList() }.add(Annotation(type, range, message, notes))
+    override fun annotate(annotation: Annotation) {
+        annotations.computeIfAbsent(annotation.range.start.line) { ArrayList() }.add(annotation)
 
-        if (type == AnnotationType.ERROR) {
+        if (annotation.type == AnnotationType.ERROR) {
             hasError = true
         }
     }

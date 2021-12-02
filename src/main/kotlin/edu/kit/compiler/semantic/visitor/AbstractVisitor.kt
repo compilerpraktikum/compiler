@@ -2,6 +2,7 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import java.lang.IllegalStateException
 
 /**
  * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
@@ -36,6 +37,42 @@ abstract class AbstractVisitor {
         parameter.type.accept(this)
     }
 
+    open fun visitStatement(statement: AstNode.Statement) {
+        statement.acceptStatement(this)
+    }
+
+    open fun visitBlock(block: AstNode.Statement.Block) {
+        block.statements.forEach { it.accept(this) }
+    }
+
+    open fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
+        expressionStatement.expression.accept(this)
+    }
+
+    open fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+        ifStatement.condition.accept(this)
+        ifStatement.thenCase.accept(this)
+        ifStatement.elseCase?.accept(this)
+    }
+
+    open fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+        localVariableDeclaration.type.accept(this)
+        localVariableDeclaration.initializer?.accept(this)
+    }
+
+    open fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+        returnStatement.expression?.accept(this)
+    }
+
+    open fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+        whileStatement.condition.accept(this)
+        whileStatement.statement.accept(this)
+    }
+
+    open fun visitExpression(expression: AstNode.Expression) {
+        expression.acceptExpression(this)
+    }
+
     open fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
         arrayAccessExpression.target.accept(this)
         arrayAccessExpression.index.accept(this)
@@ -68,7 +105,6 @@ abstract class AbstractVisitor {
     open fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         methodInvocationExpression.target?.accept(this)
         methodInvocationExpression.arguments.forEach { it.accept(this) }
-        methodInvocationExpression.actualType
     }
 
     open fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
@@ -81,34 +117,6 @@ abstract class AbstractVisitor {
 
     open fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
         unaryOperation.inner.accept(this)
-    }
-
-    open fun visitBlock(block: AstNode.Statement.Block) {
-        block.statements.forEach { it.accept(this) }
-    }
-
-    open fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
-        expressionStatement.expression.accept(this)
-    }
-
-    open fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
-        ifStatement.condition.accept(this)
-        ifStatement.thenCase.accept(this)
-        ifStatement.elseCase?.accept(this)
-    }
-
-    open fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
-        localVariableDeclaration.type.accept(this)
-        localVariableDeclaration.initializer?.accept(this)
-    }
-
-    open fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        returnStatement.expression?.accept(this)
-    }
-
-    open fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
-        whileStatement.condition.accept(this)
-        whileStatement.statement.accept(this)
     }
 
     open fun visitIntType() {
@@ -147,7 +155,26 @@ fun AstNode.ClassMember.accept(visitor: AbstractVisitor) {
     }
 }
 
+fun AstNode.Statement.accept(visitor: AbstractVisitor) {
+    visitor.visitStatement(this)
+}
+
+fun AstNode.Statement.acceptStatement(visitor: AbstractVisitor) {
+    when (this) {
+        is AstNode.Statement.Block -> visitor.visitBlock(this)
+        is AstNode.Statement.ExpressionStatement -> visitor.visitExpressionStatement(this)
+        is AstNode.Statement.IfStatement -> visitor.visitIfStatement(this)
+        is AstNode.Statement.LocalVariableDeclaration -> visitor.visitLocalVariableDeclaration(this)
+        is AstNode.Statement.ReturnStatement -> visitor.visitReturnStatement(this)
+        is AstNode.Statement.WhileStatement -> visitor.visitWhileStatement(this)
+    }
+}
+
 fun AstNode.Expression.accept(visitor: AbstractVisitor) {
+    visitor.visitExpression(this)
+}
+
+fun AstNode.Expression.acceptExpression(visitor: AbstractVisitor) {
     when (this) {
         is AstNode.Expression.ArrayAccessExpression -> visitor.visitArrayAccessExpression(this)
         is AstNode.Expression.BinaryOperation -> visitor.visitBinaryOperation(this)
@@ -170,17 +197,6 @@ fun AstNode.Expression.LiteralExpression.accept(visitor: AbstractVisitor) {
     }
 }
 
-fun AstNode.Statement.accept(visitor: AbstractVisitor) {
-    when (this) {
-        is AstNode.Statement.Block -> visitor.visitBlock(this)
-        is AstNode.Statement.ExpressionStatement -> visitor.visitExpressionStatement(this)
-        is AstNode.Statement.IfStatement -> visitor.visitIfStatement(this)
-        is AstNode.Statement.LocalVariableDeclaration -> visitor.visitLocalVariableDeclaration(this)
-        is AstNode.Statement.ReturnStatement -> visitor.visitReturnStatement(this)
-        is AstNode.Statement.WhileStatement -> visitor.visitWhileStatement(this)
-    }
-}
-
 fun SemanticType.accept(visitor: AbstractVisitor) {
     when (this) {
         SemanticType.Integer -> visitor.visitIntType()
@@ -188,5 +204,6 @@ fun SemanticType.accept(visitor: AbstractVisitor) {
         SemanticType.Void -> visitor.visitVoidType()
         is SemanticType.Array -> visitor.visitArrayType(this)
         is SemanticType.Class -> visitor.visitClassType(this)
+        else -> throw IllegalStateException("internal error")
     }
 }
