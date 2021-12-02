@@ -1,21 +1,18 @@
 package edu.kit.compiler.transform
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
-import firm.ClassType
 import firm.Construction
 import firm.Dump
 import firm.Entity
 import firm.Firm
 import firm.Graph
-import firm.MethodType
 import firm.Mode
-import firm.PrimitiveType
 import firm.Program
 import firm.Relation
+import firm.SegmentType
 import firm.Type
 import firm.bindings.binding_ircons
 import firm.nodes.Block
@@ -28,28 +25,16 @@ import java.util.Stack
  * Facade for all jFirm-related calls.
  */
 object FirmContext {
-
     /**
      * Firm global type singleton
      */
-    val globalType
+    private val global: SegmentType
         get() = Program.getGlobalType()
 
-    lateinit var intType: PrimitiveType
-        private set
-
-    lateinit var boolType: PrimitiveType
-        private set
-
-    lateinit var voidType: PrimitiveType
-        private set
-
-    private val constructedClassTypes = mutableMapOf<Symbol, ClassType>()
-
     /**
-     * All class types available in the firm context, accessible by their symbol
+     * Utility to manage [firm-types][Type].
      */
-    val classTypes: Map<Symbol, ClassType> = constructedClassTypes
+    lateinit var typeRegistry: TypeRegistry
 
     /**
      * Current active construction. This is hidden here, because we can use the visitor pattern, if the active
@@ -82,46 +67,19 @@ object FirmContext {
         Firm.init("x86_64-linux-gnu", arrayOf("pic=1"))
         println("Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}")
 
-        intType = PrimitiveType(Mode.getIs())
-        boolType = PrimitiveType(Mode.getBu())
-        voidType = PrimitiveType(Mode.getM()) // todo: is void a memory/sync mode?
-    }
-
-    /**
-     * Create a type for a method and return it
-     */
-    fun constructMethodType(returnType: Type, vararg parameterTypes: Type): MethodType {
-        return MethodType(parameterTypes, arrayOf(returnType))
-    }
-
-    /**
-     * Create a new type for a class and add it to the class type map [classTypes]
-     */
-    fun constructClassType(symbol: Symbol): ClassType {
-        val t = ClassType(symbol.text)
-        this.constructedClassTypes[symbol] = t
-        return t
-    }
-
-    /**
-     * Create a field and add it to its owner class
-     */
-    fun constructField(type: Type, name: Symbol, ownerName: Symbol): Entity {
-        val owner = classTypes[ownerName]!!
-        return Entity(owner, name.text, type)
+        typeRegistry = TypeRegistry()
     }
 
     /**
      * Construct a method. Within [block] no other method may be constructed.
      *
+     * @param methodEntity method entity
      * @param variables number of local variables within the subroutine
-     * @param type function type
      * @param block code fragment that constructs the method's content
      */
-    fun subroutine(variables: Int, name: String, type: MethodType, block: () -> Unit) {
+    fun subroutine(methodEntity: Entity, variables: Int, block: () -> Unit) {
         check(this.construction == null) { "cannot construct a method while another is being constructed" }
 
-        val methodEntity = Entity(globalType, name, type)
         this.graph = Graph(methodEntity, variables)
         this.construction = Construction(this.graph)
 
@@ -202,7 +160,7 @@ object FirmContext {
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
                 this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
-                construction!!.newProj(div, intType.mode, Div.pnRes)
+                construction!!.newProj(div, typeRegistry.intType.mode, Div.pnRes)
             }
             AST.BinaryExpression.Operation.MODULO -> {
                 val m = this.construction!!.currentMem
@@ -213,7 +171,7 @@ object FirmContext {
                     binding_ircons.op_pin_state.op_pin_state_pinned
                 )
                 this.construction!!.currentMem = construction!!.newProj(div, Mode.getM(), Div.pnM)
-                construction!!.newProj(div, intType.mode, Div.pnRes)
+                construction!!.newProj(div, typeRegistry.intType.mode, Div.pnRes)
             }
         }
 
@@ -242,14 +200,14 @@ object FirmContext {
      */
     fun literalBool(value: Boolean) {
         val intRepr = if (value) 1 else 0
-        this.expressionStack.push(this.construction!!.newConst(intRepr, boolType.mode))
+        this.expressionStack.push(this.construction!!.newConst(intRepr, typeRegistry.boolType.mode))
     }
 
     /**
      * Push an integer literal into the currently constructed expression
      */
     fun literalInt(value: Int) {
-        this.expressionStack.push(this.construction!!.newConst(value, intType.mode))
+        this.expressionStack.push(this.construction!!.newConst(value, typeRegistry.intType.mode))
     }
 
     private fun doCondShortEval(
