@@ -593,5 +593,17 @@ object FirmContext {
     }
 
     fun loadNull() {
+        expressionStack.push(construction.newConst(0, Mode.getP()))
+    }
+
+    /**
+     * An expression statement just pops the expression stack.
+     */
+    fun expressionStatement() {
+        // TODO: we must not pop if the last expression was a void method that did not push anything to the stack
+        //  we must either push something to the stack anyway (probably the better solution, because there won't be any
+        //  void-expressions that utilize the stacked void result in any way, becuase that would be illegal) or check
+        //  it here and refuse to pop
+        expressionStack.pop()
     }
 }

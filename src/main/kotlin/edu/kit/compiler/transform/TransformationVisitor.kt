@@ -156,4 +156,9 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
             FirmContext.returnStatement(false)
         }
     }
+
+    override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
+        super.visitExpressionStatement(expressionStatement)
+        FirmContext.expressionStatement()
+    }
 }
