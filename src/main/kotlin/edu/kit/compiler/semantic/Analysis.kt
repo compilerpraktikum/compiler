@@ -7,6 +7,7 @@ import edu.kit.compiler.semantic.visitor.MainMethodVerifier
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.semantic.visitor.doAssignmentLHSChecking
 import edu.kit.compiler.semantic.visitor.doConstantBoundariesCheck
+import edu.kit.compiler.semantic.visitor.doNameAnalysis
 import edu.kit.compiler.semantic.visitor.doSearchForReturnStatement
 import edu.kit.compiler.semantic.visitor.doTypeAnalysis
 
