@@ -28,10 +28,21 @@ internal class MixedParseTest {
         expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet) }
 
     @Test
-    fun testParseLeadingZeroLiteral() =
+    fun testParseLeadingZeroLiteralReturn() =
         expectNode(
             "return 02;",
-            AST.ReturnStatement(Parsed.Error(ILLEGAL_SOURCE_RANGE, AST.LiteralExpression.Integer("0", false))).wrapMockValid()
+            AST.ReturnStatement(Parsed.Error(ILLEGAL_SOURCE_RANGE, AST.LiteralExpression.Integer("0", false)))
+                .wrapMockValid()
+        ) { parseStatement(emptyAnchorSet) }
+
+    @Test
+    fun testParseLeadingZeroLiteralExpression() =
+        expectNode(
+            "02;",
+            Parsed.Error(
+                ILLEGAL_SOURCE_RANGE,
+                AST.ExpressionStatement(AST.LiteralExpression.Integer("0", false).wrapMockValid())
+            )
         ) { parseStatement(emptyAnchorSet) }
 
     @Test
