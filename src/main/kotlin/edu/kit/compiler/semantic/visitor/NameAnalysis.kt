@@ -267,6 +267,8 @@ class NamespacePopulator(
             }
         })
 
+        fieldDeclaration.owner = currentClass
+
         // do not descend
     }
 
@@ -286,6 +288,11 @@ class NamespacePopulator(
             }
         })
 
+        methodDeclaration.owner = currentClass
+        methodDeclaration.parameters.forEach {
+            it.owner = methodDeclaration
+        }
+
         // do not descend
     }
 
@@ -302,6 +309,11 @@ class NamespacePopulator(
         }
 
         currentClassNamespace.mainMethodDefinition = mainMethodDeclaration.asDefinition()
+
+        mainMethodDeclaration.owner = currentClass
+        mainMethodDeclaration.parameters.forEach {
+            it.owner = mainMethodDeclaration
+        }
 
         // do not descend
     }

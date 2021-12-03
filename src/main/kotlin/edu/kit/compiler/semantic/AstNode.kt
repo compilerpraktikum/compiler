@@ -62,6 +62,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : ClassMember(name, sourceRange) {
 
+            lateinit var owner: ClassDeclaration
+
             /**
              * Special case of a [SubroutineDeclaration] that is the main entry point
              */
@@ -93,7 +95,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 val name: Identifier,
                 val type: SemanticType,
                 sourceRange: SourceRange
-            ) : AstNode(sourceRange)
+            ) : AstNode(sourceRange) {
+                lateinit var owner: SubroutineDeclaration
+            }
         }
 
         /**
@@ -103,8 +107,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             name: Identifier,
             val type: SemanticType,
             sourceRange: SourceRange
-        ) :
-            ClassMember(name, sourceRange)
+        ) : ClassMember(name, sourceRange) {
+            lateinit var owner: ClassDeclaration
+        }
     }
 
     sealed class Expression(sourceRange: SourceRange) : AstNode(sourceRange) {

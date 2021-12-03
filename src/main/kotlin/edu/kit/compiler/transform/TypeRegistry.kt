@@ -22,11 +22,21 @@ fun SemanticType.toVariableType(): Type = when (this) {
     SemanticType.Error -> throw IllegalArgumentException("invalid type ${display()}")
 }
 
+val SemanticType.mode: Mode
+    get() = when (this) {
+        SemanticType.Integer -> Mode.getIs()
+        SemanticType.Boolean -> Mode.getBu()
+        is SemanticType.Class -> Mode.getP()
+        is SemanticType.Array -> Mode.getP()
+        SemanticType.Null -> Mode.getP()
+        SemanticType.Void,
+        SemanticType.Error -> throw IllegalArgumentException("invalid type ${display()}")
+    }
+
 class TypeRegistry {
 
     val intType: Type = Mode.getIs().type
     val boolType: Type = Mode.getBu().type
-    val voidType: Type = Mode.getM().type // todo: is void a memory/sync mode?
 
     private class Class(
         val referenceType: PointerType,
@@ -90,7 +100,7 @@ class TypeRegistry {
             if (isStatic) {
                 it
             } else {
-                sequenceOf(clazz.type) + it
+                sequenceOf(clazz.referenceType) + it
             }
         }.toList().toTypedArray()
 

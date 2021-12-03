@@ -2,6 +2,9 @@ package edu.kit.compiler.transform
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.VariableNode
+import edu.kit.compiler.semantic.display
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import firm.Construction
@@ -16,9 +19,12 @@ import firm.SegmentType
 import firm.Type
 import firm.bindings.binding_ircons
 import firm.nodes.Block
+import firm.nodes.Call
 import firm.nodes.Cond
 import firm.nodes.Div
+import firm.nodes.Load
 import firm.nodes.Node
+import firm.nodes.Start
 import java.util.Stack
 
 /**
@@ -77,10 +83,16 @@ object FirmContext {
      * Construct a method. Within [block] no other method may be constructed.
      *
      * @param methodEntity method entity
+     * @param method method AST node
      * @param variables number of local variables within the subroutine
      * @param block code fragment that constructs the method's content
      */
-    fun subroutine(methodEntity: Entity, variables: Int, block: () -> Unit) {
+    fun subroutine(
+        methodEntity: Entity,
+        method: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
+        variables: Int,
+        block: () -> Unit
+    ) {
         check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
 
         this.graph = Graph(methodEntity, variables)
@@ -88,7 +100,22 @@ object FirmContext {
 
         // insert start node
         val startNode = this.construction.newStart()
-        this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), 0)
+
+        // set memory state
+        this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), Start.pnM)
+
+        // load parameters and store in local helper variables
+        val parameterTuple = construction.newProj(startNode, Mode.getT(), Start.pnTArgs)
+        construction.setVariable(
+            0,
+            construction.newProj(parameterTuple, typeRegistry.getClassReferenceType(method.owner.name.symbol).mode, 0)
+        )
+        for (index in (1..method.parameters.size)) {
+            construction.setVariable(
+                index,
+                construction.newProj(parameterTuple, method.parameters[index - 1].type.mode, index)
+            )
+        }
 
         // construct method
         block.invoke()
@@ -217,7 +244,7 @@ object FirmContext {
         expr: AstNode.Expression.BinaryOperation,
         trueBlock: Block,
         falseBlock: Block,
-        transformer: AbstractVisitor,
+        transformer: TransformationMethodVisitor,
         op: AST.BinaryExpression.Operation
     ) {
         val rightBlock = construction.newBlock()
@@ -233,7 +260,12 @@ object FirmContext {
         doCond(expr.right, trueBlock, falseBlock, transformer)
     }
 
-    fun doCond(expr: AstNode.Expression, trueBlock: Block, falseBlock: Block, transformer: AbstractVisitor) {
+    fun doCond(
+        expr: AstNode.Expression,
+        trueBlock: Block,
+        falseBlock: Block,
+        transformer: TransformationMethodVisitor
+    ) {
         when (expr) {
             is AstNode.Expression.ArrayAccessExpression -> TODO()
             is AstNode.Expression.BinaryOperation -> {
@@ -315,7 +347,7 @@ object FirmContext {
         falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
     }
 
-    fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: AbstractVisitor) {
+    fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: TransformationMethodVisitor) {
         val conditionBlock = construction.newBlock()
         val doBlock = construction.newBlock()
         val afterBlock = construction.newBlock()
@@ -334,7 +366,90 @@ object FirmContext {
         construction.currentBlock = afterBlock
     }
 
-    fun ifStatement(withElse: Boolean, ifStatement: AstNode.Statement.IfStatement, transformer: AbstractVisitor) {
+    fun methodInvocation(
+        methodInvocationExpression: AstNode.Expression.MethodInvocationExpression,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
+        transformer: TransformationMethodVisitor
+    ) {
+        val numberOfArguments = methodInvocationExpression.arguments.size
+        val args = arrayOfNulls<Node>(numberOfArguments + 1)
+
+        // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
+        // the transformer won't do it if `target == null`
+        if (methodInvocationExpression.target == null)
+            loadThis(surroundingMethod)
+
+        args[0] = expressionStack.pop()
+        for (i in 1 until args.size) {
+            args[i] = this.expressionStack.pop()
+        }
+        // parameters in reverse order and dont forget 'this'
+
+        val definition = when (val type = methodInvocationExpression.type!!) {
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> TODO()
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> type.definition
+        }
+
+        // for address calculation of the method
+        loadThis(surroundingMethod)
+
+        val call =
+            construction.newCall(
+                construction.currentMem,
+                construction.newMember(
+                    expressionStack.pop(),
+                    typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
+                ),
+                args,
+                typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol).type
+            )
+        val resultTuple = construction.newProj(call, Mode.getT(), Call.pnTResult)
+        construction.currentMem = construction.newProj(call, Mode.getM(), Call.pnM)
+
+        // special case for "void return"
+        if (methodInvocationExpression.type!!.returnType is SemanticType.Void) {
+            expressionStack.push(construction.newProj(resultTuple, Mode.getANY(), 0))
+        } else {
+            expressionStack.push(
+                construction.newProj(
+                    resultTuple,
+                    methodInvocationExpression.actualType.mode,
+                    0
+                )
+            )
+        }
+    }
+
+    fun arrayAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression, transformer: TransformationMethodVisitor) {
+        val mem = this.construction.currentMem
+        val indexNode = expressionStack.pop()
+        val targetNode = expressionStack.pop()
+        // val type = typeRegistry.getArrayReferenceType(arrayAccess.actualType as SemanticType.Array)
+        // construction.newLoad(mem, Pointer.new(targetNode + indexNode))
+        println(arrayAccess.target.actualType.display())
+        val loadNode = construction.newLoad(
+            mem,
+            construction.newSel(targetNode, indexNode, arrayAccess.target.actualType.toVariableType()),
+            Mode.getLs()
+        )
+
+        val newMem = construction.newProj(loadNode, Mode.getM(), 0) // TODO 0
+        construction.currentMem = newMem
+
+        this.expressionStack.push(
+            construction.newProj(
+                loadNode,
+                arrayAccess.actualType.toVariableType().mode,
+                0
+            )
+        ) // TODO 0
+    }
+
+    fun ifStatement(
+        withElse: Boolean,
+        ifStatement: AstNode.Statement.IfStatement,
+        transformer: TransformationMethodVisitor
+    ) {
         val thenBlock = construction.newBlock()
         val afterBlock = construction.newBlock()
 
@@ -375,5 +490,108 @@ object FirmContext {
         }
 
         this.returnNodes.add(returnNode)
+    }
+
+    /**
+     * Generate an access node to any defined identifier: A field of the local class, a local variable or a parameter.
+     *
+     * @param identifierExpression the expression referencing the value to load
+     * @param surroundingMethod the method that contains the [identifierExpression]
+     * @param transformer the [TransformationMethodVisitor] that generates code for the method
+     */
+    fun memoryAccess(
+        identifierExpression: AstNode.Expression.IdentifierExpression,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
+        transformer: TransformationMethodVisitor
+    ) {
+        val valueNode = when (val definition = identifierExpression.definition!!.node) {
+            is VariableNode.Field -> {
+                // an identifierExpression on a field is always an implicit field access on `this`,
+                // so we have to load the pointer. If it wasn't an access on `this`, it wouldn't be an
+                // identifier-expression but a field-access-expression
+                loadThis(surroundingMethod)
+                val loadNode = construction.newLoad(
+                    construction.currentMem,
+                    construction.newMember(
+                        expressionStack.pop(),
+                        typeRegistry.getField(definition.node.owner.name.symbol, definition.node.name.symbol)
+                    ),
+                    definition.type.mode
+                )
+                construction.currentMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
+                construction.newProj(loadNode, identifierExpression.definition!!.node.type.mode, Load.pnRes)
+            }
+            is VariableNode.LocalVariable -> construction.getVariable(
+                transformer.localVariableDeclarations[definition.node]!!,
+                definition.node.type.mode
+            )
+            is VariableNode.Parameter -> construction.getVariable(
+                transformer.parameterDeclarations[definition.node]!!,
+                definition.node.type.mode
+            )
+        }
+
+        expressionStack.push(valueNode)
+    }
+
+    /**
+     * Generate an access node to any defined field of an explicit target expression (like `a.field`).
+     *
+     * @param fieldAccessExpression the expression referencing the field to load
+     * @param surroundingMethod the method that contains the [fieldAccessExpression]
+     * @param transformer the [TransformationMethodVisitor] that generates code for the method
+     */
+    fun memoryAccess(
+        fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
+    ) {
+        val loadNode = construction.newLoad(
+            construction.currentMem,
+            construction.newMember(
+                expressionStack.pop(),
+                typeRegistry.getField(
+                    fieldAccessExpression.definition!!.node.owner.name.symbol,
+                    fieldAccessExpression.definition!!.name
+                )
+            ),
+            fieldAccessExpression.definition!!.node.type.mode
+        )
+        construction.currentMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
+        expressionStack.push(
+            construction.newProj(
+                loadNode,
+                fieldAccessExpression.definition!!.node.type.mode,
+                Load.pnRes
+            )
+        )
+    }
+
+    /**
+     * Load `this` pointer into expression stack
+     */
+    fun loadThis(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+        expressionStack.push(
+            construction.getVariable(
+                0,
+                typeRegistry.getClassReferenceType(methodDeclaration.owner.name.symbol).mode
+            )
+        )
+    }
+
+    /**
+     * Store the initial value of a local variable in its state
+     */
+    fun localVariableDeclaration(
+        localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration,
+        transformer: TransformationMethodVisitor
+    ) {
+        if (localVariableDeclaration.initializer != null) {
+            construction.setVariable(
+                transformer.localVariableDeclarations[localVariableDeclaration]!!,
+                expressionStack.pop()
+            )
+        }
+    }
+
+    fun loadNull() {
     }
 }
