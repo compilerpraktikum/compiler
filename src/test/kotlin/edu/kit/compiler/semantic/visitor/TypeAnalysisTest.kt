@@ -297,35 +297,4 @@ class TypeAnalysisTest {
             """.trimIndent()
         }
     }
-
-//    @Test
-//    fun testUnknownMethod() {
-//        check(false) {
-//            """
-//                class Test {
-//                    public void main(int i) {
-//                        test();
-//                    }
-//                }
-//            """.trimIndent()
-//        }
-//    }
-//
-//    @Test
-//    fun testUnknownMethodOtherClass() {
-//        check(false) {
-//            """
-//                class Foo {
-//                    public int bar() {}
-//                }
-//
-//                class Test {
-//                    public Foo foo;
-//                    public void main(int i) {
-//                        foo.test();
-//                    }
-//                }
-//            """.trimIndent()
-//        }
-//    }
 }
