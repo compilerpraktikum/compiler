@@ -55,8 +55,22 @@ class TypeAnalysisTest {
     fun testCallSystemOutInvalidArgument() =
         check(false, listOf("incompatible types: expected `int`, but got `A`")) {
             """
-            class A { public static void main(String[] args) {
-                System.out.println(new A());
+            class A {
+                public static void main(String[] args) {
+                    System.out.println(new A());
+                }
+            }
+        """
+        }
+
+    @Test
+    fun testReturnMethodReturnValue() =
+        check(true) {
+            """
+            class A {
+                public int bla(A sth) { return 2; }
+                public static void main(String[] args) {
+                    System.out.println(new A().bla(new A()));
                 }
             }
         """
