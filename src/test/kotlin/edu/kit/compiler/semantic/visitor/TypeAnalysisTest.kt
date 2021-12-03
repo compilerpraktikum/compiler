@@ -120,6 +120,48 @@ class TypeAnalysisTest {
     }
 
     @Test
+    fun testReturns() {
+        check(true) {
+            """
+            class Fibonacci {
+                public int fib(int n) {
+                    int a = 0;
+                    int b = 1;
+                    if (true) {
+                        if (false) {
+                            return 0;
+                        } else {
+                            if (false) {
+                                return 2;
+                            } else {
+                                return 3;
+                            }
+                        }
+                    } else {
+                        return 3;
+                    }
+                    while (n > 0) {
+                        int c = a + b;
+                        a = b;
+                        b = c;
+                        n = n - 1;
+                    }
+                }
+                public static void main(String[] args) {
+                    int n = 4;
+                    int x = new Fibonacci().fib(n);
+                    Fibonacci a = new Fibonacci();
+                    a.fib(new Fibonacci().fib(n));
+                    a.fib(n);
+                    System.out.println(a.fib(n));
+                }
+            }
+
+            """.trimIndent()
+        }
+    }
+
+    @Test
     fun testDeeplyNested() {
         check(false, listOf("array access on non-array type `int`")) {
             """

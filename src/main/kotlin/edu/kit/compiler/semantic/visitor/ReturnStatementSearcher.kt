@@ -3,94 +3,81 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
-import java.util.Stack
 
+/**
+ * Search for definite returns in non-void methods. These can be either
+ * <ul>
+ *     <li> a top level return statement.
+ *     <li> an if/else tree where each block/ branch has a definite return statement.
+ * </ul>
+ */
 class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    var foundAReturnStatement: Boolean = false
-    var weAreAtTopLevel: Boolean = true
-    var recursionDepthCounter: Int = 1 // TODO maybe use this, since multiple return statements in one if block pollute the stack.
-
-    private var foundAReturnStatementInIfStack = Stack<Boolean>().apply {
-        push(false)
-    }
+    private var foundTopLevelReturnStatement: Boolean = false
+    private var foundNonTopLevelReturnStatement: Boolean = false
+    private var recursionDepthCounter: Int = 1
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        foundAReturnStatement = false
+        if (methodDeclaration.returnType == SemanticType.Void) return
+        foundTopLevelReturnStatement = false
 
         methodDeclaration.block.statements.forEach { statement ->
-            weAreAtTopLevel = true
             statement.accept(this)
-            // TODO maybe invariant stack size == 1
-            if (recursionDepthCounter + 1 == foundAReturnStatementInIfStack.size) {
-                if (foundAReturnStatementInIfStack.pop()) {
-                    foundAReturnStatement = true
-                }
+            if (getAndResetFoundNonTopLevelReturnStatement()) {
+                // only true if ifstatement and ifElse
+                foundTopLevelReturnStatement = true
             }
-            resetStackAndCounter()
         }
 
-        sourceFile.errorIfNot(methodDeclaration.returnType == SemanticType.Void || foundAReturnStatement) {
+        sourceFile.errorIfNot(foundTopLevelReturnStatement) {
             "missing return statement in non-void function" at methodDeclaration.sourceRange
         }
-        foundAReturnStatement = false
-    }
-
-    private fun resetStackAndCounter() {
-        recursionDepthCounter = 1
-        foundAReturnStatementInIfStack = Stack<Boolean>().apply {
-            push(false)
-        }
+        foundTopLevelReturnStatement = false
     }
 
     override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
         // explicit no-op: we do assume loops to be skipped.
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-//        foundAReturnStatement = false
-//        super.visitMainMethodDeclaration(mainMethodDeclaration)
-//
-//        checkAndMessageIfNot(mainMethodDeclaration.sourceRange, "Missing return statement.") { mainMethodDeclaration.returnType == SemanticType.Void || foundAReturnStatement }
-//        foundAReturnStatement = false
-    }
-
     override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
-        // 0 -? enter if "1" -> if finds return "2" -> after if when 2 = 3 wenn 1 = 4 -> enter else -? findet return dann 5
-        weAreAtTopLevel = false
         if (ifStatement.elseCase == null) {
-//            foundAReturnStatementInIfStack.push(false)
             return
         }
+
+        var foundReturnInThenCase = descent {
+            ifStatement.thenCase.accept(this)
+            getAndResetFoundNonTopLevelReturnStatement()
+        }
+
+        var foundReturnInElseCase = descent {
+            ifStatement.elseCase.accept(this)
+            getAndResetFoundNonTopLevelReturnStatement()
+        }
+
+        if (foundReturnInThenCase && foundReturnInElseCase) {
+            foundNonTopLevelReturnStatement = true
+        }
+    }
+
+    private fun getAndResetFoundNonTopLevelReturnStatement(): Boolean {
+        val tmp = foundNonTopLevelReturnStatement
+        foundNonTopLevelReturnStatement = false
+        return tmp
+    }
+
+    private fun descent(function: () -> Boolean): Boolean {
         recursionDepthCounter++
-
-//        i = 1
-        ifStatement.thenCase.accept(this) // wenn return da i = 2
-        // / liste position ist rekursiontiefe
-        var foundReturnInThenCase = false
-        if (2 == foundAReturnStatementInIfStack.size) {
-//        if (recursionDepthCounter == foundAReturnStatementInIfStack.size + (recursionDepthCounter - 2)) {
-            foundReturnInThenCase = foundAReturnStatementInIfStack.pop()
-        }
-
-        ifStatement.elseCase.accept(this)
-
-        var foundReturnInElseCase = false
-        if (2 == foundAReturnStatementInIfStack.size) {
-            foundReturnInElseCase = foundAReturnStatementInIfStack.pop()
-        }
-
-//        foundAReturnStatementInIfStack.push(foundReturnInThenCase && foundReturnInElseCase)
-        if (foundReturnInThenCase && foundReturnInElseCase) foundAReturnStatementInIfStack.push(true)
-
+        val tmp = function()
         recursionDepthCounter--
+        return tmp
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        if (weAreAtTopLevel) {
-            foundAReturnStatement = true
+        if (recursionDepthCounter == 1) {
+            // TOP-level return statement found ==> Done.
+            foundTopLevelReturnStatement = true
         } else {
-            foundAReturnStatementInIfStack.push(true)
+            foundNonTopLevelReturnStatement = true
         }
         super.visitReturnStatement(returnStatement)
     }
