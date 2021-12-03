@@ -2,7 +2,6 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
-import java.lang.IllegalStateException
 
 /**
  * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
@@ -113,6 +112,7 @@ abstract class AbstractVisitor {
     }
 
     open fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+        newObjectExpression.type.accept(this)
     }
 
     open fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
