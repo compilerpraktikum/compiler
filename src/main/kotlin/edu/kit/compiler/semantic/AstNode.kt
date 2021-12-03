@@ -173,7 +173,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 lateinit var definition: ClassDefinition
 
                 override val actualType: SemanticType
-                    get() = SemanticType.Class(definition.node.name)
+                    get() = SemanticType.Class(definition.node.name).also {
+                        it.definition = definition
+                    }
             }
         }
 
