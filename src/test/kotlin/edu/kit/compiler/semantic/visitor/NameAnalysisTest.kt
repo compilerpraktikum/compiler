@@ -468,4 +468,44 @@ internal class NameAnalysisTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testCallNonStaticMain() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main() {}
+                    public void client() { main(); }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testCallNonStaticMainWithArguments() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String[] args) {}
+                    public void client(String[] a) { main(a); }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testCallMixedStaticAndNonStaticMain() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String[] args) {}
+                }
+                class Main {
+                    public static void main(String[] args) {
+                        (new Test()).main(args);
+                    }
+                }
+            """.trimIndent()
+        }
+    }
 }
