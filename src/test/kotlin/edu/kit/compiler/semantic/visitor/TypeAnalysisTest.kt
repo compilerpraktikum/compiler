@@ -239,6 +239,65 @@ class TypeAnalysisTest {
         }
     }
 
+    @Test
+    fun testThisInStatic() {
+        check(false) {
+            """
+                class Test {
+                    public void test() {}
+                    public static void main(String[] args) {
+                        this.test();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testAccessOnNew() {
+        check(true) {
+            """
+                class Test {
+                    public void test() {}
+                    public static void main(String[] args) {
+                        new Test().test();
+                        Test t = (new Test[1])[0];
+                    }
+                }
+            """.trimIndent()
+        }
+        check(false) {
+            """
+                class Test {
+                    public void test() {}
+                    public static void main(String[] args) {
+                        new Test().foo();
+                    }
+                }
+            """.trimIndent()
+        }
+        check(false) {
+            """
+                class Test {
+                    public void test() {}
+                    public static void main(String[] args) {
+                        (new Test[1])[0].foo();
+                    }
+                }
+            """.trimIndent()
+        }
+        check(false) {
+            """
+                class Test {
+                    public void test() {}
+                    public static void main(String[] args) {
+                        (new Test[1]).foo();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
 //    @Test
 //    fun testUnknownMethod() {
 //        check(false) {
