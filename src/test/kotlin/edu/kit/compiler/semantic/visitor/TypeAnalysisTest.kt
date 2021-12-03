@@ -52,6 +52,17 @@ class TypeAnalysisTest {
     }
 
     @Test
+    fun testCallSystemOutInvalidArgument() =
+        check(false, listOf("incompatible types: expected `int`, but got `A`")) {
+            """
+            class A { public static void main(String[] args) {
+                System.out.println(new A());
+                }
+            }
+        """
+        }
+
+    @Test
     fun testBasicFieldAccess() {
         check(true) {
             """
