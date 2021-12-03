@@ -118,8 +118,9 @@ class NameResolutionHelper(
      * Get [class definition][ClassDefinition] for the class type given in [inClass].
      * @return [class definition][ClassDefinition] corresponding to the given class type or `null` if no such class exists
      */
-    private fun getClassByType(inClass: SemanticType.Class?) = when (inClass) {
+    private fun getClassByType(inClass: SemanticType.Class?): AstNode.ClassDeclaration? = when (inClass) {
         null -> clazz
+        // we cannot use `inClass.definition?.node` here, because the type `inClass` could come later in the AST and definition might not be initialized yet
         else -> global.classes.getOrNull(inClass.name.symbol)?.node
     }
 
