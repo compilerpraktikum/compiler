@@ -1,6 +1,7 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.ILLEGAL_SOURCE_RANGE
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.TestUtils.expectNode
@@ -25,6 +26,13 @@ internal class MixedParseTest {
     @Test
     fun testParseEmptyBlock() =
         expectNode("{}", validEmptyBlock) { parseBlock(emptyAnchorSet) }
+
+    @Test
+    fun testParseLeadingZeroLiteral() =
+        expectNode(
+            "return 02;",
+            AST.ReturnStatement(Parsed.Error(ILLEGAL_SOURCE_RANGE, AST.LiteralExpression.Integer("0", false))).wrapMockValid()
+        ) { parseStatement(emptyAnchorSet) }
 
     @Test
     fun testParseBlockOfEmptyBlocks() =

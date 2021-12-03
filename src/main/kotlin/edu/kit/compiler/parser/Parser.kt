@@ -1007,11 +1007,15 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val maybeSemicolon = peek(0)
         var returnValue: Parsed<AST.Expression>? = null
-        if (!(maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon)) {
+        if (maybeSemicolon is Token.Operator && maybeSemicolon.type == Token.Operator.Type.Semicolon) {
+            next()
+        } else {
             returnValue = parseExpression(anc = anc + anchorSetOf(Token.Operator(Token.Operator.Type.Semicolon)), isParenthesized = false)
+            val semicolon = expectOperator(Token.Operator.Type.Semicolon, anc) { "expected `;` after return expression" }
+            if (!semicolon.isValid) {
+                returnValue = returnValue.markErroneous()
+            }
         }
-
-        next()
 
         return AST.ReturnStatement(returnValue)
             .wrapValid(returnValue?.range?.let { returnKeyword.range.extend(it) } ?: returnKeyword.range)
