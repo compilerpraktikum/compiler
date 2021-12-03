@@ -179,15 +179,15 @@ sealed class AstNode(open val sourceRange: SourceRange) {
 
         /**
          * Object instantiation expression
-         *
-         * @param clazz instantiated class name
          */
-        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
-
+        class NewObjectExpression(val type: SemanticType.Class, sourceRange: SourceRange) : Expression(sourceRange) {
             override val actualType: SemanticType
-                get() = SemanticType.Class(clazz)
+                get() = type
         }
 
+        /**
+         * Array instantiation expression
+         */
         class NewArrayExpression(
             val type: SemanticType.Array,
             val length: Expression,
@@ -242,6 +242,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         /**
          * Method call and return value
          *
+         * **Note:** If [type] is [Internal][MethodInvocationExpression.Type.Internal] then [target] may not be fully analyzed.
+         *
          * @param target method call target instance, or `null` if implicitly `this`
          * @param method method name
          * @param arguments concrete argument expressions
@@ -260,10 +262,17 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sealed class Type {
                 abstract val returnType: SemanticType
 
+                /**
+                 * Normal method declared in source code.
+                 */
                 class Normal(val definition: MethodDefinition) : Type() {
                     override val returnType: SemanticType
                         get() = definition.node.returnType
                 }
+
+                /**
+                 * Internal method provided by the runtime library.
+                 */
                 class Internal(val name: String, val fullName: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
             }
         }

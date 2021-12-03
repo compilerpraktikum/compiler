@@ -480,7 +480,7 @@ class SubroutineNameResolver(
 
     // not really part of name analysis but given that all the other String checks are in this file it's best to put it here too
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
-        sourceFile.errorIf(newObjectExpression.clazz.text == "String") {
+        sourceFile.errorIf(newObjectExpression.type.name.text == "String") {
             "cannot instantiate built-in class `String`" at newObjectExpression.sourceRange
         }
 

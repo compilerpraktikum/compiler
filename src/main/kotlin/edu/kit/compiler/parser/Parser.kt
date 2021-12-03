@@ -187,8 +187,11 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         next() // skip open parenthesis
         val rParen = expectOperator(Token.Operator.Type.RParen, anc) { "constructor calls must be empty. expected `)`" }
 
-        return rParen.replaceNode { AST.NewObjectExpression(ident.name.wrapValid(ident.range)) }
-            .mapPosition { ident.range.extend(rParen.range) }
+        return rParen.replaceNode {
+            AST.NewObjectExpression(
+                AST.Type.Class(ident.name.wrapValid(ident.range))
+            )
+        }.mapPosition { ident.range.extend(rParen.range) }
     }
 
     /**

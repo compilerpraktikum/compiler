@@ -40,7 +40,7 @@ private fun <T> T.toContentString() = when (this) {
 }
 
 private fun AST.toChildString(): String = when (this) {
-    is AST.Program -> classes.joinToString(separator = ", ") { it.debug() }
+    is AST.Program -> "classes = ${classes.joinToString(separator = ", ") { it.debug() }}"
     is AST.ClassDeclaration -> "name = ${name.debug()}, member = ${member.debug()}"
     is AST.Field -> "name = ${name.debug()}, type = ${type.debug()}"
     is AST.Method -> "name = ${name.debug()}, return = ${returnType.debug()}, throws = ${throwsException.debug()}, parameters = ${parameters.debug()}, body = ${block.debug()}"
@@ -66,7 +66,7 @@ private fun AST.toChildString(): String = when (this) {
         is AST.LiteralExpression.Null -> "value = null"
         is AST.LiteralExpression.This -> "value = this"
     }
-    is AST.NewObjectExpression -> "class = ${clazz.debug()}"
+    is AST.NewObjectExpression -> "class = ${type.name.debug()}"
     is AST.NewArrayExpression -> "type = ${type.debug()}, length = ${length.debug()}"
 
     AST.Type.Void -> ""

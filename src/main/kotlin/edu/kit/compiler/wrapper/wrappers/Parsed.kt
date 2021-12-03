@@ -252,7 +252,7 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
                 this.range
             )
         is AST.NewObjectExpression ->
-            AstNode.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
+            AstNode.Expression.NewObjectExpression(expression.type.validate() ?: return null, this.range)
         is AST.UnaryExpression ->
             AstNode.Expression.UnaryOperation(
                 expression.expression.validate() ?: return null,
@@ -264,6 +264,10 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
 
 fun Parsed<AST.Type.Array>.validate(): SemanticType.Array? = unwrapOr { return null }.let {
     SemanticType.Array(it.elementType.validate() ?: return null)
+}
+
+fun AST.Type.Class.validate(): SemanticType.Class? {
+    return SemanticType.Class(name.validate() ?: return null)
 }
 
 fun Parsed<AST.Type>.validate(): SemanticType? = unwrapOr { return null }.let { type ->
