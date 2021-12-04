@@ -13,6 +13,8 @@ out/
 
 # Firm artifacts
 *.vcg
+*.s
+
 
 # Folder for manual testing
 workspace/

@@ -9,11 +9,13 @@ import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.transform.Lower
 import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
 import java.nio.file.Path
+import firm.Backend
 import kotlin.io.path.inputStream
 
 private fun SourceFile.assertHasErrors() {
@@ -116,6 +118,12 @@ class Compiler(private val config: Config) {
 
                         if (!sourceFile.hasError) {
                             Transformation.transform(program)
+                            Lower.lower()
+                            //Lower.lowerMethods()
+                            Backend.createAssembler("foo.s", "bla.java")
+                            Runtime.getRuntime().exec("gcc foo.s -o foo")
+
+
                             // TODO invoke firm backend to generate executable
                         }
                     }
