@@ -123,7 +123,7 @@ class Compiler(private val config: Config) {
                             Lower.lower()
                             //Lower.lowerMethods()
 
-                            Backend.createAssembler("${name}.s", "${name}java")
+                            Backend.createAssembler("${name}.s", "${name}.java")
                             Runtime.getRuntime().exec("gcc ${name}.s -o ${name}")
 
 
