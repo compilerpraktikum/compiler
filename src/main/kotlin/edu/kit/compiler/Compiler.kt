@@ -112,8 +112,12 @@ class Compiler(private val config: Config) {
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         doSemanticAnalysis(program, sourceFile, stringTable)
-                        Transformation.transform(program)
-                        // TODO invoke firm backend to generate executable
+                        sourceFile.printAnnotations()
+
+                        if (!sourceFile.hasError) {
+                            Transformation.transform(program)
+                            // TODO invoke firm backend to generate executable
+                        }
                     }
                 }
             }
