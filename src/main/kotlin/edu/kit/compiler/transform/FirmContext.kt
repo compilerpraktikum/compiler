@@ -599,8 +599,6 @@ object FirmContext {
 
         val cmp = construction.newCmp(leftNode, rightNode, relation)
         generateBooleanConditionAndJumps(cmp, trueBlock, falseBlock)
-        trueBlock.mature()
-        falseBlock.mature()
     }
 
     /**
@@ -679,15 +677,12 @@ object FirmContext {
         generateBooleanCondition(ifStatement.condition, thenBlock, elseBlock, transformer)
         thenBlock.mature()
 
-        if (withElse)
-            elseBlock.mature()
-
         construction.currentBlock = thenBlock
-
-        createUnconditionalJump(afterBlock)
         ifStatement.thenCase.accept(transformer)
+        createUnconditionalJump(afterBlock)
 
         if (withElse) {
+            elseBlock.mature()
             construction.currentBlock = elseBlock
             ifStatement.elseCase?.accept(transformer)
             createUnconditionalJump(afterBlock)
