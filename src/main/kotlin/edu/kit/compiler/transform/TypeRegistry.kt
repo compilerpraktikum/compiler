@@ -18,16 +18,6 @@ import firm.PointerType
 import firm.Program
 import firm.Type
 
-fun SemanticType.toVariableType(): Type = when (this) {
-    SemanticType.Integer -> FirmContext.typeRegistry.intType
-    SemanticType.Boolean -> FirmContext.typeRegistry.boolType
-    is SemanticType.Class -> FirmContext.typeRegistry.getClassReferenceType(name.symbol)
-    is SemanticType.Array -> FirmContext.typeRegistry.getArrayReferenceType(this)
-    SemanticType.Null,
-    SemanticType.Void,
-    SemanticType.Error -> throw IllegalArgumentException("invalid type ${display()}")
-}
-
 val SemanticType.mode: Mode
     get() = when (this) {
         SemanticType.Integer -> Mode.getIs()
@@ -164,5 +154,15 @@ class TypeRegistry {
 
     fun getInternalMethod(name: String): Entity {
         return internalMethods[name] ?: throw IllegalArgumentException("unknown internal method `$name`")
+    }
+
+    fun SemanticType.toVariableType(): Type = when (this) {
+        SemanticType.Integer -> intType
+        SemanticType.Boolean -> boolType
+        is SemanticType.Class -> getClassReferenceType(name.symbol)
+        is SemanticType.Array -> getArrayReferenceType(this)
+        SemanticType.Null,
+        SemanticType.Void,
+        SemanticType.Error -> throw IllegalArgumentException("invalid type ${display()}")
     }
 }

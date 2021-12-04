@@ -27,6 +27,10 @@ import firm.nodes.Start
 import firm.nodes.Store
 import java.util.Stack
 
+fun SemanticType.toVariableType(): Type = with(FirmContext.typeRegistry) {
+    toVariableType()
+}
+
 /**
  * Facade for all jFirm-related calls.
  */
