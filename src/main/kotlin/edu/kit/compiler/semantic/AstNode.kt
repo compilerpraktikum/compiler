@@ -125,6 +125,11 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         lateinit var expectedType: SemanticType
 
         /**
+         * flag if a expression is on the left side of '=', will be set during semantic phase and is aviable in transformation phase
+         */
+        var isLHSASSIGN = false
+
+        /**
          * Primary expression encompassing a single identifier
          */
         class IdentifierExpression(val name: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
