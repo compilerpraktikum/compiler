@@ -117,11 +117,14 @@ class Compiler(private val config: Config) {
                         sourceFile.printAnnotations()
 
                         if (!sourceFile.hasError) {
+                            val pathString =  sourceFile.path.split('/')
+                            val name = pathString[pathString.size - 1].split(".")[0]
                             Transformation.transform(program)
                             Lower.lower()
                             //Lower.lowerMethods()
-                            Backend.createAssembler("foo.s", "bla.java")
-                            Runtime.getRuntime().exec("gcc foo.s -o foo")
+
+                            Backend.createAssembler("${name}.s", "${name}java")
+                            Runtime.getRuntime().exec("gcc ${name}.s -o ${name}")
 
 
                             // TODO invoke firm backend to generate executable
