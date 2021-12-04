@@ -264,6 +264,25 @@ class TypeAnalysisTest {
         }
     }
 
+    @Test
+    fun testArrayAccess() {
+        check(false, listOf("incompatible types: expected `Bait[]`, but got `int[]`")) {
+            """
+                class Bait {
+                    public int[] Z;
+
+                    public static void main(String[] args) {
+
+                    }
+
+                    public Bait test(int x) {
+                        return Z[3];
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
 //    @Test
 //    fun testUnknownMethod() {
 //        check(false) {
