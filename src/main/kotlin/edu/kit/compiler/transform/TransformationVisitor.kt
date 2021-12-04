@@ -64,7 +64,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
         parameterDeclarations = variableCounter.parameterMapping
         generatedMethod = methodDeclaration
 
-        FirmContext.subroutine(
+        FirmContext.constructMethod(
             FirmContext.typeRegistry.getMethod(
                 surroundingClass.name.symbol,
                 methodDeclaration.name.symbol
@@ -85,7 +85,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
         parameterDeclarations = emptyMap()
         generatedMethod = mainMethodDeclaration
 
-        FirmContext.subroutine(
+        FirmContext.constructMainMethod(
             FirmContext.typeRegistry.getMethod(
                 surroundingClass.name.symbol,
                 mainMethodDeclaration.name.symbol
@@ -173,11 +173,15 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        if (returnStatement.expression != null) {
-            super.visitReturnStatement(returnStatement)
-            FirmContext.returnStatement(true)
+        if (generatedMethod is AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+            FirmContext.specialMainReturnStatement()
         } else {
-            FirmContext.returnStatement(false)
+            if (returnStatement.expression != null) {
+                super.visitReturnStatement(returnStatement)
+                FirmContext.returnStatement(true)
+            } else {
+                FirmContext.returnStatement(false)
+            }
         }
     }
 

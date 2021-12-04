@@ -12,9 +12,7 @@ import firm.Entity
 import firm.Firm
 import firm.Graph
 import firm.Mode
-import firm.Program
 import firm.Relation
-import firm.SegmentType
 import firm.Type
 import firm.bindings.binding_ircons
 import firm.nodes.Block
@@ -33,14 +31,11 @@ fun SemanticType.toVariableType(): Type = with(FirmContext.typeRegistry) {
 
 /**
  * Facade for all jFirm-related calls.
+ *
+ * P.S: You are not allowed to ask about the 'principle of locality'. The [TransformationMethodVisitor] is a very close
+ * friend of this class and strongly coupled with this implementation
  */
 object FirmContext {
-    /**
-     * Firm global type singleton
-     */
-    private val global: SegmentType
-        get() = Program.getGlobalType()
-
     /**
      * Utility to manage [firm-types][Type].
      */
@@ -96,7 +91,7 @@ object FirmContext {
      * @param variables number of local variables and parameters within the subroutine
      * @param block code fragment that constructs the method's content
      */
-    fun subroutine(
+    fun constructMethod(
         methodEntity: Entity,
         method: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
         variables: Int,
@@ -118,7 +113,15 @@ object FirmContext {
             )
         }
 
-        finishSubroutine(block)
+        block.invoke()
+
+        // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
+        // manually. We can assert `void` here, because semantic analysis rejects non-void method without return.
+        if (construction.currentBlock !in this.exitBlocks) {
+            returnStatement(false)
+        }
+
+        finishSubroutine()
     }
 
     /**
@@ -128,17 +131,28 @@ object FirmContext {
      * @param variables number of local variables and parameters within the subroutine
      * @param block code fragment that constructs the method's content
      */
-    fun subroutine(
+    fun constructMainMethod(
         methodEntity: Entity,
         variables: Int,
         block: () -> Unit
     ) {
         prepareSubroutine(methodEntity, variables)
-        finishSubroutine(block)
+        block.invoke()
+
+        // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
+        // manually. We can assert `void` here, because semantic analysis rejects non-void method without return.
+        // but since this is the main method, we need to return an integer actually
+        if (construction.currentBlock !in this.exitBlocks) {
+            specialMainReturnStatement()
+        }
+        finishSubroutine()
     }
 
     /**
      * Prepare construction of a new subroutine
+     *
+     * @param methodEntity the firm entity of this method
+     * @param variables the number of parameters + local variables of this method
      */
     private fun prepareSubroutine(methodEntity: Entity, variables: Int): Node {
         check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
@@ -158,11 +172,10 @@ object FirmContext {
 
     /**
      * Finish construction of a subroutine
+     *
+     * @param block callback into [TransformationMethodVisitor] that generates the method's body.
      */
-    private fun finishSubroutine(block: () -> Unit) {
-        // construct method
-        block.invoke()
-
+    private fun finishSubroutine() {
         // insert end node
         returnNodes.forEach(this.graph!!.endBlock::addPred)
         this.construction.newEnd(emptyArray())
@@ -712,6 +725,16 @@ object FirmContext {
             this.construction.newReturn(mem, emptyArray())
         }
 
+        this.returnNodes.add(returnNode)
+        this.exitBlocks.add(construction.currentBlock)
+    }
+
+    /**
+     * Generate a special return statement for main methods (which returns 0)
+     */
+    fun specialMainReturnStatement() {
+        val returnNode =
+            this.construction.newReturn(this.construction.currentMem, arrayOf(construction.newConst(0, Mode.getIs())))
         this.returnNodes.add(returnNode)
         this.exitBlocks.add(construction.currentBlock)
     }
