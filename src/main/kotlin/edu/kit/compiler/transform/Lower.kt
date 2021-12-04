@@ -70,7 +70,7 @@ class Lower private constructor() {
             /* methods get implemented outside the class, move the entity */
             member.owner = Program.getGlobalType()
         }
-        cls.layoutFields()
+        //cls.layoutFields()
     }
 
     private fun layoutTypes() {
@@ -84,7 +84,9 @@ class Lower private constructor() {
             if (type is ClassType) {
                 layoutClass(type)
             }
+            println("type to string")
             //type.finishLayout()
+            println("---")
         }
     }
 

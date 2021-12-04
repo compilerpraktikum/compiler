@@ -124,7 +124,9 @@ class Compiler(private val config: Config) {
                             //Lower.lowerMethods()
 
                             Backend.createAssembler("${name}.s", "${name}.java")
-                            Runtime.getRuntime().exec("gcc ${name}.s -o ${name}")
+                            println("omg")
+                            Runtime.getRuntime().exec("gcc ${name}.s -o foo")
+                            println("32")
 
 
                             // TODO invoke firm backend to generate executable
