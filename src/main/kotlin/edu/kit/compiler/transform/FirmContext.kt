@@ -120,7 +120,6 @@ object FirmContext {
      * Construct the main method. Within [block] no other method may be constructed.
      *
      * @param methodEntity method entity
-     * @param method main method AST node
      * @param variables number of local variables and parameters within the subroutine
      * @param block code fragment that constructs the method's content
      */
@@ -185,13 +184,13 @@ object FirmContext {
             AST.BinaryExpression.Operation.ASSIGNMENT -> {
                 TODO()
             }
-            AST.BinaryExpression.Operation.OR -> shortCircuitEvaluation(
+            AST.BinaryExpression.Operation.OR -> generateShortCircuitEvaluation(
                 expr.left,
                 expr.right,
                 transformer,
                 AST.BinaryExpression.Operation.OR
             )
-            AST.BinaryExpression.Operation.AND -> shortCircuitEvaluation(
+            AST.BinaryExpression.Operation.AND -> generateShortCircuitEvaluation(
                 expr.left,
                 expr.right,
                 transformer,
@@ -275,6 +274,16 @@ object FirmContext {
         }
     }
 
+    /**
+     * Generate a phi-expression that will evaluate to 1 if [trueBlock] was taken and 0 if [falseBlock] was taken. Then
+     * both blocks jump to [afterBlock] and it will be the new active block of [construction].
+     *
+     * @param trueBlock the block that shall evaluate to 1
+     * @param falseBlock the block that shall evaluate to 0
+     * @param afterBlock the block where execution shall continue
+     *
+     * @return a node containing the byte value of the boolean operation
+     */
     private fun generateBooleanToBytePhi(trueBlock: Block, falseBlock: Block, afterBlock: Block): Node {
         construction.currentBlock = trueBlock
         val oneNode = construction.newConst(1, Mode.getBu())
@@ -292,9 +301,17 @@ object FirmContext {
     }
 
     /**
-     * Evaluate a binary boolean expression using short-circuit rules, for non-condition operations
+     * Evaluate a binary boolean expression using short-circuit rules, for non-condition operations.
+     * Use [generateShortCircuitCondition] for conditions.
+     *
+     * @param left left side of the expression
+     * @param right right side of the expression
+     * @param transformer an [AbstractVisitor] that performs code transformation for expressions
+     * @param operation either [AST.BinaryExpression.Operation.OR] or [AST.BinaryExpression.Operation.AND]
+     *
+     * @return a node that contains the result of the boolean operation (as a byte)
      */
-    private fun shortCircuitEvaluation(
+    private fun generateShortCircuitEvaluation(
         left: AstNode.Expression,
         right: AstNode.Expression,
         transformer: AbstractVisitor,
@@ -352,7 +369,7 @@ object FirmContext {
      * Generate a boolean binary condition using short-circuit logic as a condition expression. Do not use this method
      * for non-conditional expressions.
      */
-    private fun shortCircuitCondition(
+    private fun generateShortCircuitCondition(
         expr: AstNode.Expression.BinaryOperation,
         trueBlock: Block,
         falseBlock: Block,
@@ -401,7 +418,7 @@ object FirmContext {
                         generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
                     }
                     AST.BinaryExpression.Operation.OR -> {
-                        shortCircuitCondition(
+                        generateShortCircuitCondition(
                             expr,
                             trueBlock,
                             falseBlock,
@@ -410,7 +427,7 @@ object FirmContext {
                         )
                     }
                     AST.BinaryExpression.Operation.AND -> {
-                        shortCircuitCondition(
+                        generateShortCircuitCondition(
                             expr,
                             trueBlock,
                             falseBlock,
