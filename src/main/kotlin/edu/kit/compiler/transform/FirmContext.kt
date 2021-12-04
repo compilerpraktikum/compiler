@@ -349,6 +349,198 @@ object FirmContext {
     }
 
     /**
+     * Generate a boolean binary condition using short-circuit logic as a condition expression. Do not use this method
+     * for non-conditional expressions.
+     */
+    private fun shortCircuitCondition(
+        expr: AstNode.Expression.BinaryOperation,
+        trueBlock: Block,
+        falseBlock: Block,
+        transformer: TransformationMethodVisitor,
+        op: AST.BinaryExpression.Operation
+    ) {
+        val rightBlock = construction.newBlock()
+        when (op) {
+            AST.BinaryExpression.Operation.OR -> generateBooleanCondition(expr.left, trueBlock, rightBlock, transformer)
+            AST.BinaryExpression.Operation.AND -> generateBooleanCondition(
+                expr.left,
+                rightBlock,
+                falseBlock,
+                transformer
+            )
+            else -> throw AssertionError()
+        }
+
+        rightBlock.mature()
+        construction.currentBlock = rightBlock
+
+        generateBooleanCondition(expr.right, trueBlock, falseBlock, transformer)
+    }
+
+    /**
+     * Generate a condition from an expression. The expression must not be further visited by the [transformer], because
+     * this method decides which parts of the expression will be visited, and in which order.
+     *
+     * @param expr the expression to generate a condition from
+     * @param trueBlock where to jump if the condition evaluates to true
+     * @param falseBlock where to jump if the condition evaluates to false
+     * @param transformer the [TransformationMethodVisitor] that is being used to generated partial expressions of the
+     * condition
+     */
+    private fun generateBooleanCondition(
+        expr: AstNode.Expression,
+        trueBlock: Block,
+        falseBlock: Block,
+        transformer: TransformationMethodVisitor
+    ) {
+        when (expr) {
+            is AstNode.Expression.BinaryOperation -> {
+                when (expr.operation) {
+                    AST.BinaryExpression.Operation.ASSIGNMENT -> {
+                        expr.accept(transformer)
+                        generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
+                    }
+                    AST.BinaryExpression.Operation.OR -> {
+                        shortCircuitCondition(
+                            expr,
+                            trueBlock,
+                            falseBlock,
+                            transformer,
+                            AST.BinaryExpression.Operation.OR
+                        )
+                    }
+                    AST.BinaryExpression.Operation.AND -> {
+                        shortCircuitCondition(
+                            expr,
+                            trueBlock,
+                            falseBlock,
+                            transformer,
+                            AST.BinaryExpression.Operation.AND
+                        )
+                    }
+                    AST.BinaryExpression.Operation.EQUALS ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.Equal,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.NOT_EQUALS ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.LessGreater,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.LESS_THAN ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.Less,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.GREATER_THAN ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.Greater,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.LESS_EQUALS ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.LessEqual,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.GREATER_EQUALS ->
+                        generateRelationCondition(
+                            expr.left,
+                            expr.right,
+                            trueBlock,
+                            falseBlock,
+                            Relation.GreaterEqual,
+                            transformer
+                        )
+                    AST.BinaryExpression.Operation.ADDITION,
+                    AST.BinaryExpression.Operation.SUBTRACTION,
+                    AST.BinaryExpression.Operation.MULTIPLICATION,
+                    AST.BinaryExpression.Operation.DIVISION,
+                    AST.BinaryExpression.Operation.MODULO -> throw AssertionError("cannot have a numeric operation as a condition")
+                }
+            }
+            is AstNode.Expression.MethodInvocationExpression,
+            is AstNode.Expression.FieldAccessExpression,
+            is AstNode.Expression.IdentifierExpression,
+            is AstNode.Expression.ArrayAccessExpression -> {
+                expr.accept(transformer)
+                generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
+            }
+            is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
+                generateBooleanCheck(
+                    construction.newConst(if (expr.value) 1 else 0, Mode.getBu()),
+                    trueBlock,
+                    falseBlock
+                )
+            }
+            is AstNode.Expression.UnaryOperation -> when (expr.operation) {
+                AST.UnaryExpression.Operation.NOT -> generateBooleanCondition(
+                    expr.inner,
+                    falseBlock,
+                    trueBlock,
+                    transformer
+                )
+                AST.UnaryExpression.Operation.MINUS -> throw AssertionError("cannot have a numeric operation as a condition")
+            }
+            is AstNode.Expression.NewArrayExpression,
+            is AstNode.Expression.NewObjectExpression,
+            is AstNode.Expression.LiteralExpression.LiteralIntExpression,
+            is AstNode.Expression.LiteralExpression.LiteralNullExpression,
+            is AstNode.Expression.LiteralExpression.LiteralThisExpression -> throw AssertionError("cannot have non-boolean expression as condition")
+        }
+    }
+
+    /**
+     * Create a condition and the respective jumps for a relation expression. This is only intended for relations, not
+     * for general boolean expressions
+     *
+     * @param left left argument of the relation
+     * @param right right argument of the relation
+     * @param trueBlock where to jump if the arguments are in relation
+     * @param falseBlock where to jump if the arguments are not in relation
+     * @param relation the relation to test for
+     * @param transformer the transformer that is being used to generate code
+     */
+    private fun generateRelationCondition(
+        left: AstNode.Expression,
+        right: AstNode.Expression,
+        trueBlock: Block,
+        falseBlock: Block,
+        relation: Relation,
+        transformer: AbstractVisitor
+    ) {
+        left.accept(transformer)
+        val leftNode = expressionStack.pop()
+        right.accept(transformer)
+        val rightNode = expressionStack.pop()
+
+        val cmp = construction.newCmp(leftNode, rightNode, relation)
+        generateBooleanConditionAndJumps(cmp, trueBlock, falseBlock)
+        trueBlock.mature()
+        falseBlock.mature()
+    }
+
+    /**
      * Construct a unary expression. This is very similar to [binaryExpression] and the given sample code can be applied
      * directly to unary expressions.
      *
@@ -381,145 +573,6 @@ object FirmContext {
     }
 
     /**
-     * Generate a boolean binary operation using short-circuit logic as a condition expression. Do not use this method
-     * for non-conditional expressions.
-     */
-    private fun doShortCircuitOperation(
-        expr: AstNode.Expression.BinaryOperation,
-        trueBlock: Block,
-        falseBlock: Block,
-        transformer: TransformationMethodVisitor,
-        op: AST.BinaryExpression.Operation
-    ) {
-        val rightBlock = construction.newBlock()
-        when (op) {
-            AST.BinaryExpression.Operation.OR -> doShortCircuitCond(expr.left, trueBlock, rightBlock, transformer)
-            AST.BinaryExpression.Operation.AND -> doShortCircuitCond(expr.left, rightBlock, falseBlock, transformer)
-            else -> throw AssertionError()
-        }
-
-        rightBlock.mature()
-        construction.currentBlock = rightBlock
-
-        doShortCircuitCond(expr.right, trueBlock, falseBlock, transformer)
-    }
-
-    /**
-     * Generate a condition from an expression. The expression must not be further visited by the [transformer], because
-     * this method decides which parts of the expression will be visited, and in which order.
-     *
-     * @param expr the expression to generate a condition from
-     * @param trueBlock where to jump if the condition evaluates to true
-     * @param falseBlock where to jump if the condition evaluates to false
-     * @param transformer the [TransformationMethodVisitor] that is being used to generated partial expressions of the
-     * condition
-     */
-    private fun doShortCircuitCond(
-        expr: AstNode.Expression,
-        trueBlock: Block,
-        falseBlock: Block,
-        transformer: TransformationMethodVisitor
-    ) {
-        when (expr) {
-            is AstNode.Expression.BinaryOperation -> {
-                when (expr.operation) {
-                    AST.BinaryExpression.Operation.ASSIGNMENT -> {
-                        expr.accept(transformer)
-                        generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
-                    }
-                    AST.BinaryExpression.Operation.OR -> {
-                        doShortCircuitOperation(
-                            expr,
-                            trueBlock,
-                            falseBlock,
-                            transformer,
-                            AST.BinaryExpression.Operation.OR
-                        )
-                    }
-                    AST.BinaryExpression.Operation.AND -> {
-                        doShortCircuitOperation(
-                            expr,
-                            trueBlock,
-                            falseBlock,
-                            transformer,
-                            AST.BinaryExpression.Operation.AND
-                        )
-                    }
-                    AST.BinaryExpression.Operation.EQUALS ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Equal, transformer)
-                    AST.BinaryExpression.Operation.NOT_EQUALS ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.LessGreater, transformer)
-                    AST.BinaryExpression.Operation.LESS_THAN ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Less, transformer)
-                    AST.BinaryExpression.Operation.GREATER_THAN ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Greater, transformer)
-                    AST.BinaryExpression.Operation.LESS_EQUALS ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.LessEqual, transformer)
-                    AST.BinaryExpression.Operation.GREATER_EQUALS ->
-                        doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.GreaterEqual, transformer)
-                    AST.BinaryExpression.Operation.ADDITION,
-                    AST.BinaryExpression.Operation.SUBTRACTION,
-                    AST.BinaryExpression.Operation.MULTIPLICATION,
-                    AST.BinaryExpression.Operation.DIVISION,
-                    AST.BinaryExpression.Operation.MODULO -> throw AssertionError("cannot have a numeric operation as a condition")
-                }
-            }
-            is AstNode.Expression.MethodInvocationExpression,
-            is AstNode.Expression.FieldAccessExpression,
-            is AstNode.Expression.IdentifierExpression,
-            is AstNode.Expression.ArrayAccessExpression -> {
-                expr.accept(transformer)
-                generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
-            }
-            is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
-                generateBooleanCheck(
-                    construction.newConst(if (expr.value) 1 else 0, Mode.getBu()),
-                    trueBlock,
-                    falseBlock
-                )
-            }
-            is AstNode.Expression.UnaryOperation -> when (expr.operation) {
-                AST.UnaryExpression.Operation.NOT -> doShortCircuitCond(expr.inner, falseBlock, trueBlock, transformer)
-                AST.UnaryExpression.Operation.MINUS -> throw AssertionError("cannot have a numeric operation as a condition")
-            }
-            is AstNode.Expression.NewArrayExpression,
-            is AstNode.Expression.NewObjectExpression,
-            is AstNode.Expression.LiteralExpression.LiteralIntExpression,
-            is AstNode.Expression.LiteralExpression.LiteralNullExpression,
-            is AstNode.Expression.LiteralExpression.LiteralThisExpression -> throw AssertionError("cannot have non-boolean expression as condition")
-        }
-    }
-
-    /**
-     * Create a condition and the respective jumps for a relation expression.
-     *
-     * @param left left argument of the relation
-     * @param right right argument of the relation
-     * @param trueBlock where to jump if the arguments are in relation
-     * @param falseBlock where to jump if the arguments are not in relation
-     * @param relation the relation to test for
-     * @param transformer the transformer that is being used to generate code
-     */
-    private fun doCondRelation(
-        left: AstNode.Expression,
-        right: AstNode.Expression,
-        trueBlock: Block,
-        falseBlock: Block,
-        relation: Relation,
-        transformer: AbstractVisitor
-    ) {
-        left.accept(transformer)
-        val leftNode = expressionStack.pop()
-        right.accept(transformer)
-        val rightNode = expressionStack.pop()
-
-        val cmp = construction.newCmp(leftNode, rightNode, relation)
-        generateBooleanConditionAndJumps(cmp, trueBlock, falseBlock)
-        trueBlock.mature()
-        falseBlock.mature()
-    }
-
-    /**
      * Generate a while-loop with all necessary control flow. All condition expressions will be evaluated using the
      * short-circuit rules.
      */
@@ -530,7 +583,7 @@ object FirmContext {
 
         conditionBlock.addPred(construction.newJmp())
         construction.currentBlock = conditionBlock
-        doShortCircuitCond(whileStatement.condition, doBlock, afterBlock, transformer)
+        generateBooleanCondition(whileStatement.condition, doBlock, afterBlock, transformer)
 
         doBlock.mature()
         construction.currentBlock = doBlock
@@ -560,7 +613,7 @@ object FirmContext {
             afterBlock
         }
 
-        doShortCircuitCond(ifStatement.condition, thenBlock, elseBlock, transformer)
+        generateBooleanCondition(ifStatement.condition, thenBlock, elseBlock, transformer)
         thenBlock.mature()
 
         if (withElse)
