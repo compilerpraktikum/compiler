@@ -729,7 +729,7 @@ object FirmContext {
         surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
-        require(!identifierExpression.isLHSASSIGN) { "trying to generate memory access to LH side." }
+        require(!identifierExpression.isLeftHandAssignment) { "trying to generate memory access to LH side." }
 
         val valueNode = when (val definition = identifierExpression.definition!!.node) {
             is VariableNode.Field -> {
@@ -806,7 +806,7 @@ object FirmContext {
     fun fieldReadAccess(
         fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
     ) {
-        require(!fieldAccessExpression.isLHSASSIGN) { "trying to generate memory access to LH side." }
+        require(!fieldAccessExpression.isLeftHandAssignment) { "trying to generate memory access to LH side." }
 
         val loadNode = construction.newLoad(
             construction.currentMem,
