@@ -11,6 +11,7 @@ import firm.Dump
 import firm.Entity
 import firm.Firm
 import firm.Graph
+import firm.MethodType
 import firm.Mode
 import firm.Relation
 import firm.Type
@@ -116,8 +117,8 @@ object FirmContext {
         block.invoke()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
-        // manually. We can assert `void` here, because semantic analysis rejects non-void method without return.
-        if (construction.currentBlock !in this.exitBlocks) {
+        // manually.
+        if (construction.currentBlock !in this.exitBlocks && (methodEntity.type as MethodType).getResType(0) == null) {
             returnStatement(false)
         }
 
@@ -140,8 +141,7 @@ object FirmContext {
         block.invoke()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
-        // manually. We can assert `void` here, because semantic analysis rejects non-void method without return.
-        // but since this is the main method, we need to return an integer actually
+        // manually.
         if (construction.currentBlock !in this.exitBlocks) {
             specialMainReturnStatement()
         }
