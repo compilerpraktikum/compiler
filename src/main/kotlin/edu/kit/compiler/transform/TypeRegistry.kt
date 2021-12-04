@@ -142,11 +142,24 @@ class TypeRegistry {
         return entity
     }
 
+    private fun createAllocateFunction(): Entity {
+        val paramTypes = arrayOf(Mode.getLu().type)
+        val returnType = arrayOf(Mode.getP().type)
+
+        val type = MethodType(paramTypes, returnType)
+        val entity = Entity(Program.getGlobalType(), "allocate", type)
+        val prevValue = internalMethods.putIfAbsent("allocate", entity)
+        require(prevValue == null) { "internal method `allocate` already registered" }
+        return entity
+    }
+
     init {
         createInternalMethod(InternalFunction.SYSTEM_IN_READ)
         createInternalMethod(InternalFunction.SYSTEM_OUT_PRINTLN)
         createInternalMethod(InternalFunction.SYSTEM_OUT_WRITE)
         createInternalMethod(InternalFunction.SYSTEM_OUT_FLUSH)
+
+        createAllocateFunction()
     }
 
     fun getInternalMethod(name: String): Entity {
