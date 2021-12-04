@@ -4,7 +4,6 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.VariableNode
-import edu.kit.compiler.semantic.display
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import firm.Construction
@@ -424,25 +423,41 @@ object FirmContext {
         val mem = this.construction.currentMem
         val indexNode = expressionStack.pop()
         val targetNode = expressionStack.pop()
-        // val type = typeRegistry.getArrayReferenceType(arrayAccess.actualType as SemanticType.Array)
-        // construction.newLoad(mem, Pointer.new(targetNode + indexNode))
-        println(arrayAccess.target.actualType.display())
-        val loadNode = construction.newLoad(
-            mem,
-            construction.newSel(targetNode, indexNode, arrayAccess.target.actualType.toVariableType()),
-            Mode.getLs()
+
+        // multiply index by type size and add to base address. Use Ls as the type to fit all
+        val addressNode = construction.newAdd(
+            construction.newConv(
+                targetNode,
+                Mode.getLs()
+            ),
+            construction.newMul(
+                construction.newConv(
+                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getBu()),
+                    Mode.getLs()
+                ),
+                construction.newConv(
+                    indexNode,
+                    Mode.getLs()
+                )
+            )
         )
 
-        val newMem = construction.newProj(loadNode, Mode.getM(), 0) // TODO 0
+        val loadNode = construction.newLoad(
+            mem,
+            construction.newConv(addressNode, Mode.getP()),
+            arrayAccess.actualType.mode
+        )
+
+        val newMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
         construction.currentMem = newMem
 
         this.expressionStack.push(
             construction.newProj(
                 loadNode,
                 arrayAccess.actualType.toVariableType().mode,
-                0
+                Load.pnRes
             )
-        ) // TODO 0
+        )
     }
 
     fun ifStatement(
