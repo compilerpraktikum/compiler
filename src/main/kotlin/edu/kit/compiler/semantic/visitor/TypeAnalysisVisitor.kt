@@ -167,7 +167,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         // exMPLE ASSIGN test.testvar = 1 <- Int
 
         // right.expected = Int
-        if (binaryOperation.operation ==  AST.BinaryExpression.Operation.ASSIGNMENT) {
+        if (binaryOperation.operation == AST.BinaryExpression.Operation.ASSIGNMENT) {
             binaryOperation.left.isLHSASSIGN = true
         }
         binaryOperation.right.expectedType = when (binaryOperation.operation) {
