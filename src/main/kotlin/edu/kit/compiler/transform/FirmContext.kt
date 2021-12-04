@@ -190,35 +190,23 @@ object FirmContext {
             }
             AST.BinaryExpression.Operation.OR -> this.construction.newOr(firstNode, secondNode)
             AST.BinaryExpression.Operation.AND -> this.construction.newAnd(firstNode, secondNode)
-            AST.BinaryExpression.Operation.EQUALS -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.Equal
+            AST.BinaryExpression.Operation.EQUALS -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.Equal)
             )
-            AST.BinaryExpression.Operation.NOT_EQUALS -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.LessGreater
+            AST.BinaryExpression.Operation.NOT_EQUALS -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.LessGreater)
             )
-            AST.BinaryExpression.Operation.LESS_THAN -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.Less
+            AST.BinaryExpression.Operation.LESS_THAN -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.Less)
             )
-            AST.BinaryExpression.Operation.GREATER_THAN -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.Greater
+            AST.BinaryExpression.Operation.GREATER_THAN -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.Greater)
             )
-            AST.BinaryExpression.Operation.LESS_EQUALS -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.LessEqual
+            AST.BinaryExpression.Operation.LESS_EQUALS -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.LessEqual)
             )
-            AST.BinaryExpression.Operation.GREATER_EQUALS -> this.construction.newCmp(
-                firstNode,
-                secondNode,
-                Relation.GreaterEqual
+            AST.BinaryExpression.Operation.GREATER_EQUALS -> convertBoolToByte(
+                this.construction.newCmp(firstNode, secondNode, Relation.GreaterEqual)
             )
             AST.BinaryExpression.Operation.ADDITION -> this.construction.newAdd(firstNode, secondNode)
             AST.BinaryExpression.Operation.SUBTRACTION -> this.construction.newSub(firstNode, secondNode)
@@ -248,6 +236,37 @@ object FirmContext {
         }
 
         this.expressionStack.push(expression)
+    }
+
+    /**
+     * Generate control flow to push a byte using a boolean condition.
+     *
+     * @param comparison the boolean comparison whose result gets converted
+     */
+    fun convertBoolToByte(comparison: Node): Node {
+        val trueBlock = construction.newBlock()
+        val falseBlock = construction.newBlock()
+        val afterBlock = construction.newBlock()
+
+        val condition = construction.newCond(comparison)
+        trueBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnTrue))
+        falseBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnFalse))
+
+        trueBlock.mature()
+        falseBlock.mature()
+        construction.currentBlock = trueBlock
+        val oneNode = construction.newConst(1, Mode.getBu())
+        createUnconditionalJump(afterBlock)
+        construction.currentBlock = falseBlock
+        val zeroNode = construction.newConst(0, Mode.getBu())
+        createUnconditionalJump(afterBlock)
+        afterBlock.mature()
+        construction.currentBlock = afterBlock
+
+        return construction.newPhi(
+            arrayOf(oneNode, zeroNode),
+            Mode.getBu()
+        )
     }
 
     /**
