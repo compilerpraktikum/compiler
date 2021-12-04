@@ -24,6 +24,7 @@ import firm.nodes.Div
 import firm.nodes.Load
 import firm.nodes.Node
 import firm.nodes.Start
+import firm.nodes.Store
 import java.util.Stack
 
 /**
@@ -175,14 +176,19 @@ object FirmContext {
     /**
      * Construct a binary expression.
      *
-     * @param operation the [AST.BinaryExpression.Operation] variant that is being constructed
-     *
-     * @sample ConstructExpressions
+     * @param expr the [AstNode.Expression.BinaryOperation] variant that is being constructed
+     * @param surroundingMethod the method this expression is in
+     * @param transformer the [TransformationMethodVisitor] that will generate code for partial expressions
      */
-    fun binaryExpression(expr: AstNode.Expression.BinaryOperation, transformer: AbstractVisitor) {
+    fun binaryExpression(
+        expr: AstNode.Expression.BinaryOperation,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        transformer: TransformationMethodVisitor
+    ) {
         val expression = when (expr.operation) {
             AST.BinaryExpression.Operation.ASSIGNMENT -> {
-                TODO()
+                generateAssignment(expr, surroundingMethod, transformer)
+                return
             }
             AST.BinaryExpression.Operation.OR -> generateShortCircuitEvaluation(
                 expr.left,
@@ -255,6 +261,42 @@ object FirmContext {
         }
 
         this.expressionStack.push(expression)
+    }
+
+    /**
+     * Generate memory access to assign the right-hand side of [expr] to the left-hand side and push the value onto the
+     * expression stack
+     *
+     * @param expr the assignment expression
+     * @param surroundingMethod the surrounding method of this expression
+     * @param transformer an [AbstractVisitor] that will transform the partial expressions of this assignemtn
+     */
+    private fun generateAssignment(
+        expr: AstNode.Expression.BinaryOperation,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        transformer: TransformationMethodVisitor
+    ) {
+        val leftHandSide = expr.left
+        val rightHandSide = expr.right
+
+        rightHandSide.accept(transformer)
+        val value = expressionStack.pop()
+
+        when (leftHandSide) {
+            is AstNode.Expression.ArrayAccessExpression -> {
+                leftHandSide.target.accept(transformer)
+                leftHandSide.index.accept(transformer)
+                arrayWriteAccess(leftHandSide, value)
+            }
+            is AstNode.Expression.FieldAccessExpression -> fieldWriteAccess(leftHandSide, value)
+            is AstNode.Expression.IdentifierExpression -> identifierWriteAccess(
+                leftHandSide,
+                surroundingMethod,
+                transformer,
+                value
+            )
+            else -> throw AssertionError("invalid AST in transformation")
+        }
     }
 
     /**
@@ -682,11 +724,13 @@ object FirmContext {
      * @param surroundingMethod the method that contains the [identifierExpression]
      * @param transformer the [TransformationMethodVisitor] that generates code for the method
      */
-    fun memoryAccess(
+    fun identifierReadAccess(
         identifierExpression: AstNode.Expression.IdentifierExpression,
         surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
+        require(!identifierExpression.isLHSASSIGN) { "trying to generate memory access to LH side." }
+
         val valueNode = when (val definition = identifierExpression.definition!!.node) {
             is VariableNode.Field -> {
                 // an identifierExpression on a field is always an implicit field access on `this`,
@@ -695,10 +739,7 @@ object FirmContext {
                 loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 val loadNode = construction.newLoad(
                     construction.currentMem,
-                    construction.newMember(
-                        expressionStack.pop(),
-                        typeRegistry.getField(definition.node.owner.name.symbol, definition.node.name.symbol)
-                    ),
+                    getFieldMember(definition.node),
                     definition.type.mode
                 )
                 construction.currentMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
@@ -718,23 +759,58 @@ object FirmContext {
     }
 
     /**
+     * Write [value] to a member or variable identified by [identifierExpression] and then push [value] onto the
+     * expression stack.
+     */
+    fun identifierWriteAccess(
+        identifierExpression: AstNode.Expression.IdentifierExpression,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        transformer: TransformationMethodVisitor,
+        value: Node
+    ) {
+        when (val definition = identifierExpression.definition!!.node) {
+            is VariableNode.Field -> {
+                // an identifierExpression on a field is always an implicit field access on `this`,
+                // so we have to load the pointer. If it wasn't an access on `this`, it wouldn't be an
+                // identifier-expression but a field-access-expression
+                loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+                val loadNode = construction.newStore(
+                    construction.currentMem,
+                    getFieldMember(definition.node),
+                    value,
+                    typeRegistry.getField(definition.node.owner.name.symbol, definition.node.name.symbol).type
+                )
+                construction.currentMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
+            }
+            is VariableNode.LocalVariable -> construction.setVariable(
+                transformer.localVariableDeclarations[definition.node]!!,
+                value
+            )
+            is VariableNode.Parameter -> construction.setVariable(
+                transformer.parameterDeclarations[definition.node]!!,
+                value
+            )
+        }
+
+        expressionStack.push(value)
+    }
+
+    /**
      * Generate an access node to any defined field of an explicit target expression (like `a.field`). Implicit field
      * access on the `this` pointer are not [AstNode.Expression.FieldAccessExpression] and therefore not handled here.
+     * If the access is writing, the node pushed to the expression stack will be the accessed member, if the access is
+     * reading, the node will be the member's content.
      *
      * @param fieldAccessExpression the expression referencing the field to load
      */
-    fun memoryAccess(
+    fun fieldReadAccess(
         fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
     ) {
+        require(!fieldAccessExpression.isLHSASSIGN) { "trying to generate memory access to LH side." }
+
         val loadNode = construction.newLoad(
             construction.currentMem,
-            construction.newMember(
-                expressionStack.pop(),
-                typeRegistry.getField(
-                    fieldAccessExpression.definition!!.node.owner.name.symbol,
-                    fieldAccessExpression.definition!!.name
-                )
-            ),
+            getFieldMember(fieldAccessExpression.definition!!.node),
             fieldAccessExpression.definition!!.node.type.mode
         )
         construction.currentMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
@@ -748,18 +824,95 @@ object FirmContext {
     }
 
     /**
+     * Generate a write access event to a field and push the result value onto the expression stack
+     */
+    fun fieldWriteAccess(fieldAccessExpression: AstNode.Expression.FieldAccessExpression, value: Node) {
+        val storeNode = construction.newStore(
+            construction.currentMem,
+            getFieldMember(fieldAccessExpression.definition!!.node),
+            value,
+            typeRegistry.getField(
+                fieldAccessExpression.definition!!.node.owner.name.symbol,
+                fieldAccessExpression.field.symbol
+            ).type
+        )
+
+        construction.currentMem = construction.newProj(storeNode, Mode.getM(), Store.pnM)
+        expressionStack.push(value)
+    }
+
+    /**
+     * Generate a field member node for access
+     */
+    private fun getFieldMember(fieldDeclaration: AstNode.ClassMember.FieldDeclaration): Node {
+        return construction.newMember(
+            expressionStack.pop(),
+            typeRegistry.getField(
+                fieldDeclaration.owner.name.symbol,
+                fieldDeclaration.name.symbol
+            )
+        )
+    }
+
+    /**
      * Generate a memory access to an array. The index calculation will be done manually, because array in Mini-Java
      * aren't fixed-size.
      *
      * @param arrayAccess the array access expression
      */
-    fun arrayAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression) {
-        val mem = this.construction.currentMem
+    fun arrayReadAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression) {
         val indexNode = expressionStack.pop()
         val targetNode = expressionStack.pop()
+        val addressNode = getArrayPointer(arrayAccess, indexNode, targetNode)
 
+        val loadNode = construction.newLoad(
+            this.construction.currentMem,
+            construction.newConv(addressNode, Mode.getP()),
+            arrayAccess.actualType.mode
+        )
+
+        val newMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
+        construction.currentMem = newMem
+
+        this.expressionStack.push(
+            construction.newProj(
+                loadNode,
+                arrayAccess.actualType.toVariableType().mode,
+                Load.pnRes
+            )
+        )
+    }
+
+    /**
+     * Generate a write access event to an array and push the result value onto the expression stack
+     */
+    fun arrayWriteAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression, value: Node) {
+        val indexNode = expressionStack.pop()
+        val targetNode = expressionStack.pop()
+        val addressNode = getArrayPointer(arrayAccess, indexNode, targetNode)
+
+        val storeNode = construction.newStore(
+            this.construction.currentMem,
+            construction.newConv(addressNode, Mode.getP()),
+            value
+        )
+
+        val newMem = construction.newProj(storeNode, Mode.getM(), Store.pnM)
+        construction.currentMem = newMem
+
+        expressionStack.push(value)
+    }
+
+    /**
+     * Calculate the address of an array element
+     */
+    private fun getArrayPointer(
+        arrayAccess: AstNode.Expression.ArrayAccessExpression,
+        indexNode: Node,
+        targetNode: Node
+    ): Node {
         // multiply index by type size and add to base address. Use Ls as the type to fit all
-        val addressNode = construction.newAdd(
+        return construction.newAdd(
             construction.newConv(
                 targetNode,
                 Mode.getLs()
@@ -773,23 +926,6 @@ object FirmContext {
                     indexNode,
                     Mode.getLs()
                 )
-            )
-        )
-
-        val loadNode = construction.newLoad(
-            mem,
-            construction.newConv(addressNode, Mode.getP()),
-            arrayAccess.actualType.mode
-        )
-
-        val newMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
-        construction.currentMem = newMem
-
-        this.expressionStack.push(
-            construction.newProj(
-                loadNode,
-                arrayAccess.actualType.toVariableType().mode,
-                Load.pnRes
             )
         )
     }

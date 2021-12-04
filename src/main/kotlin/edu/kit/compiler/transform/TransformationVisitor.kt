@@ -97,7 +97,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-        FirmContext.binaryExpression(binaryOperation, this)
+        FirmContext.binaryExpression(binaryOperation, generatedMethod, this)
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
@@ -139,7 +139,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
         super.visitFieldAccessExpression(fieldAccessExpression)
-        FirmContext.memoryAccess(fieldAccessExpression)
+        FirmContext.fieldReadAccess(fieldAccessExpression)
     }
 
     override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
@@ -159,7 +159,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
         super.visitIdentifierExpression(identifierExpression)
-        FirmContext.memoryAccess(identifierExpression, generatedMethod, this)
+        FirmContext.identifierReadAccess(identifierExpression, generatedMethod, this)
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
@@ -169,7 +169,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
         super.visitArrayAccessExpression(arrayAccessExpression)
-        FirmContext.arrayAccess(arrayAccessExpression)
+        FirmContext.arrayReadAccess(arrayAccessExpression)
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
