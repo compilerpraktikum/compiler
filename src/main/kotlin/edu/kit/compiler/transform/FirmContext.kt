@@ -144,7 +144,9 @@ object FirmContext {
         val firstNode = expressionStack.pop()
 
         val expression = when (operation) {
-            AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
+            AST.BinaryExpression.Operation.ASSIGNMENT -> {
+                TODO()
+            }
             AST.BinaryExpression.Operation.OR -> this.construction.newOr(firstNode, secondNode)
             AST.BinaryExpression.Operation.AND -> this.construction.newAnd(firstNode, secondNode)
             AST.BinaryExpression.Operation.EQUALS -> this.construction.newCmp(
@@ -239,7 +241,11 @@ object FirmContext {
         this.expressionStack.push(this.construction.newConst(value, typeRegistry.intType.mode))
     }
 
-    private fun doCondShortEval(
+    /**
+     * Generate a boolean binary operation using short-circuit logic as a condition expression. Do not use this method
+     * for non-conditional expressions.
+     */
+    private fun doShortCircuitOperation(
         expr: AstNode.Expression.BinaryOperation,
         trueBlock: Block,
         falseBlock: Block,
@@ -248,33 +254,57 @@ object FirmContext {
     ) {
         val rightBlock = construction.newBlock()
         when (op) {
-            AST.BinaryExpression.Operation.OR -> doCond(expr.left, trueBlock, rightBlock, transformer)
-            AST.BinaryExpression.Operation.AND -> doCond(expr.left, rightBlock, falseBlock, transformer)
+            AST.BinaryExpression.Operation.OR -> doShortCircuitCond(expr.left, trueBlock, rightBlock, transformer)
+            AST.BinaryExpression.Operation.AND -> doShortCircuitCond(expr.left, rightBlock, falseBlock, transformer)
             else -> throw AssertionError()
         }
 
         rightBlock.mature()
         construction.currentBlock = rightBlock
 
-        doCond(expr.right, trueBlock, falseBlock, transformer)
+        doShortCircuitCond(expr.right, trueBlock, falseBlock, transformer)
     }
 
-    fun doCond(
+    /**
+     * Generate a condition from an expression. The expression must not be further visited by the [transformer], because
+     * this method decides which parts of the expression will be visited, and in which order.
+     *
+     * @param expr the expression to generate a condition from
+     * @param trueBlock where to jump if the condition evaluates to true
+     * @param falseBlock where to jump if the condition evaluates to false
+     * @param transformer the [TransformationMethodVisitor] that is being used to generated partial expressions of the
+     * condition
+     */
+    private fun doShortCircuitCond(
         expr: AstNode.Expression,
         trueBlock: Block,
         falseBlock: Block,
         transformer: TransformationMethodVisitor
     ) {
         when (expr) {
-            is AstNode.Expression.ArrayAccessExpression -> TODO()
             is AstNode.Expression.BinaryOperation -> {
                 when (expr.operation) {
-                    AST.BinaryExpression.Operation.ASSIGNMENT -> TODO()
+                    AST.BinaryExpression.Operation.ASSIGNMENT -> {
+                        expr.accept(transformer)
+                        generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
+                    }
                     AST.BinaryExpression.Operation.OR -> {
-                        doCondShortEval(expr, trueBlock, falseBlock, transformer, AST.BinaryExpression.Operation.OR)
+                        doShortCircuitOperation(
+                            expr,
+                            trueBlock,
+                            falseBlock,
+                            transformer,
+                            AST.BinaryExpression.Operation.OR
+                        )
                     }
                     AST.BinaryExpression.Operation.AND -> {
-                        doCondShortEval(expr, trueBlock, falseBlock, transformer, AST.BinaryExpression.Operation.AND)
+                        doShortCircuitOperation(
+                            expr,
+                            trueBlock,
+                            falseBlock,
+                            transformer,
+                            AST.BinaryExpression.Operation.AND
+                        )
                     }
                     AST.BinaryExpression.Operation.EQUALS ->
                         doCondRelation(expr.left, expr.right, trueBlock, falseBlock, Relation.Equal, transformer)
@@ -295,8 +325,13 @@ object FirmContext {
                     AST.BinaryExpression.Operation.MODULO -> throw AssertionError("cannot have a numeric operation as a condition")
                 }
             }
-            is AstNode.Expression.FieldAccessExpression -> TODO()
-            is AstNode.Expression.IdentifierExpression -> TODO()
+            is AstNode.Expression.MethodInvocationExpression,
+            is AstNode.Expression.FieldAccessExpression,
+            is AstNode.Expression.IdentifierExpression,
+            is AstNode.Expression.ArrayAccessExpression -> {
+                expr.accept(transformer)
+                generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
+            }
             is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
                 if (expr.value) {
                     trueBlock.addPred(construction.newJmp())
@@ -304,9 +339,8 @@ object FirmContext {
                     falseBlock.addPred(construction.newJmp())
                 }
             }
-            is AstNode.Expression.MethodInvocationExpression -> TODO()
             is AstNode.Expression.UnaryOperation -> when (expr.operation) {
-                AST.UnaryExpression.Operation.NOT -> doCond(expr.inner, falseBlock, trueBlock, transformer)
+                AST.UnaryExpression.Operation.NOT -> doShortCircuitCond(expr.inner, falseBlock, trueBlock, transformer)
                 AST.UnaryExpression.Operation.MINUS -> throw AssertionError("cannot have a numeric operation as a condition")
             }
             is AstNode.Expression.NewArrayExpression,
@@ -346,6 +380,24 @@ object FirmContext {
         falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
     }
 
+    /**
+     * Generate a condition that checks a boolean (byte) expression for the value `1` and jumps to the respective block.
+     *
+     * @param expr the expression that evaluates to 1 or 0
+     * @param trueBlock where to jump if the expression is 1
+     * @param falseBlock where to jump if the expression is 0
+     */
+    fun generateBooleanCheck(expr: Node, trueBlock: Block, falseBlock: Block) {
+        val cmp = construction.newCmp(expr, construction.newConst(1, Mode.getBu()), Relation.Equal)
+        val cond = construction.newCond(cmp)
+        trueBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnTrue))
+        falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
+    }
+
+    /**
+     * Generate a while-loop with all necessary control flow. All condition expressions will be evaluated using the
+     * short-circuit rules.
+     */
     fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: TransformationMethodVisitor) {
         val conditionBlock = construction.newBlock()
         val doBlock = construction.newBlock()
@@ -353,7 +405,7 @@ object FirmContext {
 
         conditionBlock.addPred(construction.newJmp())
         construction.currentBlock = conditionBlock
-        doCond(whileStatement.condition, doBlock, afterBlock, transformer)
+        doShortCircuitCond(whileStatement.condition, doBlock, afterBlock, transformer)
 
         doBlock.mature()
         construction.currentBlock = doBlock
@@ -365,101 +417,10 @@ object FirmContext {
         construction.currentBlock = afterBlock
     }
 
-    fun methodInvocation(
-        methodInvocationExpression: AstNode.Expression.MethodInvocationExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
-        transformer: TransformationMethodVisitor
-    ) {
-        val numberOfArguments = methodInvocationExpression.arguments.size
-        val args = arrayOfNulls<Node>(numberOfArguments + 1)
-
-        // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
-        // the transformer won't do it if `target == null`
-        if (methodInvocationExpression.target == null)
-            loadThis(surroundingMethod)
-
-        args[0] = expressionStack.pop()
-        for (i in 1 until args.size) {
-            args[i] = this.expressionStack.pop()
-        }
-        // parameters in reverse order and dont forget 'this'
-
-        val definition = when (val type = methodInvocationExpression.type!!) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> TODO()
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> type.definition
-        }
-
-        // for address calculation of the method
-        loadThis(surroundingMethod)
-
-        val call =
-            construction.newCall(
-                construction.currentMem,
-                construction.newMember(
-                    expressionStack.pop(),
-                    typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
-                ),
-                args,
-                typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol).type
-            )
-        val resultTuple = construction.newProj(call, Mode.getT(), Call.pnTResult)
-        construction.currentMem = construction.newProj(call, Mode.getM(), Call.pnM)
-
-        // special case for "void return"
-        if (methodInvocationExpression.type!!.returnType is SemanticType.Void) {
-            expressionStack.push(construction.newProj(resultTuple, Mode.getANY(), 0))
-        } else {
-            expressionStack.push(
-                construction.newProj(
-                    resultTuple,
-                    methodInvocationExpression.actualType.mode,
-                    0
-                )
-            )
-        }
-    }
-
-    fun arrayAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression, transformer: TransformationMethodVisitor) {
-        val mem = this.construction.currentMem
-        val indexNode = expressionStack.pop()
-        val targetNode = expressionStack.pop()
-
-        // multiply index by type size and add to base address. Use Ls as the type to fit all
-        val addressNode = construction.newAdd(
-            construction.newConv(
-                targetNode,
-                Mode.getLs()
-            ),
-            construction.newMul(
-                construction.newConv(
-                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getBu()),
-                    Mode.getLs()
-                ),
-                construction.newConv(
-                    indexNode,
-                    Mode.getLs()
-                )
-            )
-        )
-
-        val loadNode = construction.newLoad(
-            mem,
-            construction.newConv(addressNode, Mode.getP()),
-            arrayAccess.actualType.mode
-        )
-
-        val newMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
-        construction.currentMem = newMem
-
-        this.expressionStack.push(
-            construction.newProj(
-                loadNode,
-                arrayAccess.actualType.toVariableType().mode,
-                Load.pnRes
-            )
-        )
-    }
-
+    /**
+     * Generate an if-statement and all necessary control flow. All condition expressions will be evaluated using the
+     * short-circuit rules.
+     */
     fun ifStatement(
         withElse: Boolean,
         ifStatement: AstNode.Statement.IfStatement,
@@ -474,7 +435,7 @@ object FirmContext {
             afterBlock
         }
 
-        doCond(ifStatement.condition, thenBlock, elseBlock, transformer)
+        doShortCircuitCond(ifStatement.condition, thenBlock, elseBlock, transformer)
         thenBlock.mature()
 
         if (withElse)
@@ -495,6 +456,9 @@ object FirmContext {
         construction.currentBlock = afterBlock
     }
 
+    /**
+     * Generate a return statement and add the returned expression to it, if any.
+     */
     fun returnStatement(withExpression: Boolean) {
         val mem = this.construction.currentMem
 
@@ -550,11 +514,10 @@ object FirmContext {
     }
 
     /**
-     * Generate an access node to any defined field of an explicit target expression (like `a.field`).
+     * Generate an access node to any defined field of an explicit target expression (like `a.field`). Implicit field
+     * access on the `this` pointer are not [AstNode.Expression.FieldAccessExpression] and therefore not handled here.
      *
      * @param fieldAccessExpression the expression referencing the field to load
-     * @param surroundingMethod the method that contains the [fieldAccessExpression]
-     * @param transformer the [TransformationMethodVisitor] that generates code for the method
      */
     fun memoryAccess(
         fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
@@ -578,6 +541,111 @@ object FirmContext {
                 Load.pnRes
             )
         )
+    }
+
+    /**
+     * Generate a memory access to an array. The index calculation will be done manually, because array in Mini-Java
+     * aren't fixed-size.
+     *
+     * @param arrayAccess the array access expression
+     */
+    fun arrayAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression) {
+        val mem = this.construction.currentMem
+        val indexNode = expressionStack.pop()
+        val targetNode = expressionStack.pop()
+
+        // multiply index by type size and add to base address. Use Ls as the type to fit all
+        val addressNode = construction.newAdd(
+            construction.newConv(
+                targetNode,
+                Mode.getLs()
+            ),
+            construction.newMul(
+                construction.newConv(
+                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getBu()),
+                    Mode.getLs()
+                ),
+                construction.newConv(
+                    indexNode,
+                    Mode.getLs()
+                )
+            )
+        )
+
+        val loadNode = construction.newLoad(
+            mem,
+            construction.newConv(addressNode, Mode.getP()),
+            arrayAccess.actualType.mode
+        )
+
+        val newMem = construction.newProj(loadNode, Mode.getM(), Load.pnM)
+        construction.currentMem = newMem
+
+        this.expressionStack.push(
+            construction.newProj(
+                loadNode,
+                arrayAccess.actualType.toVariableType().mode,
+                Load.pnRes
+            )
+        )
+    }
+
+    /**
+     * Generate a method call and push its result onto the expression stack. If the call does not return a value, a
+     * dummy value will be placed on the stack, so expression-statements (which contain method calls that don't return
+     * anything) don't pop wrong data from the stack.
+     */
+    fun methodInvocation(
+        methodInvocationExpression: AstNode.Expression.MethodInvocationExpression,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration
+    ) {
+        val numberOfArguments = methodInvocationExpression.arguments.size
+        val args = arrayOfNulls<Node>(numberOfArguments + 1)
+
+        // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
+        // the transformer won't do it if `target == null`
+        if (methodInvocationExpression.target == null)
+            loadThis(surroundingMethod)
+
+        args[0] = expressionStack.pop()
+        for (i in 1 until args.size) {
+            args[i] = this.expressionStack.pop()
+        }
+        // parameters in reverse order and dont forget 'this'
+
+        val definition = when (val type = methodInvocationExpression.type!!) {
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> TODO()
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> type.definition
+        }
+
+        // for address calculation of the method
+        loadThis(surroundingMethod)
+
+        val call =
+            construction.newCall(
+                construction.currentMem,
+                construction.newMember(
+                    expressionStack.pop(),
+                    typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
+                ),
+                args,
+                typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol).type
+            )
+        val resultTuple = construction.newProj(call, Mode.getT(), Call.pnTResult)
+        construction.currentMem = construction.newProj(call, Mode.getM(), Call.pnM)
+
+        // special case for "void return"
+        if (methodInvocationExpression.type!!.returnType is SemanticType.Void) {
+            expressionStack.push(construction.newProj(resultTuple, Mode.getANY(), 0))
+        } else {
+            expressionStack.push(
+                construction.newProj(
+                    resultTuple,
+                    methodInvocationExpression.actualType.mode,
+                    0
+                )
+            )
+        }
     }
 
     /**
@@ -607,12 +675,15 @@ object FirmContext {
         }
     }
 
+    /**
+     * Load a null-pointer onto the expression stack
+     */
     fun loadNull() {
         expressionStack.push(construction.newConst(0, Mode.getP()))
     }
 
     /**
-     * An expression statement just pops the expression stack.
+     * An expression statement just pops the expression result from the expression stack.
      */
     fun expressionStatement() {
         // TODO: we must not pop if the last expression was a void method that did not push anything to the stack
@@ -622,6 +693,12 @@ object FirmContext {
         expressionStack.pop()
     }
 
+    /**
+     * Allocate space for an array on the heap and push the pointer to it into the expression stack. The allocated
+     * memory will be initialized conforming to the java standard.
+     *
+     * @param newArrayExpression the new-array expression
+     */
     fun newArrayAllocation(newArrayExpression: AstNode.Expression.NewArrayExpression) {
         val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getBu())
         val arrayLengthNode = expressionStack.pop()
@@ -632,6 +709,12 @@ object FirmContext {
         // todo initialize array with 0, false, or null
     }
 
+    /**
+     * Allocate space for an object on the heap and push the pointer to it into the expression stack. The allocated
+     * memory will be initialized conforming to the java standard.
+     *
+     * @param newObjectExpression the new-object expression
+     */
     fun newObjectAllocation(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         val typeSizeNode =
             construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getBu())

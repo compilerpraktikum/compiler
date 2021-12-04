@@ -130,7 +130,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
         methodInvocationExpression.arguments.forEach { it.accept(this) }
         methodInvocationExpression.target?.accept(this)
 
-        FirmContext.methodInvocation(methodInvocationExpression, generatedMethod, this)
+        FirmContext.methodInvocation(methodInvocationExpression, generatedMethod)
     }
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
@@ -145,7 +145,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
         super.visitArrayAccessExpression(arrayAccessExpression)
-        FirmContext.arrayAccess(arrayAccessExpression, this)
+        FirmContext.arrayAccess(arrayAccessExpression)
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
