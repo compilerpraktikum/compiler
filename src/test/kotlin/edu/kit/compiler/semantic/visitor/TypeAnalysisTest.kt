@@ -52,6 +52,31 @@ class TypeAnalysisTest {
     }
 
     @Test
+    fun testCallSystemOutInvalidArgument() =
+        check(false, listOf("incompatible types: expected `int`, but got `A`")) {
+            """
+            class A {
+                public static void main(String[] args) {
+                    System.out.println(new A());
+                }
+            }
+        """
+        }
+
+    @Test
+    fun testReturnMethodReturnValue() =
+        check(true) {
+            """
+            class A {
+                public int bla(A sth) { return 2; }
+                public static void main(String[] args) {
+                    System.out.println(new A().bla(new A()));
+                }
+            }
+        """
+        }
+
+    @Test
     fun testBasicFieldAccess() {
         check(true) {
             """
@@ -233,6 +258,25 @@ class TypeAnalysisTest {
                 class Test {
                     public void test() {
                         (5).foo();
+                    }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testArrayAccess() {
+        check(false, listOf("incompatible types: expected `Bait[]`, but got `int[]`")) {
+            """
+                class Bait {
+                    public int[] Z;
+
+                    public static void main(String[] args) {
+
+                    }
+
+                    public Bait test(int x) {
+                        return Z[3];
                     }
                 }
             """.trimIndent()
