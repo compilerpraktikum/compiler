@@ -7,6 +7,6 @@ import edu.kit.compiler.semantic.visitor.AbstractVisitor
 class ConstructExpressions : AbstractVisitor() {
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
         super.visitBinaryOperation(binaryOperation)
-        FirmContext.binaryExpression(binaryOperation.operation)
+        FirmContext.binaryExpression(binaryOperation, this)
     }
 }

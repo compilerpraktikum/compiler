@@ -97,8 +97,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-        super.visitBinaryOperation(binaryOperation)
-        FirmContext.binaryExpression(binaryOperation.operation)
+        FirmContext.binaryExpression(binaryOperation, this)
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {

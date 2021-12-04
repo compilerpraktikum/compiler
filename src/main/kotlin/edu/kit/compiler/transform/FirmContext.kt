@@ -180,58 +180,78 @@ object FirmContext {
      *
      * @sample ConstructExpressions
      */
-    fun binaryExpression(operation: AST.BinaryExpression.Operation) {
-        val secondNode = expressionStack.pop()
-        val firstNode = expressionStack.pop()
-
-        val expression = when (operation) {
+    fun binaryExpression(expr: AstNode.Expression.BinaryOperation, transformer: AbstractVisitor) {
+        val expression = when (expr.operation) {
             AST.BinaryExpression.Operation.ASSIGNMENT -> {
                 TODO()
             }
-            AST.BinaryExpression.Operation.OR -> this.construction.newOr(firstNode, secondNode)
-            AST.BinaryExpression.Operation.AND -> this.construction.newAnd(firstNode, secondNode)
-            AST.BinaryExpression.Operation.EQUALS -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.Equal)
+            AST.BinaryExpression.Operation.OR -> shortCircuitEvaluation(
+                expr.left,
+                expr.right,
+                transformer,
+                AST.BinaryExpression.Operation.OR
             )
-            AST.BinaryExpression.Operation.NOT_EQUALS -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.LessGreater)
+            AST.BinaryExpression.Operation.AND -> shortCircuitEvaluation(
+                expr.left,
+                expr.right,
+                transformer,
+                AST.BinaryExpression.Operation.AND
             )
-            AST.BinaryExpression.Operation.LESS_THAN -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.Less)
-            )
-            AST.BinaryExpression.Operation.GREATER_THAN -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.Greater)
-            )
-            AST.BinaryExpression.Operation.LESS_EQUALS -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.LessEqual)
-            )
-            AST.BinaryExpression.Operation.GREATER_EQUALS -> convertBoolToByte(
-                this.construction.newCmp(firstNode, secondNode, Relation.GreaterEqual)
-            )
-            AST.BinaryExpression.Operation.ADDITION -> this.construction.newAdd(firstNode, secondNode)
-            AST.BinaryExpression.Operation.SUBTRACTION -> this.construction.newSub(firstNode, secondNode)
-            AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction.newMul(firstNode, secondNode)
-            AST.BinaryExpression.Operation.DIVISION -> {
-                val m = this.construction.currentMem
-                val div = this.construction.newDiv(
-                    m,
-                    firstNode,
-                    secondNode,
-                    binding_ircons.op_pin_state.op_pin_state_pinned
-                )
-                this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
-                construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
-            }
-            AST.BinaryExpression.Operation.MODULO -> {
-                val m = this.construction.currentMem
-                val div = this.construction.newMod(
-                    m,
-                    firstNode,
-                    secondNode,
-                    binding_ircons.op_pin_state.op_pin_state_pinned
-                )
-                this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
-                construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
+            else -> {
+                expr.left.accept(transformer)
+                expr.right.accept(transformer)
+
+                val secondNode = expressionStack.pop()
+                val firstNode = expressionStack.pop()
+
+                when (expr.operation) {
+                    AST.BinaryExpression.Operation.EQUALS -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.Equal)
+                    )
+                    AST.BinaryExpression.Operation.NOT_EQUALS -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.LessGreater)
+                    )
+                    AST.BinaryExpression.Operation.LESS_THAN -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.Less)
+                    )
+                    AST.BinaryExpression.Operation.GREATER_THAN -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.Greater)
+                    )
+                    AST.BinaryExpression.Operation.LESS_EQUALS -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.LessEqual)
+                    )
+                    AST.BinaryExpression.Operation.GREATER_EQUALS -> convertBoolToByte(
+                        this.construction.newCmp(firstNode, secondNode, Relation.GreaterEqual)
+                    )
+                    AST.BinaryExpression.Operation.ADDITION -> this.construction.newAdd(firstNode, secondNode)
+                    AST.BinaryExpression.Operation.SUBTRACTION -> this.construction.newSub(firstNode, secondNode)
+                    AST.BinaryExpression.Operation.MULTIPLICATION -> this.construction.newMul(firstNode, secondNode)
+                    AST.BinaryExpression.Operation.DIVISION -> {
+                        val m = this.construction.currentMem
+                        val div = this.construction.newDiv(
+                            m,
+                            firstNode,
+                            secondNode,
+                            binding_ircons.op_pin_state.op_pin_state_pinned
+                        )
+                        this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
+                        construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
+                    }
+                    AST.BinaryExpression.Operation.MODULO -> {
+                        val m = this.construction.currentMem
+                        val div = this.construction.newMod(
+                            m,
+                            firstNode,
+                            secondNode,
+                            binding_ircons.op_pin_state.op_pin_state_pinned
+                        )
+                        this.construction.currentMem = construction.newProj(div, Mode.getM(), Div.pnM)
+                        construction.newProj(div, typeRegistry.intType.mode, Div.pnRes)
+                    }
+                    AST.BinaryExpression.Operation.ASSIGNMENT,
+                    AST.BinaryExpression.Operation.OR,
+                    AST.BinaryExpression.Operation.AND -> throw AssertionError("unreachable")
+                }
             }
         }
 
@@ -243,17 +263,19 @@ object FirmContext {
      *
      * @param comparison the boolean comparison whose result gets converted
      */
-    fun convertBoolToByte(comparison: Node): Node {
+    private fun convertBoolToByte(comparison: Node): Node {
         val trueBlock = construction.newBlock()
         val falseBlock = construction.newBlock()
         val afterBlock = construction.newBlock()
 
-        val condition = construction.newCond(comparison)
-        trueBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnTrue))
-        falseBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnFalse))
+        generateBooleanConditionAndJumps(comparison, trueBlock, falseBlock)
+        return generateBooleanToBytePhi(trueBlock, falseBlock, afterBlock).also {
+            trueBlock.mature()
+            falseBlock.mature()
+        }
+    }
 
-        trueBlock.mature()
-        falseBlock.mature()
+    private fun generateBooleanToBytePhi(trueBlock: Block, falseBlock: Block, afterBlock: Block): Node {
         construction.currentBlock = trueBlock
         val oneNode = construction.newConst(1, Mode.getBu())
         createUnconditionalJump(afterBlock)
@@ -267,6 +289,63 @@ object FirmContext {
             arrayOf(oneNode, zeroNode),
             Mode.getBu()
         )
+    }
+
+    /**
+     * Evaluate a binary boolean expression using short-circuit rules, for non-condition operations
+     */
+    private fun shortCircuitEvaluation(
+        left: AstNode.Expression,
+        right: AstNode.Expression,
+        transformer: AbstractVisitor,
+        operation: AST.BinaryExpression.Operation
+    ): Node {
+        left.accept(transformer)
+        val rightSideBlock = construction.newBlock()
+        val trueBlock = construction.newBlock()
+        val falseBlock = construction.newBlock()
+        val afterBlock = construction.newBlock()
+
+        when (operation) {
+            AST.BinaryExpression.Operation.OR -> generateBooleanCheck(expressionStack.pop(), trueBlock, rightSideBlock)
+            AST.BinaryExpression.Operation.AND -> generateBooleanCheck(
+                expressionStack.pop(),
+                rightSideBlock,
+                falseBlock
+            )
+            else -> throw AssertionError()
+        }
+
+        rightSideBlock.mature()
+        construction.currentBlock = rightSideBlock
+        right.accept(transformer)
+        generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
+
+        trueBlock.mature()
+        falseBlock.mature()
+
+        return generateBooleanToBytePhi(trueBlock, falseBlock, afterBlock).also { afterBlock.mature() }
+    }
+
+    /**
+     * Generate a boolean condition with jumps to [trueBlock] and [falseBlock] from an [comparison] (that must be a comparison)
+     */
+    private fun generateBooleanConditionAndJumps(comparison: Node, trueBlock: Block, falseBlock: Block) {
+        val condition = construction.newCond(comparison)
+        trueBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnTrue))
+        falseBlock.addPred(construction.newProj(condition, Mode.getX(), Cond.pnFalse))
+    }
+
+    /**
+     * Generate a condition that checks a boolean (byte) expression for the value `1` and jumps to the respective block.
+     *
+     * @param expr the expression that evaluates to 1 or 0
+     * @param trueBlock where to jump if the expression is 1
+     * @param falseBlock where to jump if the expression is 0
+     */
+    private fun generateBooleanCheck(expr: Node, trueBlock: Block, falseBlock: Block) {
+        val cmp = construction.newCmp(expr, construction.newConst(1, Mode.getBu()), Relation.Equal)
+        generateBooleanConditionAndJumps(cmp, trueBlock, falseBlock)
     }
 
     /**
@@ -435,23 +514,9 @@ object FirmContext {
         val rightNode = expressionStack.pop()
 
         val cmp = construction.newCmp(leftNode, rightNode, relation)
-        val cond = construction.newCond(cmp)
-        trueBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnTrue))
-        falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
-    }
-
-    /**
-     * Generate a condition that checks a boolean (byte) expression for the value `1` and jumps to the respective block.
-     *
-     * @param expr the expression that evaluates to 1 or 0
-     * @param trueBlock where to jump if the expression is 1
-     * @param falseBlock where to jump if the expression is 0
-     */
-    fun generateBooleanCheck(expr: Node, trueBlock: Block, falseBlock: Block) {
-        val cmp = construction.newCmp(expr, construction.newConst(1, Mode.getBu()), Relation.Equal)
-        val cond = construction.newCond(cmp)
-        trueBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnTrue))
-        falseBlock.addPred(construction.newProj(cond, Mode.getX(), Cond.pnFalse))
+        generateBooleanConditionAndJumps(cmp, trueBlock, falseBlock)
+        trueBlock.mature()
+        falseBlock.mature()
     }
 
     /**
