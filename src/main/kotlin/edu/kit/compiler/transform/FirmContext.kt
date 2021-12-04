@@ -368,11 +368,11 @@ object FirmContext {
                 generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
             }
             is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
-                if (expr.value) {
-                    trueBlock.addPred(construction.newJmp())
-                } else {
-                    falseBlock.addPred(construction.newJmp())
-                }
+                generateBooleanCheck(
+                    construction.newConst(if (expr.value) 1 else 0, Mode.getBu()),
+                    trueBlock,
+                    falseBlock
+                )
             }
             is AstNode.Expression.UnaryOperation -> when (expr.operation) {
                 AST.UnaryExpression.Operation.NOT -> doShortCircuitCond(expr.inner, falseBlock, trueBlock, transformer)
