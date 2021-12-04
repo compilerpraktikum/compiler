@@ -83,7 +83,7 @@ object FirmContext {
      *
      * @param methodEntity method entity
      * @param method method AST node
-     * @param variables number of local variables within the subroutine
+     * @param variables number of local variables and parameters within the subroutine
      * @param block code fragment that constructs the method's content
      */
     fun subroutine(
@@ -92,6 +92,46 @@ object FirmContext {
         variables: Int,
         block: () -> Unit
     ) {
+        val parameterTuple = prepareSubroutine(methodEntity, variables)
+
+        // set `this`
+        construction.setVariable(
+            0,
+            construction.newProj(parameterTuple, typeRegistry.getClassReferenceType(method.owner.name.symbol).mode, 0)
+        )
+
+        // load parameters into helper variables
+        for (index in (1..method.parameters.size)) {
+            construction.setVariable(
+                index,
+                construction.newProj(parameterTuple, method.parameters[index - 1].type.mode, index)
+            )
+        }
+
+        finishSubroutine(block)
+    }
+
+    /**
+     * Construct the main method. Within [block] no other method may be constructed.
+     *
+     * @param methodEntity method entity
+     * @param method main method AST node
+     * @param variables number of local variables and parameters within the subroutine
+     * @param block code fragment that constructs the method's content
+     */
+    fun subroutine(
+        methodEntity: Entity,
+        variables: Int,
+        block: () -> Unit
+    ) {
+        prepareSubroutine(methodEntity, variables)
+        finishSubroutine(block)
+    }
+
+    /**
+     * Prepare construction of a new subroutine
+     */
+    private fun prepareSubroutine(methodEntity: Entity, variables: Int): Node {
         check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
 
         this.graph = Graph(methodEntity, variables)
@@ -104,18 +144,13 @@ object FirmContext {
         this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), Start.pnM)
 
         // load parameters and store in local helper variables
-        val parameterTuple = construction.newProj(startNode, Mode.getT(), Start.pnTArgs)
-        construction.setVariable(
-            0,
-            construction.newProj(parameterTuple, typeRegistry.getClassReferenceType(method.owner.name.symbol).mode, 0)
-        )
-        for (index in (1..method.parameters.size)) {
-            construction.setVariable(
-                index,
-                construction.newProj(parameterTuple, method.parameters[index - 1].type.mode, index)
-            )
-        }
+        return construction.newProj(startNode, Mode.getT(), Start.pnTArgs)
+    }
 
+    /**
+     * Finish construction of a subroutine
+     */
+    private fun finishSubroutine(block: () -> Unit) {
         // construct method
         block.invoke()
 
@@ -480,7 +515,7 @@ object FirmContext {
      */
     fun memoryAccess(
         identifierExpression: AstNode.Expression.IdentifierExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
         val valueNode = when (val definition = identifierExpression.definition!!.node) {
@@ -488,7 +523,7 @@ object FirmContext {
                 // an identifierExpression on a field is always an implicit field access on `this`,
                 // so we have to load the pointer. If it wasn't an access on `this`, it wouldn't be an
                 // identifier-expression but a field-access-expression
-                loadThis(surroundingMethod)
+                loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 val loadNode = construction.newLoad(
                     construction.currentMem,
                     construction.newMember(
@@ -597,7 +632,7 @@ object FirmContext {
      */
     fun methodInvocation(
         methodInvocationExpression: AstNode.Expression.MethodInvocationExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration
+        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration
     ) {
         val numberOfArguments = methodInvocationExpression.arguments.size
         val args = arrayOfNulls<Node>(numberOfArguments + 1)
@@ -605,7 +640,10 @@ object FirmContext {
         // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
         // the transformer won't do it if `target == null`
         if (methodInvocationExpression.target == null)
-            loadThis(surroundingMethod)
+            loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+
+        // target of the method call (might be `this`)
+        val target = expressionStack.peek()
 
         args[0] = expressionStack.pop()
         for (i in 1 until args.size) {
@@ -618,14 +656,11 @@ object FirmContext {
             is AstNode.Expression.MethodInvocationExpression.Type.Normal -> type.definition
         }
 
-        // for address calculation of the method
-        loadThis(surroundingMethod)
-
         val call =
             construction.newCall(
                 construction.currentMem,
                 construction.newMember(
-                    expressionStack.pop(),
+                    target,
                     typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
                 ),
                 args,

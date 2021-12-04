@@ -22,6 +22,10 @@ private class TransformationClassVisitor(private val surroundingClass: AstNode.C
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
         methodDeclaration.accept(TransformationMethodVisitor(surroundingClass))
     }
+
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        mainMethodDeclaration.accept(TransformationMethodVisitor(surroundingClass))
+    }
 }
 
 /**
@@ -49,7 +53,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     /**
      * Method that is visited by this visitor
      */
-    private lateinit var generatedMethod: MethodDeclaration
+    private lateinit var generatedMethod: AstNode.ClassMember.SubroutineDeclaration
 
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
         val variableCounter = LocalVariableCounter(1)
@@ -69,6 +73,26 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
             numberOfVariables
         ) {
             super.visitMethodDeclaration(methodDeclaration)
+        }
+    }
+
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        val variableCounter = LocalVariableCounter(0)
+        mainMethodDeclaration.accept(variableCounter)
+
+        numberOfVariables = variableCounter.numberOfVariables
+        localVariableDeclarations = variableCounter.definitionMapping
+        parameterDeclarations = emptyMap()
+        generatedMethod = mainMethodDeclaration
+
+        FirmContext.subroutine(
+            FirmContext.typeRegistry.getMethod(
+                surroundingClass.name.symbol,
+                mainMethodDeclaration.name.symbol
+            ),
+            numberOfVariables
+        ) {
+            super.visitMainMethodDeclaration(mainMethodDeclaration)
         }
     }
 
@@ -106,7 +130,8 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
-        FirmContext.loadThis(generatedMethod)
+        // safe cast, because semantic analysis guarantees that `this` cannot be used in main-method
+        FirmContext.loadThis(generatedMethod as MethodDeclaration)
     }
 
     override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
