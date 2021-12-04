@@ -62,6 +62,11 @@ object FirmContext {
     private val returnNodes = mutableListOf<Node>()
 
     /**
+     * A list of blocks containing a return node. Those do not require jumps in the end (like then/else blocks)
+     */
+    private val exitBlocks = mutableListOf<Block>()
+
+    /**
      * A stack for constructing expressions using a visitor. Each constructed expression is added onto the stack,
      * each expression that needs arguments just takes them from the stack. Since the AST is guaranteed to be valid,
      * this cannot fail.
@@ -165,6 +170,7 @@ object FirmContext {
         this.currentConstruction = null
         this.graph = null
         this.returnNodes.clear()
+        this.exitBlocks.clear()
     }
 
     /**
@@ -445,7 +451,7 @@ object FirmContext {
         doBlock.mature()
         construction.currentBlock = doBlock
         whileStatement.statement.accept(transformer)
-        conditionBlock.addPred(construction.newJmp())
+        createUnconditionalJump(conditionBlock)
         conditionBlock.mature()
 
         afterBlock.mature()
@@ -478,17 +484,25 @@ object FirmContext {
 
         construction.currentBlock = thenBlock
 
-        afterBlock.addPred(construction.newJmp())
+        createUnconditionalJump(afterBlock)
         ifStatement.thenCase.accept(transformer)
 
         if (withElse) {
             construction.currentBlock = elseBlock
             ifStatement.elseCase?.accept(transformer)
-            afterBlock.addPred(construction.newJmp())
+            createUnconditionalJump(afterBlock)
         }
 
         afterBlock.mature()
         construction.currentBlock = afterBlock
+    }
+
+    /**
+     * Create an unconditional jump (iff the block does not contain a `return` statement).
+     */
+    private fun createUnconditionalJump(target: Block) {
+        if (!exitBlocks.contains(construction.currentBlock))
+            target.addPred(construction.newJmp())
     }
 
     /**
@@ -504,6 +518,7 @@ object FirmContext {
         }
 
         this.returnNodes.add(returnNode)
+        this.exitBlocks.add(construction.currentBlock)
     }
 
     /**
