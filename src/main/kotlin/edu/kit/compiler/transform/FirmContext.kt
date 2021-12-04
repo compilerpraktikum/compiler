@@ -606,4 +606,23 @@ object FirmContext {
         //  it here and refuse to pop
         expressionStack.pop()
     }
+
+    fun newArrayAllocation(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+        val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getBu())
+        val arrayLengthNode = expressionStack.pop()
+        val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
+
+        // todo: call std interface for new memory
+
+        // todo initialize array with 0, false, or null
+    }
+
+    fun newObjectAllocation(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+        val typeSizeNode =
+            construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getBu())
+
+        // todo: call std interface for new memory
+
+        // todo initialize members with 0, false, or null
+    }
 }

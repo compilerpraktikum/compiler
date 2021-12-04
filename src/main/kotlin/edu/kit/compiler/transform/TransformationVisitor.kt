@@ -157,6 +157,16 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
         }
     }
 
+    override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+        super.visitNewArrayExpression(newArrayExpression)
+        FirmContext.newArrayAllocation(newArrayExpression)
+    }
+
+    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+        super.visitNewObjectExpression(newObjectExpression)
+        FirmContext.newObjectAllocation(newObjectExpression)
+    }
+
     override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
         super.visitExpressionStatement(expressionStatement)
         FirmContext.expressionStatement()
