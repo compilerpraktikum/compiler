@@ -11,3 +11,11 @@ inline fun loop(start: Int = 0, increment: Int = 1, block: (Int) -> Unit) {
         i += increment
     }
 }
+
+fun <T> Sequence<T>.prependIfNotNull(element: T?) = if (element != null) {
+    sequenceOf(element) + this
+} else {
+    this
+}
+
+inline fun <reified T> Sequence<T>.toArray() = toList().toTypedArray()

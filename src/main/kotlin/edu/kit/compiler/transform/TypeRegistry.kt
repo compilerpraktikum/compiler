@@ -1,15 +1,21 @@
 package edu.kit.compiler.transform
 
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.prependIfNotNull
+import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.InternalFunction
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.dimension
 import edu.kit.compiler.semantic.display
+import edu.kit.compiler.toArray
 import firm.ClassType
+import firm.CompoundType
 import firm.Entity
 import firm.MethodType
 import firm.Mode
 import firm.PointerType
+import firm.Program
 import firm.Type
 
 fun SemanticType.toVariableType(): Type = when (this) {
@@ -67,12 +73,13 @@ class TypeRegistry {
     fun getArrayReferenceType(type: SemanticType.Array): PointerType {
         val baseType = type.baseType
         val dimension = type.dimension
+        assert(dimension >= 1)
         return arrayCache.computeIfAbsent(Pair(baseType, dimension)) {
             var firmType = baseType.toVariableType()
             repeat(dimension) {
                 firmType = PointerType(firmType)
             }
-            PointerType(firmType)
+            firmType as PointerType
         }
     }
 
@@ -93,17 +100,8 @@ class TypeRegistry {
         return clazz.fields[name] ?: throw IllegalArgumentException("unknown field `${inClass.text}.${name.text}`")
     }
 
-    fun createMethod(inClass: Symbol, name: Symbol, returnType: SemanticType, parameterTypes: List<SemanticType>, isStatic: Boolean): Entity {
-        val clazz = getClass(inClass)
-
-        val firmParamTypes = parameterTypes.asSequence().map { it.toVariableType() }.let {
-            if (isStatic) {
-                it
-            } else {
-                sequenceOf(clazz.referenceType) + it
-            }
-        }.toList().toTypedArray()
-
+    private fun createMethod(parent: CompoundType, name: String, returnType: SemanticType, parameterTypes: List<SemanticType>, thisParam: Type?): Entity {
+        val firmParamTypes = parameterTypes.asSequence().map { it.toVariableType() }.prependIfNotNull(thisParam).toArray()
         val firmReturnType = if (returnType == SemanticType.Void) {
             arrayOf()
         } else {
@@ -111,12 +109,20 @@ class TypeRegistry {
         }
 
         val methodType = MethodType(firmParamTypes, firmReturnType)
-        val entity = Entity(clazz.type, name.text, methodType).apply {
+        return Entity(parent, name, methodType)
+    }
+
+    fun createMethod(inClass: Symbol, name: Symbol, returnType: SemanticType, parameterTypes: List<SemanticType>, isStatic: Boolean): Entity {
+        val clazz = getClass(inClass)
+
+        val thisParam = if (!isStatic) clazz.referenceType else null
+        val entity = createMethod(clazz.type, name.text, returnType, parameterTypes, thisParam).apply {
             // set mangled name (-> linker) for non-static methods (static methods don't need this, because by default: linker name == entity name (== "main"))
             if (!isStatic) {
                 setLdIdent("${inClass.text}.${name.text}")
             }
         }
+
         val prevValue = clazz.methods.putIfAbsent(name, entity)
         require(prevValue == null) { "method `${inClass.text}.${name.text}` already registered" }
         return entity
@@ -125,5 +131,25 @@ class TypeRegistry {
     fun getMethod(inClass: Symbol, name: Symbol): Entity {
         val clazz = getClass(inClass)
         return clazz.methods[name] ?: throw IllegalArgumentException("unknown method `${inClass.text}.${name.text}`")
+    }
+
+    private val internalMethods = mutableMapOf<String, Entity>()
+
+    private fun createInternalMethod(func: AstNode.Expression.MethodInvocationExpression.Type.Internal): Entity {
+        val entity = createMethod(Program.getGlobalType(), func.name, func.returnType, func.parameters, null)
+        val prevValue = internalMethods.putIfAbsent(func.name, entity)
+        require(prevValue == null) { "internal method `${func.fullName}` already registered" }
+        return entity
+    }
+
+    init {
+        createInternalMethod(InternalFunction.SYSTEM_IN_READ)
+        createInternalMethod(InternalFunction.SYSTEM_OUT_PRINTLN)
+        createInternalMethod(InternalFunction.SYSTEM_OUT_WRITE)
+        createInternalMethod(InternalFunction.SYSTEM_OUT_FLUSH)
+    }
+
+    fun getInternalMethod(name: String): Entity {
+        return internalMethods[name] ?: throw IllegalArgumentException("unknown internal method `$name`")
     }
 }
