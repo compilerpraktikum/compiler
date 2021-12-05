@@ -1,7 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.Test
@@ -464,6 +463,46 @@ internal class NameAnalysisTest {
             """
                 class Test {
                     public void test(int i, int i) {}
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testCallNonStaticMain() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main() {}
+                    public void client() { main(); }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testCallNonStaticMainWithArguments() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String[] args) {}
+                    public void client(String[] a) { main(a); }
+                }
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testCallMixedStaticAndNonStaticMain() {
+        checkNames(true) {
+            """
+                class Test {
+                    public void main(String[] args) {}
+                }
+                class Main {
+                    public static void main(String[] args) {
+                        (new Test()).main(args);
+                    }
                 }
             """.trimIndent()
         }

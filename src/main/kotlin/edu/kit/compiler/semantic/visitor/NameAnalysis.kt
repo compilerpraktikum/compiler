@@ -1,16 +1,26 @@
-package edu.kit.compiler.semantic
+package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.semantic.visitor.AbstractVisitor
-import edu.kit.compiler.semantic.visitor.accept
-import edu.kit.compiler.semantic.visitor.at
-import edu.kit.compiler.semantic.visitor.error
-import edu.kit.compiler.semantic.visitor.errorIf
-import edu.kit.compiler.semantic.visitor.note
+import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.ClassDefinition
+import edu.kit.compiler.semantic.ClassNamespace
+import edu.kit.compiler.semantic.FieldDefinition
+import edu.kit.compiler.semantic.GlobalNamespace
+import edu.kit.compiler.semantic.InternalFunction
+import edu.kit.compiler.semantic.MethodDefinition
+import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.SymbolTable
+import edu.kit.compiler.semantic.VariableDefinition
+import edu.kit.compiler.semantic.VariableNode
+import edu.kit.compiler.semantic.asDefinition
+import edu.kit.compiler.semantic.baseType
+import edu.kit.compiler.semantic.defineBuiltIns
+import edu.kit.compiler.semantic.display
+import edu.kit.compiler.semantic.wrap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
