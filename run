@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 pushd . > /dev/null
 SCRIPT_PATH="${BASH_SOURCE[0]}";
 while([ -h "${SCRIPT_PATH}" ]); do
@@ -11,5 +10,4 @@ cd "`dirname "${SCRIPT_PATH}"`" > /dev/null
 SCRIPT_PATH="`pwd`";
 popd  > /dev/null
 
-java -jar "$SCRIPT_PATH"/out/libs/compiler-all.jar "$@"
-
+COMPILER_OUT_FILE='a.out' java -jar "$SCRIPT_PATH"/out/libs/compiler-all.jar "$@"

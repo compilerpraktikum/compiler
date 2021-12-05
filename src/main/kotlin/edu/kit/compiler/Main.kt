@@ -22,6 +22,8 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
 
     override val sourceFile by argument(name = "file", help = "source file").path()
 
+    override val outputFile by option("-o", "--out", help = "name of the generated executable", envvar = "COMPILER_OUT_FILE").path()
+
     override fun run() {
         val compiler = Compiler(this)
         exitProcess(compiler.compile())
