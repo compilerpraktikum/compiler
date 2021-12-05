@@ -961,37 +961,42 @@ object FirmContext {
         surroundingMethod: AstNode.ClassMember.SubroutineDeclaration
     ) {
         val numberOfArguments = methodInvocationExpression.arguments.size
-        val args = arrayOfNulls<Node>(numberOfArguments + 1)
 
-        // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
-        // the transformer won't do it if `target == null`
-        if (methodInvocationExpression.target == null)
-            loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+        val call: Node = when (val type = methodInvocationExpression.type!!) {
+            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
+                val args = (0 until numberOfArguments).map { this.expressionStack.pop() }
 
-        // target of the method call (might be `this`)
-        val target = expressionStack.peek()
+                val method = typeRegistry.getInternalMethod(type.name)
+                construction.newCall(
+                    construction.currentMem,
+                    construction.newAddress(method),
+                    args.toTypedArray(),
+                    method.type
+                )
+            }
+            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> {
+                // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
+                // the transformer won't do it if `target == null`
+                if (methodInvocationExpression.target == null) {
+                    loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+                }
+                val target = expressionStack.peek()
 
-        args[0] = expressionStack.pop()
-        for (i in 1 until args.size) {
-            args[i] = this.expressionStack.pop()
+                val args = (0 until (numberOfArguments + 1)).map { this.expressionStack.pop() }
+
+                val method = typeRegistry.getMethod(type.definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
+                construction.newCall(
+                    construction.currentMem,
+                    construction.newMember(
+                        target,
+                        method
+                    ),
+                    args.toTypedArray(),
+                    method.type
+                )
+            }
         }
-        // parameters in reverse order and dont forget 'this'
 
-        val definition = when (val type = methodInvocationExpression.type!!) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> TODO()
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> type.definition
-        }
-
-        val call =
-            construction.newCall(
-                construction.currentMem,
-                construction.newMember(
-                    target,
-                    typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
-                ),
-                args,
-                typeRegistry.getMethod(definition.node.owner.name.symbol, methodInvocationExpression.method.symbol).type
-            )
         val resultTuple = construction.newProj(call, Mode.getT(), Call.pnTResult)
         construction.currentMem = construction.newProj(call, Mode.getM(), Call.pnM)
 
