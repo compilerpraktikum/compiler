@@ -11,7 +11,6 @@ import firm.Dump
 import firm.Entity
 import firm.Firm
 import firm.Graph
-import firm.MethodType
 import firm.Mode
 import firm.Relation
 import firm.Type
@@ -118,7 +117,7 @@ object FirmContext {
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
         // manually.
-        if (construction.currentBlock !in this.exitBlocks && (methodEntity.type as MethodType).getResType(0) == null) {
+        if (construction.currentBlock !in this.exitBlocks && method.returnType == SemanticType.Void) {
             returnStatement(false)
         }
 
