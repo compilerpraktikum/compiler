@@ -39,7 +39,7 @@ class Lower private constructor() {
         /* C linker doesn't allow all possible ascii chars for identifiers,
 		 * filter some out */
         name = name.replace("[()\\[\\];]".toRegex(), "_")
-        println("der name ist $name")
+        //println("der name ist $name")
         entity.setLdIdent(name)
     }
 //    private fun lowerMethods(typeRegistry: TypeRegistry) {
@@ -56,7 +56,7 @@ class Lower private constructor() {
     }
 
     private fun layoutClass(cls: ClassType) {
-        println(cls.toString())
+        //println(cls.toString())
         if (cls == Program.getGlobalType()) return
         var m = 0
         while (m < cls.nMembers /* nothing */) {
@@ -75,18 +75,18 @@ class Lower private constructor() {
 
     private fun layoutTypes() {
         for (type in Program.getTypes()) {
-            println(type.toString())
-            println(" -------------")
+            //println(type.toString())
+            //println(" -------------")
         }
         for (type in Program.getTypes()) {
-            println(type.toString())
-            println(type is ClassType)
+            //println(type.toString())
+            //println(type is ClassType)
             if (type is ClassType) {
                 layoutClass(type)
             }
-            println("type to string")
+            //println("type to string")
             //type.finishLayout()
-            println("---")
+            //println("---")
         }
     }
 
@@ -98,7 +98,7 @@ class Lower private constructor() {
         fun lower() {
             val instance = Lower()
             instance.layoutTypes()
-            instance.fixEntityNames()
+            //instance.fixEntityNames()
             Util.lowerSels()
         }
 //        fun lowerMethods(typeRegistry: TypeRegistry) {
