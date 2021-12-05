@@ -15,7 +15,6 @@ import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
 import java.nio.file.Path
-import firm.Backend
 import kotlin.io.path.inputStream
 
 private fun SourceFile.assertHasErrors() {
@@ -117,18 +116,8 @@ class Compiler(private val config: Config) {
                         sourceFile.printAnnotations()
 
                         if (!sourceFile.hasError) {
-                            val pathString =  sourceFile.path.split('/')
-                            val name = pathString[pathString.size - 1].split(".")[0]
                             Transformation.transform(program)
                             Lower.lower()
-                            //Lower.lowerMethods()
-
-                            Backend.createAssembler("${name}.s", "${name}.java")
-                            println("omg")
-                            Runtime.getRuntime().exec("gcc ${name}.s -o foo")
-                            println("32")
-
-
                             // TODO invoke firm backend to generate executable
                         }
                     }
