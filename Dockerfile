@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Berlin
 RUN apt-get update && \
     apt-get -y install \
-        openjdk-17-jdk git python3
+        nano openjdk-17-jdk git python3 build-essential
 
 RUN git clone "https://git.scc.kit.edu/IPDSnelting/mjtest-tests.git" /home/tests
 RUN git clone "https://git.scc.kit.edu/IPDSnelting/mjtest.git" /home/mjtest
