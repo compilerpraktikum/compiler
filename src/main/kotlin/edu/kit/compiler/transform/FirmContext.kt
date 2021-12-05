@@ -1060,10 +1060,7 @@ object FirmContext {
         val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getBu())
         val arrayLengthNode = expressionStack.pop()
         val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
-
-        // todo: call std interface for new memory
-
-        // todo initialize array with 0, false, or null
+        allocateMemory(construction.newConv(arraySizeNode, Mode.getLu()))
     }
 
     /**
@@ -1075,9 +1072,27 @@ object FirmContext {
     fun newObjectAllocation(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         val typeSizeNode =
             construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getBu())
+        allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
+    }
 
-        // todo: call std interface for new memory
+    /**
+     * Allocate memory and push a pointer to that memory onto the expression stack. The memory is zero-initialized.
+     *
+     * @param sizeNode a node containing the size of allocated memory. It must be of type Lu.
+     */
+    private fun allocateMemory(sizeNode: Node) {
+        val method = typeRegistry.getInternalMethod("allocate"); // todo convenience method instead of hardcoding
 
-        // todo initialize members with 0, false, or null
+        val callNode = construction.newCall(
+            construction.currentMem,
+            construction.newAddress(method),
+            arrayOf(sizeNode),
+            method.type
+        )
+
+        construction.currentMem = construction.newProj(callNode, Mode.getM(), Call.pnM)
+        val resultTuple = construction.newProj(callNode, Mode.getT(), Call.pnTResult)
+        val pointer = construction.newProj(resultTuple, Mode.getP(), 0)
+        expressionStack.push(pointer)
     }
 }
