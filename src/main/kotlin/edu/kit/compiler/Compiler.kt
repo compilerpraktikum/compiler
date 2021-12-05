@@ -1,5 +1,7 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.backend.CompilerBackEnd
+import edu.kit.compiler.backend.FirmBackEnd
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
@@ -15,13 +17,21 @@ import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.IOException
 import java.nio.charset.MalformedInputException
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.inputStream
+import kotlin.io.path.nameWithoutExtension
+
+class CompilationException(
+    message: String? = null
+) : Exception(message)
 
 private fun SourceFile.assertHasErrors() {
     if (!hasError) {
         throw IllegalStateException("source file should have error(s)")
     }
 }
+
+private fun Path.replaceExtension(newExtension: String): String = nameWithoutExtension + newExtension
 
 /**
  * Main compiler pipeline. Stores state specific to one compilation unit and defines the strategy with which all
@@ -113,13 +123,14 @@ class Compiler(private val config: Config) {
                     run {
                         val program = parser.parse().validate() ?: return@run sourceFile.assertHasErrors()
                         doSemanticAnalysis(program, sourceFile, stringTable)
-                        sourceFile.printAnnotations()
-
-                        if (!sourceFile.hasError) {
-                            Transformation.transform(program)
-                            Lower.lower()
-                            // TODO invoke firm backend to generate executable
+                        if (sourceFile.hasError) {
+                            return@run
                         }
+
+                        Transformation.transform(program)
+                        Lower.lower()
+
+                        runBackEnd(::FirmBackEnd)
                     }
                 }
             }
@@ -130,8 +141,11 @@ class Compiler(private val config: Config) {
             } else {
                 ExitCode.SUCCESS
             }
+        } catch (e: CompilationException) {
+            System.err.println("error: ${e.message}")
+            return ExitCode.ERROR_COMPILATION_FAILED
         } catch (e: Exception) {
-            System.err.println("Internal error: ${e.message}")
+            System.err.println("internal error: ${e.message}")
             e.printStackTrace(System.err)
             return ExitCode.ERROR_INTERNAL
         }
@@ -159,6 +173,14 @@ class Compiler(private val config: Config) {
         }
     }
 
+    private fun runBackEnd(factory: (String, Path, Path) -> CompilerBackEnd) {
+        val sourceFileName = config.sourceFile.fileName
+        val assemblyFile = Paths.get(sourceFileName.replaceExtension(".asm"))
+        val executableFile = config.outputFile ?: Paths.get(sourceFileName.replaceExtension(""))
+        val backend = factory(sourceFileName.toString(), assemblyFile, executableFile)
+        backend.generate()
+    }
+
     private fun handleEcho(): Int {
         val sourceFile = config.sourceFile
 
@@ -179,7 +201,8 @@ class Compiler(private val config: Config) {
     }
 
     interface Config {
-        val sourceFile: Path
         val mode: Mode
+        val sourceFile: Path
+        val outputFile: Path?
     }
 }
