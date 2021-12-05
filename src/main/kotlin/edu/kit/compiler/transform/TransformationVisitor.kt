@@ -152,7 +152,9 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         methodInvocationExpression.arguments.forEach { it.accept(this) }
-        methodInvocationExpression.target?.accept(this)
+        if (methodInvocationExpression.type is AstNode.Expression.MethodInvocationExpression.Type.Normal) {
+            methodInvocationExpression.target?.accept(this)
+        }
 
         FirmContext.methodInvocation(methodInvocationExpression, generatedMethod)
     }
