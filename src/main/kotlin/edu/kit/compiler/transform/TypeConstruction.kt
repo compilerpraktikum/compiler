@@ -8,12 +8,33 @@ import edu.kit.compiler.semantic.visitor.AbstractVisitor
 /**
  * A visitor implementation that constructs class types for the firm graph.
  */
-class TypeConstructionVisitor : AbstractVisitor() {
+class ClassConstructionVisitor : AbstractVisitor() {
+    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+        FirmContext.typeRegistry.createClass(classDeclaration.name.symbol)
+    }
+
+    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+        // do not descend
+    }
+
+    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+        // do not descend
+    }
+
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        // do not descend
+    }
+}
+
+/**
+ * A visitor implementation that constructs method types for the firm graph.
+ */
+class MethodConstructionVisitor : AbstractVisitor() {
     var currentClassSymbol: Symbol? = null
 
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
         currentClassSymbol = classDeclaration.name.symbol
-        val classType = FirmContext.typeRegistry.createClass(classDeclaration.name.symbol)
+        val classType = FirmContext.typeRegistry.getClassType(classDeclaration.name.symbol)
         super.visitClassDeclaration(classDeclaration)
         classType.layoutFields()
         classType.finishLayout()
