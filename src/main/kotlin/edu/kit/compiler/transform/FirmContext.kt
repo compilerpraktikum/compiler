@@ -987,10 +987,7 @@ object FirmContext {
                 val method = typeRegistry.getMethod(type.definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
                 construction.newCall(
                     construction.currentMem,
-                    construction.newMember(
-                        target,
-                        method
-                    ),
+                    construction.newAddress(method),
                     (listOf(target) + args).toTypedArray(),
                     method.type
                 )
