@@ -11,9 +11,9 @@ import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
-import edu.kit.compiler.transform.Lower
 import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.wrapper.wrappers.validate
+import firm.Util
 import java.io.IOException
 import java.nio.charset.MalformedInputException
 import java.nio.file.Path
@@ -128,7 +128,7 @@ class Compiler(private val config: Config) {
                         }
 
                         Transformation.transform(program)
-                        Lower.lower()
+                        Util.lowerSels()
 
                         runBackEnd(::FirmBackEnd)
                     }
