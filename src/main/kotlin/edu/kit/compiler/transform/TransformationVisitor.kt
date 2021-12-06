@@ -55,6 +55,17 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
      */
     private lateinit var generatedMethod: AstNode.ClassMember.SubroutineDeclaration
 
+    override fun visitBlock(block: AstNode.Statement.Block) {
+        block.statements.forEach {
+            it.accept(this)
+
+            // skip dead code to prevent generating multiple returns
+            if (it is AstNode.Statement.ReturnStatement) {
+                return
+            }
+        }
+    }
+
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
         val variableCounter = LocalVariableCounter(1)
         methodDeclaration.accept(variableCounter)
