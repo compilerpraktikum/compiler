@@ -1086,7 +1086,7 @@ object FirmContext {
      * @param sizeNode a node containing the size of allocated memory. It must be of type Lu.
      */
     private fun allocateMemory(sizeNode: Node) {
-        val method = typeRegistry.getInternalMethod("allocate"); // todo convenience method instead of hardcoding
+        val method = typeRegistry.ALLOCATE
 
         val callNode = construction.newCall(
             construction.currentMem,
