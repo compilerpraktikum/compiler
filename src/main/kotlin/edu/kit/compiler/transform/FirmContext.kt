@@ -750,8 +750,6 @@ object FirmContext {
         surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
-        require(!identifierExpression.isLeftHandAssignment) { "trying to generate memory access to LH side." }
-
         val valueNode = when (val definition = identifierExpression.definition!!.node) {
             is VariableNode.Field -> {
                 // an identifierExpression on a field is always an implicit field access on `this`,
