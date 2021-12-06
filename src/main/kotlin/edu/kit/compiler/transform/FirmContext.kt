@@ -1060,8 +1060,8 @@ object FirmContext {
      * @param newArrayExpression the new-array expression
      */
     fun newArrayAllocation(newArrayExpression: AstNode.Expression.NewArrayExpression) {
-        val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getBu())
-        val arrayLengthNode = expressionStack.pop()
+        val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getLu())
+        val arrayLengthNode = construction.newConv(expressionStack.pop(), Mode.getLu())
         val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
         allocateMemory(construction.newConv(arraySizeNode, Mode.getLu()))
     }
@@ -1074,7 +1074,7 @@ object FirmContext {
      */
     fun newObjectAllocation(newObjectExpression: AstNode.Expression.NewObjectExpression) {
         val typeSizeNode =
-            construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getBu())
+            construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getLu())
         allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
     }
 
