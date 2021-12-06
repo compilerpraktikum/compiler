@@ -64,3 +64,8 @@ int a = b << k; // c := 2^k
     -1 /2 == 0
     -1 >> 1 == -1
     ```
+
+### Optimierungen aus ÜB 8
+
+* Triviale φ-Funktionen entfernen
+* Lokale Optimierungen (Bsp x + 0 ==> x)
