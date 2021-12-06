@@ -304,7 +304,10 @@ object FirmContext {
                 leftHandSide.index.accept(transformer)
                 arrayWriteAccess(leftHandSide, value)
             }
-            is AstNode.Expression.FieldAccessExpression -> fieldWriteAccess(leftHandSide, value)
+            is AstNode.Expression.FieldAccessExpression -> {
+                leftHandSide.target.accept(transformer)
+                fieldWriteAccess(leftHandSide, value)
+            }
             is AstNode.Expression.IdentifierExpression -> identifierWriteAccess(
                 leftHandSide,
                 surroundingMethod,
