@@ -5,6 +5,7 @@ import firm.Graph
 import firm.TargetValue
 import firm.nodes.Add
 import firm.nodes.And
+import firm.nodes.Binop
 import firm.nodes.Cmp
 import firm.nodes.Cond
 import firm.nodes.Div
@@ -71,22 +72,53 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
                 BackEdges.getOuts(node).forEach { workList.push(it.node) }
             }
         }
+        // TODO use foldMap to perform the propagation/ folding.
     }
 
-    // TODO write accept methods that write the foldMap and alter hasChanged.
+    // TODO write more accept methods that write the foldMap and alter hasChanged.
     override fun visit(node: Add) {
-        doAndRecordChange(node) {
+        intCalculation(node) {
+            foldMap[node] = foldMap[node.left]!!.add(foldMap[node.right])
+        }
+    }
+    override fun visit(node: Sub) {
+        intCalculation(node) {
+            foldMap[node] = foldMap[node.left]!!.sub(foldMap[node.right])
+        }
+    }
+    override fun visit(node: Mul) {
+        intCalculation(node) {
+            foldMap[node] = foldMap[node.left]!!.mul(foldMap[node.right])
+        }
+    }
+    override fun visit(node: Div) {
+        // div is not a binop.
+        doAndRecordFoldMapChange(node) {
             if (foldMap[node.left] == bottomNode || foldMap[node.right] == topNode) {
                 foldMap[node] = bottomNode
             } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
-                foldMap[node] = foldMap[node.left]!!.add(foldMap[node.right])
+                if (!foldMap[node.right]!!.isNull) {
+                    foldMap[node] = foldMap[node.left]!!.div(foldMap[node.right])
+                } else foldMap[node] = topNode // TODO reassure that that is correct
             } else {
                 foldMap[node] = topNode
             }
         }
     }
 
-    private fun doAndRecordChange(node: Node, function: () -> Unit) {
+    private fun intCalculation(node: Binop, doConstOperation: () -> Unit) {
+        doAndRecordFoldMapChange(node) {
+            if (foldMap[node.left] == bottomNode || foldMap[node.right] == topNode) {
+                foldMap[node] = bottomNode
+            } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
+                doConstOperation()
+            } else {
+                foldMap[node] = topNode
+            }
+        }
+    }
+
+    private fun doAndRecordFoldMapChange(node: Node, function: () -> Unit) {
         val prev = foldMap[node]
         function()
         if (prev != foldMap[node]) {

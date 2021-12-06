@@ -41,3 +41,26 @@ implementiert werden*
 * Error Handling (eig sollten ab hier alle Fehler Runtime-Fehler sein):
     * Overflows?
     * Div durch 0?
+
+## Weitere mögliche Optimierungen
+
+### Dead Code Elimination
+
+Bringt v.A. in konstruierten Fällen Speedup, kann man in verschieden komplexen Ausprägungen implementieren.
+
+### Integer Multiply Optimization
+
+```
+int a = b * c; // c := 2^k
+```
+==>
+
+```
+int a = b << k; // c := 2^k
+```
+* Vmtl einfach zu implementieren, Speedup hängt von Ziel-Mikroarchitektur ab.
+* Shift Right ist nicht äquivalent zu Division (http://dspace.mit.edu/bitstream/handle/1721.1/6090/AIM-378.pdf): 
+    ```
+    -1 /2 == 0
+    -1 >> 1 == -1
+    ```
