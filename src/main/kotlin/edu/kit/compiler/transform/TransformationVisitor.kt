@@ -107,7 +107,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
                 if (unaryOperation.inner.value == Integer.MIN_VALUE.toString().removePrefix("-")) {
                     FirmContext.literalInt(Integer.MIN_VALUE)
                 } else {
-                    FirmContext.literalInt(-unaryOperation.inner.parsedValue.toInt())
+                    FirmContext.literalInt(unaryOperation.inner.parsedValue.toInt())
                 }
             } else {
                 super.visitUnaryOperation(unaryOperation)
