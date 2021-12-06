@@ -964,7 +964,7 @@ object FirmContext {
 
         val call: Node = when (val type = methodInvocationExpression.type!!) {
             is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
-                val args = (0 until numberOfArguments).map { this.expressionStack.pop() }
+                val args = (0 until numberOfArguments).map { this.expressionStack.pop() }.asReversed()
 
                 val method = typeRegistry.getInternalMethod(type.name)
                 construction.newCall(
@@ -980,9 +980,9 @@ object FirmContext {
                 if (methodInvocationExpression.target == null) {
                     loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 }
-                val target = expressionStack.peek()
+                val target = expressionStack.pop()
 
-                val args = (0 until (numberOfArguments + 1)).map { this.expressionStack.pop() }
+                val args = (0 until numberOfArguments).map { this.expressionStack.pop() }.asReversed()
 
                 val method = typeRegistry.getMethod(type.definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
                 construction.newCall(
@@ -991,7 +991,7 @@ object FirmContext {
                         target,
                         method
                     ),
-                    args.toTypedArray(),
+                    (listOf(target) + args).toTypedArray(),
                     method.type
                 )
             }
@@ -1001,13 +1001,14 @@ object FirmContext {
         construction.currentMem = construction.newProj(call, Mode.getM(), Call.pnM)
 
         // special case for "void return"
-        if (methodInvocationExpression.type!!.returnType is SemanticType.Void) {
-            expressionStack.push(construction.newProj(resultTuple, Mode.getANY(), 0))
+        val returnType = methodInvocationExpression.actualType
+        if (returnType is SemanticType.Void) {
+            expressionStack.push(construction.newBad(Mode.getANY()))
         } else {
             expressionStack.push(
                 construction.newProj(
                     resultTuple,
-                    methodInvocationExpression.actualType.mode,
+                    returnType.mode,
                     0
                 )
             )
