@@ -14,7 +14,8 @@ object Transformation {
     fun transform(ast: AstNode) {
         FirmContext.init()
 
-        ast.accept(TypeConstructionVisitor())
+        ast.accept(ClassConstructionVisitor())
+        ast.accept(MethodConstructionVisitor())
         ast.accept(TransformationVisitor())
     }
 }
