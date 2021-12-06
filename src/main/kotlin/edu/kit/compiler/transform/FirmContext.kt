@@ -295,24 +295,27 @@ object FirmContext {
         val leftHandSide = expr.left
         val rightHandSide = expr.right
 
-        rightHandSide.accept(transformer)
-        val value = expressionStack.pop()
+        // needs to be evaluated last
+        fun evalRightHandSide(): Node {
+            rightHandSide.accept(transformer)
+            return expressionStack.pop()
+        }
 
         when (leftHandSide) {
             is AstNode.Expression.ArrayAccessExpression -> {
                 leftHandSide.target.accept(transformer)
                 leftHandSide.index.accept(transformer)
-                arrayWriteAccess(leftHandSide, value)
+                arrayWriteAccess(leftHandSide, evalRightHandSide())
             }
             is AstNode.Expression.FieldAccessExpression -> {
                 leftHandSide.target.accept(transformer)
-                fieldWriteAccess(leftHandSide, value)
+                fieldWriteAccess(leftHandSide, evalRightHandSide())
             }
             is AstNode.Expression.IdentifierExpression -> identifierWriteAccess(
                 leftHandSide,
                 surroundingMethod,
                 transformer,
-                value
+                evalRightHandSide()
             )
             else -> throw AssertionError("invalid AST in transformation")
         }
@@ -828,8 +831,6 @@ object FirmContext {
     fun fieldReadAccess(
         fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
     ) {
-        require(!fieldAccessExpression.isLeftHandAssignment) { "trying to generate memory access to LH side." }
-
         val loadNode = construction.newLoad(
             construction.currentMem,
             getFieldMember(fieldAccessExpression.definition!!.node),
