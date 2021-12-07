@@ -95,7 +95,7 @@ object FirmContext {
         method: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
         variables: Int,
         block: () -> Unit
-    ) {
+    ): Graph {
         val parameterTuple = prepareSubroutine(methodEntity, variables)
 
         // set `this`
@@ -112,7 +112,7 @@ object FirmContext {
             )
         }
 
-        block.invoke()
+        block()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
         // manually.
@@ -120,7 +120,7 @@ object FirmContext {
             returnStatement(false)
         }
 
-        finishSubroutine()
+        return finishSubroutine()
     }
 
     /**
@@ -134,16 +134,18 @@ object FirmContext {
         methodEntity: Entity,
         variables: Int,
         block: () -> Unit
-    ) {
+    ): Graph {
         prepareSubroutine(methodEntity, variables)
-        block.invoke()
+
+        block()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
         // manually.
         if (construction.currentBlock !in this.exitBlocks) {
             specialMainReturnStatement()
         }
-        finishSubroutine()
+
+        return finishSubroutine()
     }
 
     /**
@@ -155,17 +157,16 @@ object FirmContext {
     private fun prepareSubroutine(methodEntity: Entity, variables: Int): Node {
         check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
 
-        this.graph = Graph(methodEntity, variables)
-        this.currentConstruction = Construction(this.graph)
+        val graph = Graph(methodEntity, variables)
+        val construction = Construction(graph)
 
-        // insert start node
-        val startNode = this.construction.newStart()
+        this.graph = graph
+        this.currentConstruction = construction
 
-        // set memory state
-        this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), Start.pnM)
+        construction.currentMem = construction.newProj(graph.start, Mode.getM(), Start.pnM)
 
         // load parameters and store in local helper variables
-        return construction.newProj(startNode, Mode.getT(), Start.pnTArgs)
+        return construction.newProj(graph.start, Mode.getT(), Start.pnTArgs)
     }
 
     /**
@@ -173,11 +174,12 @@ object FirmContext {
      *
      * @param block callback into [TransformationMethodVisitor] that generates the method's body.
      */
-    private fun finishSubroutine() {
+    private fun finishSubroutine(): Graph {
         // insert end node
         returnNodes.forEach(this.graph!!.endBlock::addPred)
         this.construction.newEnd(emptyArray())
-        this.graph!!.endBlock.mature()
+        val graph = this.graph!!
+        graph.endBlock.mature()
 
         this.construction.finish()
 
@@ -185,6 +187,7 @@ object FirmContext {
         this.graph = null
         this.returnNodes.clear()
         this.exitBlocks.clear()
+        return graph
     }
 
     /**
