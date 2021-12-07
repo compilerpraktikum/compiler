@@ -9,16 +9,13 @@ import firm.nodes.Add
 import firm.nodes.And
 import firm.nodes.Binop
 import firm.nodes.Cmp
-import firm.nodes.Cond
 import firm.nodes.Div
-import firm.nodes.Load
 import firm.nodes.Minus
+import firm.nodes.Mod
 import firm.nodes.Mul
 import firm.nodes.Node
 import firm.nodes.Not
 import firm.nodes.Or
-import firm.nodes.Return
-import firm.nodes.Store
 import firm.nodes.Sub
 import java.util.Stack
 
@@ -94,6 +91,20 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             foldMap[node] = foldMap[node.left]!!.mul(foldMap[node.right])
         }
     }
+    override fun visit(node: Mod) {
+        // div is not a binop.
+        doAndRecordFoldMapChange(node) {
+            if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
+                foldMap[node] = bottomNode
+            } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
+                if (!foldMap[node.right]!!.isNull) {
+                    foldMap[node] = foldMap[node.left]!!.mod(foldMap[node.right])
+                } else foldMap[node] = topNode // TODO reassure that that is correct
+            } else {
+                foldMap[node] = topNode
+            }
+        }
+    }
     override fun visit(node: Div) {
         // div is not a binop.
         doAndRecordFoldMapChange(node) {
@@ -139,9 +150,7 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             )
         }
     }
-//    override fun visit(node: Cond) {
-//        TODO("implement")
-//    }
+
     override fun visit(node: Not) {
         doAndRecordFoldMapChange(node) {
             if (foldMap[node.block] == bottomNode) {
@@ -154,15 +163,6 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         }
     }
 
-    override fun visit(node: Store) {
-        TODO("implement")
-    }
-    override fun visit(node: Load) {
-        TODO("implement")
-    }
-    override fun visit(node: Return) {
-        TODO("implement")
-    }
     override fun visit(node: Cmp) {
         intCalculation(node) {
 //            foldMap[node] = TargetValue(
@@ -237,14 +237,6 @@ class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Nod
     }
     // TODO determine which nodes to collect
 
-    override fun visit(node: Store) {
-        init(node)
-    }
-
-    override fun visit(node: Load) {
-        init(node)
-    }
-
     override fun visit(node: Add) {
         init(node)
     }
@@ -254,15 +246,14 @@ class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Nod
     override fun visit(node: Mul) {
         init(node)
     }
+    override fun visit(node: Mod) {
+        init(node)
+    }
     override fun visit(node: Div) {
         init(node)
     }
 
     override fun visit(node: Minus) {
-        init(node)
-    }
-
-    override fun visit(node: Return) {
         init(node)
     }
 
@@ -274,9 +265,6 @@ class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Nod
         init(node)
     }
     override fun visit(node: Or) {
-        init(node)
-    }
-    override fun visit(node: Cond) {
         init(node)
     }
     override fun visit(node: Not) {
