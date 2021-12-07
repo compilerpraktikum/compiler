@@ -155,17 +155,16 @@ object FirmContext {
     private fun prepareSubroutine(methodEntity: Entity, variables: Int): Node {
         check(this.currentConstruction == null) { "cannot construct a method while another is being constructed" }
 
-        this.graph = Graph(methodEntity, variables)
-        this.currentConstruction = Construction(this.graph)
+        val graph = Graph(methodEntity, variables)
+        val construction = Construction(graph)
 
-        // insert start node
-        val startNode = this.construction.newStart()
+        this.graph = graph
+        this.currentConstruction = construction
 
-        // set memory state
-        this.construction.currentMem = this.construction.newProj(startNode, Mode.getM(), Start.pnM)
+        construction.currentMem = construction.newProj(graph.start, Mode.getM(), Start.pnM)
 
         // load parameters and store in local helper variables
-        return construction.newProj(startNode, Mode.getT(), Start.pnTArgs)
+        return construction.newProj(graph.start, Mode.getT(), Start.pnTArgs)
     }
 
     /**
