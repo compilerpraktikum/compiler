@@ -95,7 +95,7 @@ object FirmContext {
         method: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
         variables: Int,
         block: () -> Unit
-    ) {
+    ): Graph {
         val parameterTuple = prepareSubroutine(methodEntity, variables)
 
         // set `this`
@@ -112,7 +112,7 @@ object FirmContext {
             )
         }
 
-        block.invoke()
+        block()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
         // manually.
@@ -120,7 +120,7 @@ object FirmContext {
             returnStatement(false)
         }
 
-        finishSubroutine()
+        return finishSubroutine()
     }
 
     /**
@@ -134,16 +134,18 @@ object FirmContext {
         methodEntity: Entity,
         variables: Int,
         block: () -> Unit
-    ) {
+    ): Graph {
         prepareSubroutine(methodEntity, variables)
-        block.invoke()
+
+        block()
 
         // in `void` methods, the last block may not have a `return` statement, hence we connect it to the end block
         // manually.
         if (construction.currentBlock !in this.exitBlocks) {
             specialMainReturnStatement()
         }
-        finishSubroutine()
+
+        return finishSubroutine()
     }
 
     /**
@@ -172,11 +174,12 @@ object FirmContext {
      *
      * @param block callback into [TransformationMethodVisitor] that generates the method's body.
      */
-    private fun finishSubroutine() {
+    private fun finishSubroutine(): Graph {
         // insert end node
         returnNodes.forEach(this.graph!!.endBlock::addPred)
         this.construction.newEnd(emptyArray())
-        this.graph!!.endBlock.mature()
+        val graph = this.graph!!
+        graph.endBlock.mature()
 
         this.construction.finish()
 
@@ -184,6 +187,7 @@ object FirmContext {
         this.graph = null
         this.returnNodes.clear()
         this.exitBlocks.clear()
+        return graph
     }
 
     /**

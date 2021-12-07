@@ -128,7 +128,7 @@ class Compiler(private val config: Config) {
                             return@run
                         }
 
-                        Transformation.transform(program)
+                        Transformation.transform(program, config.dump.contains(Dump.FirmMethodGraphs))
                         Util.lowerSels()
 
                         runBackEnd(::FirmBackEnd)
@@ -177,7 +177,7 @@ class Compiler(private val config: Config) {
     private fun runBackEnd(factory: (String, Path, Path) -> CompilerBackEnd) {
         val sourceFileName = config.sourceFile.fileName
 
-        val assemblyFile = if (config.outputAssemblyFile) {
+        val assemblyFile = if (config.dump.contains(Dump.AssemblyFile)) {
             Paths.get(sourceFileName.replaceExtension(".asm"))
         } else {
             Files.createTempFile("$sourceFileName-", ".asm").apply {
@@ -205,14 +205,27 @@ class Compiler(private val config: Config) {
         return ExitCode.ERROR_FILE_SYSTEM
     }
 
-    enum class Mode {
-        Compile, Echo, LexTest, ParseTest, PrettyPrintAst, SemanticCheck, CompileFirm
+    enum class Mode(val cliFlag: String) {
+        Compile("compile"),
+        Echo("echo"),
+        LexTest("lextest"),
+        ParseTest("parsetest"),
+        PrettyPrintAst("print-ast"),
+        SemanticCheck("check"),
+        CompileFirm("compile-firm"),
+    }
+
+    enum class Dump(val cliFlag: String) {
+        AssemblyFile("asm"),
+        FirmMethodGraphs("method");
+
+        override fun toString(): String = cliFlag
     }
 
     interface Config {
         val mode: Mode
         val sourceFile: Path
         val outputFile: Path?
-        val outputAssemblyFile: Boolean
+        val dump: Set<Dump>
     }
 }
