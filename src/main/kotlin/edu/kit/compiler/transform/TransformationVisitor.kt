@@ -112,21 +112,20 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
-        if (unaryOperation.operation == AST.UnaryExpression.Operation.MINUS) {
-            if (unaryOperation.inner is AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-                // transform the literal int with the `-` already applied, so we dont get problems with Integer.MIN
-                if (unaryOperation.inner.value == Integer.MIN_VALUE.toString().removePrefix("-")) {
-                    FirmContext.literalInt(Integer.MIN_VALUE)
-                } else {
-                    FirmContext.literalInt(unaryOperation.inner.parsedValue.toInt())
-                }
+        if (
+            unaryOperation.operation == AST.UnaryExpression.Operation.MINUS &&
+            unaryOperation.inner is AstNode.Expression.LiteralExpression.LiteralIntExpression
+        ) {
+            // transform the literal int with the `-` already applied, so we dont get problems with Integer.MIN
+            if (unaryOperation.inner.value == Integer.MIN_VALUE.toString().removePrefix("-")) {
+                FirmContext.literalInt(Integer.MIN_VALUE)
             } else {
-                super.visitUnaryOperation(unaryOperation)
+                FirmContext.literalInt(-unaryOperation.inner.parsedValue.toInt())
             }
-        } else {
-            super.visitUnaryOperation(unaryOperation)
+            return
         }
 
+        super.visitUnaryOperation(unaryOperation)
         FirmContext.unaryExpression(unaryOperation.operation)
     }
 
