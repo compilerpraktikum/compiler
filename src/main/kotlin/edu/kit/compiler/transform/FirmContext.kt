@@ -7,7 +7,6 @@ import edu.kit.compiler.semantic.VariableNode
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import firm.Construction
-import firm.Dump
 import firm.Entity
 import firm.Firm
 import firm.Graph
@@ -182,7 +181,6 @@ object FirmContext {
 
         this.construction.finish()
 
-        Dump.dumpGraph(graph, "after-construction")
         this.currentConstruction = null
         this.graph = null
         this.returnNodes.clear()
