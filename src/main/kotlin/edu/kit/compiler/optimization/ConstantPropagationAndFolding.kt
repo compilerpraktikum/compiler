@@ -2,6 +2,7 @@ package edu.kit.compiler.optimization
 
 import firm.BackEdges
 import firm.Graph
+import firm.Mode
 import firm.TargetValue
 import firm.nodes.Add
 import firm.nodes.And
@@ -14,6 +15,7 @@ import firm.nodes.Minus
 import firm.nodes.Mul
 import firm.nodes.Node
 import firm.nodes.Not
+import firm.nodes.Or
 import firm.nodes.Return
 import firm.nodes.Store
 import firm.nodes.Sub
@@ -94,7 +96,7 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
     override fun visit(node: Div) {
         // div is not a binop.
         doAndRecordFoldMapChange(node) {
-            if (foldMap[node.left] == bottomNode || foldMap[node.right] == topNode) {
+            if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
                 foldMap[node] = bottomNode
             } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
                 if (!foldMap[node.right]!!.isNull) {
@@ -106,9 +108,65 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         }
     }
 
+    // todo not rly sure
+    override fun visit(node: Minus) {
+        doAndRecordFoldMapChange(node) {
+            if (foldMap[node.block] == bottomNode) {
+                foldMap[node] = bottomNode
+            } else if (foldMap[node.block]!!.isConstant) { // if !! fails, init is buggy.
+                foldMap[node] = foldMap[node.block]!!.neg()
+            } else {
+                foldMap[node] = topNode
+            }
+        }
+    }
+
+    override fun visit(node: And) {
+        intCalculation(node) {
+            foldMap[node] = TargetValue(
+                if (getAsBool(node.left) && getAsBool(node.right)) 1 else 0,
+                Mode.getBu().type.mode
+            )
+        }
+    }
+
+    override fun visit(node: Or) {
+        intCalculation(node) {
+            foldMap[node] = TargetValue(
+                if (getAsBool(node.left) || getAsBool(node.right)) 1 else 0,
+                Mode.getBu().type.mode
+            )
+        }
+    }
+
+    private fun getAsBool(node: Node): Boolean {
+        if (foldMap[node]!!.isOne || foldMap[node]!!.asInt() == 0) {
+            return foldMap[node]!!.isOne
+        } else
+        // TODO better handling
+            throw RuntimeException("Tried to convert value other than 0 or 1 to bool")
+    }
+//    override fun visit(node: Cond) {
+//        TODO("implement")
+//    }
+    override fun visit(node: Not) {
+        doAndRecordFoldMapChange(node) {
+            if (foldMap[node.block] == bottomNode) {
+                foldMap[node] = bottomNode
+            } else if (foldMap[node.block]!!.isConstant) { // if !! fails, init is buggy.
+                foldMap[node] = TargetValue(
+                    if (getAsBool(node.block)) 1 else 0,
+                    Mode.getBu().type.mode
+                )
+            } else {
+                foldMap[node] = topNode
+            }
+        }
+    }
+
     private fun intCalculation(node: Binop, doConstOperation: () -> Unit) {
         doAndRecordFoldMapChange(node) {
-            if (foldMap[node.left] == bottomNode || foldMap[node.right] == topNode) {
+            if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
                 foldMap[node] = bottomNode
             } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
                 doConstOperation()
@@ -170,7 +228,7 @@ class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Nod
         init(node)
     }
 
-    // bool stuff also to be folded.
+    // TODO bool stuff also to be folded?
 
     override fun visit(node: And) {
         init(node)
