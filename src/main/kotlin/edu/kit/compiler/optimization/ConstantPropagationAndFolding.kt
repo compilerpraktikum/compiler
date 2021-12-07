@@ -3,6 +3,7 @@ package edu.kit.compiler.optimization
 import firm.BackEdges
 import firm.Graph
 import firm.Mode
+import firm.Relation
 import firm.TargetValue
 import firm.nodes.Add
 import firm.nodes.And
@@ -138,14 +139,6 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             )
         }
     }
-
-    private fun getAsBool(node: Node): Boolean {
-        if (foldMap[node]!!.isOne || foldMap[node]!!.asInt() == 0) {
-            return foldMap[node]!!.isOne
-        } else
-        // TODO better handling
-            throw RuntimeException("Tried to convert value other than 0 or 1 to bool")
-    }
 //    override fun visit(node: Cond) {
 //        TODO("implement")
 //    }
@@ -154,13 +147,54 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             if (foldMap[node.block] == bottomNode) {
                 foldMap[node] = bottomNode
             } else if (foldMap[node.block]!!.isConstant) { // if !! fails, init is buggy.
-                foldMap[node] = TargetValue(
-                    if (getAsBool(node.block)) 1 else 0,
-                    Mode.getBu().type.mode
-                )
+                foldMap[node] = getAsTargetValueBool(node.block)
             } else {
                 foldMap[node] = topNode
             }
+        }
+    }
+
+    override fun visit(node: Store) {
+        TODO("implement")
+    }
+    override fun visit(node: Load) {
+        TODO("implement")
+    }
+    override fun visit(node: Return) {
+        TODO("implement")
+    }
+    override fun visit(node: Cmp) {
+        intCalculation(node) {
+//            foldMap[node] = TargetValue(
+//                when (node.relation) {
+//                    Relation.Equal -> foldMap[node.left].compare(foldMap[node.right])
+//                    Relation.LessGreater -> TODO()
+//                    Relation.Less -> TODO()
+//                    Relation.Greater -> TODO()
+//                    Relation.LessEqual -> TODO()
+//                    Relation.GreaterEqual -> TODO()
+//                }
+//            )
+            // todo don't know if that does it..
+            foldMap[node] = getAsTargetValueBool(foldMap[node.left]!!.compare(foldMap[node.right]))
+        }
+    }
+
+    private fun getAsTargetValueBool(relation: Relation): TargetValue = TargetValue(
+        if (getAsBool(relation)) 1 else 0,
+        Mode.getBu().type.mode
+    )
+
+    private fun getAsTargetValueBool(node: Node): TargetValue = TargetValue(
+        if (getAsBool(node)) 1 else 0,
+        Mode.getBu().type.mode
+    )
+
+    private fun getAsBool(relation: Relation): Boolean {
+        return when (relation) {
+            Relation.False -> false
+            Relation.True -> true
+            else -> TODO("error in getAsBool better handling")
         }
     }
 
@@ -174,6 +208,14 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
                 foldMap[node] = topNode
             }
         }
+    }
+
+    private fun getAsBool(node: Node): Boolean {
+        if (foldMap[node]!!.isOne || foldMap[node]!!.asInt() == 0) {
+            return foldMap[node]!!.isOne
+        } else
+        // TODO better handling
+            throw RuntimeException("Tried to convert value other than 0 or 1 to bool")
     }
 
     private fun doAndRecordFoldMapChange(node: Node, function: () -> Unit) {
@@ -228,9 +270,10 @@ class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Nod
         init(node)
     }
 
-    // TODO bool stuff also to be folded?
-
     override fun visit(node: And) {
+        init(node)
+    }
+    override fun visit(node: Or) {
         init(node)
     }
     override fun visit(node: Cond) {
