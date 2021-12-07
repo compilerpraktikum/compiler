@@ -16,6 +16,7 @@ import edu.kit.compiler.wrapper.wrappers.validate
 import firm.Util
 import java.io.IOException
 import java.nio.charset.MalformedInputException
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.inputStream
@@ -175,8 +176,16 @@ class Compiler(private val config: Config) {
 
     private fun runBackEnd(factory: (String, Path, Path) -> CompilerBackEnd) {
         val sourceFileName = config.sourceFile.fileName
-        val assemblyFile = Paths.get(sourceFileName.replaceExtension(".asm"))
+
+        val assemblyFile = if (config.outputAssemblyFile) {
+            Paths.get(sourceFileName.replaceExtension(".asm"))
+        } else {
+            Files.createTempFile("$sourceFileName-", ".asm").apply {
+                toFile().deleteOnExit()
+            }
+        }
         val executableFile = config.outputFile ?: Paths.get(sourceFileName.replaceExtension(""))
+
         val backend = factory(sourceFileName.toString(), assemblyFile, executableFile)
         backend.generate()
     }
@@ -204,5 +213,6 @@ class Compiler(private val config: Config) {
         val mode: Mode
         val sourceFile: Path
         val outputFile: Path?
+        val outputAssemblyFile: Boolean
     }
 }

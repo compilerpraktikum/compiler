@@ -3,6 +3,7 @@ package edu.kit.compiler
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
 import com.github.ajalt.clikt.parameters.types.path
@@ -23,6 +24,8 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
     override val sourceFile by argument(name = "file", help = "source file").path()
 
     override val outputFile by option("-o", "--out", help = "name of the generated executable", envvar = "COMPILER_OUT_FILE").path()
+
+    override val outputAssemblyFile by option("--output-asm", help = "output the intermediate assembler file").flag(default = false)
 
     override fun run() {
         val compiler = Compiler(this)
