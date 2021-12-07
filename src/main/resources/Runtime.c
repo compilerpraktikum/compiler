@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void* allocate(size_t size) {
-    return calloc(1, size);
+    return calloc(1, size > 0 ? size : 1);
 }
 
 void system_println(int c) {

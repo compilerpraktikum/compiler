@@ -25,9 +25,14 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
                 BigInteger(value) <= BigInteger("2147483647")
             }
         }
-        sourceFile.errorIfNot(literalIntExpression.isValidLiteral()) {
-            // todo add annotation to parser and check here!
-            "integer literal value is out of range" at literalIntExpression.sourceRange
+
+        if (literalIntExpression.isValidLiteral()) {
+            literalIntExpression.parsedValue = literalIntExpression.value.toUInt()
+        } else {
+            sourceFile.error {
+                // todo add annotation to parser and check here!
+                "integer literal value is out of range" at literalIntExpression.sourceRange
+            }
         }
         literalIntExpression.value
         super.visitLiteralIntExpression(literalIntExpression)

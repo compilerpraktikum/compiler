@@ -2,16 +2,15 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.lex.AnnotatableFile
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.ClassDefinition
 import edu.kit.compiler.semantic.ClassNamespace
 import edu.kit.compiler.semantic.FieldDefinition
 import edu.kit.compiler.semantic.GlobalNamespace
+import edu.kit.compiler.semantic.InternalFunction
 import edu.kit.compiler.semantic.MethodDefinition
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.SymbolTable
@@ -19,6 +18,7 @@ import edu.kit.compiler.semantic.VariableDefinition
 import edu.kit.compiler.semantic.VariableNode
 import edu.kit.compiler.semantic.asDefinition
 import edu.kit.compiler.semantic.baseType
+import edu.kit.compiler.semantic.defineBuiltIns
 import edu.kit.compiler.semantic.display
 import edu.kit.compiler.semantic.wrap
 import kotlin.contracts.ExperimentalContracts
@@ -275,6 +275,8 @@ class NamespacePopulator(
             }
         })
 
+        fieldDeclaration.owner = currentClass
+
         // do not descend
     }
 
@@ -294,6 +296,11 @@ class NamespacePopulator(
             }
         })
 
+        methodDeclaration.owner = currentClass
+        methodDeclaration.parameters.forEach {
+            it.owner = methodDeclaration
+        }
+
         // do not descend
     }
 
@@ -310,6 +317,11 @@ class NamespacePopulator(
         }
 
         currentClassNamespace.mainMethodDefinition = mainMethodDeclaration.asDefinition()
+
+        mainMethodDeclaration.owner = currentClass
+        mainMethodDeclaration.parameters.forEach {
+            it.owner = mainMethodDeclaration
+        }
 
         // do not descend
     }
@@ -372,12 +384,6 @@ class SubroutineNameResolver(
     private val namespace: NameResolutionHelper,
     private val sourceFile: AnnotatableFile
 ) : AbstractVisitor() {
-    companion object {
-        val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", "System.in.read", SemanticType.Integer, emptyList())
-        val SYSTEM_OUT_PRINTLN = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_println", "System.out.println", SemanticType.Void, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_WRITE = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_write", "System.out.write", SemanticType.Void, listOf(SemanticType.Integer))
-        val SYSTEM_OUT_FLUSH = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_flush", "System.out.flush", SemanticType.Void, emptyList())
-    }
 
     override fun visitBlock(block: AstNode.Statement.Block) {
         namespace.enterScope()
@@ -434,7 +440,7 @@ class SubroutineNameResolver(
             when (fieldName) {
                 "in" -> {
                     when (methodName) {
-                        "read" -> methodInvocationExpression.type = SYSTEM_IN_READ
+                        "read" -> methodInvocationExpression.type = InternalFunction.SYSTEM_IN_READ
                         else -> {
                             sourceFile.error {
                                 "unknown built-in method `System.in.$methodName`" at methodInvocationExpression.sourceRange
@@ -444,9 +450,9 @@ class SubroutineNameResolver(
                 }
                 "out" -> {
                     when (methodName) {
-                        "println" -> methodInvocationExpression.type = SYSTEM_OUT_PRINTLN
-                        "write" -> methodInvocationExpression.type = SYSTEM_OUT_WRITE
-                        "flush" -> methodInvocationExpression.type = SYSTEM_OUT_FLUSH
+                        "println" -> methodInvocationExpression.type = InternalFunction.SYSTEM_OUT_PRINTLN
+                        "write" -> methodInvocationExpression.type = InternalFunction.SYSTEM_OUT_WRITE
+                        "flush" -> methodInvocationExpression.type = InternalFunction.SYSTEM_OUT_FLUSH
                         else -> {
                             sourceFile.error {
                                 "unknown built-in method `System.out.$methodName`" at methodInvocationExpression.sourceRange
@@ -486,21 +492,6 @@ class SubroutineNameResolver(
 
         super.visitNewObjectExpression(newObjectExpression)
     }
-}
-
-private fun GlobalNamespace.defineBuiltIns(sourceFile: SourceFile, stringTable: StringTable) {
-    val dummySourceRange = SourcePosition(sourceFile, 0).extend(0)
-
-    classes.tryPut(
-        AstNode.ClassDeclaration(
-            AstNode.Identifier(stringTable.tryRegisterIdentifier("String"), dummySourceRange),
-            emptyList(),
-            dummySourceRange
-        ).apply {
-            namespace = ClassNamespace(this@defineBuiltIns)
-        }.asDefinition(),
-        onDuplicate = { check(false) }
-    )
 }
 
 fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringTable: StringTable) {

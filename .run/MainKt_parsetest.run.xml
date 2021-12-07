@@ -1,8 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="MainKt_lextest" type="JetRunConfigurationType">
+    <configuration default="false" name="MainKt_parsetest" type="JetRunConfigurationType">
         <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
         <module name="compiler.main"/>
-        <option name="PROGRAM_PARAMETERS" value="--lextest test"/>
+        <option name="PROGRAM_PARAMETERS" value="--parsetest test"/>
+        <target name="WSL - Ubuntu-16.04"/>
         <shortenClasspath name="NONE"/>
         <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/workspace"/>
         <method v="2">

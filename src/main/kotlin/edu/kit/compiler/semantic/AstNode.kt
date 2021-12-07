@@ -62,6 +62,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             sourceRange: SourceRange
         ) : ClassMember(name, sourceRange) {
 
+            lateinit var owner: ClassDeclaration
+
             /**
              * Special case of a [SubroutineDeclaration] that is the main entry point
              */
@@ -93,7 +95,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 val name: Identifier,
                 val type: SemanticType,
                 sourceRange: SourceRange
-            ) : AstNode(sourceRange)
+            ) : AstNode(sourceRange) {
+                lateinit var owner: SubroutineDeclaration
+            }
         }
 
         /**
@@ -103,8 +107,9 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             name: Identifier,
             val type: SemanticType,
             sourceRange: SourceRange
-        ) :
-            ClassMember(name, sourceRange)
+        ) : ClassMember(name, sourceRange) {
+            lateinit var owner: ClassDeclaration
+        }
     }
 
     sealed class Expression(sourceRange: SourceRange) : AstNode(sourceRange) {
@@ -118,6 +123,11 @@ sealed class AstNode(open val sourceRange: SourceRange) {
          * no expected type)
          */
         lateinit var expectedType: SemanticType
+
+        /**
+         * flag if a expression is on the left side of '=', will be set during semantic phase and is aviable in transformation phase
+         */
+        open var isLeftHandAssignment = false
 
         /**
          * Primary expression encompassing a single identifier
@@ -147,6 +157,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = SemanticType.Integer
+
+                var parsedValue: UInt = 0u
             }
 
             /**
@@ -220,6 +232,13 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                     AST.BinaryExpression.Operation.ASSIGNMENT ->
                         left.actualType
                 }
+
+            override var isLeftHandAssignment: Boolean = false
+                set(value) {
+                    field = value
+                    left.isLeftHandAssignment = value
+                    right.isLeftHandAssignment = value
+                }
         }
 
         /**
@@ -236,6 +255,12 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 get() = when (operation) {
                     AST.UnaryExpression.Operation.NOT -> SemanticType.Boolean
                     AST.UnaryExpression.Operation.MINUS -> SemanticType.Integer
+                }
+
+            override var isLeftHandAssignment: Boolean = false
+                set(value) {
+                    field = value
+                    inner.isLeftHandAssignment = value
                 }
         }
 
@@ -283,6 +308,12 @@ sealed class AstNode(open val sourceRange: SourceRange) {
 
             override val actualType: SemanticType
                 get() = definition?.node?.type ?: SemanticType.Error
+
+            override var isLeftHandAssignment: Boolean = false
+                set(value) {
+                    field = value
+                    target.isLeftHandAssignment = value
+                }
         }
 
         /**
@@ -300,6 +331,12 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 get() = when (val type = this.target.actualType) {
                     is SemanticType.Array -> type.elementType
                     else -> SemanticType.Error
+                }
+
+            override var isLeftHandAssignment: Boolean = false
+                set(value) {
+                    field = value
+                    target.isLeftHandAssignment = value
                 }
         }
     }

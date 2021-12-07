@@ -11,9 +11,22 @@ class Definition<NodeType>(
 )
 
 sealed class VariableNode() {
-    class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode()
-    class Parameter(val node: AstNode.ClassMember.SubroutineDeclaration.Parameter) : VariableNode()
-    class LocalVariable(val node: AstNode.Statement.LocalVariableDeclaration) : VariableNode()
+    abstract val type: SemanticType
+
+    class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode() {
+        override val type: SemanticType
+            get() = node.type
+    }
+
+    class Parameter(val node: AstNode.ClassMember.SubroutineDeclaration.Parameter) : VariableNode() {
+        override val type: SemanticType
+            get() = node.type
+    }
+
+    class LocalVariable(val node: AstNode.Statement.LocalVariableDeclaration) : VariableNode() {
+        override val type: SemanticType
+            get() = node.type
+    }
 }
 typealias VariableDefinition = Definition<VariableNode>
 
