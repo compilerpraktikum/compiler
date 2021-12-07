@@ -13,30 +13,46 @@ import edu.kit.compiler.semantic.SemanticType
  */
 class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    private var foundTopLevelReturnStatement: Boolean = false
-    private var foundNonTopLevelReturnStatement: Boolean = false
-    private var recursionDepthCounter: Int = 1
+    private var foundReturn: Boolean = false
 
     override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
-        if (methodDeclaration.returnType == SemanticType.Void) return
-        foundTopLevelReturnStatement = false
+        if (methodDeclaration.returnType == SemanticType.Void) {
+            return
+        }
 
-        methodDeclaration.block.statements.forEach { statement ->
+        foundReturn = false
+
+        methodDeclaration.block.accept(this)
+
+        sourceFile.errorIfNot(foundReturn) {
+            "missing return statement in non-void function" at methodDeclaration.name.sourceRange // TODO better source range
+        }
+    }
+
+    override fun visitBlock(block: AstNode.Statement.Block) {
+        block.statements.forEach { statement ->
             statement.accept(this)
-            if (getAndResetFoundNonTopLevelReturnStatement()) {
-                // only true if ifstatement and ifElse
-                foundTopLevelReturnStatement = true
+            if (foundReturn) {
+                return
             }
         }
+    }
 
-        sourceFile.errorIfNot(foundTopLevelReturnStatement) {
-            "missing return statement in non-void function" at methodDeclaration.sourceRange
-        }
-        foundTopLevelReturnStatement = false
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+        // do not descend: has return type void
+    }
+
+    override fun visitExpression(expression: AstNode.Expression) {
+        // do not descend: expressions cannot return
+    }
+
+    override fun visitStatement(statement: AstNode.Statement) {
+        checkNoReturnYet()
+        super.visitStatement(statement)
     }
 
     override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
-        // explicit no-op: we do assume loops to be skipped.
+        // skip because the condition might never be true
     }
 
     override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
@@ -44,42 +60,25 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
             return
         }
 
-        var foundReturnInThenCase = descent {
-            ifStatement.thenCase.accept(this)
-            getAndResetFoundNonTopLevelReturnStatement()
-        }
-
-        var foundReturnInElseCase = descent {
-            ifStatement.elseCase.accept(this)
-            getAndResetFoundNonTopLevelReturnStatement()
-        }
-
-        if (foundReturnInThenCase && foundReturnInElseCase) {
-            foundNonTopLevelReturnStatement = true
+        if (containsReturn(ifStatement.thenCase) && containsReturn(ifStatement.elseCase)) {
+            foundReturn = true
         }
     }
 
-    private fun getAndResetFoundNonTopLevelReturnStatement(): Boolean {
-        val tmp = foundNonTopLevelReturnStatement
-        foundNonTopLevelReturnStatement = false
-        return tmp
-    }
-
-    private fun descent(function: () -> Boolean): Boolean {
-        recursionDepthCounter++
-        val tmp = function()
-        recursionDepthCounter--
-        return tmp
+    private fun containsReturn(stmt: AstNode.Statement): Boolean {
+        checkNoReturnYet()
+        stmt.accept(this)
+        val foundReturnInStatement = foundReturn
+        foundReturn = false
+        return foundReturnInStatement
     }
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
-        if (recursionDepthCounter == 1) {
-            // TOP-level return statement found ==> Done.
-            foundTopLevelReturnStatement = true
-        } else {
-            foundNonTopLevelReturnStatement = true
-        }
-        super.visitReturnStatement(returnStatement)
+        foundReturn = true
+    }
+
+    private fun checkNoReturnYet() {
+        check(!foundReturn) // iteration should stop once first return is encountered
     }
 }
 

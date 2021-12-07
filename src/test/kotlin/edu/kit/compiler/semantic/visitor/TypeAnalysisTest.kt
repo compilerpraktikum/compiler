@@ -147,14 +147,7 @@ class TypeAnalysisTest {
                         n = n - 1;
                     }
                 }
-                public static void main(String[] args) {
-                    int n = 4;
-                    int x = new Fibonacci().fib(n);
-                    Fibonacci a = new Fibonacci();
-                    a.fib(new Fibonacci().fib(n));
-                    a.fib(n);
-                    System.out.println(a.fib(n));
-                }
+                public static void main(String[] args) {}
             }
 
             """.trimIndent()
@@ -189,14 +182,7 @@ class TypeAnalysisTest {
                         n = n - 1;
                     }
                 }
-                public static void main(String[] args) {
-                    int n = 4;
-                    int x = new Fibonacci().fib(n);
-                    Fibonacci a = new Fibonacci();
-                    a.fib(new Fibonacci().fib(n));
-                    a.fib(n);
-                    System.out.println(a.fib(n));
-                }
+                public static void main(String[] args) {}
             }
 
             """.trimIndent()
