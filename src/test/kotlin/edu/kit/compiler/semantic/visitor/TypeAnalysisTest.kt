@@ -145,6 +145,76 @@ class TypeAnalysisTest {
     }
 
     @Test
+    fun testReturns() {
+        check(true) {
+            """
+            class Fibonacci {
+                public int fib(int n) {
+                    int a = 0;
+                    int b = 1;
+                    if (true) {
+                        if (false) {
+                            return 0;
+                        } else {
+                            if (false) {
+                                return 2;
+                            } else {
+                                return 3;
+                            }
+                        }
+                    } else {
+                        return 3;
+                    }
+                    while (n > 0) {
+                        int c = a + b;
+                        a = b;
+                        b = c;
+                        n = n - 1;
+                    }
+                }
+                public static void main(String[] args) {}
+            }
+
+            """.trimIndent()
+        }
+    }
+
+    @Test
+    fun testReturnsInvalid() {
+        check(false) {
+            """
+            class Fibonacci {
+                public int fib(int n) {
+                    int a = 0;
+                    int b = 1;
+                    if (true) {
+                        if (false) {
+                            return 0;
+                        } else {
+                            if (false) {
+                                return 2;
+                            } else {
+                                a = 5;
+                            }
+                        }
+                    } else {
+                        return 3;
+                    }
+                    while (n > 0) {
+                        int c = a + b;
+                        a = b;
+                        b = c;
+                        n = n - 1;
+                    }
+                }
+                public static void main(String[] args) {}
+            }
+
+            """.trimIndent()
+        }
+    }
+
+    @Test
     fun testDeeplyNested() {
         check(false, listOf("array access on non-array type `int`")) {
             """
