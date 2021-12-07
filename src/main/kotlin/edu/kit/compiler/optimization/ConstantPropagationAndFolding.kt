@@ -183,21 +183,20 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         }
     }
 
-    override fun visit(node: Phi) =
-        doAndRecordFoldMapChange(node) {
-            // todo there are only Phis of length 2, right?
-            foldMap[node] =
-                if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
-                    foldMap[node.getPred(0)]!!
-                else foldMap[node.getPred(1)]!!
-        }
+    override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
+        // todo there are only Phis of length 2, right?
+        foldMap[node] =
+            if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
+                foldMap[node.getPred(0)]!!
+            else foldMap[node.getPred(1)]!!
+    }
 
-    private fun getAsTargetValueBool(relation: Relation): TargetValue = TargetValue(
+    private fun getAsTargetValueBool(relation: Relation) = TargetValue(
         if (getAsBool(relation)) 1 else 0,
         Mode.getBu().type.mode
     )
 
-    private fun getAsTargetValueBool(node: Node): TargetValue = TargetValue(
+    private fun getAsTargetValueBool(node: Node) = TargetValue(
         if (getAsBool(node)) 1 else 0,
         Mode.getBu().type.mode
     )
@@ -208,16 +207,15 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         else -> TODO("error in getAsBool better handling")
     }
 
-    private fun intCalculation(node: Binop, doConstOperation: () -> Unit) =
-        doAndRecordFoldMapChange(node) {
-            if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
-                foldMap[node] = bottomNode
-            } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
-                doConstOperation()
-            } else {
-                foldMap[node] = topNode
-            }
+    private fun intCalculation(node: Binop, doConstOperation: () -> Unit) = doAndRecordFoldMapChange(node) {
+        if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
+            foldMap[node] = bottomNode
+        } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
+            doConstOperation()
+        } else {
+            foldMap[node] = topNode
         }
+    }
 
     private fun getAsBool(node: Node): Boolean =
         if (foldMap[node]!!.isOne || foldMap[node]!!.asInt() == 0) {
@@ -239,7 +237,10 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
  * Collect all relevant nodes and initializes them in the foldMap with ⊥ = TargetValue.getUnknown
  *  TODO this pass is probably not necessary (may be integrated in the other)
  */
-class ConstantPropagationAndFoldingNodeCollector(private val worklist: Stack<Node>, private val foldMap: MutableMap<Node, TargetValue>) : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingNodeCollector(
+    private val worklist: Stack<Node>,
+    private val foldMap: MutableMap<Node, TargetValue>
+) : AbstractNodeVisitor() {
     private fun init(node: Node) {
         worklist.push(node)
         foldMap[node] = TargetValue.getUnknown()
