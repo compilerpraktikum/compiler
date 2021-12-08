@@ -11,7 +11,7 @@ object Optimization {
      */
     fun constantPropagationAndFolding() {
         Program.getGraphs().forEach {
-            ConstantPropagationAndFoldingVisitor(it).doConstantPropagationAndFolding()
+            ConstantPropagationAndFoldingAnalysisVisitor(it).doConstantPropagationAndFolding()
 
             Dump.dumpGraph(it, "afterConstantPropAndFold")
         }

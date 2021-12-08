@@ -21,12 +21,38 @@ import firm.nodes.Not
 import firm.nodes.Or
 import firm.nodes.Phi
 import firm.nodes.Proj
-import firm.nodes.Return
 import firm.nodes.Shl
 import firm.nodes.Shr
 import firm.nodes.Shrs
 import firm.nodes.Sub
 import java.util.Stack
+
+class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Graph, private val foldMap: MutableMap<Node, TargetValue>) : AbstractNodeVisitor() {
+
+    override fun visit(node: Add) = exchangeNodeTargetValue(node)
+    override fun visit(node: Sub) = exchangeNodeTargetValue(node)
+    override fun visit(node: Mul) = exchangeNodeTargetValue(node)
+    override fun visit(node: Mod) = exchangeNodeTargetValue(node)
+    override fun visit(node: Div) = exchangeNodeTargetValue(node)
+    override fun visit(node: Minus) = exchangeNodeTargetValue(node)
+
+    override fun visit(node: Cmp) { } // TODO("implement")
+    override fun visit(node: Conv) { } // TODO("implement")
+
+    // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
+    override fun visit(node: Shl) = exchangeNodeTargetValue(node)
+    override fun visit(node: Shr) = exchangeNodeTargetValue(node)
+    override fun visit(node: Shrs) = exchangeNodeTargetValue(node)
+
+    override fun visit(node: And) = exchangeNodeTargetValue(node)
+    override fun visit(node: Or) = exchangeNodeTargetValue(node)
+    override fun visit(node: Not) = exchangeNodeTargetValue(node)
+
+    override fun visit(node: Call) { } // TODO("implement")
+    override fun visit(node: Phi) = exchangeNodeTargetValue(node)
+
+    private fun exchangeNodeTargetValue(node: Node) = Graph.exchange(node, graph.newConst(foldMap[node]))
+}
 
 /**
  * What is expected seems to be a mix of
@@ -54,7 +80,7 @@ import java.util.Stack
  *          }
  *
  */
-class ConstantPropagationAndFoldingVisitor(private val graph: Graph) : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : AbstractNodeVisitor() {
 
     private var hasChanged = false
     private val workList: Stack<Node> = Stack()
@@ -79,13 +105,17 @@ class ConstantPropagationAndFoldingVisitor(private val graph: Graph) : AbstractN
         }
 
         BackEdges.disable(graph)
-        // TODO use foldMap to perform the propagation/ folding.
 
         // TODO rmv debug
         println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
         foldMap.forEach {
             println("  - ${it.key} ${" ".repeat(25 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
         }
+
+        // perform the propagation/ folding for nodes with targetValues ∉ {⊤, ⊥}
+        val transformationVisitor = ConstantPropagationAndFoldingTransformationVisitor(graph, foldMap)
+        foldMap.filter { it.value != topNode && it.value != bottomNode }
+            .forEach { it.key.accept(transformationVisitor) }
     }
 
     private fun targetValueToString(targetValue: TargetValue): String =
