@@ -59,21 +59,6 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
     private val bottomNode = TargetValue.getUnknown()
     private val topNode = TargetValue.getBad()
 
-    /**
-     * Returns
-     * * -1 | ⊥
-     * * 0 | integers
-     * * 1 | ⊤
-     */
-    private fun orderOfTargetValue(targetValue: TargetValue) =
-        if (targetValue == bottomNode) -1 else if (targetValue == topNode) 1 else 0
-
-    private fun consumeHasChanged(): Boolean {
-        val tmp = hasChanged
-        hasChanged = false
-        return tmp
-    }
-
     fun doConstantPropagationAndFolding(graph: Graph) {
         // collect relevant nodes
         graph.walkTopological(ConstantPropagationAndFoldingNodeCollector(workList, foldMap))
@@ -89,18 +74,12 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         // TODO use foldMap to perform the propagation/ folding.
     }
 
-    override fun visit(node: Add) = intCalculation(node) {
-        foldMap[node] = foldMap[node.left]!!.add(foldMap[node.right])
-    }
-
-    override fun visit(node: Sub) = intCalculation(node) {
-        foldMap[node] = foldMap[node.left]!!.sub(foldMap[node.right])
-    }
-
-    override fun visit(node: Mul) = intCalculation(node) {
-        foldMap[node] = foldMap[node.left]!!.mul(foldMap[node.right])
-    }
-
+    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::shl)
+    override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
+    override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
+    override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
+    override fun visit(node: Shrs) = intCalculationSimpleFold(node, TargetValue::shrs)
+    override fun visit(node: Mul) = intCalculationSimpleFold(node, TargetValue::mul)
     override fun visit(node: Mod) = doAndRecordFoldMapChange(node) {
         // Mod is not a binop.
         if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
@@ -113,7 +92,6 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             foldMap[node] = topNode
         }
     }
-
     override fun visit(node: Div) = doAndRecordFoldMapChange(node) {
         // Div is not a binop.
         if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
@@ -163,17 +141,7 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
     }
 
     override fun visit(node: Cmp) = intCalculation(node) {
-//            foldMap[node] = TargetValue(
-//                when (node.relation) {
-//                    Relation.Equal -> foldMap[node.left].compare(foldMap[node.right])
-//                    Relation.LessGreater -> TODO()
-//                    Relation.Less -> TODO()
-//                    Relation.Greater -> TODO()
-//                    Relation.LessEqual -> TODO()
-//                    Relation.GreaterEqual -> TODO()
-//                }
-//            )
-        // todo don't know if that does it..
+        // correct, if compare always returns True or False (which it should, if both targetValues are constants?)
         foldMap[node] = getAsTargetValueBool(foldMap[node.left]!!.compare(foldMap[node.right]))
     }
 
@@ -207,6 +175,11 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         else -> TODO("error in getAsBool better handling")
     }
 
+    private fun intCalculationSimpleFold(node: Binop, doSimpleFoldConstOperation: (TargetValue, TargetValue) -> TargetValue) =
+        intCalculation(node) {
+            foldMap[node] = doSimpleFoldConstOperation(foldMap[node.left]!!, (foldMap[node.right]!!))
+        }
+
     private fun intCalculation(node: Binop, doConstOperation: () -> Unit) = doAndRecordFoldMapChange(node) {
         if (foldMap[node.left] == bottomNode || foldMap[node.right] == bottomNode) {
             foldMap[node] = bottomNode
@@ -232,9 +205,20 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
         }
     }
 
-    override fun visit(node: Shl) = TODO("implement")
-    override fun visit(node: Shr) = TODO("implement")
-    override fun visit(node: Shrs) = TODO("implement")
+    /**
+     * Returns
+     * * -1 | ⊥
+     * * 0 | integers
+     * * 1 | ⊤
+     */
+    private fun orderOfTargetValue(targetValue: TargetValue) =
+        if (targetValue == bottomNode) -1 else if (targetValue == topNode) 1 else 0
+
+    private fun consumeHasChanged(): Boolean {
+        val tmp = hasChanged
+        hasChanged = false
+        return tmp
+    }
 }
 
 /**
@@ -259,6 +243,7 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Minus) = init(node)
     override fun visit(node: Cmp) = init(node)
 
+    // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = init(node)
     override fun visit(node: Shr) = init(node)
     override fun visit(node: Shrs) = init(node)
