@@ -231,6 +231,10 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
             hasChanged = true
         }
     }
+
+    override fun visit(node: Shl) = TODO("implement")
+    override fun visit(node: Shr) = TODO("implement")
+    override fun visit(node: Shrs) = TODO("implement")
 }
 
 /**
