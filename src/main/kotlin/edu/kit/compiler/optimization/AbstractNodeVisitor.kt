@@ -62,223 +62,59 @@ import firm.nodes.Unknown
  */
 abstract class AbstractNodeVisitor : NodeVisitor {
 
-    override fun visit(node: Add) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Address) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Align) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Alloc) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Anchor) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: And) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Bad) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Bitcast) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Block) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Builtin) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Call) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Cmp) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Cond) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Confirm) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Const) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Conv) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: CopyB) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Deleted) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Div) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Dummy) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: End) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Eor) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Free) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: IJmp) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Id) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Jmp) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Load) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Member) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Minus) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Mod) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Mul) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Mulh) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Mux) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: NoMem) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Not) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Offset) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Or) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Phi) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Pin) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Proj) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Raise) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Return) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Sel) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Shl) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Shr) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Shrs) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Size) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Start) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Store) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Sub) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Switch) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Sync) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Tuple) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visit(node: Unknown) {
-        // TODO no visiting necessary, presumably?
-    }
-
-    override fun visitUnknown(node: Node) {
-        // TODO no visiting necessary, presumably?
-    }
+    override fun visit(node: Add) { }
+    override fun visit(node: Address) { }
+    override fun visit(node: Align) { }
+    override fun visit(node: Alloc) { }
+    override fun visit(node: Anchor) { }
+    override fun visit(node: And) { }
+    override fun visit(node: Bad) { }
+    override fun visit(node: Bitcast) { }
+    override fun visit(node: Block) { }
+    override fun visit(node: Builtin) { }
+    override fun visit(node: Call) { }
+    override fun visit(node: Cmp) { }
+    override fun visit(node: Cond) { }
+    override fun visit(node: Confirm) { }
+    override fun visit(node: Const) { }
+    override fun visit(node: Conv) { }
+    override fun visit(node: CopyB) { }
+    override fun visit(node: Deleted) { }
+    override fun visit(node: Div) { }
+    override fun visit(node: Dummy) { }
+    override fun visit(node: End) { }
+    override fun visit(node: Eor) { }
+    override fun visit(node: Free) { }
+    override fun visit(node: IJmp) { }
+    override fun visit(node: Id) { }
+    override fun visit(node: Jmp) { }
+    override fun visit(node: Load) { }
+    override fun visit(node: Member) { }
+    override fun visit(node: Minus) { }
+    override fun visit(node: Mod) { }
+    override fun visit(node: Mul) { }
+    override fun visit(node: Mulh) { }
+    override fun visit(node: Mux) { }
+    override fun visit(node: NoMem) { }
+    override fun visit(node: Not) { }
+    override fun visit(node: Offset) { }
+    override fun visit(node: Or) { }
+    override fun visit(node: Phi) { }
+    override fun visit(node: Pin) { }
+    override fun visit(node: Proj) { }
+    override fun visit(node: Raise) { }
+    override fun visit(node: Return) { }
+    override fun visit(node: Sel) { }
+    override fun visit(node: Shl) { }
+    override fun visit(node: Shr) { }
+    override fun visit(node: Shrs) { }
+    override fun visit(node: Size) { }
+    override fun visit(node: Start) { }
+    override fun visit(node: Store) { }
+    override fun visit(node: Sub) { }
+    override fun visit(node: Switch) { }
+    override fun visit(node: Sync) { }
+    override fun visit(node: Tuple) { }
+    override fun visit(node: Unknown) { }
+    override fun visitUnknown(node: Node) { }
 }
