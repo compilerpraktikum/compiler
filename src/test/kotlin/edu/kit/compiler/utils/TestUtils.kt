@@ -21,10 +21,15 @@ import kotlin.io.path.name
 import kotlin.test.assertEquals
 
 internal inline fun <reified T> Parsed<T>?.debug(): String {
-    val nodeName = T::class.simpleName!!
     return when (this) {
-        is Parsed.Valid -> "Valid$nodeName(${node.toContentString()})"
-        is Parsed.Error -> "Invalid$nodeName(${node.toContentString()})"
+        is Parsed.Valid -> {
+            val nodeName = node!!::class.java.simpleName
+            "Valid$nodeName(${node.toContentString()})"
+        }
+        is Parsed.Error -> {
+            val nodeName = (node?.let { it::class } ?: T::class).java.simpleName
+            "Invalid$nodeName(${node.toContentString()})"
+        }
         null -> "/"
     }
 }
@@ -40,7 +45,7 @@ private fun <T> T.toContentString() = when (this) {
 }
 
 private fun AST.toChildString(): String = when (this) {
-    is AST.Program -> classes.joinToString(separator = ", ") { it.debug() }
+    is AST.Program -> "classes = ${classes.debug()}"
     is AST.ClassDeclaration -> "name = ${name.debug()}, member = ${member.debug()}"
     is AST.Field -> "name = ${name.debug()}, type = ${type.debug()}"
     is AST.Method -> "name = ${name.debug()}, return = ${returnType.debug()}, throws = ${throwsException.debug()}, parameters = ${parameters.debug()}, body = ${block.debug()}"
