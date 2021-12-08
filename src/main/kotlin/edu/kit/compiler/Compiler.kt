@@ -7,6 +7,7 @@ import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.optimization.Optimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
@@ -130,6 +131,8 @@ class Compiler(private val config: Config) {
 
                         Transformation.transform(program, config.dump.contains(Dump.FirmMethodGraphs))
                         Util.lowerSels()
+
+                        Optimization.constantPropagationAndFolding()
 
                         runBackEnd(::FirmBackEnd)
                     }

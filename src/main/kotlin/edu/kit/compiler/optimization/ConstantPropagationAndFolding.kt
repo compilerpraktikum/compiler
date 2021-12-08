@@ -11,6 +11,7 @@ import firm.nodes.Binop
 import firm.nodes.Call
 import firm.nodes.Cmp
 import firm.nodes.Const
+import firm.nodes.Conv
 import firm.nodes.Div
 import firm.nodes.Minus
 import firm.nodes.Mod
@@ -19,6 +20,8 @@ import firm.nodes.Node
 import firm.nodes.Not
 import firm.nodes.Or
 import firm.nodes.Phi
+import firm.nodes.Proj
+import firm.nodes.Return
 import firm.nodes.Shl
 import firm.nodes.Shr
 import firm.nodes.Shrs
@@ -51,7 +54,7 @@ import java.util.Stack
  *          }
  *
  */
-class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingVisitor(private val graph: Graph) : AbstractNodeVisitor() {
 
     private var hasChanged = false
     private val workList: Stack<Node> = Stack()
@@ -59,9 +62,12 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
     private val bottomNode = TargetValue.getUnknown()
     private val topNode = TargetValue.getBad()
 
-    fun doConstantPropagationAndFolding(graph: Graph) {
+    fun doConstantPropagationAndFolding() {
         // collect relevant nodes
         graph.walkTopological(ConstantPropagationAndFoldingNodeCollector(workList, foldMap))
+
+        // firm meckert sonst.
+        BackEdges.enable(graph)
 
         // prepare propagation and folding by performing data river analysis
         while (!workList.empty()) {
@@ -71,10 +77,21 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
                 BackEdges.getOuts(node).forEach { workList.push(it.node) }
             }
         }
+
+        BackEdges.disable(graph)
         // TODO use foldMap to perform the propagation/ folding.
+
+        // TODO rmv debug
+        println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
+        foldMap.forEach {
+            println("  - ${it.key} ${" ".repeat(25 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
+        }
     }
 
-    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::shl)
+    private fun targetValueToString(targetValue: TargetValue): String =
+        if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
+
+    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::add)
     override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
     override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
     override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
@@ -142,6 +159,7 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
 
     override fun visit(node: Cmp) = intCalculation(node) {
         // correct, if compare always returns True or False (which it should, if both targetValues are constants?)
+        println("CMP_DEBUG Comparing: ${node.left}, ${node.right}")
         foldMap[node] = getAsTargetValueBool(foldMap[node.left]!!.compare(foldMap[node.right]))
     }
 
@@ -153,8 +171,10 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
 
     override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
         // todo there are only Phis of length 2, right?
+        println("PHI_DEBUG $node  ${node.predCount}, ${node.getPred(0)}, ${node.getPred(1)}")
         foldMap[node] =
-            if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
+            if (node.predCount != 2) topNode
+            else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
                 foldMap[node.getPred(0)]!!
             else foldMap[node.getPred(1)]!!
     }
@@ -172,7 +192,9 @@ class ConstantPropagationAndFoldingVisitor() : AbstractNodeVisitor() {
     private fun getAsBool(relation: Relation): Boolean = when (relation) {
         Relation.False -> false
         Relation.True -> true
-        else -> TODO("error in getAsBool better handling")
+        Relation.Equal -> true
+        // TODO more!
+        else -> TODO("error in getAsBool better handling. Got $relation")
     }
 
     private fun intCalculationSimpleFold(node: Binop, doSimpleFoldConstOperation: (TargetValue, TargetValue) -> TargetValue) =
@@ -242,6 +264,11 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Div) = init(node)
     override fun visit(node: Minus) = init(node)
     override fun visit(node: Cmp) = init(node)
+
+    // TODO need to handle this in the other visitor, maybe? ArrayAccess stuff...
+    override fun visit(node: Conv) = init(node)
+    // needed because phi handling explodes elsewise
+    override fun visit(node: Proj) = init(node)
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = init(node)
