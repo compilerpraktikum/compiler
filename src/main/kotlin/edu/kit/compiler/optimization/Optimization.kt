@@ -1,17 +1,17 @@
 package edu.kit.compiler.optimization
 
-import edu.kit.compiler.semantic.AstNode
 import firm.Dump
+import firm.Graph
 import firm.Program
 
 object Optimization {
 
     /**
-     * Transform a [Semantic AST][AstNode] into a firm graph
+     * Perform constant propagation and folding on the given [method graph][Graph].
      */
     fun constantPropagationAndFolding() {
         Program.getGraphs().forEach {
-            ConstantPropagationAndFoldingAnalysisVisitor(it).doConstantPropagationAndFolding()
+            doConstantPropagationAndFolding(it)
 
             Dump.dumpGraph(it, "afterConstantPropAndFold")
         }

@@ -52,6 +52,15 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: Phi) = exchangeNodeTargetValue(node)
 
     private fun exchangeNodeTargetValue(node: Node) = Graph.exchange(node, graph.newConst(foldMap[node]))
+
+    /**
+     * perform the propagation/ folding for nodes with targetValues ∉ {⊤, ⊥}
+     */
+    fun transform() {
+        val transformationVisitor = ConstantPropagationAndFoldingTransformationVisitor(graph, foldMap)
+        foldMap.filter { it.value.isConstant }
+            .forEach { it.key.accept(transformationVisitor) }
+    }
 }
 
 /**
@@ -88,13 +97,15 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private val bottomNode = TargetValue.getUnknown()
     private val topNode = TargetValue.getBad()
 
-    fun doConstantPropagationAndFolding() {
+    /**
+     * perform the constant propagation and folding analysis and return what has to be changed.
+     */
+    fun doConstantPropagationAndFoldingAnalysis(): MutableMap<Node, TargetValue> {
         // collect relevant nodes
         graph.walkTopological(ConstantPropagationAndFoldingNodeCollector(workList, foldMap))
 
         // firm meckert sonst.
         BackEdges.enable(graph)
-
         // prepare propagation and folding by performing data river analysis
         while (!workList.empty()) {
             val node = workList.pop()
@@ -103,7 +114,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
                 BackEdges.getOuts(node).forEach { workList.push(it.node) }
             }
         }
-
         BackEdges.disable(graph)
 
         // TODO rmv debug
@@ -111,11 +121,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         foldMap.forEach {
             println("  - ${it.key} ${" ".repeat(25 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
         }
-
-        // perform the propagation/ folding for nodes with targetValues ∉ {⊤, ⊥}
-        val transformationVisitor = ConstantPropagationAndFoldingTransformationVisitor(graph, foldMap)
-        foldMap.filter { it.value != topNode && it.value != bottomNode }
-            .forEach { it.key.accept(transformationVisitor) }
+        return foldMap
     }
 
     private fun targetValueToString(targetValue: TargetValue): String =
@@ -312,4 +318,15 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Call) = init(node)
     override fun visit(node: Const) = init(node)
     override fun visit(node: Phi) = init(node)
+}
+
+/**
+ * Perform constant propagation and folding on the given [method graph][Graph].
+ */
+fun doConstantPropagationAndFolding(graph: Graph) {
+    ConstantPropagationAndFoldingTransformationVisitor(
+        graph,
+        ConstantPropagationAndFoldingAnalysisVisitor(graph)
+            .doConstantPropagationAndFoldingAnalysis()
+    ).transform()
 }
