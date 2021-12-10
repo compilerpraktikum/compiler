@@ -52,7 +52,9 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             sourceFile.error {
                 "variable cannot have type `void`" at localVariableDeclaration.sourceRange
             }
-            return // no need to check the initializer because it would need to have type `void` which doesn't make any sense
+            // no need to check the initializer because it would need to have type `void` which doesn't make any
+            // sense, creating useless follow-up errors
+            return
         }
 
         super.visitLocalVariableDeclaration(localVariableDeclaration)
@@ -246,7 +248,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
         checkTypesCompatible(identifierExpression)
-        super.visitIdentifierExpression(identifierExpression) // NOOP
     }
 
     override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
@@ -265,12 +266,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
-        super.visitNewObjectExpression(newObjectExpression)
         checkTypesCompatible(newObjectExpression)
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
-        super.visitLiteralBoolExpression(literalBoolExpression)
         checkTypesCompatible(literalBoolExpression)
     }
 
