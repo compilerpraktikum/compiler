@@ -6,7 +6,7 @@ import edu.kit.compiler.utils.createAst
 import edu.kit.compiler.utils.prettyPrint
 import kotlin.test.assertEquals
 
-internal class PrettyPrintMJTestSuite : MjTestSuite("syntax", "ast") {
+internal class PrettyPrintMjTestSuite : MjTestSuite("syntax", "ast") {
 
     override fun TestContext.execute() {
         println("========[ input ]========")
