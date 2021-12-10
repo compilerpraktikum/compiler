@@ -134,8 +134,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
         if (returnStatement.expression != null) {
-            errorIf(currentExpectedMethodReturnType is SemanticType.Void) {
-                "cannot return value from method with return type `void`" at returnStatement.sourceRange
+            if (currentExpectedMethodReturnType is SemanticType.Void) {
+                errorIf(true) {
+                    "cannot return value from method with return type `void`" at returnStatement.sourceRange
+                }
+                return
             }
 
             returnStatement.expression.expectedType = currentExpectedMethodReturnType

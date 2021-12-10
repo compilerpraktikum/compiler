@@ -353,6 +353,20 @@ class TypeAnalysisTest {
         }
     }
 
+    @Test
+    fun testReturnValueFromVoidFunction() {
+        check(false, listOf("cannot return value from method with return type `void`")) {
+            """
+                class Bait {
+                    public void test() {
+                        return 1;
+                    }
+                    public static void main(String[] args) {}
+                }
+            """.trimIndent()
+        }
+    }
+
 //    @Test
 //    fun testUnknownMethod() {
 //        check(false) {
