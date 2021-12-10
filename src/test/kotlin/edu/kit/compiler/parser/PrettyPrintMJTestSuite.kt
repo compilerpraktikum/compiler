@@ -1,100 +1,31 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.semantic.AstNode
-import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
-import edu.kit.compiler.semantic.visitor.accept
-import edu.kit.compiler.utils.TestUtils
-import edu.kit.compiler.utils.createLexer
-import edu.kit.compiler.wrapper.wrappers.validate
-import org.junit.jupiter.api.Timeout
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.nio.charset.MalformedInputException
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
-import java.util.stream.Stream
+import edu.kit.compiler.utils.MjTestSuite
+import edu.kit.compiler.utils.createAst
+import edu.kit.compiler.utils.prettyPrint
 import kotlin.test.assertEquals
 
-internal class PrettyPrintMJTestSuite {
-    companion object {
-        /** this is used to run multiple instances of the test:
-         * see: https://blog.oio.de/2018/11/13/how-to-use-junit-5-methodsource-parameterized-tests-with-kotlin/
-         *
-         * @return Stream of **relative** Paths (e.g. LongestPattern.mj) The name displayed in the test results and
-         *         shouldn't be verbose
-         */
-        @JvmStatic
-        fun provideTests(): Stream<TestUtils.TestFileArgument> = TestUtils.getTestSuiteFilesFor("syntax")
-    }
+internal class PrettyPrintMJTestSuite : MjTestSuite("syntax", "ast") {
 
-    @OptIn(ExperimentalStdlibApi::class)
-    @ParameterizedTest
-    @Timeout(3, unit = TimeUnit.SECONDS)
-    @MethodSource("provideTests")
-    fun test_idem(testConfig: TestUtils.TestFileArgument) {
-        val inputFile = testConfig.path
+    override fun TestContext.execute() {
+        println("========[ input ]========")
+        println(source.content)
 
-        println("Running parser on $inputFile")
+        val program1 = createAst(source)
+        checkStep(successful = program1 != null)
+        val pretty1 = prettyPrint(program1)
+        println("=======[ Pretty1 ]=======")
+        println(pretty1)
 
-        val input = try {
-            SourceFile.from(inputFile)
-        } catch (e: MalformedInputException) {
-            assert(testConfig.name.endsWith("invalid.mj")) { "supposedly valid test contained invalid ASCII characters" }
-            return
-        }
+        val program2 = createAst(SourceFile.from(source.path + ".pretty", pretty1))
+        checkStep(successful = program2 != null)
+        val pretty2 = prettyPrint(program2)
+        println("=======[ Pretty2 ]=======")
+        println(pretty2)
+        println("=========================")
+        println()
 
-        val stringTable = StringTable { initializeKeywords() }
-
-        var exception: Throwable? = null
-        try {
-            println("====[ input ]====")
-            println(input)
-            val lexer1 = Lexer(input, stringTable)
-            val pretty1 = prettyPrint(Parser(input, lexer1.tokens()).parse().validate()!!)
-            println("====[ pretty1 ]====")
-            println(pretty1)
-            val ast2 = createAST(pretty1)
-            val pretty2 = prettyPrint(ast2)
-            println("====[ pretty2 ]====")
-            println(pretty2)
-
-            assertEquals(pretty1, pretty2)
-        } catch (ex: Throwable) {
-            exception = ex
-        }
-        if (testConfig.name.endsWith("invalid.mj")) {
-            assert(exception != null) {
-                "expected failure, but got success"
-            }
-        } else {
-            assert(exception == null) {
-                val stack = exception!!.stackTraceToString()
-                "expected success, but got failure: $stack"
-            }
-        }
-    }
-
-    fun prettyPrint(astRoot: AstNode.Program): String {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        val utf8: String = StandardCharsets.UTF_8.name()
-        val printStream = PrintStream(byteArrayOutputStream, true, utf8)
-
-        astRoot.accept(PrettyPrintVisitor(printStream))
-
-        return byteArrayOutputStream.toString(utf8)
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    fun createAST(input: String): AstNode.Program {
-        val (lexer, sourceFile) = createLexer(input)
-        val ast = Parser(sourceFile, lexer.tokens()).parse()
-        sourceFile.printAnnotations()
-        return ast.validate()!!
+        assertEquals(pretty1, pretty2)
     }
 }

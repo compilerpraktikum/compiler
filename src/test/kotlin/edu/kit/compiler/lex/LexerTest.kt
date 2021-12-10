@@ -2,7 +2,6 @@ package edu.kit.compiler.lex
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.utils.createLexer
-import edu.kit.compiler.utils.toList
 import edu.kit.compiler.utils.toSymbol
 import kotlin.test.Ignore
 import kotlin.test.Test
