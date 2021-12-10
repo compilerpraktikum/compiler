@@ -264,7 +264,13 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        print(literalIntExpression.value)
+        if (literalIntExpression.value == "2147483648" && literalIntExpression.isParentized) {
+            printParenthesisMaybe {
+                print(literalIntExpression.value)
+            }
+        } else {
+            print(literalIntExpression.value)
+        }
     }
 
     override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
