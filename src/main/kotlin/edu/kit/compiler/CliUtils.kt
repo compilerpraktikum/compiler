@@ -1,28 +1,14 @@
 package edu.kit.compiler
 
-import com.github.ajalt.clikt.core.BadParameterValue
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.UsageError
-import com.github.ajalt.clikt.parameters.arguments.RawArgument
-import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.ArgsTransformer
 import com.github.ajalt.clikt.parameters.options.OptionWithValues
 import com.github.ajalt.clikt.parameters.options.RawOption
 import com.github.ajalt.clikt.parameters.options.ValueTransformer
-import com.github.ajalt.clikt.parameters.options.convert
 
-// TODO remove if not needed
-
-internal fun valueToUInt(it: String): UInt {
-    return it.toUIntOrNull() ?: throw BadParameterValue("$it is not a valid unsigned integer")
-}
-
-/** Convert the argument values to an `UInt` */
-fun RawArgument.uint() = convert { valueToUInt(it) }
-
-/** Convert the option values to an `UInt` */
-fun RawOption.uint() = convert({ "UINT" }) { valueToUInt(it) }
+// TODO: documentation
 
 private fun mvar(choices: Iterable<String>): String {
     return choices.joinToString("|", prefix = "[", postfix = "]")
@@ -58,24 +44,6 @@ fun <T : Any> RawOption.choices(
         valueSplit = Regex.fromLiteral(separator),
         metavarWithDefault = metavarWithDefault.copy(default = { metavar })
     )
-}
-
-fun <T : Any> RawOption.choices(
-    vararg choices: Pair<String, T>,
-    metavar: String = mvar(choices.asSequence().map { it.first }.asIterable()),
-    separator: String = ",",
-    ignoreCase: Boolean = false,
-): OptionWithValues<List<T>, List<T>, T> {
-    return choices(choices.toMap(), metavar, separator, ignoreCase)
-}
-
-fun RawOption.choices(
-    vararg choices: String,
-    metavar: String = mvar(choices.asIterable()),
-    separator: String = ",",
-    ignoreCase: Boolean = false,
-): OptionWithValues<List<String>, List<String>, String> {
-    return choices(choices.associateBy { it }, metavar, separator, ignoreCase)
 }
 
 private fun <T : Any> List<T>.getDuplicates(): Set<T> {
