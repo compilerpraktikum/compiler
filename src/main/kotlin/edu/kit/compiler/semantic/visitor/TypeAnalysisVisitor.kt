@@ -10,43 +10,23 @@ import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.display
 
 /**
- * Type analysis. Run name analysis beforehand.
- *
+ * Type analysis visitor. Run name analysis beforehand.
  *
  * @param sourceFile input token stream to annotate with errors
  */
 class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor() {
 
-    lateinit var currentExpectedMethodReturnType: SemanticType
+    /**
+     * Return type of currently visited method. Since the visitor is depth-first, only one method can be visited at a
+     * time.
+     */
+    private lateinit var currentExpectedMethodReturnType: SemanticType
 
     /**
-     * Without error suppression the following code
-     * ```java
-     * int[] a;
-     * a[0][0];
-     * ```
-     * will print the following errors
-     *  - `a` was expected to be `int[][]` but was `int[]`
-     *  - `a[0]` was expected to be `int[]` but was `int`
-     *  - `a[0][0]` is an array access on a non-class type `int`
+     * Suppress error messages while this is active.
      *
-     * This is undesirable because all of the above errors share the same root cause. To prevent this,
-     * subsequent errors after the first type error are suppressed by default. To explicitly opt-out of this
-     * behaviour, one can wrap code in
-     * ```kt
-     * separateTypeCheckPass {
-     *     // code
-     * }
-     * ```
-     * which will completely decouple the nested checks from those outside. This can be used for example to
-     * separate type checks for different arguments of a method call.
+     * @see separateTypeCheckPass
      */
-    private fun separateTypeCheckPass(block: () -> Unit) {
-        val prevValue = suppressTypeErrors
-        suppressTypeErrors = false
-        block()
-        suppressTypeErrors = prevValue
-    }
     private var suppressTypeErrors = false
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
@@ -89,7 +69,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         arrayAccessExpression.index.expectedType = SemanticType.Integer
         arrayAccessExpression.target.expectedType = SemanticType.Array(arrayAccessExpression.expectedType)
         arrayAccessExpression.target.accept(this)
-        // left-to-right: check target, then check index.
 
         separateTypeCheckPass {
             errorIfNot(arrayAccessExpression.index.actualType is SemanticType.Integer) {
@@ -103,16 +82,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
-        // expected is set TO INT
-        // test.testvar <= testvar is Int?
-        // test.testvar = 1; test => target
-        // ExpressionStatement -> BinOP ASSIGN - > left => Fieldaccess && right => Int
-        // ExpressionStatement.actualType = ?
-//        fieldAccessExpression
-//        super.visitFieldAcces.Expression(fieldAccessExpression)
+        // prevent follow-up errors
         if (fieldAccessExpression.target.actualType is SemanticType.Error) {
             return
         }
+
         checkTypesCompatible(fieldAccessExpression)
     }
 
@@ -166,10 +140,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
-        // binop.expectedTyp is set
-        // exMPLE ASSIGN test.testvar = 1 <- Int
-
-        // right.expected = Int
         if (binaryOperation.operation == AST.BinaryExpression.Operation.ASSIGNMENT) {
             binaryOperation.left.isLeftHandAssignment = true
         }
@@ -231,13 +201,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
         if (methodInvocationExpression.target != null) {
-            // no expectations.
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
             methodInvocationExpression.target.accept(this)
         }
 
-        // methodInvocationExpression.definition.node is of Type MethodDeclaration, pair.second is of type Parameter
-        // expect that argument's types match the parameter's types in the definition.
         var argumentsListLengthValid = true
 
         fun checkArguments(paramTypes: List<SemanticType>, methodName: String, range: SourceRange) {
@@ -263,7 +230,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
                 methodType.fullName,
                 methodInvocationExpression.sourceRange
             )
-            null -> return // error in name analysis -> cannot check arguments or return type
+            null -> return // error in name analysis -> cannot check arguments or return type TODO: error type instead of null
         }
 
         if (argumentsListLengthValid) {
@@ -327,7 +294,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     private fun areTypesCompatible(expected: SemanticType, actual: SemanticType): Boolean {
-        fun isNullCompatible(type: SemanticType) = type == SemanticType.Null || type is SemanticType.Class || type is SemanticType.Array
+        fun isNullCompatible(type: SemanticType) =
+            type == SemanticType.Null || type is SemanticType.Class || type is SemanticType.Array
 
         if (expected == SemanticType.Null) {
             return isNullCompatible(actual)
@@ -344,13 +312,41 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         return expected === actual
     }
 
-    private fun errorIf(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) = sourceFile.errorIf(condition, lazyAnnotation)
-    private fun errorIfNot(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) = sourceFile.errorIfNot(condition, lazyAnnotation)
+    private fun errorIf(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) =
+        sourceFile.errorIf(condition, lazyAnnotation)
+
+    private fun errorIfNot(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) =
+        sourceFile.errorIfNot(condition, lazyAnnotation)
 
     // TODO this should not be necessary!
     private fun createSourceRangeDummy() = SourcePosition(sourceFile, 1).extend(1)
-}
 
-fun doTypeAnalysis(program: AstNode.Program, sourceFile: SourceFile) {
-    program.accept(TypeAnalysisVisitor(sourceFile))
+    /**
+     * Without error suppression the following code
+     * ```java
+     * int[] a;
+     * a[0][0];
+     * ```
+     * will print the following errors
+     *  - `a` was expected to be `int[][]` but was `int[]`
+     *  - `a[0]` was expected to be `int[]` but was `int`
+     *  - `a[0][0]` is an array access on a non-class type `int`
+     *
+     * This is undesirable because all the above errors share the same root cause. To prevent this,
+     * subsequent errors after the first type error are suppressed by default. To explicitly opt-out of this
+     * behaviour, one can wrap code in
+     * ```kt
+     * separateTypeCheckPass {
+     *     // code
+     * }
+     * ```
+     * which will completely decouple the nested checks from those outside. This can be used for example to
+     * separate type checks for different arguments of a method call.
+     */
+    private fun separateTypeCheckPass(block: () -> Unit) {
+        val prevValue = suppressTypeErrors
+        suppressTypeErrors = false
+        block()
+        suppressTypeErrors = prevValue
+    }
 }

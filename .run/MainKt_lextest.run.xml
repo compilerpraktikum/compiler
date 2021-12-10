@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="MainKt_lextest" type="JetRunConfigurationType">
+    <configuration default="false" name="Lexer Test" type="JetRunConfigurationType">
         <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
         <module name="compiler.main"/>
         <option name="PROGRAM_PARAMETERS" value="--lextest test"/>

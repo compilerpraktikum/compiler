@@ -264,7 +264,6 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        // TODO: -literal != -(literal), falls literal nur als negatives literal in den bounds
         print(literalIntExpression.value)
     }
 

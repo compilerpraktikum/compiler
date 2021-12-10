@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="MainKt_firmtest" type="JetRunConfigurationType">
+    <configuration default="false" name="Compile Firm Backend" type="JetRunConfigurationType">
         <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
         <module name="compiler.main"/>
         <option name="PROGRAM_PARAMETERS" value="--compile-firm test"/>

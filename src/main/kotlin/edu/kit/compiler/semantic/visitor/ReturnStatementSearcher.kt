@@ -6,10 +6,8 @@ import edu.kit.compiler.semantic.SemanticType
 
 /**
  * Search for definite returns in non-void methods. These can be either
- * <ul>
- *     <li> a top level return statement.
- *     <li> an if/else tree where each block/ branch has a definite return statement.
- * </ul>
+ * - a top level return statement.
+ * - an if/else tree where each block/ branch has a definite return statement.
  */
 class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
 
@@ -80,8 +78,4 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
     private fun checkNoReturnYet() {
         check(!foundReturn) // iteration should stop once first return is encountered
     }
-}
-
-fun doSearchForReturnStatement(program: AstNode.Program, sourceFile: SourceFile) {
-    program.accept(ReturnStatementSearcher(sourceFile))
 }

@@ -4,6 +4,9 @@ import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 
+/**
+ * Verify that assignments only happen to expressions that actually point to valid memory abstractions.
+ */
 class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
     override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
@@ -21,8 +24,4 @@ class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
         }
         super.visitBinaryOperation(binaryOperation)
     }
-}
-
-fun doAssignmentLHSChecking(program: AstNode.Program, sourceFile: SourceFile) {
-    program.accept(AssignmentLHSChecker(sourceFile))
 }

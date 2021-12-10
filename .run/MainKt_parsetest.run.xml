@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="MainKt_parsetest" type="JetRunConfigurationType">
+    <configuration default="false" name="Parser Test" type="JetRunConfigurationType">
         <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
         <module name="compiler.main"/>
         <option name="PROGRAM_PARAMETERS" value="--parsetest test"/>

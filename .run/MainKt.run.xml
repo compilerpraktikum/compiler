@@ -1,12 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="MainKt_echo" type="JetRunConfigurationType">
-      <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
-      <module name="compiler.main"/>
-      <option name="PROGRAM_PARAMETERS" value="--echo test"/>
-      <shortenClasspath name="NONE"/>
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/workspace"/>
-      <method v="2">
-          <option name="Make" enabled="true"/>
-      </method>
-  </configuration>
+    <configuration default="false" name="Echo Test" type="JetRunConfigurationType">
+        <option name="MAIN_CLASS_NAME" value="edu.kit.compiler.MainKt"/>
+        <module name="compiler.main"/>
+        <option name="PROGRAM_PARAMETERS" value="--echo test"/>
+        <shortenClasspath name="NONE"/>
+        <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/workspace"/>
+        <method v="2">
+            <option name="Make" enabled="true"/>
+        </method>
+    </configuration>
 </component>

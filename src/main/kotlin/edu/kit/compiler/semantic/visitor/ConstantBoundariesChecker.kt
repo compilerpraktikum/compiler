@@ -5,9 +5,12 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import java.math.BigInteger
 
+/**
+ * Verify that integer literals are within 32-bit two's complement boundaries
+ */
 class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    var parentIsUnaryMinus: Boolean = false
+    private var parentIsUnaryMinus: Boolean = false
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
         if (unaryOperation.operation == AST.UnaryExpression.Operation.MINUS) {
@@ -37,8 +40,4 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
         literalIntExpression.value
         super.visitLiteralIntExpression(literalIntExpression)
     }
-}
-
-fun doConstantBoundariesCheck(program: AstNode.Program, sourceFile: SourceFile) {
-    program.accept(ConstantBoundariesChecker(sourceFile))
 }
