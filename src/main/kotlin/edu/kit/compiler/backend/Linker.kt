@@ -20,7 +20,7 @@ class Linker {
 
         try {
             val process = processBuilder.start()
-            val exitCode = process.waitFor() // TODO need to handle interrupts?
+            val exitCode = process.waitFor()
             if (exitCode != 0) {
                 throw CompilationException("c compiler returned non-zero exit code")
             }
