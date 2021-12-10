@@ -1,10 +1,9 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.semantic.VariableDefinition
-import java.lang.IllegalArgumentException
 
 /**
- * Stores information (-> TODO) associated to an identifier.
+ * Symbol table entry for identifiers
  */
 data class Symbol(
     val text: String,

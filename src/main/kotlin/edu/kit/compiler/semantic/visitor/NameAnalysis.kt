@@ -130,9 +130,9 @@ class NameResolutionHelper(
         }
 
         if (inClass != null && inClass !is SemanticType.Class) {
-            if (inClass !is SemanticType.Error) { // suppress error spam
+            if (inClass !is SemanticType.Error) { // suppress follow-up errors
                 sourceFile.error {
-                    "$operation on non-class type ${inClass.display()}" at range // TODO the identifier is not really the problem here, so highlighting it is kinda odd
+                    "$operation on non-class type ${inClass.display()}" at range
                 }
             }
             exit()
