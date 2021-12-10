@@ -228,6 +228,6 @@ class PrettyPrintTest {
         val ast = createAST(actual)
         val pretty = prettyPrint(ast.validate()!!)
 
-        assertEquals(pretty.normalizeIndent().normalizeLineEndings(), expected)
+        assertEquals(expected, pretty.normalizeIndent().normalizeLineEndings())
     }
 }
