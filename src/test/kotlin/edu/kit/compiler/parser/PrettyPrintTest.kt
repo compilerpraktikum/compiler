@@ -171,6 +171,46 @@ class PrettyPrintTest {
         )
     }
 
+    /**
+     * Test for bug regression where pretty printer would turn `-(2147483648)` into `-2147483648` which changes semantics.
+     */
+    @Test
+    fun regressionBoundaries() {
+        runTestEqualsAndIdemPotence(
+            """
+            class HelloWorld { public static void main(String[] args) { int x = -(2147483648); } }
+            """.trimIndent(),
+            """
+            class HelloWorld {
+                public static void main(String[] args) {
+                    int x = -(2147483648);
+                }
+            }
+
+            """.trimIndent()
+        )
+    }
+
+    /**
+     * Inverse test to check bug fix for [regressionBoundaries] did not break anything.
+     */
+    @Test
+    fun regressionNoBoundaries() {
+        runTestEqualsAndIdemPotence(
+            """
+            class HelloWorld { public static void main(String[] args) { int x = -2147483648; } }
+            """.trimIndent(),
+            """
+            class HelloWorld {
+                public static void main(String[] args) {
+                    int x = -2147483648;
+                }
+            }
+
+            """.trimIndent()
+        )
+    }
+
     @Test
     fun testOfficialBeispieleingabe() {
         runTestEqualsAndIdemPotence(
