@@ -3,6 +3,7 @@ package edu.kit.compiler.semantic
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
+import edu.kit.compiler.semantic.visitor.ConstantBoundariesChecker
 import edu.kit.compiler.semantic.visitor.MainMethodCounter
 import edu.kit.compiler.semantic.visitor.MainMethodVerifier
 import edu.kit.compiler.semantic.visitor.accept
@@ -67,6 +68,59 @@ internal class SemanticTests {
             """,
             ::MainMethodVerifier,
             shouldSucceed = true
+        )
+    }
+
+    /**
+     * Additional test case for correctness of integer boundaries. Related to [regressionMinInteger], to verify fixes
+     * for that bug do not affect correctness.
+     */
+    @Test
+    fun testIntegerBoundaries() {
+        testCheck(
+            """
+            class A {
+                public static void main2(String[] args) { int x = 2147483648; }
+            }
+            """,
+            ::ConstantBoundariesChecker,
+            shouldSucceed = false
+        )
+        testCheck(
+            """
+            class B {
+                public static void main(String[] args) { int x = -2147483648; }
+            }
+            """,
+            ::ConstantBoundariesChecker,
+            shouldSucceed = true
+        )
+        testCheck(
+            """
+            class B {
+                public static void main(String[] args) { int x = 2147483647; }
+            }
+            """,
+            ::ConstantBoundariesChecker,
+            shouldSucceed = true
+        )
+    }
+
+    /**
+     * Regression test for a bug where a unary minus would propagate too far through the AST when integer literals were
+     * tested.
+     */
+    @Test
+    fun regressionMinInteger() {
+        testCheck(
+            """
+            class B {
+                public static void main(String[] args) { int x = -new B().foo(2147483648); }
+
+                public int foo(int x) { return 0; }
+            }
+            """,
+            ::ConstantBoundariesChecker,
         )
     }
 
