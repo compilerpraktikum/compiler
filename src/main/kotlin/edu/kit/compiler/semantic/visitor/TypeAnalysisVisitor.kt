@@ -5,6 +5,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.display
 
 /**
@@ -53,9 +54,12 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
             // no need to check the initializer because it would need to have type `void` which doesn't make any
             // sense, creating useless follow-up errors
             return
+        } else if (localVariableDeclaration.type is SemanticType.Array && localVariableDeclaration.type.baseType is SemanticType.Void) {
+            localVariableDeclaration.type.accept(this)
+            // do not descent into initializer, because this would just be a follow-up error
+        } else {
+            super.visitLocalVariableDeclaration(localVariableDeclaration)
         }
-
-        super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
     override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
