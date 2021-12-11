@@ -8,10 +8,11 @@ import edu.kit.compiler.wrapper.wrappers.Parsed
  * Sealed AST-Node class structure
  */
 sealed class AST {
-    companion object {
-        val emptyStatement = Block(listOf())
-    }
 
+    /**
+     * Parsed types. Those do not have to make semantic sense and do not have to be valid at their location, but are
+     * only reported by the parser
+     */
     sealed class Type : AST() {
 
         object Void : Type()
@@ -33,13 +34,6 @@ sealed class AST {
      ** Class
      ************************************************/
 
-    /**
-     * @param ExprW Wrapper for Expression Nodes
-     * @param StmtW Wrapper for Statements and Block Statement Nodes
-     * @param MethodW Wrapper for Method and Field Nodes
-     * @param ClassW Wrapper for Classes
-     * @param OtherW Wrapper for the rest other Nodes, could fail in parsing
-     */
     data class Program(
         val classes: List<Parsed<ClassDeclaration>>,
     ) : AST()
@@ -61,7 +55,7 @@ sealed class AST {
         val returnType: Parsed<Type>,
         val parameters: List<Parsed<Parameter>>,
         val block: Parsed<Block>,
-        val throwsException: Parsed<Symbol>? = null,
+        val throwsException: Parsed<Symbol>? = null
     ) : ClassMember()
 
     data class MainMethod(
@@ -95,6 +89,8 @@ sealed class AST {
 
     data class Block(
         val statements: List<Parsed<BlockStatement>>,
+        val openingBraceRange: Parsed<Unit>,
+        val closingBraceRange: Parsed<Unit>,
     ) : Statement()
 
     data class IfStatement(

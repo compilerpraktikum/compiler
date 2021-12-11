@@ -6,7 +6,6 @@ import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.wrapper.wrappers.Parsed
-import java.lang.IllegalArgumentException
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
@@ -63,7 +62,8 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
                 name.toSymbol().wrapMockValid(),
                 returnType.wrapMockValid(),
                 parameters.toList().map { it.wrapMockValid() },
-                AST.Block(BlockStatementDsl().also(block).res).wrapMockValid(),
+                AST.Block(BlockStatementDsl().also(block).res, Unit.wrapMockValid(), Unit.wrapMockValid())
+                    .wrapMockValid(),
                 throws?.toSymbol()?.wrapMockValid()
             ).wrapMockValid()
         )
@@ -81,7 +81,8 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
                 name.toSymbol().wrapMockValid(),
                 returnType.wrapMockValid(),
                 parameters.toList().map { it.wrapMockValid() },
-                AST.Block(BlockStatementDsl().also(block).res).wrapMockValid(),
+                AST.Block(BlockStatementDsl().also(block).res, Unit.wrapMockValid(), Unit.wrapMockValid())
+                    .wrapMockValid(),
                 throws?.toSymbol()?.wrapMockValid()
             ).wrapMockValid()
         )
@@ -138,9 +139,9 @@ class BlockStatementDsl(val res: MutableList<Parsed<AST.BlockStatement>> = mutab
         )
     }
 
-    fun emptyStatement() = res.add(AST.emptyStatement.wrapMockValid())
+    fun emptyStatement() = res.add(AST.Block(listOf(), Unit.wrapMockValid(), Unit.wrapMockValid()).wrapMockValid())
     fun block(b: BlockStatementDsl.() -> Unit) {
-        res.add(AST.Block(BlockStatementDsl().also(b).res).wrapMockValid())
+        res.add(AST.Block(BlockStatementDsl().also(b).res, Unit.wrapMockValid(), Unit.wrapMockValid()).wrapMockValid())
     }
 
     fun expressionStatement(expr: ExprDsl.() -> AST.Expression) {
@@ -168,7 +169,7 @@ object StatementDsl {
 
 class StatementsDsl(val res: MutableList<Parsed<AST.Statement>> = mutableListOf()) {
     fun block(b: StatementsDsl.() -> Unit) {
-        res.add(AST.Block(StatementsDsl().also(b).res).wrapMockValid())
+        res.add(AST.Block(StatementsDsl().also(b).res, Unit.wrapMockValid(), Unit.wrapMockValid()).wrapMockValid())
     }
 
     fun ifStmt(

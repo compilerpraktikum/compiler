@@ -20,7 +20,9 @@ sealed class SemanticType {
 
     /**
      * @param elementType the base type of the array (might be another array type)
-     * @param sourceRange the array-type source range (same as the surrounding expression)
+     * @param sourceRange the array-type source range (same as the surrounding expression). Since array types must be
+     * explicitly defined (i.e. as field/method/parameter/variable type or as the expression type in a new array expression),
+     * and can never be inferred, this property is always initialized.
      */
     data class Array(val elementType: SemanticType, val sourceRange: SourceRange) : SemanticType()
 
