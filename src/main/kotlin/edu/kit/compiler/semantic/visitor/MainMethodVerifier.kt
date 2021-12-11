@@ -32,6 +32,8 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
                 mainMethodDeclaration.name.sourceRange,
                 "only the main method is allowed to be static"
             )
+            // prevent follow-up errors, because the method is likely not meant to be static
+            return
         }
 
         when (mainMethodDeclaration.parameters.size) {
