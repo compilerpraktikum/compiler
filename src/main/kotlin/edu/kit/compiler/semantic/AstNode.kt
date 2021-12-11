@@ -127,10 +127,16 @@ sealed class AstNode(open val sourceRange: SourceRange) {
 
             /**
              * A formal method parameter
+             *
+             * @param name parameter name identifier
+             * @param type parameter semantic type (unchecked before type analysis, maybe rejected afterwards)
+             * @param typeSourceRange source range of the parameter type. Used for error reporting.
+             * @param sourceRange source range of the entire parameter definition
              */
             class Parameter(
                 val name: Identifier,
                 val type: SemanticType,
+                val typeSourceRange: SourceRange,
                 sourceRange: SourceRange
             ) : AstNode(sourceRange) {
                 lateinit var owner: SubroutineDeclaration

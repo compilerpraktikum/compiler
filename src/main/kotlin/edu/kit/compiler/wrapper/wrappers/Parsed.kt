@@ -157,6 +157,7 @@ private fun Parsed<AST.Parameter>.validate(): AstNode.ClassMember.SubroutineDecl
         AstNode.ClassMember.SubroutineDeclaration.Parameter(
             parameter.name.validate() ?: return null,
             parameter.type.validate() ?: return null,
+            parameter.type.range,
             this.range
         )
     }

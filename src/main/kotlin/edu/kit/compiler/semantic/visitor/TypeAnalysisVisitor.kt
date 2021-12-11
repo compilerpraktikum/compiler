@@ -30,7 +30,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
         errorIf(parameter.type is SemanticType.Void) {
-            "parameter cannot have type `void`" at parameter.sourceRange
+            "parameter cannot have type `void`" at parameter.typeSourceRange
         }
         super.visitParameter(parameter)
     }
