@@ -1,5 +1,6 @@
 package edu.kit.compiler.transform
 
+import edu.kit.compiler.Logger
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
@@ -77,7 +78,7 @@ object FirmContext {
      */
     fun init() {
         Firm.init("x86_64-linux-gnu", arrayOf("pic=1"))
-        println("Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}")
+        Logger.debug { "Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}" }
 
         typeRegistry = TypeRegistry()
     }
