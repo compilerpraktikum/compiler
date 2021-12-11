@@ -53,7 +53,6 @@ class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() 
             literalIntExpression.parsedValue = literalIntExpression.value.toUInt()
         } else {
             sourceFile.error {
-                // todo add annotation to parser and check here!
                 "integer literal value is out of range" at literalIntExpression.sourceRange
             }
         }
