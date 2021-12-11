@@ -20,7 +20,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     }
 
     override fun visitProgram(program: AstNode.Program) {
-        printParenthesesStack.push(true) // default: print parentheses. TODO put this in the constructor!!!
+        printParenthesesStack.push(true)
 
         program.classes
             .sortedBy { it.name.symbol }
