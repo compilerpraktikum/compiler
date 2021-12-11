@@ -131,7 +131,10 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
             classMember.throwsException?.let { it.validate() ?: return null },
             classMember.block.validate() ?: return null,
             classMember.parameters.map { it.validate() ?: return null },
-            this.range
+            this.range,
+            classMember.returnType.range,
+            classMember.block.getAsValid()!!.openingBraceRange.range,
+            classMember.block.getAsValid()!!.closingBraceRange.range
         )
 
         is AST.Method ->
@@ -140,7 +143,11 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
                 classMember.name.validate() ?: return null,
                 classMember.throwsException?.let { it.validate() ?: return null },
                 classMember.block.validate() ?: return null,
-                classMember.parameters.map { it.validate() ?: return null }, this.range
+                classMember.parameters.map { it.validate() ?: return null },
+                this.range,
+                classMember.returnType.range,
+                classMember.block.getAsValid()!!.openingBraceRange.range,
+                classMember.block.getAsValid()!!.closingBraceRange.range
             )
     }
 }

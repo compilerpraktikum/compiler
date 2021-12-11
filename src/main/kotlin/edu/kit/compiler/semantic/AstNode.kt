@@ -50,8 +50,16 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         AstNode(sourceRange) {
 
         /**
+         * @param returnType semantic return type of the method
+         * @param name method name identifier with source range
+         * @param throwsException an identifier of the exception type of a throws declaration. Optional
+         * @param parameters method parameter list
+         * @param sourceRange source range spanning the entire method
          * @param block the method's code
          * @param throwsException exception class identifier if this method has a `throws` clause
+         * @param returnTypeRange the source range of the parsed return type token. Used for error reporting
+         * @param openingBraceRange the source range of the opening brace of a method. Used for error reporting
+         * @param closingBraceRange the source range of the closing brace of a method. Used for error reporting
          */
         sealed class SubroutineDeclaration(
             val returnType: SemanticType,
@@ -59,7 +67,10 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             val throwsException: Identifier?,
             val block: Statement.Block,
             val parameters: List<Parameter>,
-            sourceRange: SourceRange
+            sourceRange: SourceRange,
+            val returnTypeRange: SourceRange,
+            val openingBraceRange: SourceRange,
+            val closingBraceRange: SourceRange,
         ) : ClassMember(name, sourceRange) {
 
             lateinit var owner: ClassDeclaration
@@ -73,8 +84,21 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 throwsException: Identifier?,
                 block: Statement.Block,
                 parameters: List<Parameter>,
-                sourceRange: SourceRange
-            ) : SubroutineDeclaration(returnType, name, throwsException, block, parameters, sourceRange)
+                sourceRange: SourceRange,
+                returnTypeRange: SourceRange,
+                openingBraceRange: SourceRange,
+                closingBraceRange: SourceRange
+            ) : SubroutineDeclaration(
+                returnType,
+                name,
+                throwsException,
+                block,
+                parameters,
+                sourceRange,
+                returnTypeRange,
+                openingBraceRange,
+                closingBraceRange
+            )
 
             /**
              * A method class member declaration
@@ -85,8 +109,21 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 throwsException: Identifier?,
                 block: Statement.Block,
                 parameters: List<Parameter>,
-                sourceRange: SourceRange
-            ) : SubroutineDeclaration(returnType, name, throwsException, block, parameters, sourceRange)
+                sourceRange: SourceRange,
+                returnTypeRange: SourceRange,
+                openingBraceRange: SourceRange,
+                closingBraceRange: SourceRange,
+            ) : SubroutineDeclaration(
+                returnType,
+                name,
+                throwsException,
+                block,
+                parameters,
+                sourceRange,
+                returnTypeRange,
+                openingBraceRange,
+                closingBraceRange
+            )
 
             /**
              * A formal method parameter
@@ -154,7 +191,8 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Integer value expression. The integer may be outside of legal bounds
              */
-            class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) : LiteralExpression(sourceRange) {
+            class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) :
+                LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = SemanticType.Integer
 
@@ -289,7 +327,13 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                     override val returnType: SemanticType
                         get() = definition.node.returnType
                 }
-                class Internal(val name: String, val fullName: String, override val returnType: SemanticType, val parameters: List<SemanticType>) : Type()
+
+                class Internal(
+                    val name: String,
+                    val fullName: String,
+                    override val returnType: SemanticType,
+                    val parameters: List<SemanticType>
+                ) : Type()
             }
         }
 

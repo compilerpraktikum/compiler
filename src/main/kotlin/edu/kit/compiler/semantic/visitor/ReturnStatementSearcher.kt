@@ -3,6 +3,7 @@ package edu.kit.compiler.semantic.visitor
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.semantic.display
 
 /**
  * Search for definite returns in non-void methods. These can be either
@@ -23,7 +24,11 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         methodDeclaration.block.accept(this)
 
         sourceFile.errorIfNot(foundReturn) {
-            "missing return statement in non-void function" at methodDeclaration.name.sourceRange // TODO better source range
+            ("missing return statement in non-void function" at methodDeclaration.closingBraceRange)
+                .note(
+                    "return type is ${methodDeclaration.returnType.display()}, but path without return statement exists"
+                        at methodDeclaration.returnTypeRange
+                )
         }
     }
 
