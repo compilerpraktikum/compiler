@@ -235,7 +235,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
                 methodType.fullName,
                 methodInvocationExpression.sourceRange
             )
-            null -> return // error in name analysis -> cannot check arguments or return type TODO: error type instead of null
+            null -> return
         }
 
         if (argumentsListLengthValid) {
