@@ -1,5 +1,7 @@
 package edu.kit.compiler.semantic
 
+import edu.kit.compiler.lex.SourceRange
+
 /**
  * Result type of semantic analysis
  */
@@ -16,7 +18,11 @@ sealed class SemanticType {
         var definition: ClassDefinition? = null
     }
 
-    data class Array(val elementType: SemanticType) : SemanticType()
+    /**
+     * @param elementType the base type of the array (might be another array type)
+     * @param sourceRange the array-type source range (same as the surrounding expression)
+     */
+    data class Array(val elementType: SemanticType, val sourceRange: SourceRange) : SemanticType()
 
     /**
      * If this type is assigned as the semantic type of an [AstNode], the defined type is invalid and type checks should

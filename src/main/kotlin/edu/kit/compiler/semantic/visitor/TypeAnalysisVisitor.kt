@@ -2,9 +2,7 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.display
@@ -69,7 +67,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         arrayAccessExpression.index.expectedType = SemanticType.Integer
-        arrayAccessExpression.target.expectedType = SemanticType.Array(arrayAccessExpression.expectedType)
+        arrayAccessExpression.target.expectedType =
+            SemanticType.Array(arrayAccessExpression.expectedType, arrayAccessExpression.sourceRange)
         arrayAccessExpression.target.accept(this)
 
         separateTypeCheckPass {
@@ -258,9 +257,8 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
     }
 
     override fun visitArrayType(arrayType: SemanticType.Array) {
-        // TODO fix non-existing sourceRangeƒ
         errorIf(arrayType.elementType is SemanticType.Void) {
-            "array of type `void` not allowed" at createSourceRangeDummy()
+            "array of type `void` not allowed" at arrayType.sourceRange
         }
         super.visitArrayType(arrayType)
     }
@@ -316,9 +314,6 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
 
     private fun errorIfNot(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) =
         sourceFile.errorIfNot(condition, lazyAnnotation)
-
-    // TODO this should not be necessary!
-    private fun createSourceRangeDummy() = SourcePosition(sourceFile, 1).extend(1)
 
     /**
      * Without error suppression the following code

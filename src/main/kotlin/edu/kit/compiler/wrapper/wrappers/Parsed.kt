@@ -263,12 +263,12 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
 }
 
 fun Parsed<AST.Type.Array>.validate(): SemanticType.Array? = unwrapOr { return null }.let {
-    SemanticType.Array(it.elementType.validate() ?: return null)
+    SemanticType.Array(it.elementType.validate() ?: return null, it.elementType.range)
 }
 
 fun Parsed<AST.Type>.validate(): SemanticType? = unwrapOr { return null }.let { type ->
     when (type) {
-        is AST.Type.Array -> SemanticType.Array(type.elementType.validate() ?: return null)
+        is AST.Type.Array -> SemanticType.Array(type.elementType.validate() ?: return null, type.elementType.range)
         is AST.Type.Boolean -> SemanticType.Boolean
         is AST.Type.Class -> SemanticType.Class(type.name.validate() ?: return null)
         is AST.Type.Integer -> SemanticType.Integer
