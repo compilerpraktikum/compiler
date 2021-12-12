@@ -14,12 +14,12 @@ import org.junit.jupiter.api.condition.EnabledOnOs
 import org.junit.jupiter.api.condition.OS
 import java.io.IOException
 import java.nio.file.Files
-import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.deleteExisting
+import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.nameWithoutExtension
@@ -69,16 +69,11 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
             result as ExecutionResult.Success
 
             val expectedOutputFile = testCaseDir.resolve(outputFileBase + ".out")
-            val expectedOutput = try {
-                Files.readAllBytes(expectedOutputFile)
-            } catch (ex: IOException) {
-                if (ex is NoSuchFileException) {
-                    return
-                }
-                throw ex
+            if (!expectedOutputFile.exists()) {
+                return
             }
 
-            val expected = expectedOutput.toString(Charsets.US_ASCII).trim()
+            val expected = Files.readAllBytes(expectedOutputFile).toString(Charsets.US_ASCII).trim()
             val actual = result.output.toString(Charsets.US_ASCII).trim()
 
             if (expected != actual) {
