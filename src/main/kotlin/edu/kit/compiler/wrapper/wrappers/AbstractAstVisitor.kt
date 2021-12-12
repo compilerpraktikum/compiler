@@ -159,7 +159,11 @@ abstract class AbstractAstVisitor {
     open fun visitBlock(block: Parsed<AST.Block>): Parsed<AST.Block> = block.map {
         val statements = it.statements.map { visitBlockStatement(it) }
 
-        AST.Block(statements)
+        AST.Block(
+            statements,
+            it.openingBraceRange.mapPosition { visitSourceRange(it) },
+            it.closingBraceRange.mapPosition { visitSourceRange(it) }
+        )
     }.mapPosition { visitSourceRange(it) }
 
     open fun visitBlockStatement(blockStatement: Parsed<AST.BlockStatement>): Parsed<AST.BlockStatement> =

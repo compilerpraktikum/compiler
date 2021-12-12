@@ -73,7 +73,7 @@ class SourceRangeTest {
 
     fun <T> expectRanges(code: String, runParser: Parser.() -> T, runVisitor: SourceRangeCollector.(T) -> Unit) {
 
-        val (expectedRanges, source) = code.lineSequence().partition {
+        val (_, source) = code.lineSequence().partition {
             it.startsWith("#")
         }
         println("source: $source")
@@ -256,6 +256,7 @@ class SourceRangeTest {
                   int testMethod() {}
                 # |-| |--------|   ||
                 # |-----------------|
+                #                  ||
             """.trimIndent()
         )
 
@@ -288,10 +289,23 @@ class SourceRangeTest {
         )
 
     @Test
+    fun testEmptyStatement() =
+        // Empty Statement gets treated like `{}`, meaning it has 3 ranges.
+        expectStatementRange(
+            """
+                ;
+            #   |
+            #   |
+            #   |
+            """.trimIndent()
+        )
+
+    @Test
     fun testBasicBlock() =
         expectStatementRange(
             """
                 { }
+            #   | |
             #   |-|
             """.trimIndent()
         )
@@ -300,9 +314,9 @@ class SourceRangeTest {
     fun testBasicBlockInvalid() =
         expectStatementRange(
             """
-                { ~~;; }
-            #   |------|
-            #       ||
+                { ~ }
+            #   |   |
+            #   |---|
             """.trimIndent()
         )
 
@@ -312,8 +326,8 @@ class SourceRangeTest {
             """
                 while(x < 3) { }
             #   |--------------|
-            #         |   |  |-|
-            #         |
+            #         |   |  | |
+            #         |      |-|
             #         |---|
             """.trimIndent()
         )
@@ -324,6 +338,7 @@ class SourceRangeTest {
             """
                 while( { }
             #   |--------|
+            #          | |
             #          |-|
             """.trimIndent()
         )
@@ -335,7 +350,7 @@ class SourceRangeTest {
                 void main(String[] args) {}
             #   |--| |--| |----|   |--|  ||
             #   |-------------------------|
-            #             |----|
+            #             |----|         ||
             #             |------|
             #             |-----------|
             """.trimIndent()
@@ -346,24 +361,29 @@ class SourceRangeTest {
         expectClassMemberRange(
             """
                 int testMethod() {
-            #   |-| |--------|   |->
+            #   |-| |--------|   |
             #   |->
+            #                    |->
                     if(true) {
             #       |->
-            #          |--|  |->
+            #          |--|  |
+            #                |->
                         return 3;
             #           |-------|
             #                  |
                     } else {
+            #       |      |
             #              |->
             #     <-|
                         return 2;
             #           |-------|
             #                  |
                     }
+            #       |
             #     <-|
             #     <-|
                 }
+            #   |
             # <-|
             # <-|
             """.trimIndent()
@@ -376,10 +396,11 @@ class SourceRangeTest {
                class Test { }
             #  |------------|
             #        |--|
-               class TestMember { public void t() {} }
-            #  |-------------------------------------|
-            #        |--------|   |----------------|
-            #                            |--| |   ||
+               class TestMember { public void t() {  } }
+            #  |---------------------------------------|
+            #        |--------|   |------------------|
+            #                            |--| |   |  |
+            #                                     |--|
             """.trimIndent()
         )
 
@@ -393,7 +414,7 @@ class SourceRangeTest {
                     public static void main(String[] args) {}
             #       |---------------------------------------|
             #                     |--| |--| |----|   |--|  ||
-            #                               |----|
+            #                               |----|         ||
             #                               |------|
             #                               |-----------|
                }
