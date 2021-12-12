@@ -8,6 +8,7 @@ import firm.TargetValue
 import firm.nodes.Add
 import firm.nodes.And
 import firm.nodes.Binop
+import firm.nodes.Block
 import firm.nodes.Call
 import firm.nodes.Cmp
 import firm.nodes.Const
@@ -91,11 +92,25 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
  */
 class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : AbstractNodeVisitor() {
 
+    class FoldMap : HashMap<Node, TargetValue>() {
+
+        fun getBottomNode(): TargetValue = TargetValue.getUnknown()
+        fun getTopNode(): TargetValue = TargetValue.getBad()
+
+        override fun put(key: firm.nodes.Node, value: TargetValue): TargetValue? =
+            if (!this.contains(key)) {
+                super.put(key, value)
+            } else if (!this[key]!!.isConstant || this[key]!! == value) {
+                // endless loop prevention. Only set constants once! TODO may not be the cleanest way..
+                super.put(key, value)
+            } else super.put(key, this.getTopNode())
+    }
+
     private var hasChanged = false
     private val workList: Stack<Node> = Stack()
-    private val foldMap: MutableMap<Node, TargetValue> = HashMap()
-    private val bottomNode = TargetValue.getUnknown()
-    private val topNode = TargetValue.getBad()
+    private val foldMap = FoldMap()
+    private val bottomNode = foldMap.getBottomNode()
+    private val topNode = foldMap.getTopNode()
 
     /**
      * perform the constant propagation and folding analysis and return what has to be changed.
@@ -119,7 +134,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         // TODO rmv debug
         println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
         foldMap.forEach {
-            println("  - ${it.key} ${" ".repeat(25 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
+            println("  - ${it.key} ${" ".repeat(35 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
         }
         return foldMap
     }
@@ -127,7 +142,14 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private fun targetValueToString(targetValue: TargetValue): String =
         if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
 
-    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::add)
+    override fun visit(node: Add) {
+//        println(
+//            "ADD_DEBUG($graph) $node  " + "${node.predCount}" +
+//                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]" +
+//                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
+//        )
+        intCalculationSimpleFold(node, TargetValue::add)
+    }
     override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
     override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
     override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
@@ -184,10 +206,12 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     }
 
     override fun visit(node: Not) = doAndRecordFoldMapChange(node) {
-        if (foldMap[node.block] == bottomNode) {
+
+        println("       ${foldMap[node]!!.isConstant}")
+        if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
-        } else if (foldMap[node.block]!!.isConstant) { // if !! fails, init is buggy.
-            foldMap[node] = getAsTargetValueBool(node.block)
+        } else if (foldMap[node.getPred(0)]!!.isConstant) { // if !! fails, init is buggy.
+            foldMap[node] = getAsTargetValueBool(node.getPred(0))
         } else {
             foldMap[node] = topNode
         }
@@ -196,7 +220,8 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     override fun visit(node: Cmp) = intCalculation(node) {
         // correct, if compare always returns True or False (which it should, if both targetValues are constants?)
         println("CMP_DEBUG Comparing: ${node.left}, ${node.right}")
-        foldMap[node] = getAsTargetValueBool(foldMap[node.left]!!.compare(foldMap[node.right]))
+
+        foldMap[node] = compareRelationsAsTargetValueBool(node.relation, foldMap[node.left]!!.compare(foldMap[node.right]))
     }
 
     override fun visit(node: Const) {
@@ -207,7 +232,11 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
 
     override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
         // todo there are only Phis of length 2, right?
-        println("PHI_DEBUG $node  ${node.predCount}, ${node.getPred(0)}, ${node.getPred(1)}")
+//        println(
+//            "PHI_DEBUG($graph) $node  " + "${node.predCount}" +
+//                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]" +
+//                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
+//        )
         foldMap[node] =
             if (node.predCount != 2) topNode
             else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
@@ -215,8 +244,8 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
             else foldMap[node.getPred(1)]!!
     }
 
-    private fun getAsTargetValueBool(relation: Relation) = TargetValue(
-        if (getAsBool(relation)) 1 else 0,
+    private fun compareRelationsAsTargetValueBool(expectedRelation: Relation, gottenRelation: Relation) = TargetValue(
+        if (compareRelations(expectedRelation, gottenRelation)) 1 else 0,
         Mode.getBu().type.mode
     )
 
@@ -225,13 +254,14 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         Mode.getBu().type.mode
     )
 
-    private fun getAsBool(relation: Relation): Boolean = when (relation) {
-        Relation.False -> false
-        Relation.True -> true
-        Relation.Equal -> true
-        // TODO more!
-        else -> TODO("error in getAsBool better handling. Got $relation")
-    }
+    private fun compareRelations(expectedRelation: Relation, relation: Relation): Boolean = expectedRelation == relation
+//        when (relation) {
+//            Relation.False -> false
+//            Relation.True -> true
+//            Relation.Equal -> true
+//            // TODO more!
+//            else -> TODO("error in getAsBool better handling. Got $relation")
+//        }
 
     private fun intCalculationSimpleFold(node: Binop, doSimpleFoldConstOperation: (TargetValue, TargetValue) -> TargetValue) =
         intCalculation(node) {
