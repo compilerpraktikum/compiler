@@ -110,7 +110,7 @@ class SourceRangeTest {
         assertEquals(code, actual.substring(2))
     }
 
-    fun expectExpressionRange(code: String) = expectRanges(
+    private fun expectExpressionRange(code: String) = expectRanges(
         code,
         {
             parseExpression(
@@ -128,6 +128,10 @@ class SourceRangeTest {
     fun expectStatementRange(code: String) = expectRanges(code, {
         parseStatement(anc = emptyAnchorSet)
     }, { visitStatement(it) })
+
+    private fun expectClassRange(code: String) = expectRanges(code, {
+        parseClassDeclarations(anc = emptyAnchorSet)
+    }, { classes -> classes.forEach { visitClassDeclaration(it) } })
 
     @Test
     fun testBinOp() =
@@ -238,6 +242,39 @@ class SourceRangeTest {
         )
 
     @Test
+    fun testBasicBlock()=
+        expectStatementRange(
+            """
+                { }
+            #   |-|
+            """.trimIndent()
+        )
+    @Test
+    fun testWhile() =
+        expectStatementRange(
+            """
+                while(x < 3) { };
+            #   |---------------|
+            #         |   |  |-|
+            #         |
+            #         |---|
+            """.trimIndent()
+        )
+
+    @Test
+    fun testMainMethod() =
+        expectClassMemberRange(
+            """
+                void main(String[] args) {}
+            #   |--| |--| |----|   |--|  ||
+            #   |-------------------------|
+            #             |----|
+            #             |------|
+            #             |-----------|
+            """.trimIndent()
+        )
+
+    @Test
     fun testMethodWithBody() =
         expectClassMemberRange(
             """
@@ -262,6 +299,20 @@ class SourceRangeTest {
                 }
             # <-|
             # <-|
+            """.trimIndent()
+        )
+
+    @Test
+    fun testBasicClass() =
+        expectClassRange(
+            """
+               class Test { }
+            #  |------------|
+            #        |--|
+               class TestMember { public void t() {} }
+            #  |-------------------------------------|
+            #        |--------|   |----------------|
+            #                            |--| |   ||
             """.trimIndent()
         )
 }

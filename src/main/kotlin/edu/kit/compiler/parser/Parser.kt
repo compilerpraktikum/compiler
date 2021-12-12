@@ -1125,7 +1125,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
 
         val loopBodyStatement = parseStatement(anc)
 
-        val whileStatementRange = whileKeyword.range.extend(rparen.range)
+        val whileStatementRange = whileKeyword.range.extend(loopBodyStatement.range)
         return if (lparen.isValid && rparen.isValid) {
             AST.WhileStatement(loopCondition, loopBodyStatement).wrapValid(whileStatementRange)
         } else {
