@@ -91,19 +91,32 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
 
 object ExprDsl {
     fun <T> literal(v: T) = when (v) {
-        "true" -> AST.LiteralExpression.Boolean(true)
-        "false" -> AST.LiteralExpression.Boolean(false)
-        "null" -> AST.LiteralExpression.Null()
+        is Boolean -> AST.LiteralExpression.Boolean(v)
+        null -> AST.LiteralExpression.Null()
         "this" -> AST.LiteralExpression.This()
-        is String -> AST.LiteralExpression.Integer(v, false) // TODO remove hardcoded!!!
+        is String -> {
+            check(v.matches("-?(0|[1-9]\\d*)".toRegex()))
+            if (v.startsWith("-")) {
+                AST.LiteralExpression.Integer(v.substring(1), true)
+            } else {
+                AST.LiteralExpression.Integer(v, false)
+            }
+        }
         else -> throw IllegalArgumentException("unknown literal type: $v")
     }
+
     fun binOp(
         op: AST.BinaryExpression.Operation,
         left: ExprDsl.() -> AST.Expression,
         right: ExprDsl.() -> AST.Expression
     ) =
         AST.BinaryExpression(ExprDsl.left().wrapMockValid(), ExprDsl.right().wrapMockValid(), op)
+
+    fun unOp(
+        op: AST.UnaryExpression.Operation,
+        expr: ExprDsl.() -> AST.Expression,
+    ) =
+        AST.UnaryExpression(ExprDsl.expr().wrapMockValid(), op)
 
     fun ident(name: String) = AST.IdentifierExpression(name.toSymbol().wrapMockValid())
 
@@ -121,6 +134,12 @@ object ExprDsl {
         type: AST.Type.Array,
         length: ExprDsl.() -> AST.Expression
     ) = AST.NewArrayExpression(type.wrapMockValid(), ExprDsl.length().wrapMockValid())
+
+    fun invoke(
+        target: ExprDsl.() -> AST.Expression,
+        method: String,
+        vararg parameters: ExprDsl.() -> AST.Expression,
+    ) = AST.MethodInvocationExpression(ExprDsl.target().wrapMockValid(), method.toSymbol().wrapMockValid(), parameters.map { ExprDsl.it().wrapMockValid() })
 }
 
 class BlockStatementDsl(val res: MutableList<Parsed<AST.BlockStatement>> = mutableListOf()) {
@@ -181,3 +200,5 @@ class StatementsDsl(val res: MutableList<Parsed<AST.Statement>> = mutableListOf(
 
 fun astOf(block: ClassDeclarationDsl.() -> Unit) =
     ClassDeclarationDsl().also(block).res
+
+fun expressionOf(block: ExprDsl.() -> AST.Expression) = ExprDsl.block().wrapMockValid()
