@@ -17,6 +17,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.exists
@@ -32,7 +34,8 @@ private fun ByteArray.display() = joinToString(separator = ", ", prefix = "[", p
 
 @EnabledOnOs(OS.LINUX) // current version of jFirm / libfirm works only on linux
 internal class ExecMjTestSuite : MjTestSuite("exec") {
-    lateinit var runnerDir: Path
+    private lateinit var runnerDir: Path
+    private lateinit var ioThreadPool: ExecutorService
 
     @BeforeAll
     fun setup() {
@@ -42,6 +45,8 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
         Files.newDirectoryStream(runnerDir).forEach {
             it.deleteExisting()
         }
+
+        ioThreadPool = Executors.newFixedThreadPool(2) // 1 for input, 1 for output
     }
 
     override fun TestContext.execute() {
@@ -153,7 +158,7 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
         val process = ProcessBuilder(executableFile.toAbsolutePath().toString()).start()
 
         val inputFuture = inputFile?.let {
-            CompletableFuture.runAsync {
+            CompletableFuture.runAsync({
                 try {
                     inputFile.inputStream().transferTo(process.outputStream)
                     process.outputStream.close()
@@ -164,13 +169,13 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
                         throw e
                     }
                 }
-            }
+            }, ioThreadPool)
         }
 
         var output: ByteArray? = null
-        val outputFuture = CompletableFuture.runAsync {
+        val outputFuture = CompletableFuture.runAsync({
             output = process.inputStream.readAllBytes()
-        }
+        }, ioThreadPool)
 
         val exitedBeforeTimeout = process.waitFor(timeout.inWholeSeconds, TimeUnit.SECONDS)
         if (!exitedBeforeTimeout) {
