@@ -120,6 +120,8 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private val bottomNode = foldMap.getBottomNode()
     private val topNode = foldMap.getTopNode()
 
+    private val DEBUG = false
+
     /**
      * perform the constant propagation and folding analysis and return what has to be changed.
      */
@@ -144,17 +146,15 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         return foldMap
     }
 
+    /**
+     * println if DEBUG
+     */
+    private fun println(string: String) { if (DEBUG) kotlin.io.println(string) }
+
     private fun targetValueToString(targetValue: TargetValue): String =
         if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
 
-    override fun visit(node: Add) {
-//        println(
-//            "ADD_DEBUG($graph) $node  " + "${node.predCount}" +
-//                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]" +
-//                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
-//        )
-        intCalculationSimpleFold(node, TargetValue::add)
-    }
+    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::add)
     override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
     override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
     override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
@@ -167,7 +167,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
             if (!foldMap[node.right]!!.isNull) {
                 foldMap[node] = foldMap[node.left]!!.mod(foldMap[node.right])
-            } else foldMap[node] = topNode // TODO reassure that that is correct
+            } else foldMap[node] = topNode
         } else {
             foldMap[node] = topNode
         }
@@ -179,7 +179,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         } else if (foldMap[node.left]!!.isConstant && foldMap[node.right]!!.isConstant) { // if !! fails, init is buggy.
             if (!foldMap[node.right]!!.isNull) {
                 foldMap[node] = foldMap[node.left]!!.div(foldMap[node.right])
-            } else foldMap[node] = topNode // TODO reassure that that is correct
+            } else foldMap[node] = topNode
         } else {
             foldMap[node] = topNode
         }
@@ -242,7 +242,10 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
 //        )
         foldMap[node] =
             if (node.predCount != 2) topNode
-            else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
+            else if (foldMap[node.getPred(0)]!!.mode == Mode.getBu() || foldMap[node.getPred(1)]!!.mode == Mode.getBu()) {
+                // no booleans currently TODO maybe integrate them. Not that easy.
+                topNode
+            } else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
                 foldMap[node.getPred(0)]!!
             else foldMap[node.getPred(1)]!!
     }
