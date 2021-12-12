@@ -320,7 +320,6 @@ class ConstantPropagationAndFoldingNodeCollector(
         worklist.push(node)
         foldMap[node] = TargetValue.getUnknown()
     }
-    // TODO determine which nodes to collect
 
     override fun visit(node: Add) = init(node)
     override fun visit(node: Sub) = init(node)
