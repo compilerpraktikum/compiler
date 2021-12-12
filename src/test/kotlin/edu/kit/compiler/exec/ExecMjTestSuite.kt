@@ -5,6 +5,7 @@ import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.utils.MjTestSuite
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.condition.EnabledOnOs
 import org.junit.jupiter.api.condition.OS
 import java.io.IOException
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -31,6 +33,12 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 private fun ByteArray.display() = joinToString(separator = ", ", prefix = "[", postfix = "]")
+
+private fun InputStream.normalizeLineEndings(): InputStream = readAllBytes()
+    .toString(Charsets.US_ASCII)
+    .normalizeLineEndings()
+    .toByteArray(Charsets.US_ASCII)
+    .inputStream()
 
 @EnabledOnOs(OS.LINUX) // current version of jFirm / libfirm works only on linux
 internal class ExecMjTestSuite : MjTestSuite("exec") {
@@ -78,7 +86,7 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
                 return
             }
 
-            val expected = Files.readAllBytes(expectedOutputFile).toString(Charsets.US_ASCII).trim()
+            val expected = Files.readAllBytes(expectedOutputFile).toString(Charsets.US_ASCII).trim().normalizeLineEndings()
             val actual = result.output.toString(Charsets.US_ASCII).trim()
 
             if (expected != actual) {
@@ -160,7 +168,7 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
         val inputFuture = inputFile?.let {
             CompletableFuture.runAsync({
                 try {
-                    inputFile.inputStream().transferTo(process.outputStream)
+                    inputFile.inputStream().normalizeLineEndings().transferTo(process.outputStream)
                     process.outputStream.close()
                 } catch (e: IOException) {
                     if (e.message == "Broken pipe" || e.message == "Stream closed") {

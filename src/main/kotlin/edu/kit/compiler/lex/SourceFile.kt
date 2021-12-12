@@ -1,6 +1,7 @@
 package edu.kit.compiler.lex
 
 import edu.kit.compiler.error.AnnotationFormatter
+import edu.kit.compiler.normalizeLineEndings
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,8 +29,6 @@ interface AnnotatableFile {
 
 private val Char.isNewLine
     get() = (this == '\n')
-
-private fun String.normalizeLineEndings() = replace("\r\n", "\n").replace("\r", "\n")
 
 class SourceFile
 private constructor(
