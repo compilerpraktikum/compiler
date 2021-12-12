@@ -8,7 +8,6 @@ import firm.TargetValue
 import firm.nodes.Add
 import firm.nodes.And
 import firm.nodes.Binop
-import firm.nodes.Block
 import firm.nodes.Call
 import firm.nodes.Cmp
 import firm.nodes.Const
@@ -33,8 +32,8 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: Add) = exchangeNodeTargetValue(node)
     override fun visit(node: Sub) = exchangeNodeTargetValue(node)
     override fun visit(node: Mul) = exchangeNodeTargetValue(node)
-    override fun visit(node: Mod) = exchangeNodeTargetValue(node)
-    override fun visit(node: Div) = exchangeNodeTargetValue(node)
+    override fun visit(node: Mod) = exchangeDivModTargetValue(node, node.mem)
+    override fun visit(node: Div) = exchangeDivModTargetValue(node, node.mem)
     override fun visit(node: Minus) = exchangeNodeTargetValue(node)
 
     override fun visit(node: Cmp) { } // TODO("implement")
@@ -53,6 +52,15 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: Phi) = exchangeNodeTargetValue(node)
 
     private fun exchangeNodeTargetValue(node: Node) = Graph.exchange(node, graph.newConst(foldMap[node]))
+
+    private fun exchangeDivModTargetValue(node: Node, memNode: Node) {
+        BackEdges.getOuts(node).forEach { outBackEdge ->
+            Graph.exchange(
+                outBackEdge.node,
+                if (outBackEdge.node.mode == Mode.getM()) memNode else graph.newConst(foldMap[node])
+            )
+        }
+    }
 
     /**
      * perform the propagation/ folding for nodes with targetValues ∉ {⊤, ⊥}
@@ -119,8 +127,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         // collect relevant nodes
         graph.walkTopological(ConstantPropagationAndFoldingNodeCollector(workList, foldMap))
 
-        // firm meckert sonst.
-        BackEdges.enable(graph)
         // prepare propagation and folding by performing data river analysis
         while (!workList.empty()) {
             val node = workList.pop()
@@ -129,7 +135,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
                 BackEdges.getOuts(node).forEach { workList.push(it.node) }
             }
         }
-        BackEdges.disable(graph)
 
         // TODO rmv debug
         println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
@@ -182,10 +187,10 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
 
     // todo not rly sure
     override fun visit(node: Minus) = doAndRecordFoldMapChange(node) {
-        if (foldMap[node.block] == bottomNode) {
+        if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
-        } else if (foldMap[node.block]!!.isConstant) { // if !! fails, init is buggy.
-            foldMap[node] = foldMap[node.block]!!.neg()
+        } else if (foldMap[node.getPred(0)]!!.isConstant) { // if !! fails, init is buggy.
+            foldMap[node] = foldMap[node.getPred(0)]!!.neg()
         } else {
             foldMap[node] = topNode
         }
@@ -206,12 +211,10 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     }
 
     override fun visit(node: Not) = doAndRecordFoldMapChange(node) {
-
-        println("       ${foldMap[node]!!.isConstant}")
         if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
         } else if (foldMap[node.getPred(0)]!!.isConstant) { // if !! fails, init is buggy.
-            foldMap[node] = getAsTargetValueBool(node.getPred(0))
+            foldMap[node] = getAsTargetValueBool(node.getPred(0)) // TODO wtf, this should be inversed
         } else {
             foldMap[node] = topNode
         }
@@ -254,14 +257,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         Mode.getBu().type.mode
     )
 
-    private fun compareRelations(expectedRelation: Relation, relation: Relation): Boolean = expectedRelation == relation
-//        when (relation) {
-//            Relation.False -> false
-//            Relation.True -> true
-//            Relation.Equal -> true
-//            // TODO more!
-//            else -> TODO("error in getAsBool better handling. Got $relation")
-//        }
+    private fun compareRelations(expectedRelation: Relation, relation: Relation): Boolean = expectedRelation.contains(relation)
 
     private fun intCalculationSimpleFold(node: Binop, doSimpleFoldConstOperation: (TargetValue, TargetValue) -> TargetValue) =
         intCalculation(node) {
@@ -354,9 +350,13 @@ class ConstantPropagationAndFoldingNodeCollector(
  * Perform constant propagation and folding on the given [method graph][Graph].
  */
 fun doConstantPropagationAndFolding(graph: Graph) {
+    // firm meckert sonst.
+    BackEdges.enable(graph)
     ConstantPropagationAndFoldingTransformationVisitor(
         graph,
         ConstantPropagationAndFoldingAnalysisVisitor(graph)
             .doConstantPropagationAndFoldingAnalysis()
     ).transform()
+
+    BackEdges.disable(graph)
 }
