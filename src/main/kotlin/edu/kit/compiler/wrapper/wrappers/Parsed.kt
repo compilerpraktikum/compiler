@@ -66,6 +66,30 @@ sealed class Parsed<out A>(open val range: SourceRange) {
         is Error -> Error(m(range), node)
         is Valid -> Valid(m(range), node)
     }
+
+    interface Packer {
+        fun <B> pack(c: B): Parsed<B>
+    }
+
+    inline fun <B> casePack(f: (A, Packer) -> Parsed<B>): Parsed<B> = when (this) {
+        is Valid -> f(
+            this.node,
+            object : Packer {
+                override fun <B> pack(c: B): Parsed<B> = Valid(this@Parsed.range, c)
+            }
+        )
+        is Error ->
+            if (this.node == null) {
+                Error(this.range, this.node)
+            } else {
+                f(
+                    this.node,
+                    object : Packer {
+                        override fun <B> pack(c: B): Parsed<B> = Error(this@Parsed.range, c)
+                    }
+                )
+            }
+    }
 }
 
 inline fun <A> Parsed<A>.unwrapOr(handle: () -> A): A = when (this) {
