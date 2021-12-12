@@ -11,6 +11,9 @@ out/
 **.jar
 !gradle/wrapper/*.jar
 
+# Execution tests
+/test-run/
+
 # Firm artifacts
 *.vcg
 

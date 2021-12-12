@@ -1,7 +1,7 @@
 package edu.kit.compiler.lex
 
 class StringInputProvider(
-    private val content: String,
+    val content: String,
 ) : InputProvider {
 
     private var nextIndex = 0

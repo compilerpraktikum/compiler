@@ -1,9 +1,8 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.utils.TestUtils.assertIdemPotence
-import edu.kit.compiler.utils.TestUtils.createAST
-import edu.kit.compiler.utils.TestUtils.prettyPrint
-import edu.kit.compiler.wrapper.wrappers.validate
+import edu.kit.compiler.utils.assertIdempotence
+import edu.kit.compiler.utils.createAST
+import edu.kit.compiler.utils.prettyPrint
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -260,13 +259,13 @@ class PrettyPrintTest {
     }
 
     private fun runTestEqualsAndIdemPotence(actual: String, expected: String) {
-        assertIdemPotence(actual)
+        assertIdempotence(actual)
         assertPrettyPrintEqualsDesired(actual, expected)
     }
 
     private fun assertPrettyPrintEqualsDesired(actual: String, expected: String) {
         val ast = createAST(actual)
-        val pretty = prettyPrint(ast.validate()!!)
+        val pretty = prettyPrint(ast!!)
 
         assertEquals(expected, pretty.normalizeIndent().normalizeLineEndings())
     }

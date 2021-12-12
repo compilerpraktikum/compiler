@@ -49,6 +49,9 @@ private constructor(
         fun from(path: String, content: String) = SourceFile(path, StringInputProvider(content.normalizeLineEndings()))
     }
 
+    val content: String
+        get() = input.content
+
     val currentPosition: SourcePosition
         get() = SourcePosition(this, input.cursor)
 

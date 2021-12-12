@@ -74,6 +74,7 @@ test {
     useJUnitPlatform()
     jvmArgs '-Xss3m'
 }
+test.dependsOn shadowJar
 
 
 // ktlint (https://github.com/pinterest/ktlint)
