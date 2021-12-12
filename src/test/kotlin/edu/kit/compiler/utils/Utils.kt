@@ -6,6 +6,7 @@ import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.parser.Parser
+import edu.kit.compiler.parser.anchorSetOf
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
@@ -13,6 +14,8 @@ import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import kotlin.test.assertEquals
+
+internal val emptyAnchorSet = anchorSetOf().intoUnion()
 
 fun String.toSymbol() = Symbol(this, isKeyword = false)
 
@@ -29,12 +32,19 @@ fun getTestCasePathName(index: Int): String {
 
 fun createLexer(input: String, stackIndex: Int) = createLexer(input, getTestCasePathName(stackIndex))
 
-fun createAst(source: SourceFile): AstNode.Program? {
+inline fun <T> withParser(sourceFile: SourceFile, f: Parser.() -> T): T {
     val stringTable = StringTable(StringTable::initializeKeywords)
-    val lexer = Lexer(source, stringTable)
-    val parser = Parser(source, lexer.tokens())
-    return parser.parse().validate()
+    val lexer = Lexer(sourceFile, stringTable)
+    val parser = Parser(sourceFile, lexer.tokens())
+    return parser.f().also {
+        sourceFile.printAnnotations()
+    }
 }
+
+inline fun <T> withParser(input: String, f: Parser.() -> T): T =
+    withParser(SourceFile.from("/path/to/file", input), f)
+
+fun createAst(source: SourceFile): AstNode.Program? = withParser(source) { parse().validate() }
 
 fun createAST(input: String): AstNode.Program? {
     val sourceFile = SourceFile.from("/path/to/file", input)

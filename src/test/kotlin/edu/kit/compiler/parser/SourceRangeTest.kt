@@ -1,9 +1,10 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.utils.TestUtils.emptyAnchorSet
-import edu.kit.compiler.utils.TestUtils.withParser
+import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.utils.debug
+import edu.kit.compiler.utils.emptyAnchorSet
+import edu.kit.compiler.utils.withParser
 import edu.kit.compiler.wrapper.wrappers.AbstractAstVisitor
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -121,11 +122,11 @@ class SourceRangeTest {
         { visitExpression(it) }
     )
 
-    fun expectClassMemberRange(code: String) = expectRanges(code, {
+    private fun expectClassMemberRange(code: String) = expectRanges(code, {
         parseFieldMethodPrefix(anc = emptyAnchorSet)
     }, { visitClassMember(it) })
 
-    fun expectStatementRange(code: String) = expectRanges(code, {
+    private fun expectStatementRange(code: String) = expectRanges(code, {
         parseStatement(anc = emptyAnchorSet)
     }, { visitStatement(it) })
 
@@ -203,6 +204,43 @@ class SourceRangeTest {
         )
 
     @Test
+    fun testUnaryOp() =
+        expectExpressionRange(
+            """
+                  !    ! -222
+                # |---------|
+                #      |----|
+                #        |--|
+                #         |-|
+            """.trimIndent()
+        )
+
+    @Test
+    fun testFieldAccess() =
+        expectExpressionRange(
+            """
+                  (new A()).b.c.d
+                # |-------| | | |
+                # |---------|
+                # |-----------|
+                # |-------------|
+                #      |
+            """.trimIndent()
+        )
+
+    @Test
+    fun testMethodCall() =
+        expectExpressionRange(
+            """
+                  a.method1().method2(2, a.v)
+               #  | |-----|   |-----| |  | |
+               #  |                      |
+               #  |---------|            |-|
+               #  |-------------------------|
+            """.trimIndent()
+        )
+
+    @Test
     fun testBasicField() =
         expectClassMemberRange(
             """
@@ -242,22 +280,52 @@ class SourceRangeTest {
         )
 
     @Test
-    fun testBasicBlock()=
+    fun testReturnStatementInvalid() =
+        expectStatementRange(
+            """
+                return ~;
+            #   |------|
+            """.trimIndent()
+        )
+
+    @Test
+    fun testBasicBlock() =
         expectStatementRange(
             """
                 { }
             #   |-|
             """.trimIndent()
         )
+
+    @Test
+    fun testBasicBlockInvalid() =
+        expectStatementRange(
+            """
+                { ~~;; }
+            #   |------|
+            #       ||
+            """.trimIndent()
+        )
+
     @Test
     fun testWhile() =
         expectStatementRange(
             """
-                while(x < 3) { };
-            #   |---------------|
+                while(x < 3) { }
+            #   |--------------|
             #         |   |  |-|
             #         |
             #         |---|
+            """.trimIndent()
+        )
+
+    @Test
+    fun testWhileInvalid() =
+        expectStatementRange(
+            """
+                while( { }
+            #   |--------|
+            #          |-|
             """.trimIndent()
         )
 
@@ -313,6 +381,24 @@ class SourceRangeTest {
             #  |-------------------------------------|
             #        |--------|   |----------------|
             #                            |--| |   ||
+            """.trimIndent()
+        )
+
+    @Test
+    fun testClassWithMainMethod() =
+        expectClassRange(
+            """
+               class WithMain {
+            #  |->
+            #        |------|
+                    public static void main(String[] args) {}
+            #       |---------------------------------------|
+            #                     |--| |--| |----|   |--|  ||
+            #                               |----|
+            #                               |------|
+            #                               |-----------|
+               }
+            #<-|
             """.trimIndent()
         )
 }
