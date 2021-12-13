@@ -630,7 +630,10 @@ object FirmContext {
      */
     fun unaryExpression(operation: AST.UnaryExpression.Operation) {
         val expression = when (operation) {
-            AST.UnaryExpression.Operation.NOT -> this.construction.newNot(expressionStack.pop())
+            AST.UnaryExpression.Operation.NOT -> this.construction.newEor(
+                expressionStack.pop(),
+                construction.newConst(1, Mode.getBu())
+            )
             AST.UnaryExpression.Operation.MINUS -> this.construction.newMinus(expressionStack.pop())
         }
 
