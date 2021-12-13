@@ -13,6 +13,7 @@ import firm.nodes.Cmp
 import firm.nodes.Const
 import firm.nodes.Conv
 import firm.nodes.Div
+import firm.nodes.Eor
 import firm.nodes.Minus
 import firm.nodes.Mod
 import firm.nodes.Mul
@@ -47,6 +48,7 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: And) = exchangeNodeTargetValue(node)
     override fun visit(node: Or) = exchangeNodeTargetValue(node)
     override fun visit(node: Not) = exchangeNodeTargetValue(node)
+    override fun visit(node: Eor) = exchangeNodeTargetValue(node)
 
     override fun visit(node: Call) { } // TODO("implement")
     override fun visit(node: Phi) = exchangeNodeTargetValue(node)
@@ -122,7 +124,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private val bottomNode = foldMap.getBottomNode()
     private val topNode = foldMap.getTopNode()
 
-    private val DEBUG = false
+    private val DEBUG = true
 
     /**
      * perform the constant propagation and folding analysis and return what has to be changed.
@@ -210,6 +212,13 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         )
     }
 
+    override fun visit(node: Eor) = intCalculation(node) {
+        foldMap[node] = TargetValue(
+            if (getAsBool(node.left) xor getAsBool(node.right)) 1 else 0,
+            Mode.getBu().type.mode
+        )
+    }
+
     override fun visit(node: Not) = doAndRecordFoldMapChange(node) {
         if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
@@ -231,6 +240,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     }
 
     override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
+        println("PHIBUG:: $node  preds: ${node.getPred(0)}, ${node.getPred(1)}")
         foldMap[node] =
             if (node.predCount != 2) topNode
             else if (foldMap[node.getPred(0)]!!.mode == Mode.getBu() || foldMap[node.getPred(1)]!!.mode == Mode.getBu()) {
@@ -347,6 +357,7 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: And) = init(node)
     override fun visit(node: Or) = init(node)
     override fun visit(node: Not) = init(node)
+    override fun visit(node: Eor) = init(node)
 
     override fun visit(node: Const) = init(node)
     override fun visit(node: Phi) = init(node)
