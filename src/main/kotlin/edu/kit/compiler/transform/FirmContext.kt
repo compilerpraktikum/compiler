@@ -625,8 +625,6 @@ object FirmContext {
      * directly to unary expressions.
      *
      * @param operation the [AST.UnaryExpression.Operation] variant that is being constructed
-     *
-     * @sample ConstructExpressions
      */
     fun unaryExpression(operation: AST.UnaryExpression.Operation) {
         val expression = when (operation) {
