@@ -111,7 +111,9 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
             } else if (!this[key]!!.isConstant || this[key]!! == value) {
                 // endless loop prevention. Only set constants once! TODO may not be the cleanest way..
                 super.put(key, value)
-            } else super.put(key, this.getTopNode())
+            } else {
+                super.put(key, this.getTopNode())
+            }
     }
 
     private var hasChanged = false
@@ -154,8 +156,23 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private fun targetValueToString(targetValue: TargetValue): String =
         if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
 
-    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::add)
-    override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
+    override fun visit(node: Add) {
+        println(
+            "ADD_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
+                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
+                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
+        )
+        intCalculationSimpleFold(node, TargetValue::add)
+    }
+    override fun visit(node: Sub) {
+
+        println(
+            "SUB_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
+                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
+                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
+        )
+        intCalculationSimpleFold(node, TargetValue::sub)
+    }
     override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
     override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
     override fun visit(node: Shrs) = intCalculationSimpleFold(node, TargetValue::shrs)
@@ -235,11 +252,11 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
 
     override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
         // todo there are only Phis of length 2, right?
-//        println(
-//            "PHI_DEBUG($graph) $node  " + "${node.predCount}" +
-//                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]" +
-//                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
-//        )
+        println(
+            "PHI_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
+                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
+                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
+        )
         foldMap[node] =
             if (node.predCount != 2) topNode
             else if (foldMap[node.getPred(0)]!!.mode == Mode.getBu() || foldMap[node.getPred(1)]!!.mode == Mode.getBu()) {
@@ -316,10 +333,12 @@ class ConstantPropagationAndFoldingNodeCollector(
     private val worklist: Stack<Node>,
     private val foldMap: MutableMap<Node, TargetValue>
 ) : AbstractNodeVisitor() {
-    private fun init(node: Node) {
+    private fun init(node: Node, targetValue: TargetValue = TargetValue.getUnknown()) {
         worklist.push(node)
-        foldMap[node] = TargetValue.getUnknown()
+        foldMap[node] = targetValue
     }
+
+    private fun init_Top(node: Node) = init(node, TargetValue.getBad())
 
     override fun visit(node: Add) = init(node)
     override fun visit(node: Sub) = init(node)
@@ -331,8 +350,9 @@ class ConstantPropagationAndFoldingNodeCollector(
 
     // TODO need to handle this in the other visitor, maybe? ArrayAccess stuff...
     override fun visit(node: Conv) = init(node)
-    // needed because phi handling explodes elsewise
-    override fun visit(node: Proj) = init(node)
+
+    // they won't ever be resolved.
+    override fun visit(node: Proj) = init_Top(node)
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = init(node)

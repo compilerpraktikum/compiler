@@ -14,6 +14,8 @@ import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.wrapper.wrappers.validate
+import firm.Dump
+import firm.Program
 import firm.Util
 import java.io.IOException
 import java.nio.charset.MalformedInputException
@@ -132,7 +134,11 @@ class Compiler(private val config: Config) {
                         Transformation.transform(program, config.dump.contains(Dump.FirmMethodGraphs))
                         Util.lowerSels()
 
+                        Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterLowerSels") }
+
                         Optimization.constantPropagationAndFolding()
+
+                        Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterConstantPropAndFold") }
 
                         runBackEnd(::FirmBackEnd)
                     }
