@@ -140,7 +140,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
             }
         }
 
-        // TODO rmv debug
         println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
         foldMap.forEach {
             println("  - ${it.key} ${" ".repeat(35 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
@@ -156,23 +155,8 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private fun targetValueToString(targetValue: TargetValue): String =
         if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
 
-    override fun visit(node: Add) {
-        println(
-            "ADD_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
-                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
-                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
-        )
-        intCalculationSimpleFold(node, TargetValue::add)
-    }
-    override fun visit(node: Sub) {
-
-        println(
-            "SUB_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
-                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
-                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
-        )
-        intCalculationSimpleFold(node, TargetValue::sub)
-    }
+    override fun visit(node: Add) = intCalculationSimpleFold(node, TargetValue::add)
+    override fun visit(node: Sub) = intCalculationSimpleFold(node, TargetValue::sub)
     override fun visit(node: Shl) = intCalculationSimpleFold(node, TargetValue::shl)
     override fun visit(node: Shr) = intCalculationSimpleFold(node, TargetValue::shr)
     override fun visit(node: Shrs) = intCalculationSimpleFold(node, TargetValue::shrs)
@@ -202,7 +186,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         }
     }
 
-    // todo not rly sure
     override fun visit(node: Minus) = doAndRecordFoldMapChange(node) {
         if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
@@ -238,9 +221,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     }
 
     override fun visit(node: Cmp) = intCalculation(node) {
-        // correct, if compare always returns True or False (which it should, if both targetValues are constants?)
-        println("CMP_DEBUG Comparing: ${node.left}, ${node.right}")
-
         foldMap[node] = compareRelationsAsTargetValueBool(node.relation, foldMap[node.left]!!.compare(foldMap[node.right]))
     }
 
@@ -251,12 +231,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     }
 
     override fun visit(node: Phi) = doAndRecordFoldMapChange(node) {
-        // todo there are only Phis of length 2, right?
-        println(
-            "PHI_DEBUG($graph) $node  " + "${node.predCount} [${orderOfTargetValue(foldMap[node]!!)}]" +
-                ", ${node.getPred(0)} [${orderOfTargetValue(foldMap[node.getPred(0)]!!)}]_([${foldMap[node.getPred(0)]}]" +
-                ", ${node.getPred(1)} [${orderOfTargetValue(foldMap[node.getPred(1)]!!)}]_([${foldMap[node.getPred(1)]}])"
-        )
         foldMap[node] =
             if (node.predCount != 2) topNode
             else if (foldMap[node.getPred(0)]!!.mode == Mode.getBu() || foldMap[node.getPred(1)]!!.mode == Mode.getBu()) {
@@ -264,7 +238,14 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
                 topNode
             } else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) > orderOfTargetValue(foldMap[node.getPred(1)]!!))
                 foldMap[node.getPred(0)]!!
-            else foldMap[node.getPred(1)]!!
+            else if (orderOfTargetValue(foldMap[node.getPred(0)]!!) == orderOfTargetValue(foldMap[node.getPred(1)]!!) &&
+                (foldMap[node.getPred(0)]!! != foldMap[node.getPred(1)]!!)
+            ) {
+                // both children are evaluated as const but differ. =>
+                topNode
+            } else {
+                foldMap[node.getPred(1)]!!
+            }
     }
 
     private fun compareRelationsAsTargetValueBool(expectedRelation: Relation, gottenRelation: Relation) = TargetValue(
@@ -297,10 +278,12 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private fun getAsBool(node: Node): Boolean =
         if (foldMap[node]!!.isOne || foldMap[node]!!.asInt() == 0) {
             foldMap[node]!!.isOne
-        } else
-        // TODO better handling
-            throw RuntimeException("Tried to convert value other than 0 or 1 to bool")
+        } else throw RuntimeException("Tried to convert value other than 0 or 1 to bool") // would be a compiler bug
 
+    /**
+     * Wrapper for functions that change the foldMap for one [node].
+     * If [foldMap][[node]] changes after executing [function], [hasChanged] is set to true.
+     */
     private fun doAndRecordFoldMapChange(node: Node, function: () -> Unit) {
         val prev = foldMap[node]
         function()
@@ -312,12 +295,15 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     /**
      * Returns
      * * -1 | ⊥
-     * * 0 | integers
-     * * 1 | ⊤
+     * * 0  | integers
+     * * 1  | ⊤
      */
     private fun orderOfTargetValue(targetValue: TargetValue) =
         if (targetValue == bottomNode) -1 else if (targetValue == topNode) 1 else 0
 
+    /**
+     * reset [hasChanged] to false and return its former value.
+     */
     private fun consumeHasChanged(): Boolean {
         val tmp = hasChanged
         hasChanged = false
@@ -348,11 +334,10 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Minus) = init(node)
     override fun visit(node: Cmp) = init(node)
 
-    // TODO need to handle this in the other visitor, maybe? ArrayAccess stuff...
-    override fun visit(node: Conv) = init(node)
-
     // they won't ever be resolved.
+    override fun visit(node: Conv) = init_Top(node)
     override fun visit(node: Proj) = init_Top(node)
+    override fun visit(node: Call) = init_Top(node)
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = init(node)
@@ -363,7 +348,6 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Or) = init(node)
     override fun visit(node: Not) = init(node)
 
-    override fun visit(node: Call) = init(node)
     override fun visit(node: Const) = init(node)
     override fun visit(node: Phi) = init(node)
 }
@@ -374,6 +358,7 @@ class ConstantPropagationAndFoldingNodeCollector(
 fun doConstantPropagationAndFolding(graph: Graph) {
     // firm meckert sonst.
     BackEdges.enable(graph)
+
     ConstantPropagationAndFoldingTransformationVisitor(
         graph,
         ConstantPropagationAndFoldingAnalysisVisitor(graph)
