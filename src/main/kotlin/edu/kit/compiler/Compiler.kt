@@ -7,6 +7,7 @@ import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.optimization.Optimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
@@ -134,6 +135,9 @@ class Compiler(private val config: Config) {
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterConstruction, "after-construction")
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
+
+                        Optimization.constantPropagationAndFolding()
+                        dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(::FirmBackEnd)
                     }
