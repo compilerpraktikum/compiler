@@ -60,17 +60,17 @@ import firm.nodes.Unknown
 /**
  * A [NodeVisitor][NodeVisitor] wrapper for children to not have to override everything.
  */
-abstract class AbstractNodeVisitor : NodeVisitor {
+abstract class FirmNodeVisitorAdapter : NodeVisitor {
 
-    override fun visit(node: Add) { }
-    override fun visit(node: Address) { }
-    override fun visit(node: Align) { }
-    override fun visit(node: Alloc) { }
-    override fun visit(node: Anchor) { }
-    override fun visit(node: And) { }
-    override fun visit(node: Bad) { }
-    override fun visit(node: Bitcast) { }
-    override fun visit(node: Block) { }
+    override fun visit(node: Add) {}
+    override fun visit(node: Address) {}
+    override fun visit(node: Align) {}
+    override fun visit(node: Alloc) {}
+    override fun visit(node: Anchor) {}
+    override fun visit(node: And) {}
+    override fun visit(node: Bad) {}
+    override fun visit(node: Bitcast) {}
+    override fun visit(node: Block) {}
     override fun visit(node: Builtin) { }
     override fun visit(node: Call) { }
     override fun visit(node: Cmp) { }

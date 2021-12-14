@@ -28,7 +28,10 @@ import firm.nodes.Shrs
 import firm.nodes.Sub
 import java.util.Stack
 
-class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Graph, private val foldMap: MutableMap<Node, TargetValue>) : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingTransformationVisitor(
+    private val graph: Graph,
+    private val foldMap: MutableMap<Node, TargetValue>
+) : FirmNodeVisitorAdapter() {
 
     override fun visit(node: Add) = exchangeNodeTargetValue(node)
     override fun visit(node: Sub) = exchangeNodeTargetValue(node)
@@ -37,8 +40,8 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: Div) = exchangeDivModTargetValue(node, node.mem)
     override fun visit(node: Minus) = exchangeNodeTargetValue(node)
 
-    override fun visit(node: Cmp) { } // TODO("implement when folding bools.")
-    override fun visit(node: Conv) { }
+    override fun visit(node: Cmp) {} // TODO("implement when folding bools.")
+    override fun visit(node: Conv) {}
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = exchangeNodeTargetValue(node)
@@ -100,7 +103,8 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
  *          }
  *
  */
-class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph, private val debugOutput: Boolean = false) : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph, private val debugOutput: Boolean = false) :
+    FirmNodeVisitorAdapter() {
 
     class FoldMap : HashMap<Node, TargetValue>() {
 
@@ -325,7 +329,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph, pri
 class ConstantPropagationAndFoldingNodeCollector(
     private val worklist: Stack<Node>,
     private val foldMap: MutableMap<Node, TargetValue>
-) : AbstractNodeVisitor() {
+) : FirmNodeVisitorAdapter() {
     private fun init(node: Node, targetValue: TargetValue = TargetValue.getUnknown()) {
         worklist.push(node)
         foldMap[node] = targetValue
