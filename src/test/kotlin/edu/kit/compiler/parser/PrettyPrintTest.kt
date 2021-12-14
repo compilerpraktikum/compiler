@@ -1,12 +1,11 @@
 package edu.kit.compiler.parser
 
+import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.utils.assertIdempotence
 import edu.kit.compiler.utils.createAST
 import edu.kit.compiler.utils.prettyPrint
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-
-private fun String.normalizeLineEndings() = replace("\r\n", "\n").replace("\r", "\n")
 
 private fun String.normalizeIndent() = replace("\t", " ".repeat(4))
 
@@ -20,7 +19,7 @@ class PrettyPrintTest {
     @Test
     fun testOneClassEmptyMain() {
         // not right, need to compare f(x) and f(f(x)) !
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             /* OK , unary minus after binop */
 
@@ -39,7 +38,7 @@ class PrettyPrintTest {
     @Test
     fun testTwoClassesFieldsMethodsMainMethod() {
 
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             class test {
                 public int y;
@@ -65,7 +64,7 @@ class PrettyPrintTest {
 
     @Test
     fun testEmptyBlockIndentation() {
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             class test {
                 public int y;
@@ -98,7 +97,7 @@ class PrettyPrintTest {
 
     @Test
     fun testArrayAccessExpression() {
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             class Test {
                 public void m() {
@@ -122,7 +121,7 @@ class PrettyPrintTest {
 
     @Test
     fun testWhile() {
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
                 class C {
                     public static void main(String[] args) {
@@ -175,7 +174,7 @@ class PrettyPrintTest {
      */
     @Test
     fun regressionBoundaries() {
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             class HelloWorld { public static void main(String[] args) { int x = -(2147483648); } }
             """.trimIndent(),
@@ -195,7 +194,7 @@ class PrettyPrintTest {
      */
     @Test
     fun regressionNoBoundaries() {
-        runTestEqualsAndIdemPotence(
+        runTestEqualsAndIdempotence(
             """
             class HelloWorld { public static void main(String[] args) { int x = -2147483648; } }
             """.trimIndent(),
@@ -211,8 +210,8 @@ class PrettyPrintTest {
     }
 
     @Test
-    fun testOfficialBeispieleingabe() {
-        runTestEqualsAndIdemPotence(
+    fun testOfficialExampleInput() {
+        runTestEqualsAndIdempotence(
             """
             class HelloWorld
             {
@@ -258,13 +257,51 @@ class PrettyPrintTest {
         )
     }
 
-    private fun runTestEqualsAndIdemPotence(actual: String, expected: String) {
-        assertIdempotence(actual)
-        assertPrettyPrintEqualsDesired(actual, expected)
+    @Test
+    fun testUnaryMinus() {
+        runTestEqualsAndIdempotence(
+            """
+                class Test {
+                    public void test() {
+                        -5.test();
+                    }
+                }
+            """.trimIndent(),
+            """
+                class Test {
+                    public void test() {
+                        -(5.test());
+                    }
+                }
+
+            """.trimIndent()
+        )
+        runTestEqualsAndIdempotence(
+            """
+                class Test {
+                    public void test() {
+                        (-5).test();
+                    }
+                }
+            """.trimIndent(),
+            """
+                class Test {
+                    public void test() {
+                        (-5).test();
+                    }
+                }
+
+            """.trimIndent()
+        )
     }
 
-    private fun assertPrettyPrintEqualsDesired(actual: String, expected: String) {
-        val ast = createAST(actual)
+    private fun runTestEqualsAndIdempotence(input: String, expected: String) {
+        assertIdempotence(input)
+        assertPrettyPrintEqualsDesired(input, expected)
+    }
+
+    private fun assertPrettyPrintEqualsDesired(input: String, expected: String) {
+        val ast = createAST(input)
         val pretty = prettyPrint(ast!!)
 
         assertEquals(expected, pretty.normalizeIndent().normalizeLineEndings())

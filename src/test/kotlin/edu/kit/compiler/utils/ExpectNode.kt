@@ -52,7 +52,7 @@ private fun AST.toChildString(): String = when (this) {
     is AST.ArrayAccessExpression -> "index = ${index.debug()}, target = ${target.debug()}"
     is AST.IdentifierExpression -> "name = ${name.debug()}"
     is AST.LiteralExpression -> when (this) {
-        is AST.LiteralExpression.Integer -> "value = $value"
+        is AST.LiteralExpression.Integer -> "value = ${if (isNegated) "-" else ""}$value"
         is AST.LiteralExpression.Boolean -> "value = $value"
         is AST.LiteralExpression.Null -> "value = null"
         is AST.LiteralExpression.This -> "value = this"

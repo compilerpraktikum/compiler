@@ -1,6 +1,5 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
@@ -124,19 +123,6 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
-        if (
-            unaryOperation.operation == AST.UnaryExpression.Operation.MINUS &&
-            unaryOperation.inner is AstNode.Expression.LiteralExpression.LiteralIntExpression
-        ) {
-            // transform the literal int with the `-` already applied, so we dont get problems with Integer.MIN
-            if (unaryOperation.inner.value == Integer.MIN_VALUE.toString().removePrefix("-")) {
-                FirmContext.literalInt(Integer.MIN_VALUE)
-            } else {
-                FirmContext.literalInt(-unaryOperation.inner.parsedValue.toInt())
-            }
-            return
-        }
-
         super.visitUnaryOperation(unaryOperation)
         FirmContext.unaryExpression(unaryOperation.operation)
     }
@@ -146,8 +132,7 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        // we can assert that the parsed value does fit into an integer, because we already checked for -2^31 in parseUnaryExpression
-        FirmContext.literalInt(literalIntExpression.parsedValue.toInt())
+        FirmContext.literalInt(literalIntExpression.parsedValue)
     }
 
     override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {

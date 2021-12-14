@@ -196,7 +196,12 @@ sealed class AST {
     ) : Expression()
 
     sealed class LiteralExpression : Expression() {
-        data class Integer(val value: String, val isParenthesized: kotlin.Boolean) : LiteralExpression()
+        data class Integer(val value: String, val isNegated: kotlin.Boolean) : LiteralExpression() {
+            fun negate(): Integer {
+                check(!isNegated)
+                return Integer(value, true)
+            }
+        }
         data class Boolean(val value: kotlin.Boolean) : LiteralExpression()
         class Null() : LiteralExpression()
         class This() : LiteralExpression()

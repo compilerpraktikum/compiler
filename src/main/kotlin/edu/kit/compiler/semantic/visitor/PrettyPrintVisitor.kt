@@ -264,12 +264,12 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     }
 
     override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
-        if (literalIntExpression.value == "2147483648" && literalIntExpression.isParentized) {
+        if (literalIntExpression.isNegated || literalIntExpression.value == "2147483648") {
             printParenthesisMaybe {
-                print(literalIntExpression.value)
+                print(literalIntExpression.toLiteralString())
             }
         } else {
-            print(literalIntExpression.value)
+            print(literalIntExpression.toLiteralString())
         }
     }
 

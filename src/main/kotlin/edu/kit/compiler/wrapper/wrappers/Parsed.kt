@@ -27,14 +27,20 @@ sealed class Parsed<out A>(open val range: SourceRange) {
      */
     data class Valid<out A>(override val range: SourceRange, val node: A) : Parsed<A>(range)
 
-    fun getAsValid() = when (this) {
+    fun getAsValid(): A? = when (this) {
         is Error -> null
         is Valid -> this.node
     }
 
-    val isValid: Boolean get() = when (this) {
-        is Error -> false
-        is Valid -> true
+    val isValid: Boolean
+        get() = when (this) {
+            is Error -> false
+            is Valid -> true
+        }
+
+    fun getNodeOrNull(): A? = when (this) {
+        is Error -> node
+        is Valid -> node
     }
 
     inline fun <B> map(m: (A) -> B): Parsed<B> = when (this) {
@@ -263,7 +269,7 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
             AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
         is AST.LiteralExpression ->
             when (expression) {
-                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, expression.isParenthesized, this.range)
+                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, expression.isNegated, this.range)
                 is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
                 is AST.LiteralExpression.Null -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
                 is AST.LiteralExpression.This -> AstNode.Expression.LiteralExpression.LiteralThisExpression(this.range)

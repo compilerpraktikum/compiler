@@ -197,12 +197,18 @@ sealed class AstNode(open val sourceRange: SourceRange) {
             /**
              * Integer value expression. The integer may be outside of legal bounds
              */
-            class LiteralIntExpression(val value: String, val isParentized: Boolean, sourceRange: SourceRange) :
+            class LiteralIntExpression(val value: String, val isNegated: Boolean, sourceRange: SourceRange) :
                 LiteralExpression(sourceRange) {
                 override val actualType: SemanticType
                     get() = SemanticType.Integer
 
-                var parsedValue: UInt = 0u
+                fun toLiteralString() = when (isNegated) {
+                    true -> "-$value"
+                    false -> value
+                }
+
+                val parsedValue: Int
+                    get() = toLiteralString().toInt()
             }
 
             /**
