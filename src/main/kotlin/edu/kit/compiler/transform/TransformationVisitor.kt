@@ -4,28 +4,26 @@ import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
-import firm.Dump
-import firm.Graph
 
 /**
  * A visitor implementation that constructs the firm graph of the [AST][AstNode].
  */
-class TransformationVisitor(private val dumpMethodGraphs: Boolean) : AbstractVisitor() {
+class TransformationVisitor : AbstractVisitor() {
     override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
-        classDeclaration.accept(TransformationClassVisitor(classDeclaration, dumpMethodGraphs))
+        classDeclaration.accept(TransformationClassVisitor(classDeclaration))
     }
 }
 
 /**
  * Visit a single class and construct all its members in the firm graph
  */
-private class TransformationClassVisitor(private val surroundingClass: AstNode.ClassDeclaration, private val dumpMethodGraphs: Boolean) : AbstractVisitor() {
+private class TransformationClassVisitor(private val surroundingClass: AstNode.ClassDeclaration) : AbstractVisitor() {
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
-        methodDeclaration.accept(TransformationMethodVisitor(surroundingClass, dumpMethodGraphs))
+        methodDeclaration.accept(TransformationMethodVisitor(surroundingClass))
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        mainMethodDeclaration.accept(TransformationMethodVisitor(surroundingClass, dumpMethodGraphs))
+        mainMethodDeclaration.accept(TransformationMethodVisitor(surroundingClass))
     }
 }
 
@@ -34,7 +32,7 @@ private class TransformationClassVisitor(private val surroundingClass: AstNode.C
  *
  * @param surroundingClass the surrounding class declaration (which is used as an implicite parameter to methods)
  */
-class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDeclaration, private val dumpGraph: Boolean) : AbstractVisitor() {
+class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDeclaration) : AbstractVisitor() {
 
     /**
      * Number of local variables (including parameters and this-ptr) of the method
@@ -67,12 +65,6 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
         }
     }
 
-    private fun dumpGraphIfEnabled(graph: Graph) {
-        if (dumpGraph) {
-            Dump.dumpGraph(graph, "construction")
-        }
-    }
-
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
         val variableCounter = LocalVariableCounter(1)
         methodDeclaration.accept(variableCounter)
@@ -91,8 +83,6 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
             numberOfVariables
         ) {
             super.visitMethodDeclaration(methodDeclaration)
-        }.also {
-            dumpGraphIfEnabled(it)
         }
     }
 
@@ -113,8 +103,6 @@ class TransformationMethodVisitor(private val surroundingClass: AstNode.ClassDec
             numberOfVariables
         ) {
             super.visitMainMethodDeclaration(mainMethodDeclaration)
-        }.also {
-            dumpGraphIfEnabled(it)
         }
     }
 
