@@ -100,7 +100,7 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
  *          }
  *
  */
-class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : AbstractNodeVisitor() {
+class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph, private val debugOutput: Boolean = false) : AbstractNodeVisitor() {
 
     class FoldMap : HashMap<Node, TargetValue>() {
 
@@ -123,8 +123,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     private val foldMap = FoldMap()
     private val bottomNode = foldMap.getBottomNode()
     private val topNode = foldMap.getTopNode()
-
-    private val DEBUG = true
 
     /**
      * perform the constant propagation and folding analysis and return what has to be changed.
@@ -152,7 +150,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
     /**
      * println if DEBUG
      */
-    private fun println(string: String) { if (DEBUG) kotlin.io.println(string) }
+    private fun println(string: String) { if (debugOutput) kotlin.io.println(string) }
 
     private fun targetValueToString(targetValue: TargetValue): String =
         if (targetValue == topNode) "⊤" else if (targetValue == bottomNode) "⊥" else targetValue.toString()
