@@ -8,5 +8,10 @@ object Optimization {
     /**
      * Perform constant propagation and folding on the given [method graph][Graph].
      */
-    fun constantPropagationAndFolding() = Program.getGraphs().forEach { doConstantPropagationAndFolding(it) }
+    fun constantPropagationAndFolding(dumpMethodGraph: Boolean = false) {
+        Program.getGraphs().forEach {
+            doConstantPropagationAndFolding(it)
+            if (dumpMethodGraph) firm.Dump.dumpGraph(it, "afterConstantPropAndFold")
+        }
+    }
 }

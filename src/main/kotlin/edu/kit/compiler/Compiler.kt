@@ -134,11 +134,11 @@ class Compiler(private val config: Config) {
                         Transformation.transform(program, config.dump.contains(Dump.FirmMethodGraphs))
                         Util.lowerSels()
 
-                        Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterLowerSels") }
+                        if (config.dump.contains(Dump.FirmMethodGraphs)) {
+                            Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterLowerSels") }
+                        }
 
-                        Optimization.constantPropagationAndFolding()
-
-                        Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterConstantPropAndFold") }
+                        Optimization.constantPropagationAndFolding(config.dump.contains(Dump.FirmMethodGraphs))
 
                         runBackEnd(::FirmBackEnd)
                     }

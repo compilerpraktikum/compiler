@@ -37,8 +37,8 @@ class ConstantPropagationAndFoldingTransformationVisitor(private val graph: Grap
     override fun visit(node: Div) = exchangeDivModTargetValue(node, node.mem)
     override fun visit(node: Minus) = exchangeNodeTargetValue(node)
 
-    override fun visit(node: Cmp) { } // TODO("implement")
-    override fun visit(node: Conv) { } // TODO("implement")
+    override fun visit(node: Cmp) { } // TODO("implement when folding bools.")
+    override fun visit(node: Conv) { }
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = exchangeNodeTargetValue(node)
@@ -223,7 +223,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
         if (foldMap[node.getPred(0)] == bottomNode) {
             foldMap[node] = bottomNode
         } else if (foldMap[node.getPred(0)]!!.isConstant) { // if !! fails, init is buggy.
-            foldMap[node] = getAsTargetValueBool(node.getPred(0)) // TODO wtf, this should be inversed
+            foldMap[node] = getAsTargetValueBool(node.getPred(0)) // TODO wtf, this should be inversed. check if implementing bool fold.
         } else {
             foldMap[node] = topNode
         }
@@ -323,7 +323,6 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph) : A
 
 /**
  * Collect all relevant nodes and initializes them in the foldMap with ⊥ = TargetValue.getUnknown
- *  TODO this pass is probably not necessary (may be integrated in the other)
  */
 class ConstantPropagationAndFoldingNodeCollector(
     private val worklist: Stack<Node>,
@@ -334,7 +333,7 @@ class ConstantPropagationAndFoldingNodeCollector(
         foldMap[node] = targetValue
     }
 
-    private fun init_Top(node: Node) = init(node, TargetValue.getBad())
+    private fun initTop(node: Node) = init(node, TargetValue.getBad())
 
     override fun visit(node: Add) = init(node)
     override fun visit(node: Sub) = init(node)
@@ -345,9 +344,9 @@ class ConstantPropagationAndFoldingNodeCollector(
     override fun visit(node: Cmp) = init(node)
 
     // they won't ever be resolved.
-    override fun visit(node: Conv) = init_Top(node)
-    override fun visit(node: Proj) = init_Top(node)
-    override fun visit(node: Call) = init_Top(node)
+    override fun visit(node: Conv) = initTop(node)
+    override fun visit(node: Proj) = initTop(node)
+    override fun visit(node: Call) = initTop(node)
 
     // gibts zwar nicht im Standard, aber kann ggf als Ergebnis einer anderen Optimierung auftreten (Integer Multiply Optimization)
     override fun visit(node: Shl) = init(node)
