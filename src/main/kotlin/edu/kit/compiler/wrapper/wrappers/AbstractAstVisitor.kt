@@ -123,7 +123,7 @@ abstract class AbstractAstVisitor {
 
     open fun visitLiteralExpression(literalBoolExpression: Parsed<AST.LiteralExpression>): Parsed<AST.LiteralExpression> =
         literalBoolExpression.map {
-            it // TODO expand
+            it
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitMethodInvocationExpression(methodInvocationExpression: Parsed<AST.MethodInvocationExpression>): Parsed<AST.MethodInvocationExpression> =
