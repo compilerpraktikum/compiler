@@ -14,6 +14,7 @@ import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import kotlin.test.assertEquals
+import kotlin.test.fail
 
 internal val emptyAnchorSet = anchorSetOf().intoUnion()
 
@@ -55,13 +56,13 @@ fun assertIdempotence(input: String) {
     println("========[ input ]========")
     println(input)
 
-    val ast1 = createAST(input)
-    val pretty1 = prettyPrint(ast1!!)
+    val ast1 = createAST(input) ?: fail("failed to parse input")
+    val pretty1 = prettyPrint(ast1)
     println("=======[ Pretty1 ]=======")
     println(pretty1)
 
-    val ast2 = createAST(pretty1)
-    val pretty2 = prettyPrint(ast2!!)
+    val ast2 = createAST(pretty1) ?: fail("failed to parse pretty printed output")
+    val pretty2 = prettyPrint(ast2)
     println("=======[ Pretty2 ]=======")
     println(pretty2)
     println("=========================")

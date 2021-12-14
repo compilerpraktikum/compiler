@@ -14,7 +14,7 @@ import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.wrapper.wrappers.validate
-import firm.Dump
+import firm.Dump.dumpGraph
 import firm.Program
 import firm.Util
 import java.io.IOException
@@ -131,14 +131,13 @@ class Compiler(private val config: Config) {
                             return@run
                         }
 
-                        Transformation.transform(program, config.dump.contains(Dump.FirmMethodGraphs))
+                        Transformation.transform(program)
+                        dumpGraphsIfEnabled(Dump.MethodGraphsAfterConstruction, "after-construction")
                         Util.lowerSels()
+                        dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
-                        if (config.dump.contains(Dump.FirmMethodGraphs)) {
-                            Program.getGraphs().forEach { firm.Dump.dumpGraph(it, "afterLowerSels") }
-                        }
-
-                        Optimization.constantPropagationAndFolding(config.dump.contains(Dump.FirmMethodGraphs))
+                        Optimization.constantPropagationAndFolding()
+                        dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(::FirmBackEnd)
                     }
@@ -158,6 +157,12 @@ class Compiler(private val config: Config) {
             System.err.println("internal error: ${e.message}")
             e.printStackTrace(System.err)
             return ExitCode.ERROR_INTERNAL
+        }
+    }
+
+    fun dumpGraphsIfEnabled(flag: Dump, phase: String) {
+        if (config.dump.contains(flag)) {
+            Program.getGraphs().forEach { dumpGraph(it, phase) }
         }
     }
 
@@ -226,7 +231,9 @@ class Compiler(private val config: Config) {
 
     enum class Dump(val cliFlag: String) {
         AssemblyFile("asm"),
-        FirmMethodGraphs("method");
+        MethodGraphsAfterConstruction("graph:construction"),
+        MethodGraphsAfterLowering("graph:lowering"),
+        MethodGraphsAfterOptimization("graph:optimization");
 
         override fun toString(): String = cliFlag
     }

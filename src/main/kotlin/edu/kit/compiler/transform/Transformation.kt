@@ -11,11 +11,11 @@ object Transformation {
     /**
      * Transform a [Semantic AST][AstNode] into a firm graph
      */
-    fun transform(ast: AstNode, dumpMethodGraphs: Boolean) {
+    fun transform(ast: AstNode) {
         FirmContext.init()
 
         ast.accept(ClassConstructionVisitor())
         ast.accept(MethodConstructionVisitor())
-        ast.accept(TransformationVisitor(dumpMethodGraphs))
+        ast.accept(TransformationVisitor())
     }
 }

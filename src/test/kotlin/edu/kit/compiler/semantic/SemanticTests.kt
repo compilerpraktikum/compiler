@@ -11,6 +11,7 @@ import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.wrapper.wrappers.validate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.fail
 
 /**
  * Some manually implemented semantic tests
@@ -124,11 +125,51 @@ internal class SemanticTests {
         )
     }
 
+    @Test
+    fun testMinInteger() {
+        testCheck(
+            """
+                class Test {
+                    public void test() {
+                        int x = 2147483648;
+                    }
+                }
+            """.trimIndent(),
+            ::ConstantBoundariesChecker,
+            shouldSucceed = false
+        )
+        testCheck(
+            """
+                class Test {
+                    public void test() {
+                        int x = -2147483648;
+                    }
+                }
+            """.trimIndent(),
+            ::ConstantBoundariesChecker,
+            shouldSucceed = true
+        )
+        testCheck(
+            """
+                class Test {
+                    public void test() {
+                        int x = - -2147483648;
+                    }
+                }
+            """.trimIndent(),
+            ::ConstantBoundariesChecker,
+            shouldSucceed = true
+        )
+    }
+
     @OptIn(ExperimentalStdlibApi::class)
     private fun testCheck(input: String, acceptor: (SourceFile) -> AbstractVisitor, shouldSucceed: Boolean = false) {
-        val (lexer, sourceFile) = createLexer(input, 4)
+        val (lexer, sourceFile) = createLexer(input, 3)
         val parser = Parser(sourceFile, lexer.tokens())
-        val ast = parser.parse().validate()!!
+        val ast = parser.parse().validate() ?: run {
+            sourceFile.printAnnotations()
+            fail("failed to parse source")
+        }
         ast.accept(acceptor(sourceFile))
 
         sourceFile.printAnnotations()

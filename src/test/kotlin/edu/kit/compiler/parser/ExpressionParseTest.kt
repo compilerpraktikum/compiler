@@ -1,6 +1,7 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.expressionOf
 import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.emptyAnchorSet
 import edu.kit.compiler.utils.expectNode
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test
 internal class ExpressionParseTest {
 
     private fun expectAst(input: String, expectedAST: Parsed<AST.Expression>) =
-        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet, isParenthesized = false) }
+        expectNode(input, expectedAST) { parseExpression(anc = emptyAnchorSet) }
 
     @Test
     fun testParseLiteral() = expectAst("1", AST.LiteralExpression.Integer("1", false).wrapMockValid())
@@ -157,6 +158,70 @@ internal class ExpressionParseTest {
                 AST.LiteralExpression.Integer("4", false).wrapMockValid(),
                 AST.BinaryExpression.Operation.ADDITION
             ).wrapMockValid()
+        )
+    }
+
+    @Test
+    fun testUnaryMinus() {
+        expectAst(
+            "123",
+            expressionOf {
+                literal("123")
+            }
+        )
+        expectAst(
+            "-123",
+            expressionOf {
+                literal("-123")
+            }
+        )
+        expectAst(
+            "-(123)",
+            expressionOf {
+                unOp(AST.UnaryExpression.Operation.MINUS) {
+                    literal("123")
+                }
+            }
+        )
+        expectAst(
+            "123.test()",
+            expressionOf {
+                invoke({ literal("123") }, "test")
+            }
+        )
+        expectAst(
+            "-123.test()",
+            expressionOf {
+                unOp(AST.UnaryExpression.Operation.MINUS) {
+                    invoke({ literal("123") }, "test")
+                }
+            }
+        )
+        expectAst(
+            "-(123).test()",
+            expressionOf {
+                unOp(AST.UnaryExpression.Operation.MINUS) {
+                    invoke({ literal("123") }, "test")
+                }
+            }
+        )
+        expectAst(
+            "(-123).test()",
+            expressionOf {
+                invoke(
+                    { literal("-123") },
+                    "test"
+                )
+            }
+        )
+        expectAst(
+            "(-(123)).test()",
+            expressionOf {
+                invoke(
+                    { unOp(AST.UnaryExpression.Operation.MINUS) { literal("123") } },
+                    "test"
+                )
+            }
         )
     }
 }

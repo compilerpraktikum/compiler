@@ -112,12 +112,7 @@ class SourceRangeTest {
 
     private fun expectExpressionRange(code: String) = expectRanges(
         code,
-        {
-            parseExpression(
-                anc = emptyAnchorSet,
-                isParenthesized = false
-            ).also { println("parsed w/o sources: ${it.debug()}") }
-        },
+        { parseExpression(anc = emptyAnchorSet).also { println("parsed w/o sources: ${it.debug()}") } },
         { visitExpression(it) }
     )
 
@@ -210,7 +205,6 @@ class SourceRangeTest {
                 # |---------|
                 #      |----|
                 #        |--|
-                #         |-|
             """.trimIndent()
         )
 
