@@ -198,7 +198,11 @@ class Compiler(private val config: Config) {
                 toFile().deleteOnExit()
             }
         }
+
         val executableFile = config.outputFile ?: Paths.get(sourceFileName.replaceExtension(""))
+        if (executableFile.toAbsolutePath().normalize() == config.sourceFile.toAbsolutePath().normalize()) {
+            throw CompilationException("output file would overwrite source file. please specify a different output file using `--out`.")
+        }
 
         val backend = factory(sourceFileName.toString(), assemblyFile, executableFile)
         backend.generate()
