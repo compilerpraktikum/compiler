@@ -1,15 +1,14 @@
 package edu.kit.compiler.backend
 
-import firm.Backend
 import java.nio.file.Path
 
-class FirmBackEnd(
+class FirmBackend(
     private val compilationUnit: String,
     private val assemblyFile: Path,
     private val executableFile: Path,
-) : CompilerBackEnd {
+) : Backend {
     override fun generate() {
-        Backend.createAssembler(assemblyFile.toAbsolutePath().toString(), compilationUnit)
+        firm.Backend.createAssembler(assemblyFile.toAbsolutePath().toString(), compilationUnit)
         Linker().link(assemblyFile, executableFile)
     }
 }

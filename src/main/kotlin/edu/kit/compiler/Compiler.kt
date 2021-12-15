@@ -1,7 +1,9 @@
 package edu.kit.compiler
 
-import edu.kit.compiler.backend.CompilerBackEnd
-import edu.kit.compiler.backend.FirmBackEnd
+import edu.kit.compiler.backend.Backend
+import edu.kit.compiler.backend.FirmBackend
+import edu.kit.compiler.backend.createCompilerBackend
+import edu.kit.compiler.backend.createCompilerBackendWithMolki
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lex.Lexer
@@ -59,7 +61,8 @@ class Compiler(private val config: Config) {
      * @return returns 0 if the compilation completed successfully, or an appropriate exit code if an error occurred.
      */
     fun compile(): Int {
-        if (config.mode == Mode.Echo) {
+        val mode = config.mode
+        if (mode == Mode.Echo) {
             // needs to be handled separately because SourceFile does only support valid input encodings and
             // echo needs to support binary files (for whatever reason...)
             return handleEcho()
@@ -72,7 +75,8 @@ class Compiler(private val config: Config) {
                 return ExitCode.ERROR_FILE_SYSTEM
             }
 
-            when (config.mode) {
+            @Suppress("KotlinConstantConditions")
+            when (mode) {
                 Mode.Echo -> { throw IllegalStateException("echo unhandled") }
                 Mode.LexTest -> {
                     val lexer = Lexer(
@@ -117,7 +121,7 @@ class Compiler(private val config: Config) {
                         doSemanticAnalysis(program, sourceFile, stringTable)
                     }
                 }
-                Mode.CompileFirm, Mode.Compile -> {
+                Mode.CompileFirm, Mode.CompileMolki, Mode.Compile -> {
                     val lexer = Lexer(
                         sourceFile,
                         stringTable,
@@ -139,7 +143,14 @@ class Compiler(private val config: Config) {
                         Optimization.constantPropagationAndFolding()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
-                        runBackEnd(::FirmBackEnd)
+                        runBackEnd(
+                            when (mode) {
+                                Mode.CompileFirm -> ::FirmBackend
+                                Mode.CompileMolki -> ::createCompilerBackendWithMolki
+                                Mode.Compile -> ::createCompilerBackend
+                                else -> { throw IllegalStateException("unknown mode") }
+                            }
+                        )
                     }
                 }
             }
@@ -188,7 +199,7 @@ class Compiler(private val config: Config) {
         }
     }
 
-    private fun runBackEnd(factory: (String, Path, Path) -> CompilerBackEnd) {
+    private fun runBackEnd(factory: (String, Path, Path) -> Backend) {
         val sourceFileName = config.sourceFile.fileName
 
         val assemblyFile = if (config.dump.contains(Dump.AssemblyFile)) {
@@ -230,6 +241,7 @@ class Compiler(private val config: Config) {
         PrettyPrintAst("print-ast"),
         SemanticCheck("check"),
         CompileFirm("compile-firm"),
+        CompileMolki("compile-molki"),
         Compile("compile"),
     }
 

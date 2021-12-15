@@ -1,6 +1,6 @@
 package edu.kit.compiler.backend
 
-interface CompilerBackEnd {
+interface Backend {
     /**
      * Generate executable.
      */
