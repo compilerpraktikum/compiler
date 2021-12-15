@@ -17,7 +17,7 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
 
     override val outputFile by option("-o", "--out", help = "name of the generated executable", envvar = "COMPILER_OUT_FILE").path()
 
-    override val dump by option("--dump", help = "output intermediate compilation results")
+    override val dump by option("--dump", help = "output intermediate compilation results (separate multiple values by comma)")
         .choices(Compiler.Dump.values().associateBy { it.cliFlag }).distinct()
 
     override fun run() {

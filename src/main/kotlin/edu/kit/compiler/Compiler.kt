@@ -224,13 +224,13 @@ class Compiler(private val config: Config) {
     }
 
     enum class Mode(val cliFlag: String) {
-        Compile("compile"),
         Echo("echo"),
         LexTest("lextest"),
         ParseTest("parsetest"),
         PrettyPrintAst("print-ast"),
         SemanticCheck("check"),
         CompileFirm("compile-firm"),
+        Compile("compile"),
     }
 
     enum class Dump(val cliFlag: String) {
