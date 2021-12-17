@@ -25,6 +25,7 @@ COPY --from=gradle /root/.gradle /root/.gradle
 RUN git clone "https://git.scc.kit.edu/IPDSnelting/mjtest-tests.git" /home/tests
 RUN git clone "https://git.scc.kit.edu/IPDSnelting/mjtest.git" /home/mjtest
 RUN rm -r /home/mjtest/tests && ln -s /home/tests /home/mjtest/tests
+RUN git clone "https://git.scc.kit.edu/IPDSnelting/molki.git" /home/molki
 
 WORKDIR /home/compiler
 COPY . .
