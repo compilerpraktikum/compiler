@@ -1,6 +1,8 @@
 package edu.kit.compiler.backend.codegen
 
 import com.sun.jna.Pointer
+import edu.kit.compiler.backend.molkir.Instruction
+import edu.kit.compiler.backend.molkir.MolkIR
 import firm.nodes.Node
 import firm.nodes.NodeVisitor
 
@@ -18,7 +20,7 @@ class VirtualRegisterTable(val map: MutableMap<Node, RegisterId>, private var la
 }
 
 sealed class CodeGenTree {
-    data class Add(val left: CodeGenTree, val right: CodeGenTree) : CodeGenTree()
+    data class Add(val left: CodeGenTree, val right: CodeGenTree, val res: CodeGenTree) : CodeGenTree()
 
     data class Indirection(val addr: CodeGenTree) : CodeGenTree()
 
@@ -37,15 +39,39 @@ sealed class CodeGenTree {
 
 typealias Pattern = CodeGenTree
 
-class AddReplacementRule: ReplacementRule(
+abstract class ReplacementRule2() {
+    abstract fun matches(node: CodeGenTree) : Pair<CodeGenTree, MolkIR>?
+}
+
+class AddReplacementRule2 : ReplacementRule2() {
+    override fun matches(node: CodeGenTree): Pair<CodeGenTree, MolkIR>? {
+        if (node is CodeGenTree.Add) {
+            if (node.right is CodeGenTree.Register) {
+                if (node.left is CodeGenTree.Register) {
+                    return Pair(node.res, MolkIR.addi(node.left, node.right, node.res))
+                }
+                return null
+            }
+            return null
+        }
+        return null
+    }
+}
+
+class AddReplacementRule : ReplacementRule(
     CodeGenTree.Add(CodeGenTree.RegisterVariable("i"), CodeGenTree.RegisterVariable("j")),
-    CodeGenTree.RegisterVariable("j")
+    CodeGenTree.RegisterVariable("k")
 ) {
     override fun generateCode(
         registerInstantiation: Map<String, CodeGenTree.Register>,
         constInstantiation: Map<String, CodeGenTree.Const>
-    ): MolkiIR {
-        MolkiIR.addi(registerInstantiation["i"], registerInstantiation["j"])
+    ): MolkIR {
+        Instruction.BinaryOperationWithResult(
+            "addl",
+            registerInstantiation["oo"],
+            registerInstantiation["j"],
+            registerInstantiation["k"]
+        )
     }
 
 }
