@@ -55,3 +55,13 @@ jobs:
           path: '**/out/ktlint.xml'
           name: ktlint report
           title: ktlint report
+  qodana:
+    name: qodana
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v4.2.1
+        with:
+          linter: jetbrains/qodana-jvm
+          fail-threshold: 1
