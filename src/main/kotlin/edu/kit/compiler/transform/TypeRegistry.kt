@@ -1,6 +1,6 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.prependIfNotNull
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.InternalFunction

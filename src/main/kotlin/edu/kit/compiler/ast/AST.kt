@@ -1,7 +1,7 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.wrapper.wrappers.Parsed
 
 /**

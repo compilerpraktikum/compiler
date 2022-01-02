@@ -1,6 +1,6 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 
 /**
  * Definition of a class, class member or local variable

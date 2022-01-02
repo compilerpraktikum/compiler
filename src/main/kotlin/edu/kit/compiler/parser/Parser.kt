@@ -3,8 +3,8 @@ package edu.kit.compiler.parser
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.toASTOperation
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.wrapper.wrappers.Parsed

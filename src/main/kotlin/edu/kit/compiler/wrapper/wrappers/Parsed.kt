@@ -1,7 +1,7 @@
 package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.source.SourceRange

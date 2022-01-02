@@ -1,6 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.ClassDefinition
 import edu.kit.compiler.semantic.ClassNamespace

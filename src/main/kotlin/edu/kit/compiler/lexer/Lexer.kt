@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.lexer
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.source.AnnotationType

@@ -3,8 +3,8 @@ package edu.kit.compiler.exec
 import edu.kit.compiler.Compiler
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis

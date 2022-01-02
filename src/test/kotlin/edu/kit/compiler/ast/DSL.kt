@@ -1,7 +1,7 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.source.SourcePosition
 import edu.kit.compiler.source.SourceRange

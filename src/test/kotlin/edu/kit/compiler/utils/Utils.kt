@@ -1,9 +1,9 @@
 package edu.kit.compiler.utils
 
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.parser.anchorSetOf
 import edu.kit.compiler.semantic.AstNode

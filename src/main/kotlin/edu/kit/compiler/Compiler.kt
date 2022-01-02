@@ -6,8 +6,8 @@ import edu.kit.compiler.backend.createCompilerBackend
 import edu.kit.compiler.backend.createCompilerBackendWithMolki
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.optimization.Optimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
