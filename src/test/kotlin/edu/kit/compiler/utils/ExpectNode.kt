@@ -1,9 +1,9 @@
 package edu.kit.compiler.utils
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Parsed
 import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.wrapper.wrappers.Parsed
 import kotlin.test.assertEquals
 
 internal inline fun <reified T> Parsed<T>?.debug(): String {

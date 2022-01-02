@@ -2,7 +2,6 @@ package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.lexer.Symbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
 
 /**
  * Sealed AST-Node class structure
@@ -212,7 +211,7 @@ sealed class AST {
     ) : Expression()
 
     data class NewArrayExpression(
-        val type: Parsed<AST.Type.Array>,
+        val type: Parsed<Type.Array>,
         val length: Parsed<Expression>,
     ) : Expression()
 }

@@ -1,6 +1,5 @@
-package edu.kit.compiler.wrapper.wrappers
+package edu.kit.compiler.ast
 
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType

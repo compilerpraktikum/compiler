@@ -2,16 +2,16 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Parsed
+import edu.kit.compiler.ast.markErroneous
 import edu.kit.compiler.ast.toASTOperation
+import edu.kit.compiler.ast.wrapConditionally
+import edu.kit.compiler.ast.wrapErroneous
+import edu.kit.compiler.ast.wrapValid
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.source.SourceRange
-import edu.kit.compiler.wrapper.wrappers.Parsed
-import edu.kit.compiler.wrapper.wrappers.markErroneous
-import edu.kit.compiler.wrapper.wrappers.wrapConditionally
-import edu.kit.compiler.wrapper.wrappers.wrapErroneous
-import edu.kit.compiler.wrapper.wrappers.wrapValid
 
 private val Token.isRelevantForSyntax
     get() = when (this) {

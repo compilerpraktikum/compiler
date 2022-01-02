@@ -1,5 +1,6 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.Backend
 import edu.kit.compiler.backend.FirmBackend
 import edu.kit.compiler.backend.createCompilerBackend
@@ -15,7 +16,6 @@ import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.transform.Transformation
-import edu.kit.compiler.wrapper.wrappers.validate
 import firm.Dump.dumpGraph
 import firm.Program
 import firm.Util

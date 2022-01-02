@@ -1,10 +1,10 @@
 package edu.kit.compiler.parser
 
+import edu.kit.compiler.ast.AbstractAstVisitor
 import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.utils.debug
 import edu.kit.compiler.utils.emptyAnchorSet
 import edu.kit.compiler.utils.withParser
-import edu.kit.compiler.wrapper.wrappers.AbstractAstVisitor
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 

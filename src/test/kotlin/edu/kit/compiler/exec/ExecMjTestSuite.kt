@@ -1,6 +1,7 @@
 package edu.kit.compiler.exec
 
 import edu.kit.compiler.Compiler
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
@@ -9,7 +10,6 @@ import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.utils.MjTestSuite
-import edu.kit.compiler.wrapper.wrappers.validate
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.condition.EnabledOnOs
 import org.junit.jupiter.api.condition.OS

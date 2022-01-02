@@ -5,7 +5,6 @@ import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.source.SourcePosition
 import edu.kit.compiler.source.SourceRange
-import edu.kit.compiler.wrapper.wrappers.Parsed
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 

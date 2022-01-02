@@ -1,5 +1,6 @@
 package edu.kit.compiler.semantic
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.ConstantBoundariesChecker
@@ -8,7 +9,6 @@ import edu.kit.compiler.semantic.visitor.MainMethodVerifier
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.utils.createLexer
-import edu.kit.compiler.wrapper.wrappers.validate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
