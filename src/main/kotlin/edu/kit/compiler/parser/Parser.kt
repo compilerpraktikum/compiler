@@ -4,9 +4,9 @@ import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.toASTOperation
 import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.wrapper.wrappers.Parsed
 import edu.kit.compiler.wrapper.wrappers.markErroneous
 import edu.kit.compiler.wrapper.wrappers.wrapConditionally

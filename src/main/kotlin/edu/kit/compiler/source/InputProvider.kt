@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.source
 
 /**
  * Provides character input for the lexer. The input source is implementation-dependant.

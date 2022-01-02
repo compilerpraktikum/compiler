@@ -1,11 +1,11 @@
 package edu.kit.compiler.error
 
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.InputProvider
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceNote
-import edu.kit.compiler.lex.SourcePosition
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.InputProvider
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceNote
+import edu.kit.compiler.source.SourcePosition
+import edu.kit.compiler.source.SourceRange
 import kotlin.test.Test
 
 internal class AnnotationFormatterTest {

@@ -1,12 +1,12 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.display
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceRange
 
 /**
  * Type analysis visitor. Run name analysis beforehand.

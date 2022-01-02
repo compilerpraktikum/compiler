@@ -1,8 +1,8 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Verify that assignments only happen to expressions that actually point to valid memory abstractions.

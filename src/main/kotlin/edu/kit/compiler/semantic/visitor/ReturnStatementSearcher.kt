@@ -1,9 +1,9 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.display
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Search for definite returns in non-void methods. These can be either

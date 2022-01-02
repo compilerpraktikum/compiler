@@ -1,7 +1,7 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.source.SourceFile
 import java.math.BigInteger
 
 private val MAX_INT = BigInteger("2147483647")

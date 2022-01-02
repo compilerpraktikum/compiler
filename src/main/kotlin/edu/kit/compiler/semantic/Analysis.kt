@@ -1,6 +1,5 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.semantic.visitor.AssignmentLHSChecker
 import edu.kit.compiler.semantic.visitor.ConstantBoundariesChecker
@@ -11,6 +10,7 @@ import edu.kit.compiler.semantic.visitor.NamespacePopulator
 import edu.kit.compiler.semantic.visitor.ReturnStatementSearcher
 import edu.kit.compiler.semantic.visitor.TypeAnalysisVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Semantic analysis pipeline

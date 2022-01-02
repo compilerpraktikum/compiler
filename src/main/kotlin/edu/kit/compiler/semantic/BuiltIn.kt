@@ -1,9 +1,9 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourcePosition
 import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.extend
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourcePosition
+import edu.kit.compiler.source.extend
 
 object InternalFunction {
     val SYSTEM_IN_READ = AstNode.Expression.MethodInvocationExpression.Type.Internal("system_read", "System.in.read", SemanticType.Integer, emptyList())

@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.utils.debug
 import edu.kit.compiler.utils.emptyAnchorSet
 import edu.kit.compiler.utils.withParser

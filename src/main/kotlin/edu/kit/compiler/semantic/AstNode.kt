@@ -1,10 +1,10 @@
 package edu.kit.compiler.semantic
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode.ClassMember.FieldDeclaration
 import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
+import edu.kit.compiler.source.SourceRange
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to

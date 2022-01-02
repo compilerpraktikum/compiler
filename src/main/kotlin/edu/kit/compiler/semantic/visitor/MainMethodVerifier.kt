@@ -1,10 +1,10 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.extend
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.extend
 
 /**
  * A visitor that ensures that all special semantic constraints of the main method are fulfilled.

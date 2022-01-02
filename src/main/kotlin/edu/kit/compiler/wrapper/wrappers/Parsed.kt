@@ -1,10 +1,10 @@
 package edu.kit.compiler.wrapper.wrappers
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.SourceRange
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.source.SourceRange
 
 /**
  * An AST-Node wrapper, that indicates, that the contained AST-Node may or may not be valid.

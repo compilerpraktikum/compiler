@@ -2,7 +2,6 @@ package edu.kit.compiler.utils
 
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
 import edu.kit.compiler.lex.Symbol
 import edu.kit.compiler.parser.Parser
@@ -10,6 +9,7 @@ import edu.kit.compiler.parser.anchorSetOf
 import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.wrapper.wrappers.validate
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream

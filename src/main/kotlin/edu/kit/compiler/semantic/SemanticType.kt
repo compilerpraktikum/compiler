@@ -1,6 +1,6 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.source.SourceRange
 
 /**
  * Result type of semantic analysis
