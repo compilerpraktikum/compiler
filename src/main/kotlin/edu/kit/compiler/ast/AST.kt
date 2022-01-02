@@ -203,8 +203,8 @@ sealed class AST {
             }
         }
         data class Boolean(val value: kotlin.Boolean) : LiteralExpression()
-        class Null() : LiteralExpression()
-        class This() : LiteralExpression()
+        class Null : LiteralExpression()
+        class This : LiteralExpression()
     }
 
     data class NewObjectExpression(

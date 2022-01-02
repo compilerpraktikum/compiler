@@ -10,7 +10,7 @@ class Definition<NodeType>(
     val node: NodeType,
 )
 
-sealed class VariableNode() {
+sealed class VariableNode {
     abstract val type: SemanticType
 
     class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode() {
