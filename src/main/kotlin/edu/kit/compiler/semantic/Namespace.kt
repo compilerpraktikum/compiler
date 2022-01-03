@@ -13,46 +13,46 @@ class Definition<NodeType>(
 sealed class VariableNode {
     abstract val type: SemanticType
 
-    class Field(val node: AstNode.ClassMember.FieldDeclaration) : VariableNode() {
+    class Field(val node: SemanticAST.ClassMember.FieldDeclaration) : VariableNode() {
         override val type: SemanticType
             get() = node.type
     }
 
-    class Parameter(val node: AstNode.ClassMember.SubroutineDeclaration.Parameter) : VariableNode() {
+    class Parameter(val node: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) : VariableNode() {
         override val type: SemanticType
             get() = node.type
     }
 
-    class LocalVariable(val node: AstNode.Statement.LocalVariableDeclaration) : VariableNode() {
+    class LocalVariable(val node: SemanticAST.Statement.LocalVariableDeclaration) : VariableNode() {
         override val type: SemanticType
             get() = node.type
     }
 }
 typealias VariableDefinition = Definition<VariableNode>
 
-typealias FieldDefinition = Definition<AstNode.ClassMember.FieldDeclaration>
-fun AstNode.ClassMember.FieldDeclaration.asDefinition() = FieldDefinition(name.symbol, this)
+typealias FieldDefinition = Definition<SemanticAST.ClassMember.FieldDeclaration>
+fun SemanticAST.ClassMember.FieldDeclaration.asDefinition() = FieldDefinition(name.symbol, this)
 @JvmName("wrapFieldDefinition")
 fun FieldDefinition.wrap() = VariableDefinition(name, VariableNode.Field(node))
 
-typealias ParameterDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.Parameter>
-fun AstNode.ClassMember.SubroutineDeclaration.Parameter.asDefinition() = ParameterDefinition(name.symbol, this)
+typealias ParameterDefinition = Definition<SemanticAST.ClassMember.SubroutineDeclaration.Parameter>
+fun SemanticAST.ClassMember.SubroutineDeclaration.Parameter.asDefinition() = ParameterDefinition(name.symbol, this)
 @JvmName("wrapParameterDefinition")
 fun ParameterDefinition.wrap() = VariableDefinition(name, VariableNode.Parameter(node))
 
-typealias LocalVariableDefinition = Definition<AstNode.Statement.LocalVariableDeclaration>
-fun AstNode.Statement.LocalVariableDeclaration.asDefinition() = LocalVariableDefinition(name.symbol, this)
+typealias LocalVariableDefinition = Definition<SemanticAST.Statement.LocalVariableDeclaration>
+fun SemanticAST.Statement.LocalVariableDeclaration.asDefinition() = LocalVariableDefinition(name.symbol, this)
 @JvmName("wrapLocalVariableDefinition")
 fun LocalVariableDefinition.wrap() = VariableDefinition(name, VariableNode.LocalVariable(node))
 
-typealias ClassDefinition = Definition<AstNode.ClassDeclaration>
-fun AstNode.ClassDeclaration.asDefinition() = ClassDefinition(name.symbol, this)
+typealias ClassDefinition = Definition<SemanticAST.ClassDeclaration>
+fun SemanticAST.ClassDeclaration.asDefinition() = ClassDefinition(name.symbol, this)
 
-typealias MethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>
-fun AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() = MethodDefinition(name.symbol, this)
+typealias MethodDefinition = Definition<SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration>
+fun SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration.asDefinition() = MethodDefinition(name.symbol, this)
 
-typealias MainMethodDefinition = Definition<AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
-fun AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
+typealias MainMethodDefinition = Definition<SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration>
+fun SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration.asDefinition() = MainMethodDefinition(name.symbol, this)
 
 /**
  * Generic namespace that contains a mapping from [Symbols][Symbol] to [definitions][T].
@@ -78,14 +78,14 @@ class Namespace<T> {
 }
 
 class GlobalNamespace {
-    val classes = Namespace<AstNode.ClassDeclaration>()
+    val classes = Namespace<SemanticAST.ClassDeclaration>()
 }
 
 class ClassNamespace(
     val global: GlobalNamespace
 ) {
-    val fields = Namespace<AstNode.ClassMember.FieldDeclaration>()
-    val methods = Namespace<AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration>()
+    val fields = Namespace<SemanticAST.ClassMember.FieldDeclaration>()
+    val methods = Namespace<SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration>()
 
     var mainMethodDefinition: MainMethodDefinition? = null
     val hasMainMethod

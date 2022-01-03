@@ -1,7 +1,7 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.source.SourceFile
 
 /**
@@ -9,13 +9,13 @@ import edu.kit.compiler.source.SourceFile
  */
 class AssignmentLHSChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+    override fun visitBinaryOperation(binaryOperation: SemanticAST.Expression.BinaryOperation) {
         if (binaryOperation.operation == AST.BinaryExpression.Operation.ASSIGNMENT) {
             sourceFile.errorIfNot(
                 when (binaryOperation.left) {
-                    is AstNode.Expression.IdentifierExpression,
-                    is AstNode.Expression.FieldAccessExpression,
-                    is AstNode.Expression.ArrayAccessExpression -> true
+                    is SemanticAST.Expression.IdentifierExpression,
+                    is SemanticAST.Expression.FieldAccessExpression,
+                    is SemanticAST.Expression.ArrayAccessExpression -> true
                     else -> false
                 }
             ) {

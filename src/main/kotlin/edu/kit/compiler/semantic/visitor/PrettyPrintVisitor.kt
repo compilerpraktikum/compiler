@@ -1,6 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.dimension
@@ -19,7 +19,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         push(true)
     }
 
-    override fun visitProgram(program: AstNode.Program) {
+    override fun visitProgram(program: SemanticAST.Program) {
         printParenthesesStack.push(true)
 
         program.classes
@@ -27,37 +27,37 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
             .forEach { classDeclaration -> classDeclaration.accept(this) }
     }
 
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         println("class ${classDeclaration.name.symbol.text} {")
         doIndented {
             classDeclaration.members
                 .sortedBy { classMember -> classMember.name.symbol }
                 .sortedByDescending {
-                    it is AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration ||
-                        it is AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration
+                    it is SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration ||
+                        it is SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration
                 }
                 .forEach { classMember -> classMember.accept(this) }
         }
         println("}")
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         print("public ", true)
         fieldDeclaration.type.accept(this)
         println(" ${fieldDeclaration.name.symbol.text};")
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         print("public static ", true)
         printMethodWithoutModifiers(mainMethodDeclaration)
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         print("public ", true)
         printMethodWithoutModifiers(methodDeclaration)
     }
 
-    private fun printMethodWithoutModifiers(subroutineDeclaration: AstNode.ClassMember.SubroutineDeclaration) {
+    private fun printMethodWithoutModifiers(subroutineDeclaration: SemanticAST.ClassMember.SubroutineDeclaration) {
         subroutineDeclaration.returnType.accept(this)
         print(" ${subroutineDeclaration.name.symbol.text}(")
 
@@ -74,12 +74,12 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         println()
     }
 
-    override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+    override fun visitParameter(parameter: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) {
         parameter.type.accept(this)
         print(" ${parameter.name.symbol.text}")
     }
 
-    override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    override fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
         print("", startsNewLine)
         startsNewLine = false
         localVariableDeclaration.type.accept(this)
@@ -94,20 +94,20 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     /**
      * removes nested empty blocks and reduces them into one. Example `{{{}}}` -> `{}`
      */
-    private fun cleanupBlock(block: AstNode.Statement.Block): AstNode.Statement.Block {
-        val statements: List<AstNode.Statement> = block.statements
+    private fun cleanupBlock(block: SemanticAST.Statement.Block): SemanticAST.Statement.Block {
+        val statements: List<SemanticAST.Statement> = block.statements
             .map { blockStatement ->
                 when (blockStatement) {
-                    is AstNode.Statement.Block -> cleanupBlock(blockStatement)
+                    is SemanticAST.Statement.Block -> cleanupBlock(blockStatement)
                     else -> blockStatement
                 }
             }.filter { blockStatement ->
-                !(blockStatement is AstNode.Statement.Block && blockStatement.statements.isEmpty())
+                !(blockStatement is SemanticAST.Statement.Block && blockStatement.statements.isEmpty())
             }
-        return AstNode.Statement.Block(statements, block.sourceRange)
+        return SemanticAST.Statement.Block(statements, block.sourceRange)
     }
 
-    override fun visitBlock(block: AstNode.Statement.Block) {
+    override fun visitBlock(block: SemanticAST.Statement.Block) {
         val cleanBlock = cleanupBlock(block)
 
         if (!startsNewLine) {
@@ -128,7 +128,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+    override fun visitIfStatement(ifStatement: SemanticAST.Statement.IfStatement) {
         print("if (", startsNewLine)
         doParenthesizedMaybe(false) { ifStatement.condition.accept(this) }
         print(")")
@@ -137,9 +137,9 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         val trueStatement = ifStatement.thenCase
         val falseStatement = ifStatement.elseCase
 
-        val hasThenBrackets = trueStatement is AstNode.Statement.Block
-        val hasElseBrackets = falseStatement is AstNode.Statement.Block
-        val elseif = hasElse && falseStatement is AstNode.Statement.IfStatement
+        val hasThenBrackets = trueStatement is SemanticAST.Statement.Block
+        val hasElseBrackets = falseStatement is SemanticAST.Statement.Block
+        val elseif = hasElse && falseStatement is SemanticAST.Statement.IfStatement
         if (hasElse) {
             if (!hasThenBrackets) {
                 println("")
@@ -186,13 +186,13 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     }
 
     // Begin Body -> True 1. Option { : " { }" , : " {\n ...} 2. Option Statement das nicht Block ist -> "\n", "..." einrücken
-    override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+    override fun visitWhileStatement(whileStatement: SemanticAST.Statement.WhileStatement) {
         print("while (", startsNewLine)
         doParenthesizedMaybe(false) { whileStatement.condition.accept(this) }
         print(")")
 
         val statement = whileStatement.statement
-        if (statement !is AstNode.Statement.Block) {
+        if (statement !is SemanticAST.Statement.Block) {
             startsNewLine = true
             println("")
             doIndented { doParenthesizedMaybe(true) { statement.accept(this) } }
@@ -202,7 +202,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         print("")
     }
 
-    override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+    override fun visitReturnStatement(returnStatement: SemanticAST.Statement.ReturnStatement) {
         print("return", startsNewLine)
         if (returnStatement.expression != null) {
             print(" ")
@@ -211,7 +211,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         print(";")
     }
 
-    override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+    override fun visitBinaryOperation(binaryOperation: SemanticAST.Expression.BinaryOperation) {
         printParenthesisMaybe {
             doParenthesizedMaybe(true) { binaryOperation.left.accept(this) }
             print(" " + binaryOperation.operation.repr + " ")
@@ -219,14 +219,14 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
+    override fun visitUnaryOperation(unaryOperation: SemanticAST.Expression.UnaryOperation) {
         printParenthesisMaybe {
             print(unaryOperation.operation.repr)
             doParenthesizedMaybe(true) { unaryOperation.inner.accept(this) }
         }
     }
 
-    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+    override fun visitMethodInvocationExpression(methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression) {
         printParenthesisMaybe {
             if (methodInvocationExpression.target != null) {
                 doParenthesizedMaybe(true) { methodInvocationExpression.target.accept(this) }
@@ -242,7 +242,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+    override fun visitFieldAccessExpression(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression) {
         printParenthesisMaybe {
             doParenthesizedMaybe(true) { fieldAccessExpression.target.accept(this) }
             print(".")
@@ -250,7 +250,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
+    override fun visitArrayAccessExpression(arrayAccessExpression: SemanticAST.Expression.ArrayAccessExpression) {
         printParenthesisMaybe {
             doParenthesizedMaybe(true) { arrayAccessExpression.target.accept(this) }
             print("[")
@@ -259,11 +259,11 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    override fun visitIdentifierExpression(identifierExpression: SemanticAST.Expression.IdentifierExpression) {
         print(identifierExpression.name.symbol.text)
     }
 
-    override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+    override fun visitLiteralIntExpression(literalIntExpression: SemanticAST.Expression.LiteralExpression.LiteralIntExpression) {
         if (literalIntExpression.isNegated || literalIntExpression.value == "2147483648") {
             printParenthesisMaybe {
                 print(literalIntExpression.toLiteralString())
@@ -273,19 +273,19 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+    override fun visitLiteralBoolExpression(literalBoolExpression: SemanticAST.Expression.LiteralExpression.LiteralBoolExpression) {
         print(literalBoolExpression.value.toString())
     }
 
-    override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
+    override fun visitLiteralNullExpression(literalNullExpression: SemanticAST.Expression.LiteralExpression.LiteralNullExpression) {
         print("null")
     }
 
-    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    override fun visitLiteralThisExpression(literalThisExpression: SemanticAST.Expression.LiteralExpression.LiteralThisExpression) {
         print("this")
     }
 
-    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    override fun visitNewObjectExpression(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         printParenthesisMaybe {
             print("new ")
             print(newObjectExpression.clazz.symbol.text)
@@ -293,7 +293,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         }
     }
 
-    override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+    override fun visitNewArrayExpression(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
         printParenthesisMaybe {
             val element = newArrayExpression.type
             print("new ")
@@ -327,7 +327,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
         print(clazz.name.symbol.text)
     }
 
-    override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
+    override fun visitExpressionStatement(expressionStatement: SemanticAST.Statement.ExpressionStatement) {
         print("", startsNewLine)
         doParenthesizedMaybe(false) { expressionStatement.expression.accept(this) }
         print(";")

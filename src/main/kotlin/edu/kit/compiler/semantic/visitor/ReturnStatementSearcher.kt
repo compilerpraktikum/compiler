@@ -1,6 +1,6 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.display
 import edu.kit.compiler.source.SourceFile
@@ -14,7 +14,7 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
 
     private var foundReturn: Boolean = false
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         if (methodDeclaration.returnType == SemanticType.Void) {
             return
         }
@@ -32,7 +32,7 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         }
     }
 
-    override fun visitBlock(block: AstNode.Statement.Block) {
+    override fun visitBlock(block: SemanticAST.Statement.Block) {
         block.statements.forEach { statement ->
             statement.accept(this)
             if (foundReturn) {
@@ -41,24 +41,24 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         }
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         // do not descend: has return type void
     }
 
-    override fun visitExpression(expression: AstNode.Expression) {
+    override fun visitExpression(expression: SemanticAST.Expression) {
         // do not descend: expressions cannot return
     }
 
-    override fun visitStatement(statement: AstNode.Statement) {
+    override fun visitStatement(statement: SemanticAST.Statement) {
         checkNoReturnYet()
         super.visitStatement(statement)
     }
 
-    override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+    override fun visitWhileStatement(whileStatement: SemanticAST.Statement.WhileStatement) {
         // skip because the condition might never be true
     }
 
-    override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+    override fun visitIfStatement(ifStatement: SemanticAST.Statement.IfStatement) {
         if (ifStatement.elseCase == null) {
             return
         }
@@ -68,7 +68,7 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         }
     }
 
-    private fun containsReturn(stmt: AstNode.Statement): Boolean {
+    private fun containsReturn(stmt: SemanticAST.Statement): Boolean {
         checkNoReturnYet()
         stmt.accept(this)
         val foundReturnInStatement = foundReturn
@@ -76,7 +76,7 @@ class ReturnStatementSearcher(val sourceFile: SourceFile) : AbstractVisitor() {
         return foundReturnInStatement
     }
 
-    override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+    override fun visitReturnStatement(returnStatement: SemanticAST.Statement.ReturnStatement) {
         foundReturn = true
     }
 

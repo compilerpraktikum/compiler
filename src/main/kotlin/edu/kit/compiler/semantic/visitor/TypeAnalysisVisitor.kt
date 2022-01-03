@@ -1,7 +1,7 @@
 package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.display
@@ -28,21 +28,21 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
      */
     private var suppressTypeErrors = false
 
-    override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+    override fun visitParameter(parameter: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) {
         errorIf(parameter.type is SemanticType.Void) {
             "parameter cannot have type `void`" at parameter.typeSourceRange
         }
         super.visitParameter(parameter)
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         errorIf(fieldDeclaration.type is SemanticType.Void) {
             "field cannot have type `void`" at fieldDeclaration.sourceRange
         }
         super.visitFieldDeclaration(fieldDeclaration)
     }
 
-    override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    override fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
         if (localVariableDeclaration.initializer != null) {
             localVariableDeclaration.initializer.expectedType = localVariableDeclaration.type
         }
@@ -62,7 +62,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
     }
 
-    override fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
+    override fun visitArrayAccessExpression(arrayAccessExpression: SemanticAST.Expression.ArrayAccessExpression) {
         if (arrayAccessExpression.target.actualType !is SemanticType.Error) {
             errorIfNot(arrayAccessExpression.target.actualType is SemanticType.Array) {
                 suppressTypeErrors = true
@@ -86,7 +86,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         checkTypesCompatible(arrayAccessExpression)
     }
 
-    override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+    override fun visitFieldAccessExpression(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression) {
         // prevent follow-up errors
         if (fieldAccessExpression.target.actualType is SemanticType.Error) {
             return
@@ -95,23 +95,23 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         checkTypesCompatible(fieldAccessExpression)
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         currentExpectedMethodReturnType = methodDeclaration.returnType
         super.visitMethodDeclaration(methodDeclaration)
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         currentExpectedMethodReturnType = mainMethodDeclaration.returnType
         super.visitMainMethodDeclaration(mainMethodDeclaration)
     }
 
-    override fun visitStatement(statement: AstNode.Statement) {
+    override fun visitStatement(statement: SemanticAST.Statement) {
         separateTypeCheckPass {
             super.visitStatement(statement)
         }
     }
 
-    override fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+    override fun visitReturnStatement(returnStatement: SemanticAST.Statement.ReturnStatement) {
         if (returnStatement.expression != null) {
             if (currentExpectedMethodReturnType is SemanticType.Void) {
                 errorIf(true) {
@@ -130,10 +130,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
     }
 
-    override fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
-        fun AstNode.Expression.isMethodInvocationOrAssignment(): Boolean {
-            return this is AstNode.Expression.MethodInvocationExpression ||
-                (this is AstNode.Expression.BinaryOperation && operation == AST.BinaryExpression.Operation.ASSIGNMENT)
+    override fun visitExpressionStatement(expressionStatement: SemanticAST.Statement.ExpressionStatement) {
+        fun SemanticAST.Expression.isMethodInvocationOrAssignment(): Boolean {
+            return this is SemanticAST.Expression.MethodInvocationExpression ||
+                (this is SemanticAST.Expression.BinaryOperation && operation == AST.BinaryExpression.Operation.ASSIGNMENT)
         }
 
         errorIfNot(expressionStatement.expression.isMethodInvocationOrAssignment()) {
@@ -144,7 +144,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitExpressionStatement(expressionStatement)
     }
 
-    override fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+    override fun visitBinaryOperation(binaryOperation: SemanticAST.Expression.BinaryOperation) {
         if (binaryOperation.operation == AST.BinaryExpression.Operation.ASSIGNMENT) {
             binaryOperation.left.isLeftHandAssignment = true
         }
@@ -184,7 +184,7 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         checkTypesCompatible(binaryOperation)
     }
 
-    override fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
+    override fun visitUnaryOperation(unaryOperation: SemanticAST.Expression.UnaryOperation) {
         unaryOperation.inner.expectedType = when (unaryOperation.operation) {
             AST.UnaryExpression.Operation.MINUS -> SemanticType.Integer
             AST.UnaryExpression.Operation.NOT -> SemanticType.Boolean
@@ -194,17 +194,17 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitUnaryOperation(unaryOperation)
     }
 
-    override fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+    override fun visitIfStatement(ifStatement: SemanticAST.Statement.IfStatement) {
         ifStatement.condition.expectedType = SemanticType.Boolean
         super.visitIfStatement(ifStatement)
     }
 
-    override fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+    override fun visitWhileStatement(whileStatement: SemanticAST.Statement.WhileStatement) {
         whileStatement.condition.expectedType = SemanticType.Boolean
         super.visitWhileStatement(whileStatement)
     }
 
-    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+    override fun visitMethodInvocationExpression(methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression) {
         if (methodInvocationExpression.target != null) {
             methodInvocationExpression.target.expectedType = methodInvocationExpression.target.actualType
             methodInvocationExpression.target.accept(this)
@@ -225,12 +225,12 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         }
 
         when (val methodType = methodInvocationExpression.type) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(
+            is SemanticAST.Expression.MethodInvocationExpression.Type.Normal -> checkArguments(
                 methodType.definition.node.parameters.map { it.type },
                 methodInvocationExpression.method.text,
                 methodInvocationExpression.method.sourceRange.extend(methodInvocationExpression.sourceRange)
             )
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(
+            is SemanticAST.Expression.MethodInvocationExpression.Type.Internal -> checkArguments(
                 methodType.parameters,
                 methodType.fullName,
                 methodInvocationExpression.sourceRange
@@ -249,11 +249,11 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         checkTypesCompatible(methodInvocationExpression)
     }
 
-    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    override fun visitIdentifierExpression(identifierExpression: SemanticAST.Expression.IdentifierExpression) {
         checkTypesCompatible(identifierExpression)
     }
 
-    override fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+    override fun visitNewArrayExpression(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
         newArrayExpression.length.expectedType = SemanticType.Integer
         super.visitNewArrayExpression(newArrayExpression)
 
@@ -267,23 +267,23 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         super.visitArrayType(arrayType)
     }
 
-    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    override fun visitNewObjectExpression(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         checkTypesCompatible(newObjectExpression)
     }
 
-    override fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+    override fun visitLiteralBoolExpression(literalBoolExpression: SemanticAST.Expression.LiteralExpression.LiteralBoolExpression) {
         checkTypesCompatible(literalBoolExpression)
     }
 
-    override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+    override fun visitLiteralIntExpression(literalIntExpression: SemanticAST.Expression.LiteralExpression.LiteralIntExpression) {
         checkTypesCompatible(literalIntExpression)
     }
 
-    override fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
+    override fun visitLiteralNullExpression(literalNullExpression: SemanticAST.Expression.LiteralExpression.LiteralNullExpression) {
         checkTypesCompatible(literalNullExpression)
     }
 
-    private fun checkTypesCompatible(expression: AstNode.Expression) {
+    private fun checkTypesCompatible(expression: SemanticAST.Expression) {
         if (!suppressTypeErrors && expression.actualType != SemanticType.Error && expression.expectedType != SemanticType.Error) {
             errorIfNot(areTypesCompatible(expression.expectedType, expression.actualType)) {
                 suppressTypeErrors = true

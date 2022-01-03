@@ -1,7 +1,7 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.lexer.Symbol
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.source.SourceRange
 
@@ -126,35 +126,35 @@ fun <A> A.wrapConditionally(valid: Boolean, range: SourceRange): Parsed<A> = whe
     false -> wrapErroneous(range)
 }
 
-private fun Symbol.toIdentifier(sourceRange: SourceRange): AstNode.Identifier = AstNode.Identifier(this, sourceRange)
+private fun Symbol.toIdentifier(sourceRange: SourceRange): SemanticAST.Identifier = SemanticAST.Identifier(this, sourceRange)
 
-private fun Parsed<Symbol>.validate(): AstNode.Identifier? =
+private fun Parsed<Symbol>.validate(): SemanticAST.Identifier? =
     this.unwrapOr { return null }.toIdentifier(this.range)
 
-fun Parsed<AST.Program>.validate(): AstNode.Program? =
+fun Parsed<AST.Program>.validate(): SemanticAST.Program? =
     unwrapOr { return null }.let { program ->
         program.classes
             .map { it.validate() ?: return null }
             .let {
-                AstNode.Program(it, this.range)
+                SemanticAST.Program(it, this.range)
             }
     }
 
-fun Parsed<AST.ClassDeclaration>.validate(): AstNode.ClassDeclaration? = unwrapOr { return null }.let {
+fun Parsed<AST.ClassDeclaration>.validate(): SemanticAST.ClassDeclaration? = unwrapOr { return null }.let {
     val members = it.member.map { member ->
         member.validate() ?: return null
     }
-    AstNode.ClassDeclaration(it.name.validate() ?: return null, members, this.range)
+    SemanticAST.ClassDeclaration(it.name.validate() ?: return null, members, this.range)
 }
 
-fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return null }.let { classMember ->
+fun Parsed<AST.ClassMember>.validate(): SemanticAST.ClassMember? = unwrapOr { return null }.let { classMember ->
     when (classMember) {
-        is AST.Field -> AstNode.ClassMember.FieldDeclaration(
+        is AST.Field -> SemanticAST.ClassMember.FieldDeclaration(
             classMember.name.validate() ?: return null,
             classMember.type.validate() ?: return null,
             this.range
         )
-        is AST.MainMethod -> AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration(
+        is AST.MainMethod -> SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration(
             classMember.returnType.validate() ?: return null,
             classMember.name.validate() ?: return null,
             classMember.throwsException?.let { it.validate() ?: return null },
@@ -167,7 +167,7 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
         )
 
         is AST.Method ->
-            AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration(
+            SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration(
                 classMember.returnType.validate() ?: return null,
                 classMember.name.validate() ?: return null,
                 classMember.throwsException?.let { it.validate() ?: return null },
@@ -181,9 +181,9 @@ fun Parsed<AST.ClassMember>.validate(): AstNode.ClassMember? = unwrapOr { return
     }
 }
 
-private fun Parsed<AST.Parameter>.validate(): AstNode.ClassMember.SubroutineDeclaration.Parameter? =
+private fun Parsed<AST.Parameter>.validate(): SemanticAST.ClassMember.SubroutineDeclaration.Parameter? =
     unwrapOr { return null }.let { parameter ->
-        AstNode.ClassMember.SubroutineDeclaration.Parameter(
+        SemanticAST.ClassMember.SubroutineDeclaration.Parameter(
             parameter.name.validate() ?: return null,
             parameter.type.validate() ?: return null,
             parameter.type.range,
@@ -191,19 +191,19 @@ private fun Parsed<AST.Parameter>.validate(): AstNode.ClassMember.SubroutineDecl
         )
     }
 
-private fun AST.Block.validate(range: SourceRange): AstNode.Statement.Block? =
+private fun AST.Block.validate(range: SourceRange): SemanticAST.Statement.Block? =
     statements.map {
         it.validate() ?: return null
     }.let {
-        AstNode.Statement.Block(it, range)
+        SemanticAST.Statement.Block(it, range)
     }
 
-private fun Parsed<AST.Block>.validate(): AstNode.Statement.Block? = unwrapOr { return null }.validate(this.range)
+private fun Parsed<AST.Block>.validate(): SemanticAST.Statement.Block? = unwrapOr { return null }.validate(this.range)
 
 @JvmName("validateASTBlockStatement")
-private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr { return null }.let { blockStatement ->
+private fun Parsed<AST.BlockStatement>.validate(): SemanticAST.Statement? = unwrapOr { return null }.let { blockStatement ->
     when (blockStatement) {
-        is AST.LocalVariableDeclarationStatement -> AstNode.Statement.LocalVariableDeclaration(
+        is AST.LocalVariableDeclarationStatement -> SemanticAST.Statement.LocalVariableDeclaration(
             blockStatement.name.validate() ?: return null,
             blockStatement.type.validate() ?: return null,
             blockStatement.initializer?.let { it.validate() ?: return null },
@@ -214,26 +214,26 @@ private fun Parsed<AST.BlockStatement>.validate(): AstNode.Statement? = unwrapOr
     }
 }
 
-private fun AST.Statement.validate(sourceRange: SourceRange): AstNode.Statement? {
+private fun AST.Statement.validate(sourceRange: SourceRange): SemanticAST.Statement? {
     return when (this) {
         is AST.Block -> validate(sourceRange)
-        is AST.ExpressionStatement -> AstNode.Statement.ExpressionStatement(
+        is AST.ExpressionStatement -> SemanticAST.Statement.ExpressionStatement(
             expression.validate() ?: return null, sourceRange
         )
-        is AST.IfStatement -> AstNode.Statement.IfStatement(
+        is AST.IfStatement -> SemanticAST.Statement.IfStatement(
             condition.validate() ?: return null,
             trueStatement.validate() ?: return null,
             falseStatement?.let { it.validate() ?: return null },
             sourceRange
         )
-        is AST.ReturnStatement -> AstNode.Statement.ReturnStatement(
+        is AST.ReturnStatement -> SemanticAST.Statement.ReturnStatement(
             expression?.let {
                 it.validate() ?: return null
             },
             sourceRange
         )
         is AST.WhileStatement ->
-            AstNode.Statement.WhileStatement(
+            SemanticAST.Statement.WhileStatement(
                 condition.validate() ?: return null,
                 statement.validate() ?: return null,
                 sourceRange
@@ -241,40 +241,40 @@ private fun AST.Statement.validate(sourceRange: SourceRange): AstNode.Statement?
     }
 }
 
-private fun Parsed<AST.Statement>.validate(): AstNode.Statement? =
+private fun Parsed<AST.Statement>.validate(): SemanticAST.Statement? =
     unwrapOr { return null }.validate(this.range)
 
-private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { return null }.let { expression ->
+private fun Parsed<AST.Expression>.validate(): SemanticAST.Expression? = unwrapOr { return null }.let { expression ->
     when (expression) {
         is AST.ArrayAccessExpression ->
-            AstNode.Expression.ArrayAccessExpression(
+            SemanticAST.Expression.ArrayAccessExpression(
                 expression.target.validate() ?: return null,
                 expression.index.validate() ?: return null, this.range
             )
         is AST.BinaryExpression ->
-            AstNode.Expression.BinaryOperation(
+            SemanticAST.Expression.BinaryOperation(
                 expression.left.validate() ?: return null,
                 expression.right.validate() ?: return null,
                 expression.operation,
                 this.range
             )
         is AST.FieldAccessExpression ->
-            AstNode.Expression.FieldAccessExpression(
+            SemanticAST.Expression.FieldAccessExpression(
                 expression.target.validate() ?: return null,
                 expression.field.validate() ?: return null,
                 this.range
             )
         is AST.IdentifierExpression ->
-            AstNode.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
+            SemanticAST.Expression.IdentifierExpression(expression.name.validate() ?: return null, this.range)
         is AST.LiteralExpression ->
             when (expression) {
-                is AST.LiteralExpression.Integer -> AstNode.Expression.LiteralExpression.LiteralIntExpression(expression.value, expression.isNegated, this.range)
-                is AST.LiteralExpression.Boolean -> AstNode.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
-                is AST.LiteralExpression.Null -> AstNode.Expression.LiteralExpression.LiteralNullExpression(this.range)
-                is AST.LiteralExpression.This -> AstNode.Expression.LiteralExpression.LiteralThisExpression(this.range)
+                is AST.LiteralExpression.Integer -> SemanticAST.Expression.LiteralExpression.LiteralIntExpression(expression.value, expression.isNegated, this.range)
+                is AST.LiteralExpression.Boolean -> SemanticAST.Expression.LiteralExpression.LiteralBoolExpression(expression.value, this.range)
+                is AST.LiteralExpression.Null -> SemanticAST.Expression.LiteralExpression.LiteralNullExpression(this.range)
+                is AST.LiteralExpression.This -> SemanticAST.Expression.LiteralExpression.LiteralThisExpression(this.range)
             }
         is AST.MethodInvocationExpression ->
-            AstNode.Expression.MethodInvocationExpression(
+            SemanticAST.Expression.MethodInvocationExpression(
                 expression.target?.let { it.validate() ?: return null },
                 expression.method.validate() ?: return null,
                 expression.arguments.map {
@@ -283,15 +283,15 @@ private fun Parsed<AST.Expression>.validate(): AstNode.Expression? = unwrapOr { 
                 this.range
             )
         is AST.NewArrayExpression ->
-            AstNode.Expression.NewArrayExpression(
+            SemanticAST.Expression.NewArrayExpression(
                 expression.type.validate() ?: return null,
                 expression.length.validate() ?: return null,
                 this.range
             )
         is AST.NewObjectExpression ->
-            AstNode.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
+            SemanticAST.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
         is AST.UnaryExpression ->
-            AstNode.Expression.UnaryOperation(
+            SemanticAST.Expression.UnaryOperation(
                 expression.expression.validate() ?: return null,
                 expression.operation,
                 this.range

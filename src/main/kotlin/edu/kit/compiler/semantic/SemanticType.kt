@@ -14,7 +14,7 @@ sealed class SemanticType {
 
     object Void : SemanticType()
 
-    data class Class(val name: AstNode.Identifier) : SemanticType() {
+    data class Class(val name: SemanticAST.Identifier) : SemanticType() {
         var definition: ClassDefinition? = null
     }
 
@@ -27,7 +27,7 @@ sealed class SemanticType {
     data class Array(val elementType: SemanticType, val sourceRange: SourceRange) : SemanticType()
 
     /**
-     * If this type is assigned as the semantic type of an [AstNode], the defined type is invalid and type checks should
+     * If this type is assigned as the semantic type of an [SemanticAST], the defined type is invalid and type checks should
      * silently fail (because an error message has already been generated)
      */
     object Error : SemanticType()
