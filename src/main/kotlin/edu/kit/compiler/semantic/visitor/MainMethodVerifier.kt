@@ -1,10 +1,10 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.extend
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.extend
 
 /**
  * A visitor that ensures that all special semantic constraints of the main method are fulfilled.
@@ -13,11 +13,11 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
 
     private var argsName: String? = null
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         // do not descend normal method
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         if (mainMethodDeclaration.name.symbol.text == "main") {
             if (mainMethodDeclaration.returnType !is SemanticType.Void) {
                 sourceFile.annotate(
@@ -67,14 +67,14 @@ class MainMethodVerifier(val sourceFile: SourceFile) : AbstractVisitor() {
         super.visitMainMethodDeclaration(mainMethodDeclaration)
     }
 
-    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    override fun visitLiteralThisExpression(literalThisExpression: SemanticAST.Expression.LiteralExpression.LiteralThisExpression) {
         sourceFile.error {
             "cannot use `this` in static context (main method)" at literalThisExpression.sourceRange
         }
         super.visitLiteralThisExpression(literalThisExpression)
     }
 
-    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    override fun visitIdentifierExpression(identifierExpression: SemanticAST.Expression.IdentifierExpression) {
         sourceFile.errorIf(identifierExpression.name.symbol.text == argsName) {
             "usage of parameter `$argsName` in main method body not allowed" at identifierExpression.sourceRange
         }

@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.utils.MjTestSuite
 import edu.kit.compiler.utils.createAst
 import edu.kit.compiler.utils.prettyPrint

@@ -1,6 +1,6 @@
 package edu.kit.compiler.utils
 
-import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.source.SourceFile
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest

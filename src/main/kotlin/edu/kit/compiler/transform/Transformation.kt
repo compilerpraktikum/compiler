@@ -1,6 +1,6 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.visitor.accept
 
 /**
@@ -9,9 +9,9 @@ import edu.kit.compiler.semantic.visitor.accept
 object Transformation {
 
     /**
-     * Transform a [Semantic AST][AstNode] into a firm graph
+     * Transform a [Semantic AST][SemanticAST] into a firm graph
      */
-    fun transform(ast: AstNode) {
+    fun transform(ast: SemanticAST) {
         FirmContext.init()
 
         ast.accept(ClassConstructionVisitor())

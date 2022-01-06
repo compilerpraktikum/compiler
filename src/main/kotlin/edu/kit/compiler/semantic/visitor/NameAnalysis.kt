@@ -1,15 +1,13 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.AnnotatableFile
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.semantic.ClassDefinition
 import edu.kit.compiler.semantic.ClassNamespace
 import edu.kit.compiler.semantic.FieldDefinition
 import edu.kit.compiler.semantic.GlobalNamespace
 import edu.kit.compiler.semantic.InternalFunction
 import edu.kit.compiler.semantic.MethodDefinition
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.SymbolTable
 import edu.kit.compiler.semantic.VariableDefinition
@@ -18,6 +16,8 @@ import edu.kit.compiler.semantic.asDefinition
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.display
 import edu.kit.compiler.semantic.wrap
+import edu.kit.compiler.source.AnnotatableFile
+import edu.kit.compiler.source.SourceRange
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -50,7 +50,7 @@ fun lookupClass(global: GlobalNamespace, sourceFile: AnnotatableFile, classType:
  * @param[isStatic] whether the current method is static
  */
 class NameResolutionHelper(
-    private val clazz: AstNode.ClassDeclaration,
+    private val clazz: SemanticAST.ClassDeclaration,
     private val sourceFile: AnnotatableFile,
     private val systemSymbol: Symbol,
     private val isStatic: Boolean,
@@ -59,7 +59,7 @@ class NameResolutionHelper(
         get() = clazz.namespace.global
 
     /**
-     * [ClassDeclaration][AstNode.ClassDeclaration] of the method's class
+     * [ClassDeclaration][SemanticAST.ClassDeclaration] of the method's class
      */
     private val thisDefinition = global.classes.getOrNull(clazz.name.symbol)!!
 
@@ -72,7 +72,7 @@ class NameResolutionHelper(
      * Add parameters to local variable scope.
      * Note: Also handles
      */
-    fun registerParameters(parameters: List<AstNode.ClassMember.SubroutineDeclaration.Parameter>) {
+    fun registerParameters(parameters: List<SemanticAST.ClassMember.SubroutineDeclaration.Parameter>) {
         enterScope()
         parameters.forEach {
             addDefinition(it.asDefinition().wrap(), it.name.sourceRange)
@@ -102,7 +102,7 @@ class NameResolutionHelper(
     /**
      * Try to add definition.
      */
-    fun addDefinition(node: AstNode.Statement.LocalVariableDeclaration) {
+    fun addDefinition(node: SemanticAST.Statement.LocalVariableDeclaration) {
         addDefinition(node.asDefinition().wrap(), node.name.sourceRange)
     }
 
@@ -142,7 +142,7 @@ class NameResolutionHelper(
     /**
      * Look up a field with the given [name] in the given [class][inClass].
      */
-    fun lookupField(name: AstNode.Identifier, inClass: SemanticType): FieldDefinition? {
+    fun lookupField(name: SemanticAST.Identifier, inClass: SemanticType): FieldDefinition? {
         ifIsInvalidForMemberAccess(inClass, name.sourceRange, "field access") { return null }
 
         /* If the definition of [inClass] cannot be found we can skip any further error handing because the definition
@@ -163,7 +163,7 @@ class NameResolutionHelper(
      * Look up a method with the given [name] in the given [class][inClass].
      * @param[inClass] class in which the method is looked up (defaults to the current class if `null`)
      */
-    fun lookupMethod(name: AstNode.Identifier, inClass: SemanticType? = null): MethodDefinition? {
+    fun lookupMethod(name: SemanticAST.Identifier, inClass: SemanticType? = null): MethodDefinition? {
         ifIsInvalidForMemberAccess(inClass, name.sourceRange, "method call") { return null }
 
         // see note in lookupField
@@ -192,7 +192,7 @@ class NameResolutionHelper(
     /**
      * Look up a variable with the given [name]. The result can be a local variable, method parameter or field of the current class.
      */
-    fun lookupVariable(name: AstNode.Identifier): VariableDefinition? {
+    fun lookupVariable(name: SemanticAST.Identifier): VariableDefinition? {
         local.lookup(name.symbol)?.let {
             return it
         }
@@ -237,11 +237,11 @@ class NamespacePopulator(
     private val sourceFile: AnnotatableFile,
 ) : AbstractVisitor() {
 
-    private lateinit var currentClass: AstNode.ClassDeclaration
+    private lateinit var currentClass: SemanticAST.ClassDeclaration
     private val currentClassNamespace: ClassNamespace
         get() = currentClass.namespace
 
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         if (classDeclaration.name.text == "String") {
             sourceFile.error {
                 "cannot shadow built-in class `String`" at classDeclaration.name.sourceRange
@@ -263,7 +263,7 @@ class NamespacePopulator(
         super.visitClassDeclaration(classDeclaration) // descend
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         currentClassNamespace.fields.tryPut(fieldDeclaration.asDefinition(), onDuplicate = { prev ->
             sourceFile.error {
                 "field `${currentClass.name.text}.${fieldDeclaration.name.text}` is already defined" at fieldDeclaration.name.sourceRange note (
@@ -277,7 +277,7 @@ class NamespacePopulator(
         // do not descend
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         if (methodDeclaration.name.text == "main") {
             currentClassNamespace.mainMethodDefinition?.also {
                 printErrorDuplicateMain(methodDeclaration.name.sourceRange, it.node.sourceRange)
@@ -301,7 +301,7 @@ class NamespacePopulator(
         // do not descend
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         if (currentClassNamespace.mainMethodDefinition != null) {
             printErrorDuplicateMain(mainMethodDeclaration.name.sourceRange, currentClassNamespace.mainMethodDefinition!!.node.name.sourceRange)
             return
@@ -341,15 +341,15 @@ class NameResolver(
     private val systemSymbol: Symbol,
 ) : AbstractVisitor() {
 
-    lateinit var currentClass: AstNode.ClassDeclaration
+    lateinit var currentClass: SemanticAST.ClassDeclaration
 
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         currentClass = classDeclaration
 
         super.visitClassDeclaration(classDeclaration)
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         val type = fieldDeclaration.type
         if (type is SemanticType.Class) {
             type.definition = lookupClass(global, sourceFile, type)
@@ -361,18 +361,18 @@ class NameResolver(
         }
     }
 
-    private fun handleMethod(definition: AstNode.ClassMember.SubroutineDeclaration, isStatic: Boolean) {
+    private fun handleMethod(definition: SemanticAST.ClassMember.SubroutineDeclaration, isStatic: Boolean) {
         val namespace = NameResolutionHelper(currentClass, sourceFile, systemSymbol, isStatic)
         namespace.registerParameters(definition.parameters)
         definition.accept(SubroutineNameResolver(namespace, sourceFile))
         namespace.unregisterParameters()
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         handleMethod(methodDeclaration, false)
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         handleMethod(mainMethodDeclaration, true)
     }
 }
@@ -382,24 +382,24 @@ class SubroutineNameResolver(
     private val sourceFile: AnnotatableFile
 ) : AbstractVisitor() {
 
-    override fun visitBlock(block: AstNode.Statement.Block) {
+    override fun visitBlock(block: SemanticAST.Statement.Block) {
         namespace.enterScope()
         super.visitBlock(block)
         namespace.leaveScope()
     }
 
-    override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    override fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
         namespace.addDefinition(localVariableDeclaration)
         super.visitLocalVariableDeclaration(localVariableDeclaration)
     }
 
-    override fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    override fun visitIdentifierExpression(identifierExpression: SemanticAST.Expression.IdentifierExpression) {
         identifierExpression.definition = namespace.lookupVariable(
             identifierExpression.name
         )
     }
 
-    override fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+    override fun visitFieldAccessExpression(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression) {
         super.visitFieldAccessExpression(fieldAccessExpression)
 
         fieldAccessExpression.definition = namespace.lookupField(
@@ -407,7 +407,7 @@ class SubroutineNameResolver(
         )
     }
 
-    override fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+    override fun visitMethodInvocationExpression(methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression) {
         val handled = tryHandleSystemCall(methodInvocationExpression)
         if (handled) {
             return
@@ -417,17 +417,17 @@ class SubroutineNameResolver(
 
         methodInvocationExpression.type = namespace.lookupMethod(
             methodInvocationExpression.method, methodInvocationExpression.target?.actualType
-        )?.let { AstNode.Expression.MethodInvocationExpression.Type.Normal(it) }
+        )?.let { SemanticAST.Expression.MethodInvocationExpression.Type.Normal(it) }
     }
 
-    private fun tryHandleSystemCall(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression): Boolean {
+    private fun tryHandleSystemCall(methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression): Boolean {
         val fieldAccessExpr = methodInvocationExpression.target
-        if (fieldAccessExpr !is AstNode.Expression.FieldAccessExpression) {
+        if (fieldAccessExpr !is SemanticAST.Expression.FieldAccessExpression) {
             return false
         }
 
         val identifierExpr = fieldAccessExpr.target
-        if (identifierExpr !is AstNode.Expression.IdentifierExpression) {
+        if (identifierExpr !is SemanticAST.Expression.IdentifierExpression) {
             return false
         }
 
@@ -477,12 +477,12 @@ class SubroutineNameResolver(
         clazz.definition = namespace.lookupClass(clazz)
     }
 
-    override fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    override fun visitLiteralThisExpression(literalThisExpression: SemanticAST.Expression.LiteralExpression.LiteralThisExpression) {
         literalThisExpression.definition = namespace.lookupThis()
     }
 
     // not really part of name analysis but given that all the other String checks are in this file it's best to put it here too
-    override fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    override fun visitNewObjectExpression(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         sourceFile.errorIf(newObjectExpression.clazz.text == "String") {
             "cannot instantiate built-in class `String`" at newObjectExpression.sourceRange
         }

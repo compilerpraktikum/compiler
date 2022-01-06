@@ -1,6 +1,11 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.lexer
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.InputProvider
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceNote
+import edu.kit.compiler.source.extend
 
 private fun Char.isIdentifierStartChar() = when (this) {
     in 'a'..'z' -> true

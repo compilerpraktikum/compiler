@@ -1,11 +1,10 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourcePosition
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourcePosition
+import edu.kit.compiler.source.SourceRange
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 

@@ -1,10 +1,10 @@
 package edu.kit.compiler.semantic
 
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.semantic.AstNode.ClassMember.FieldDeclaration
-import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.semantic.SemanticAST.ClassMember.FieldDeclaration
+import edu.kit.compiler.semantic.SemanticAST.ClassMember.SubroutineDeclaration
+import edu.kit.compiler.source.SourceRange
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to
@@ -12,7 +12,7 @@ import edu.kit.compiler.semantic.AstNode.ClassMember.SubroutineDeclaration
  *
  * @param sourceRange [SourceRange] that spans the contents of this node in the compilation unit
  */
-sealed class AstNode(open val sourceRange: SourceRange) {
+sealed class SemanticAST(open val sourceRange: SourceRange) {
 
     data class Identifier(val symbol: Symbol, val sourceRange: SourceRange) {
         val text: String
@@ -24,7 +24,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
      *
      * @param classes all classes defined in the compilation unit
      */
-    class Program(val classes: List<ClassDeclaration>, sourceRange: SourceRange) : AstNode(sourceRange)
+    class Program(val classes: List<ClassDeclaration>, sourceRange: SourceRange) : SemanticAST(sourceRange)
 
     /**
      * A class with all its members
@@ -36,7 +36,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         val name: Identifier,
         val members: List<ClassMember>,
         sourceRange: SourceRange
-    ) : AstNode(sourceRange) {
+    ) : SemanticAST(sourceRange) {
 
         lateinit var namespace: ClassNamespace
     }
@@ -47,7 +47,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
      * @param name field/method name
      */
     sealed class ClassMember(val name: Identifier, sourceRange: SourceRange) :
-        AstNode(sourceRange) {
+        SemanticAST(sourceRange) {
 
         /**
          * @param returnType semantic return type of the method
@@ -138,7 +138,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
                 val type: SemanticType,
                 val typeSourceRange: SourceRange,
                 sourceRange: SourceRange
-            ) : AstNode(sourceRange) {
+            ) : SemanticAST(sourceRange) {
                 lateinit var owner: SubroutineDeclaration
             }
         }
@@ -155,7 +155,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         }
     }
 
-    sealed class Expression(sourceRange: SourceRange) : AstNode(sourceRange) {
+    sealed class Expression(sourceRange: SourceRange) : SemanticAST(sourceRange) {
         /**
          * Expression type synthesized from underlying primitives during analysis
          */
@@ -397,7 +397,7 @@ sealed class AstNode(open val sourceRange: SourceRange) {
         }
     }
 
-    sealed class Statement(sourceRange: SourceRange) : AstNode(sourceRange) {
+    sealed class Statement(sourceRange: SourceRange) : SemanticAST(sourceRange) {
         /**
          * Declaration (and optional assignment) statement of a local variable in a method
          */

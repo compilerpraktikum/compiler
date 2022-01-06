@@ -1,6 +1,9 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.lexer
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.InputProvider
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Generic base class for lexers.

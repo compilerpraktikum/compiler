@@ -1,9 +1,8 @@
-package edu.kit.compiler.wrapper.wrappers
+package edu.kit.compiler.ast
 
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.AST.Type
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.source.SourceRange
 
 abstract class AbstractAstVisitor {
 

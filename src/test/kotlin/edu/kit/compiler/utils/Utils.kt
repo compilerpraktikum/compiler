@@ -1,16 +1,16 @@
 package edu.kit.compiler.utils
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.parser.anchorSetOf
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
-import edu.kit.compiler.wrapper.wrappers.validate
+import edu.kit.compiler.source.SourceFile
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import kotlin.test.assertEquals
@@ -45,9 +45,9 @@ inline fun <T> withParser(sourceFile: SourceFile, f: Parser.() -> T): T {
 inline fun <T> withParser(input: String, f: Parser.() -> T): T =
     withParser(SourceFile.from("/path/to/file", input), f)
 
-fun createAst(source: SourceFile): AstNode.Program? = withParser(source) { parse().validate() }
+fun createAst(source: SourceFile): SemanticAST.Program? = withParser(source) { parse().validate() }
 
-fun createAST(input: String): AstNode.Program? {
+fun createAST(input: String): SemanticAST.Program? {
     val sourceFile = SourceFile.from("/path/to/file", input)
     return createAst(sourceFile)
 }
@@ -71,7 +71,7 @@ fun assertIdempotence(input: String) {
     assertEquals(pretty1, pretty2)
 }
 
-fun prettyPrint(program: AstNode.Program): String {
+fun prettyPrint(program: SemanticAST.Program): String {
     val out = ByteArrayOutputStream()
     val printStream = PrintStream(out, false, Charsets.UTF_8)
 

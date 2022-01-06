@@ -1,8 +1,7 @@
 package edu.kit.compiler.ast
 
 import edu.kit.compiler.Token
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
+import edu.kit.compiler.lexer.Symbol
 
 /**
  * Sealed AST-Node class structure
@@ -203,8 +202,8 @@ sealed class AST {
             }
         }
         data class Boolean(val value: kotlin.Boolean) : LiteralExpression()
-        class Null() : LiteralExpression()
-        class This() : LiteralExpression()
+        class Null : LiteralExpression()
+        class This : LiteralExpression()
     }
 
     data class NewObjectExpression(
@@ -212,7 +211,7 @@ sealed class AST {
     ) : Expression()
 
     data class NewArrayExpression(
-        val type: Parsed<AST.Type.Array>,
+        val type: Parsed<Type.Array>,
         val length: Parsed<Expression>,
     ) : Expression()
 }

@@ -2,12 +2,12 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.AnnotatableFile
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.wrapper.wrappers.Parsed
-import edu.kit.compiler.wrapper.wrappers.wrapErroneous
-import edu.kit.compiler.wrapper.wrappers.wrapValid
+import edu.kit.compiler.ast.Parsed
+import edu.kit.compiler.ast.wrapErroneous
+import edu.kit.compiler.ast.wrapValid
+import edu.kit.compiler.source.AnnotatableFile
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.SourceRange
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.

@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.source
 
 import org.junit.jupiter.api.Test
 import kotlin.io.path.toPath
