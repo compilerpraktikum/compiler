@@ -172,8 +172,6 @@ object FirmContext {
 
     /**
      * Finish construction of a subroutine
-     *
-     * @param block callback into [TransformationMethodVisitor] that generates the method's body.
      */
     private fun finishSubroutine(): Graph {
         // insert end node
@@ -790,7 +788,7 @@ object FirmContext {
      * Write [value] to a member or variable identified by [identifierExpression] and then push [value] onto the
      * expression stack.
      */
-    fun identifierWriteAccess(
+    private fun identifierWriteAccess(
         identifierExpression: SemanticAST.Expression.IdentifierExpression,
         surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor,
@@ -852,7 +850,7 @@ object FirmContext {
     /**
      * Generate a write access event to a field and push the result value onto the expression stack
      */
-    fun fieldWriteAccess(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression, value: Node) {
+    private fun fieldWriteAccess(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression, value: Node) {
         val storeNode = construction.newStore(
             construction.currentMem,
             getFieldMember(fieldAccessExpression.definition!!.node),
@@ -912,7 +910,7 @@ object FirmContext {
     /**
      * Generate a write access event to an array and push the result value onto the expression stack
      */
-    fun arrayWriteAccess(arrayAccess: SemanticAST.Expression.ArrayAccessExpression, value: Node) {
+    private fun arrayWriteAccess(arrayAccess: SemanticAST.Expression.ArrayAccessExpression, value: Node) {
         val indexNode = expressionStack.pop()
         val targetNode = expressionStack.pop()
         val addressNode = getArrayPointer(arrayAccess, indexNode, targetNode)
@@ -1089,7 +1087,7 @@ object FirmContext {
      * @param sizeNode a node containing the size of allocated memory. It must be of type Lu.
      */
     private fun allocateMemory(sizeNode: Node) {
-        val method = typeRegistry.ALLOCATE
+        val method = typeRegistry.allocate
 
         val callNode = construction.newCall(
             construction.currentMem,

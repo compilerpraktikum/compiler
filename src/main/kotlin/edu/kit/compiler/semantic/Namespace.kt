@@ -62,7 +62,7 @@ class Namespace<T> {
 
     /**
      * Try to add the given [definition] to the namespace.
-     * @return `true` if insertion was successful, `false` if there was already an entry associated to the given [name]
+     * @return `true` if insertion was successful, `false` if there was already an entry associated with the definition's name
      */
     fun tryPut(definition: Definition<T>, onDuplicate: (Definition<T>) -> Unit) {
         entries.putIfAbsent(definition.name, definition)?.let(onDuplicate)

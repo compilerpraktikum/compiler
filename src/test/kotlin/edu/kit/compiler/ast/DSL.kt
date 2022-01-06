@@ -91,8 +91,8 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
 object ExprDsl {
     fun <T> literal(v: T) = when (v) {
         is Boolean -> AST.LiteralExpression.Boolean(v)
-        null -> AST.LiteralExpression.Null()
-        "this" -> AST.LiteralExpression.This()
+        null -> AST.LiteralExpression.Null
+        "this" -> AST.LiteralExpression.This
         is String -> {
             check(v.matches("-?(0|[1-9]\\d*)".toRegex()))
             if (v.startsWith("-")) {

@@ -30,14 +30,14 @@ sealed class CompilerResult<R> {
          * Constructs a valid result with the specified value
          */
         fun <R> success(result: R): CompilerResult<R> {
-            return Success<R>(result)
+            return Success(result)
         }
 
         /**
          * Constructs a result indicating an erroneous state and providing a strategy to report the error to the user.
          */
         fun <R> failure(message: String, report: ((PrintStream) -> Unit)? = null): CompilerResult<R> {
-            return Failure<R>(message, report)
+            return Failure(message, report)
         }
     }
 

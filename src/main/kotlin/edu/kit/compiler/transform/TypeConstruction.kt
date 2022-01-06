@@ -30,7 +30,7 @@ class ClassConstructionVisitor : AbstractVisitor() {
  * A visitor implementation that constructs method types for the firm graph.
  */
 class MethodConstructionVisitor : AbstractVisitor() {
-    var currentClassSymbol: Symbol? = null
+    private var currentClassSymbol: Symbol? = null
 
     override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         currentClassSymbol = classDeclaration.name.symbol

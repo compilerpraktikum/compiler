@@ -149,7 +149,7 @@ class TypeRegistry {
         createInternalMethod(InternalFunction.SYSTEM_OUT_WRITE)
         createInternalMethod(InternalFunction.SYSTEM_OUT_FLUSH)
     }
-    val ALLOCATE = createAllocateFunction()
+    val allocate = createAllocateFunction()
 
     fun getInternalMethod(name: String): Entity {
         return internalMethods[name] ?: throw IllegalArgumentException("unknown internal method `$name`")

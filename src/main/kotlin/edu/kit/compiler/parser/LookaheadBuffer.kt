@@ -2,10 +2,10 @@ package edu.kit.compiler.parser
 
 /**
  * Buffers a [Sequence] to allow variable lookahead. Elements received during [peek]-operations are saved in a
- * queue until a matching call of [get]. Note, that no elements are buffered if not explicitly required by a call to
+ * queue until a matching call to [get]. Note, that no elements are buffered if not explicitly required by a call to
  * [peek].
  *
- * @param receiveChannel the channel that is being buffered for lookahead.
+ * @param[sequence] the sequence that is buffered for lookahead.
  */
 class LookaheadBuffer<T>(
     sequence: Sequence<T>

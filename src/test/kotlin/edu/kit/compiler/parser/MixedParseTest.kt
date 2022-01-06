@@ -259,7 +259,7 @@ internal class MixedParseTest {
                                     listOf(
                                         AST.IfStatement(
                                             AST.FieldAccessExpression(
-                                                AST.LiteralExpression.Null().wrapMockValid(),
+                                                AST.LiteralExpression.Null.wrapMockValid(),
                                                 "nothing".toSymbol().wrapMockValid()
                                             )
                                                 .wrapMockValid(),
