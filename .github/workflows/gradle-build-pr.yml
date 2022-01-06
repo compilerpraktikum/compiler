@@ -1,17 +1,15 @@
 name: Gradle
+
 on:
   pull_request:
   push:
     branches:
-      - master
       - main
+
 jobs:
   build:
     name: build
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -24,10 +22,7 @@ jobs:
           arguments: build -x :test -x :ktlint
   test:
     name: test
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -45,15 +40,12 @@ jobs:
           report_paths: '**/out/test-results/test/TEST-*.xml'
   ktlint:
     name: ktlint
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
-          java-version: 16
+          java-version: 17
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: ktlint
