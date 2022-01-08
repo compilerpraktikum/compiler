@@ -341,7 +341,7 @@ class NameResolver(
     private val systemSymbol: Symbol,
 ) : AbstractVisitor() {
 
-    lateinit var currentClass: SemanticAST.ClassDeclaration
+    private lateinit var currentClass: SemanticAST.ClassDeclaration
 
     override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         currentClass = classDeclaration

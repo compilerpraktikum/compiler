@@ -171,7 +171,7 @@ class Compiler(private val config: Config) {
         }
     }
 
-    fun dumpGraphsIfEnabled(flag: Dump, phase: String) {
+    private fun dumpGraphsIfEnabled(flag: Dump, phase: String) {
         if (config.dump.contains(flag)) {
             Program.getGraphs().forEach { dumpGraph(it, phase) }
         }

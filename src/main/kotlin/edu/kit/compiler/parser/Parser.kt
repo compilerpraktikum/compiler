@@ -88,7 +88,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                 when (peekedToken.type) {
                     Token.Keyword.Type.Null -> {
                         next()
-                        AST.LiteralExpression.Null().wrapValid(peekedToken.range)
+                        AST.LiteralExpression.Null.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.False -> {
                         next()
@@ -100,7 +100,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
                     }
                     Token.Keyword.Type.This -> {
                         next()
-                        AST.LiteralExpression.This().wrapValid(peekedToken.range)
+                        AST.LiteralExpression.This.wrapValid(peekedToken.range)
                     }
                     Token.Keyword.Type.New -> {
                         next()

@@ -30,14 +30,9 @@ private class TransformationClassVisitor(private val surroundingClass: SemanticA
 /**
  * Visit a single method and construct all its code in the firm graph
  *
- * @param surroundingClass the surrounding class declaration (which is used as an implicite parameter to methods)
+ * @param surroundingClass the surrounding class declaration (which is used as an implicit parameter to methods)
  */
 class TransformationMethodVisitor(private val surroundingClass: SemanticAST.ClassDeclaration) : AbstractVisitor() {
-
-    /**
-     * Number of local variables (including parameters and this-ptr) of the method
-     */
-    var numberOfVariables = 0
 
     /**
      * Indices of local variables of firm
@@ -69,7 +64,6 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
         val variableCounter = LocalVariableCounter(1)
         methodDeclaration.accept(variableCounter)
 
-        numberOfVariables = variableCounter.numberOfVariables
         localVariableDeclarations = variableCounter.definitionMapping
         parameterDeclarations = variableCounter.parameterMapping
         generatedMethod = methodDeclaration
@@ -80,7 +74,7 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
                 methodDeclaration.name.symbol
             ),
             methodDeclaration,
-            numberOfVariables
+            variableCounter.numberOfVariables
         ) {
             super.visitMethodDeclaration(methodDeclaration)
         }
@@ -90,7 +84,6 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
         val variableCounter = LocalVariableCounter(0)
         mainMethodDeclaration.accept(variableCounter)
 
-        numberOfVariables = variableCounter.numberOfVariables
         localVariableDeclarations = variableCounter.definitionMapping
         parameterDeclarations = emptyMap()
         generatedMethod = mainMethodDeclaration
@@ -100,7 +93,7 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
                 surroundingClass.name.symbol,
                 mainMethodDeclaration.name.symbol
             ),
-            numberOfVariables
+            variableCounter.numberOfVariables
         ) {
             super.visitMainMethodDeclaration(mainMethodDeclaration)
         }

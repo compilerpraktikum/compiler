@@ -31,7 +31,7 @@ abstract class AbstractLexer(
 
     /**
      * Lexes the given input.
-     * @return [Flow] of [Tokens][Token]
+     * @return [Sequence] of [Tokens][Token]
      */
     fun tokens(): Sequence<Token> = sequence {
         // need to use next() instead of peek() because otherwise the source position is not correct

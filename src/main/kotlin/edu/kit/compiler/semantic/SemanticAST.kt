@@ -8,7 +8,7 @@ import edu.kit.compiler.source.SourceRange
 
 /**
  * Abstract syntax tree for the semantic phase. This is a separate class structure from the parsed AST due to
- * encapsulation concerns and to free it from the [edu.kit.compiler.wrapper.wrappers.Parsed] wrapping.
+ * encapsulation concerns and to free it from the [edu.kit.compiler.ast.Parsed] wrapping.
  *
  * @param sourceRange [SourceRange] that spans the contents of this node in the compilation unit
  */
