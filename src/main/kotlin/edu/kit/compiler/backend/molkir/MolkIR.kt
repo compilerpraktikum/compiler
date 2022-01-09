@@ -11,15 +11,6 @@ interface MolkIR {
     fun toMolki(): String
 }
 
-abstract class Target : MolkIR
-
-abstract class OutputTarget : Target()
-abstract class InputOutputTarget : OutputTarget()
-
-class Constant(val value: String) : InputOutputTarget() {
-    override fun toMolki(): String = "$$value"
-}
-
 enum class Width(val inBytes: Int, val suffix: String) {
     BYTE(1, "l"),
     WORD(2, "w"),
@@ -27,81 +18,100 @@ enum class Width(val inBytes: Int, val suffix: String) {
     QUAD(8, ""),
 }
 
-data class Register(val id: RegisterId, val width: Width) : InputOutputTarget() {
-    override fun toMolki(): String = id.toMolki() + width.suffix
+sealed class Target : MolkIR {
+    sealed class OutputTarget : Target() {
+        data class ReturnRegister(val width: Width) : OutputTarget() {
+            override fun toMolki(): String = "%@r0" + width.suffix
 
-    companion object {
-        fun byte(id: RegisterId) = Register(id, Width.BYTE)
-        fun word(id: RegisterId) = Register(id, Width.WORD)
-        fun double(id: RegisterId) = Register(id, Width.DOUBLE)
-        fun quad(id: RegisterId) = Register(id, Width.QUAD)
-    }
-}
-
-data class ReturnRegister(val width: Width) : OutputTarget() {
-    override fun toMolki(): String = "%@r0" + width.suffix
-
-    companion object {
-        fun byte() = ReturnRegister(Width.BYTE)
-        fun word() = ReturnRegister(Width.WORD)
-        fun double() = ReturnRegister(Width.DOUBLE)
-        fun quad() = ReturnRegister(Width.QUAD)
-    }
-}
-
-class Memory
-private constructor(
-    val const: Int?,
-    val base: InputOutputTarget?,
-    val index: InputOutputTarget?,
-    val scale: Int?,
-) : InputOutputTarget() {
-    init {
-        if (scale != null) {
-            check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
-            check(index != null) { "cannot provide scale without index" }
-        }
-    }
-
-    constructor(
-        const: Int,
-        base: InputOutputTarget,
-        index: InputOutputTarget? = null,
-        scale: Int? = null
-    ) : this(const as Int?, base, index, scale)
-
-    constructor(base: InputOutputTarget, index: InputOutputTarget? = null, scale: Int? = null) : this(
-        null,
-        base,
-        index,
-        scale
-    )
-
-    constructor(const: Int, index: InputOutputTarget? = null, scale: Int? = null) : this(const, null, index, scale)
-
-    override fun toMolki(): String {
-        val constStr = const?.toString() ?: ""
-        val baseStr = base?.toMolki() ?: ""
-        val extStr = if (index != null) {
-            val indexStr = index.toMolki()
-            if (scale != null) {
-                ",$indexStr,$scale"
-            } else {
-                ",$indexStr"
+            companion object {
+                fun byte() = ReturnRegister(Width.BYTE)
+                fun word() = ReturnRegister(Width.WORD)
+                fun double() = ReturnRegister(Width.DOUBLE)
+                fun quad() = ReturnRegister(Width.QUAD)
             }
-        } else {
-            ""
         }
-        return "$constStr($baseStr$extStr)"
+    }
+
+    sealed class InputOutputTarget : OutputTarget() {
+        class Constant(val value: String) : Target.InputOutputTarget() {
+            override fun toMolki(): String = "$$value"
+        }
+
+        data class Register(val id: RegisterId, val width: Width) : Target.InputOutputTarget() {
+            override fun toMolki(): String = id.toMolki() + width.suffix
+
+            companion object {
+                fun byte(id: RegisterId) = Register(id, Width.BYTE)
+                fun word(id: RegisterId) = Register(id, Width.WORD)
+                fun double(id: RegisterId) = Register(id, Width.DOUBLE)
+                fun quad(id: RegisterId) = Register(id, Width.QUAD)
+            }
+        }
+
+        class Memory
+        private constructor(
+            val const: Int?,
+            val base: Target.InputOutputTarget?,
+            val index: Target.InputOutputTarget?,
+            val scale: Int?,
+        ) : Target.InputOutputTarget() {
+            init {
+                if (scale != null) {
+                    check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
+                    check(index != null) { "cannot provide scale without index" }
+                }
+            }
+
+            constructor(
+                const: Int,
+                base: Target.InputOutputTarget,
+                index: Target.InputOutputTarget? = null,
+                scale: Int? = null
+            ) : this(const as Int?, base, index, scale)
+
+            constructor(
+                base: Target.InputOutputTarget,
+                index: Target.InputOutputTarget? = null,
+                scale: Int? = null
+            ) : this(
+                null,
+                base,
+                index,
+                scale
+            )
+
+            constructor(const: Int, index: Target.InputOutputTarget? = null, scale: Int? = null) : this(
+                const,
+                null,
+                index,
+                scale
+            )
+
+            override fun toMolki(): String {
+                val constStr = const?.toString() ?: ""
+                val baseStr = base?.toMolki() ?: ""
+                val extStr = if (index != null) {
+                    val indexStr = index.toMolki()
+                    if (scale != null) {
+                        ",$indexStr,$scale"
+                    } else {
+                        ",$indexStr"
+                    }
+                } else {
+                    ""
+                }
+                return "$constStr($baseStr$extStr)"
+            }
+        }
     }
 }
 
-abstract class Instruction : MolkIR {
+sealed class Instruction : MolkIR {
     class Label(val name: String) : Instruction() {
         override fun toMolki(): String = "$name:"
     }
 
-    class Call(val name: String, val arguments: List<InputOutputTarget>, val result: Target?) : Instruction() {
+    class Call(val name: String, val arguments: List<Target.InputOutputTarget>, val result: Target?) : Instruction() {
         override fun toMolki(): String {
             val args = arguments.joinToString(" | ") { it.toMolki() }
             val resultStr = result?.let { " -> ${it.toMolki()}" } ?: ""
@@ -118,16 +128,16 @@ abstract class Instruction : MolkIR {
     }
 
     companion object {
-        fun movl(from: InputOutputTarget, to: Target) =
+        fun movl(from: Target.InputOutputTarget, to: Target) =
             BinaryOperation("movl", from, to)
 
-        fun movq(from: InputOutputTarget, to: Target) =
+        fun movq(from: Target.InputOutputTarget, to: Target) =
             BinaryOperation("movq", from, to)
 
-        fun cmpl(left: InputOutputTarget, right: InputOutputTarget) =
+        fun cmpl(left: Target.InputOutputTarget, right: Target.InputOutputTarget) =
             BinaryOperation("cmpl", left, right)
 
-        fun cmpq(left: InputOutputTarget, right: InputOutputTarget) =
+        fun cmpq(left: Target.InputOutputTarget, right: Target.InputOutputTarget) =
             BinaryOperation("cmpq", left, right)
 
         /****************************************
@@ -163,100 +173,110 @@ abstract class Instruction : MolkIR {
         /****************************************
          * Binary operations with result
          ****************************************/
-        fun idivq(left: InputOutputTarget, right: InputOutputTarget, resultDiv: Target, resultMod: Target) =
+        fun idivq(
+            left: Target.InputOutputTarget,
+            right: Target.InputOutputTarget,
+            resultDiv: Target,
+            resultMod: Target
+        ) =
             Instruction.BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
 
-        private fun binOp(name: String, left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        private fun binOp(
+            name: String,
+            left: Target.InputOutputTarget,
+            right: Target.InputOutputTarget,
+            result: Target
+        ) =
             Instruction.BinaryOperationWithResult(name, left, right, result)
 
         /* ktlint-disable no-multi-spaces */
         // basic arithmetic
-        fun addl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun addl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("addl", left, right, result)
 
-        fun addq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun addq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("addq", left, right, result)
 
-        fun subl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun subl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("subl", left, right, result)
 
-        fun subq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun subq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("subq", left, right, result)
 
-        fun imull(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun imull(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("imull", left, right, result)
 
-        fun imulq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun imulq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("imulq", left, right, result)
 
         // increment / decrement
-        fun incl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun incl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("incl", left, right, result)
 
-        fun incq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun incq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("incq", left, right, result)
 
-        fun decl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun decl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("decl", left, right, result)
 
-        fun decq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun decq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("decq", left, right, result)
 
         // negate (2 complement)
-        fun negl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun negl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("negl", left, right, result)
 
-        fun negq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun negq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("negq", left, right, result)
 
-        fun notl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun notl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("notl", left, right, result)
 
-        fun notq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun notq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("notq", left, right, result)
 
-        fun andl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun andl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("andl", left, right, result)
 
-        fun andq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun andq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("andq", left, right, result)
 
-        fun orl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun orl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("orl", left, right, result)
 
-        fun orq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun orq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("orq", left, right, result)
 
-        fun xorl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun xorl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("xorl", left, right, result)
 
-        fun xorq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun xorq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("xorq", left, right, result)
 
         // bitwise shift (arithmetic = preserve sign)
-        fun sall(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun sall(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("sall", left, right, result)
 
-        fun salq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun salq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("salq", left, right, result)
 
-        fun sarl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun sarl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("sarl", left, right, result)
 
-        fun sarq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun sarq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("sarq", left, right, result)
 
         // bitwise shift (logical)
-        fun shll(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun shll(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("shll", left, right, result)
 
-        fun shlq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun shlq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("shlq", left, right, result)
 
-        fun shrl(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun shrl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("shrl", left, right, result)
 
-        fun shrq(left: InputOutputTarget, right: InputOutputTarget, result: Target) =
+        fun shrq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) =
             binOp("shrq", left, right, result)
 
         /* ktlint-enable no-multi-spaces */
@@ -264,8 +284,8 @@ abstract class Instruction : MolkIR {
 
     class BinaryOperationWithResult(
         val name: String,
-        val left: InputOutputTarget,
-        val right: InputOutputTarget,
+        val left: Target.InputOutputTarget,
+        val right: Target.InputOutputTarget,
         val result: Target
     ) : Instruction() {
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
@@ -273,8 +293,8 @@ abstract class Instruction : MolkIR {
 
     class BinaryOperationWithTwoPartResult(
         val name: String,
-        val left: InputOutputTarget,
-        val right: InputOutputTarget,
+        val left: Target.InputOutputTarget,
+        val right: Target.InputOutputTarget,
         val resultLeft: Target,
         val resultRight: Target
     ) : Instruction() {
@@ -318,23 +338,23 @@ class FunctionBuilder(val name: String, val numArgs: Int, val numResults: Int) {
         add(Instruction.Label(name))
     }
 
-    fun call(name: String, arguments: List<InputOutputTarget>, result: Target?) {
+    fun call(name: String, arguments: List<Target.InputOutputTarget>, result: Target?) {
         add(Instruction.Call(name, arguments, result))
     }
 
-    fun movl(from: InputOutputTarget, to: Target) {
+    fun movl(from: Target.InputOutputTarget, to: Target) {
         add(Instruction.movl(from, to))
     }
 
-    fun movq(from: InputOutputTarget, to: Target) {
+    fun movq(from: Target.InputOutputTarget, to: Target) {
         add(Instruction.BinaryOperation("movq", from, to))
     }
 
-    fun cmpl(left: InputOutputTarget, right: InputOutputTarget) {
+    fun cmpl(left: Target.InputOutputTarget, right: Target.InputOutputTarget) {
         add(Instruction.BinaryOperation("cmpl", left, right))
     }
 
-    fun cmpq(left: InputOutputTarget, right: InputOutputTarget) {
+    fun cmpq(left: Target.InputOutputTarget, right: Target.InputOutputTarget) {
         add(Instruction.BinaryOperation("cmpq", left, right))
     }
 
@@ -378,129 +398,129 @@ class FunctionBuilder(val name: String, val numArgs: Int, val numResults: Int) {
     /****************************************
      * Binary operations with result
      ****************************************/
-    fun idivq(left: InputOutputTarget, right: InputOutputTarget, resultDiv: Target, resultMod: Target) {
+    fun idivq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, resultDiv: Target, resultMod: Target) {
         add(Instruction.BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod))
     }
 
-    private fun binOp(name: String, left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    private fun binOp(name: String, left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         add(Instruction.BinaryOperationWithResult(name, left, right, result))
     }
 
     /* ktlint-disable no-multi-spaces */
     // basic arithmetic
-    fun addl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun addl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("addl", left, right, result)
     }
 
-    fun addq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun addq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("addq", left, right, result)
     }
 
-    fun subl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun subl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("subl", left, right, result)
     }
 
-    fun subq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun subq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("subq", left, right, result)
     }
 
-    fun imull(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun imull(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("imull", left, right, result)
     }
 
-    fun imulq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun imulq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("imulq", left, right, result)
     }
 
     // increment / decrement
-    fun incl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun incl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("incl", left, right, result)
     }
 
-    fun incq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun incq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("incq", left, right, result)
     }
 
-    fun decl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun decl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("decl", left, right, result)
     }
 
-    fun decq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun decq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("decq", left, right, result)
     }
 
     // negate (2 complement)
-    fun negl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun negl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("negl", left, right, result)
     }
 
-    fun negq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun negq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("negq", left, right, result)
     }
 
-    fun notl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun notl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("notl", left, right, result)
     }
 
-    fun notq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun notq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("notq", left, right, result)
     }
 
-    fun andl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun andl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("andl", left, right, result)
     }
 
-    fun andq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun andq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("andq", left, right, result)
     }
 
-    fun orl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun orl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("orl", left, right, result)
     }
 
-    fun orq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun orq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("orq", left, right, result)
     }
 
-    fun xorl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun xorl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("xorl", left, right, result)
     }
 
-    fun xorq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun xorq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("xorq", left, right, result)
     }
 
     // bitwise shift (arithmetic = preserve sign)
-    fun sall(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun sall(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("sall", left, right, result)
     }
 
-    fun salq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun salq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("salq", left, right, result)
     }
 
-    fun sarl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun sarl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("sarl", left, right, result)
     }
 
-    fun sarq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun sarq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("sarq", left, right, result)
     }
 
     // bitwise shift (logical)
-    fun shll(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun shll(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("shll", left, right, result)
     }
 
-    fun shlq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun shlq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("shlq", left, right, result)
     }
 
-    fun shrl(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun shrl(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("shrl", left, right, result)
     }
 
-    fun shrq(left: InputOutputTarget, right: InputOutputTarget, result: Target) {
+    fun shrq(left: Target.InputOutputTarget, right: Target.InputOutputTarget, result: Target) {
         binOp("shrq", left, right, result)
     }
     /* ktlint-enable no-multi-spaces */
