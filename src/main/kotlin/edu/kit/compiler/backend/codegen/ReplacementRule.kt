@@ -1,10 +1,10 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.MolkIR
-import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Constant
+import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Register
 import edu.kit.compiler.backend.molkir.Width
 
 class VirtualRegisterTable(val map: MutableMap<CodeGenTree, Register>, private var lastRegister: Int = 0) {
