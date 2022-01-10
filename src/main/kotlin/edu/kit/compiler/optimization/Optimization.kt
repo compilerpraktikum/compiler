@@ -1,16 +1,17 @@
 package edu.kit.compiler.optimization
 
-import firm.Graph
+import edu.kit.compiler.Compiler
 import firm.Program
 
-object Optimization {
-
-    /**
-     * Perform constant propagation and folding on the given [method graph][Graph].
-     */
-    fun constantPropagationAndFolding() {
-        Program.getGraphs().forEach {
-            doConstantPropagationAndFolding(it)
-        }
+/**
+ * Perform constant propagation and folding.
+ */
+private fun constantPropagationAndFolding() {
+    Program.getGraphs().forEach {
+        doConstantPropagationAndFolding(it)
     }
+}
+
+fun doOptimization(level: Compiler.OptimizationLevel) {
+    constantPropagationAndFolding()
 }

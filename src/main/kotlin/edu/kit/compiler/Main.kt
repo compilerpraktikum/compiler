@@ -21,6 +21,9 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
     override val dump by option("--dump", help = "output intermediate compilation results (separate multiple values by comma)")
         .choices(Compiler.Dump.values().associateBy { it.cliFlag }).distinct()
 
+    override val optimizationLevel by option(help = "optimization level (higher number = more optimizations)")
+        .switch(Compiler.OptimizationLevel.values().associateBy { "-O${it.intValue}" }).default(Compiler.OptimizationLevel.Base)
+
     private val verbose by option("-v", "--verbose", help = "enable verbose logging").flag(default = false)
 
     override fun run() {

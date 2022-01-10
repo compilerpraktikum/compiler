@@ -9,7 +9,7 @@ import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
-import edu.kit.compiler.optimization.Optimization
+import edu.kit.compiler.optimization.doOptimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
@@ -140,7 +140,7 @@ class Compiler(private val config: Config) {
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
-                        Optimization.constantPropagationAndFolding()
+                        doOptimization(config.optimizationLevel)
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(
@@ -254,10 +254,16 @@ class Compiler(private val config: Config) {
         override fun toString(): String = cliFlag
     }
 
+    enum class OptimizationLevel(val intValue: Int) {
+        Base(0),
+        Full(1),
+    }
+
     interface Config {
         val mode: Mode
         val sourceFile: Path
         val outputFile: Path?
         val dump: Set<Dump>
+        val optimizationLevel: OptimizationLevel
     }
 }
