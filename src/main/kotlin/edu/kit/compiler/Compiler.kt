@@ -141,6 +141,8 @@ class Compiler(private val config: Config) {
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
                         Optimization.constantPropagationAndFolding()
+                        Optimization.storeAfterStoreOptimization()
+
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(

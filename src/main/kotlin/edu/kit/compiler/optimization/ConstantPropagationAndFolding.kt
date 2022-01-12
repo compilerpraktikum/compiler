@@ -144,7 +144,7 @@ class ConstantPropagationAndFoldingAnalysisVisitor(private val graph: Graph, pri
             }
         }
 
-        println("---------------------[ foldMap($graph) ${" ".repeat(30 - graph.toString().length)}]---------------------")
+        println("---------------------[ foldMap($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
         foldMap.forEach {
             println("  - ${it.key} ${" ".repeat(35 - it.key.toString().length)} -> ${targetValueToString(it.value)}")
         }

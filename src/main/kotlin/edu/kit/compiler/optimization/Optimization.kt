@@ -13,4 +13,10 @@ object Optimization {
             doConstantPropagationAndFolding(it)
         }
     }
+
+    fun storeAfterStoreOptimization() {
+        Program.getGraphs().forEach {
+            doStoreAfterStoreOptimization(it)
+        }
+    }
 }
