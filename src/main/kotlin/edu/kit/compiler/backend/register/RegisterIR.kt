@@ -1,5 +1,7 @@
 package edu.kit.compiler.backend.register
 
+import edu.kit.compiler.backend.molkir.Target
+
 // NOTE: This file is a copy-paste result of MolkIR.kt, and thus not complete
 
 /**
@@ -87,6 +89,61 @@ sealed class PlatformTarget : RegisterIR {
     class Constant(val value: String) : PlatformTarget() {
         override fun toAssembler(): String {
             return "\$$value"
+        }
+    }
+
+    class Memory private constructor(
+        val const: Int?,
+        val base: Target.InputOutputTarget?,
+        val index: Target.InputOutputTarget?,
+        val scale: Int?,
+    ) : PlatformTarget() {
+        init {
+            if (scale != null) {
+                check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
+                check(index != null) { "cannot provide scale without index" }
+            }
+        }
+
+        constructor(
+            const: Int,
+            base: Target.InputOutputTarget,
+            index: Target.InputOutputTarget? = null,
+            scale: Int? = null
+        ) : this(const as Int?, base, index, scale)
+
+        constructor(
+            base: Target.InputOutputTarget,
+            index: Target.InputOutputTarget? = null,
+            scale: Int? = null
+        ) : this(
+            null,
+            base,
+            index,
+            scale
+        )
+
+        constructor(const: Int, index: Target.InputOutputTarget? = null, scale: Int? = null) : this(
+            const,
+            null,
+            index,
+            scale
+        )
+
+        override fun toAssembler(): String {
+            val constStr = const?.toString() ?: ""
+            val baseStr = base?.toMolki() ?: ""
+            val extStr = if (index != null) {
+                val indexStr = index.toMolki()
+                if (scale != null) {
+                    ",$indexStr,$scale"
+                } else {
+                    ",$indexStr"
+                }
+            } else {
+                ""
+            }
+            return "$constStr($baseStr$extStr)"
         }
     }
 }
