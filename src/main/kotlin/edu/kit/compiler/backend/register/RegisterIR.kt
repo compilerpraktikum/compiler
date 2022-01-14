@@ -17,6 +17,9 @@ sealed class PlatformTarget : RegisterIR {
      * An x86-64 general purpose register
      */
     sealed class GeneralPurposeRegister(private val registerName: String) : PlatformTarget() {
+
+        private var width = Width.WIDTH_64
+
         object RAX : GeneralPurposeRegister("rax")
         object RBX : GeneralPurposeRegister("rbx")
         object RCX : GeneralPurposeRegister("rcx")
@@ -38,8 +41,43 @@ sealed class PlatformTarget : RegisterIR {
             val registers = arrayOf(RAX, RBX, RCX, RDX, RSI, RDI, RSP, RBP, R8, R9, R10, R11, R12, R13, R14, R15)
         }
 
+        fun halfWordWidth() {
+            throw NotImplementedError("8 bit registers have not been implemented")
+        }
+
+        fun wordWidth() {
+            throw NotImplementedError("16 bit registers have not been implemented")
+        }
+
+        /**
+         * Use a 32 bit register
+         */
+        fun doubleWidth() {
+            this.width = Width.WIDTH_32
+        }
+
+        /**
+         * Use a 64 bit register
+         */
+        fun quadWidth() {
+            this.width = Width.WIDTH_64
+        }
+
         override fun toAssembler(): String {
-            return "%$registerName"
+            return when (width) {
+                Width.WIDTH_64 -> "%$registerName"
+                Width.WIDTH_32 -> {
+                    require(!this.registerName.last().isDigit()) { "there are no 32bit equivalents to %$registerName" }
+                    "%${registerName.replace('r', 'e')}"
+                }
+            }
+        }
+
+        /**
+         * Register bit width
+         */
+        private enum class Width {
+            WIDTH_32, WIDTH_64
         }
     }
 
