@@ -1,7 +1,5 @@
 package edu.kit.compiler.backend.register
 
-import edu.kit.compiler.backend.molkir.Target
-
 // NOTE: This file is a copy-paste result of MolkIR.kt, and thus not complete
 
 /**
@@ -22,47 +20,66 @@ sealed class PlatformTarget : RegisterIR {
 
         private var width = Width.WIDTH_64
 
-        object RAX : GeneralPurposeRegister("rax")
-        object RBX : GeneralPurposeRegister("rbx")
-        object RCX : GeneralPurposeRegister("rcx")
-        object RDX : GeneralPurposeRegister("rdx")
-        object RSI : GeneralPurposeRegister("rsi")
-        object RDI : GeneralPurposeRegister("rdi")
-        object RSP : GeneralPurposeRegister("rsp")
-        object RBP : GeneralPurposeRegister("rbp")
-        object R8 : GeneralPurposeRegister("r8")
-        object R9 : GeneralPurposeRegister("r9")
-        object R10 : GeneralPurposeRegister("r10")
-        object R11 : GeneralPurposeRegister("r11")
-        object R12 : GeneralPurposeRegister("r12")
-        object R13 : GeneralPurposeRegister("r13")
-        object R14 : GeneralPurposeRegister("r14")
-        object R15 : GeneralPurposeRegister("r15")
+        class RAX : GeneralPurposeRegister("rax")
+        class RBX : GeneralPurposeRegister("rbx")
+        class RCX : GeneralPurposeRegister("rcx")
+        class RDX : GeneralPurposeRegister("rdx")
+        class RSI : GeneralPurposeRegister("rsi")
+        class RDI : GeneralPurposeRegister("rdi")
+        class RSP : GeneralPurposeRegister("rsp")
+        class RBP : GeneralPurposeRegister("rbp")
+        class R8 : GeneralPurposeRegister("r8")
+        class R9 : GeneralPurposeRegister("r9")
+        class R10 : GeneralPurposeRegister("r10")
+        class R11 : GeneralPurposeRegister("r11")
+        class R12 : GeneralPurposeRegister("r12")
+        class R13 : GeneralPurposeRegister("r13")
+        class R14 : GeneralPurposeRegister("r14")
+        class R15 : GeneralPurposeRegister("r15")
 
         companion object {
-            val registers = arrayOf(RAX, RBX, RCX, RDX, RSI, RDI, RSP, RBP, R8, R9, R10, R11, R12, R13, R14, R15)
+            val registerFactories = arrayOf(
+                ::RAX,
+                ::RBX,
+                ::RCX,
+                ::RDX,
+                ::RSI,
+                ::RDI,
+                ::RSP,
+                ::RBP,
+                ::R8,
+                ::R9,
+                ::R10,
+                ::R11,
+                ::R12,
+                ::R13,
+                ::R14,
+                ::R15
+            )
         }
 
-        fun halfWordWidth() {
+        fun halfWordWidth(): PlatformTarget {
             throw NotImplementedError("8 bit registers have not been implemented")
         }
 
-        fun wordWidth() {
+        fun wordWidth(): PlatformTarget {
             throw NotImplementedError("16 bit registers have not been implemented")
         }
 
         /**
          * Use a 32 bit register
          */
-        fun doubleWidth() {
+        fun doubleWidth(): PlatformTarget {
             this.width = Width.WIDTH_32
+            return this
         }
 
         /**
          * Use a 64 bit register
          */
-        fun quadWidth() {
+        fun quadWidth(): PlatformTarget {
             this.width = Width.WIDTH_64
+            return this
         }
 
         override fun toAssembler(): String {
@@ -94,8 +111,8 @@ sealed class PlatformTarget : RegisterIR {
 
     class Memory private constructor(
         val const: Int?,
-        val base: Target.InputOutputTarget?,
-        val index: Target.InputOutputTarget?,
+        val base: PlatformTarget?,
+        val index: PlatformTarget?,
         val scale: Int?,
     ) : PlatformTarget() {
         init {
@@ -107,14 +124,14 @@ sealed class PlatformTarget : RegisterIR {
 
         constructor(
             const: Int,
-            base: Target.InputOutputTarget,
-            index: Target.InputOutputTarget? = null,
+            base: PlatformTarget,
+            index: PlatformTarget? = null,
             scale: Int? = null
         ) : this(const as Int?, base, index, scale)
 
         constructor(
-            base: Target.InputOutputTarget,
-            index: Target.InputOutputTarget? = null,
+            base: PlatformTarget,
+            index: PlatformTarget? = null,
             scale: Int? = null
         ) : this(
             null,
@@ -123,7 +140,7 @@ sealed class PlatformTarget : RegisterIR {
             scale
         )
 
-        constructor(const: Int, index: Target.InputOutputTarget? = null, scale: Int? = null) : this(
+        constructor(const: Int, index: PlatformTarget? = null, scale: Int? = null) : this(
             const,
             null,
             index,
@@ -132,9 +149,9 @@ sealed class PlatformTarget : RegisterIR {
 
         override fun toAssembler(): String {
             val constStr = const?.toString() ?: ""
-            val baseStr = base?.toMolki() ?: ""
+            val baseStr = base?.toAssembler() ?: ""
             val extStr = if (index != null) {
-                val indexStr = index.toMolki()
+                val indexStr = index.toAssembler()
                 if (scale != null) {
                     ",$indexStr,$scale"
                 } else {
