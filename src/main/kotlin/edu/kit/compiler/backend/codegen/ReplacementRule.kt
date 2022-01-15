@@ -6,6 +6,7 @@ import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Constant
 import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Register
 import edu.kit.compiler.backend.molkir.Width
+import firm.nodes.Phi
 
 class VirtualRegisterTable() {
     val map: MutableMap<CodeGenIR, Register> = mutableMapOf()
@@ -16,6 +17,16 @@ class VirtualRegisterTable() {
         val register = Register(RegisterId(registerId), width)
         map[node] = register
         return register
+    }
+
+    fun newRegisterForPhi(phi: Phi, width: Width): Register {
+        val registerId = nextRegisterId++
+        val register = Register(RegisterId(registerId), width)
+        return register
+    }
+
+    fun putPhi(node: CodeGenIR, register: Register) {
+        map[node] = register
     }
 
     fun getRegisterFor(node: CodeGenIR): Register? = map[node]

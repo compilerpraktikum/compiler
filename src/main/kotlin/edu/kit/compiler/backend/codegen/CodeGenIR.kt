@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Target
+import firm.TargetValue
 import firm.nodes.Node
 
 sealed class CodeGenIR {
