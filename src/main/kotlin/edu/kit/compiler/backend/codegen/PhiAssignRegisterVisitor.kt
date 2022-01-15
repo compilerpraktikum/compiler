@@ -14,19 +14,9 @@ class PhiAssignRegisterVisitor : FirmNodeVisitorAdapter() {
         if (node.mode == Mode.getM()) {
             return
         }
-        var width: Width
-        if (node.mode == Mode.getP()) {
-            width = Width.WORD;
-        }
-        width = when (node.mode.sizeBytes) {
-            1 -> Width.BYTE
-            2 -> Width.DOUBLE
-            4 -> Width.QUAD
-            8 -> Width.WORD
-            else -> TODO("weird size")
-        }
-        val reg = registerTable.newRegisterForPhi(node, width = width)
+
+        val reg = registerTable.newRegisterForNode(node)
         map[node] = CodeGenIR.RegisterRef(reg)
-        registerTable.putPhi(map[node]!!, reg)
+        registerTable.putNode(map[node]!!, reg)
     }
 }

@@ -52,7 +52,7 @@ class CodeGenTest {
             class Test {
                 public static void main(String[] args) {System.out.println(1);}
 
-                public int test() { if(true) { return 23 + 4; } else { return 4; }  }
+                public int test() { int b = 1; int c = 1 + b; return c;}
             }
             """.trimIndent()
         )

@@ -35,6 +35,7 @@ import firm.nodes.Sub
 class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeVisitorAdapter() {
 
     val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
+
     var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     var registerTable = VirtualRegisterTable()
     var currentTree: CodeGenIR? = null
@@ -51,25 +52,42 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         nodeMap = phiVisitor.map
         registerTable = phiVisitor.registerTable
         graph.walkTopological(this)
+        // last visited block needs to be entered
+        blockMap[currentBlock as Block] = currentTree
+        println(blockMap)
         BackEdges.disable(graph)
         //
     }
 
     fun updateCurrentBlock(node: Node) {
-//        if (currentBlock == null) {
-//            currentBlock = node.block
-//        } else if (currentBlock != node.block) {
-//            blockMap.put(currentBlock as Block, currentTree!!)
-//            currentBlock = node.block
-//        }
-//        println(currentBlock.toString())
-//        println("${blockMap.size} size ost")
+        if (currentBlock == null) {
+            currentBlock = node.block
+        } else if (currentBlock != node.block) {
+            blockMap[currentBlock as Block] = currentTree!!
+            currentBlock = node.block
+        }
+    }
+
+    fun updateCurrentTree(tree: CodeGenIR, node: Node) {
+        nodeMap[node] = tree
+        currentTree = tree
     }
 
 
     override fun visit(node: Add) {
+
+        if (!nodeMap.contains(node.left) || !nodeMap.contains(node.right)) {
+            TODO("should be set everytime?")
+            return
+        }
+        println("visit ADD " + node.block.toString())
         super.visit(node)
+
         updateCurrentBlock(node)
+        val reg = registerTable.newRegisterForNode(node)
+        registerTable.putNode(CodeGenIR.RegisterRef(reg), reg)
+        val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, res = CodeGenIR.RegisterRef(reg), operation = node)
+        updateCurrentTree(tree, node)
         println("visit ADD " + node.block.toString())
     }
 
@@ -100,6 +118,8 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
     override fun visit(node: Const) {
         super.visit(node)
         updateCurrentBlock(node)
+        val tree = CodeGenIR.Const(node.tarval.toString())
+        updateCurrentTree(tree, node)
         println("visit CONST "+ node.block.toString())
         println(node.tarval.toString())
     }
