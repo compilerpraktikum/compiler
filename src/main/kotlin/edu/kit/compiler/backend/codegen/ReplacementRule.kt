@@ -6,7 +6,6 @@ import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Constant
 import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Register
 import edu.kit.compiler.backend.molkir.Width
-import firm.nodes.Node
 
 class VirtualRegisterTable() {
     val map: MutableMap<CodeGenIR, Register> = mutableMapOf()
@@ -40,36 +39,3 @@ val replacementRules: List<ReplacementRule> = listOf(
     },
     // Read
 )
-
-class Rule(private val matcher: (CodeGenIR) -> MatchResult?) {
-    fun match(node: CodeGenIR): MatchResult? = matcher(node)
-
-    data class MatchResult(
-        val replacement:CodeGenIR,
-        val instructions: List<Instruction>,
-        val cost: Int = 1,
-    )
-}
-
-class RuleBuilderContext(
-    val node: CodeGenIR,
-    //private val registerTable: VirtualRegisterTable = VirtualRegisterTable()
-) {
-    private var match: Rule.MatchResult? = null
-
-    inline fun <reified FirmNodeType : Node> binOp(block: RuleBuilderContext.(CodeGenIR.BinOP) -> Unit) {
-        if (node is CodeGenIR.BinOP && node.operation is FirmNodeType) {
-            val context = RuleBuilderContext
-        }
-    }
-
-    fun result(): Rule.MatchResult? = match
-}
-
-fun rule(block: RuleBuilderContext.() -> Unit): Rule {
-    return Rule { node ->
-        val context = RuleBuilderContext(node)
-        context.block()
-        context.result()
-    }
-}
