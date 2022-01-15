@@ -1,6 +1,5 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.Mode
 import firm.nodes.Node
@@ -15,7 +14,7 @@ class PhiAssignRegisterVisitor : FirmNodeVisitorAdapter() {
             return
         }
 
-        val reg = registerTable.newRegisterForNode(node)
+        val reg = registerTable.newRegisterFor(node)
         map[node] = CodeGenIR.RegisterRef(reg)
         registerTable.putNode(map[node]!!, reg)
     }

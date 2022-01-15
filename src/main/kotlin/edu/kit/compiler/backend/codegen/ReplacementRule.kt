@@ -20,19 +20,9 @@ class VirtualRegisterTable() {
         return register
     }
 
-    fun newRegisterForNode(node: Node): Register {
-        var width: Width
-        if (node.mode == Mode.getP()) {
-            width = Width.WORD;
-        }
-        width = when (node.mode.sizeBytes) {
-            1 -> Width.BYTE
-            2 -> Width.DOUBLE
-            4 -> Width.QUAD
-            8 -> Width.WORD
-            else -> TODO("weird size")
-        }
+    fun newRegisterFor(node: Node): Register {
         val registerId = nextRegisterId++
+        val width = Width.fromByteSize(node.mode.sizeBytes) ?: error("cannot infer register width from mode \"${node.mode.name}\"")
         return Register(RegisterId(registerId), width)
     }
 

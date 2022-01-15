@@ -15,7 +15,17 @@ enum class Width(val inBytes: Int, val suffix: String) {
     BYTE(1, "l"),
     WORD(2, "w"),
     DOUBLE(4, "d"),
-    QUAD(8, ""),
+    QUAD(8, "");
+
+    companion object {
+        fun fromByteSize(size: Int): Width? = when (size) {
+            1 -> BYTE
+            2 -> WORD
+            4 -> DOUBLE
+            8 -> QUAD
+            else -> null
+        }
+    }
 }
 
 sealed class Target : MolkIR {
@@ -33,11 +43,11 @@ sealed class Target : MolkIR {
     }
 
     sealed class InputOutputTarget : OutputTarget() {
-        class Constant(val value: String) : Target.InputOutputTarget() {
+        class Constant(val value: String) : InputOutputTarget() {
             override fun toMolki(): String = "$$value"
         }
 
-        data class Register(val id: RegisterId, val width: Width) : Target.InputOutputTarget() {
+        data class Register(val id: RegisterId, val width: Width) : InputOutputTarget() {
             override fun toMolki(): String = id.toMolki() + width.suffix
 
             companion object {
@@ -51,10 +61,10 @@ sealed class Target : MolkIR {
         class Memory
         private constructor(
             val const: Int?,
-            val base: Target.InputOutputTarget?,
-            val index: Target.InputOutputTarget?,
+            val base: InputOutputTarget?,
+            val index: InputOutputTarget?,
             val scale: Int?,
-        ) : Target.InputOutputTarget() {
+        ) : InputOutputTarget() {
             init {
                 if (scale != null) {
                     check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
@@ -64,14 +74,14 @@ sealed class Target : MolkIR {
 
             constructor(
                 const: Int,
-                base: Target.InputOutputTarget,
-                index: Target.InputOutputTarget? = null,
+                base: InputOutputTarget,
+                index: InputOutputTarget? = null,
                 scale: Int? = null
             ) : this(const as Int?, base, index, scale)
 
             constructor(
-                base: Target.InputOutputTarget,
-                index: Target.InputOutputTarget? = null,
+                base: InputOutputTarget,
+                index: InputOutputTarget? = null,
                 scale: Int? = null
             ) : this(
                 null,
@@ -80,7 +90,7 @@ sealed class Target : MolkIR {
                 scale
             )
 
-            constructor(const: Int, index: Target.InputOutputTarget? = null, scale: Int? = null) : this(
+            constructor(const: Int, index: InputOutputTarget? = null, scale: Int? = null) : this(
                 const,
                 null,
                 index,
@@ -179,7 +189,7 @@ sealed class Instruction : MolkIR {
             resultDiv: Target,
             resultMod: Target
         ) =
-            Instruction.BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
+            BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
 
         private fun binOp(
             name: String,
@@ -187,7 +197,7 @@ sealed class Instruction : MolkIR {
             right: Target.InputOutputTarget,
             result: Target
         ) =
-            Instruction.BinaryOperationWithResult(name, left, right, result)
+            BinaryOperationWithResult(name, left, right, result)
 
         /* ktlint-disable no-multi-spaces */
         // basic arithmetic

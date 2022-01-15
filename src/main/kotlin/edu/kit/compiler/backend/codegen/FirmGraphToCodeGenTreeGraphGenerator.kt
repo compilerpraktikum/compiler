@@ -84,7 +84,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         super.visit(node)
 
         updateCurrentBlock(node)
-        val reg = registerTable.newRegisterForNode(node)
+        val reg = registerTable.newRegisterFor(node)
         registerTable.putNode(CodeGenIR.RegisterRef(reg), reg)
         val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, res = CodeGenIR.RegisterRef(reg), operation = node)
         updateCurrentTree(tree, node)
