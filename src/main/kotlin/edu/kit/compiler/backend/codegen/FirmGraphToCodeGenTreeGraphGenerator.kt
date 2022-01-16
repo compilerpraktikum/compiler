@@ -5,6 +5,7 @@ import firm.BackEdges
 import firm.Graph
 import firm.nodes.Add
 import firm.nodes.And
+import firm.nodes.Binop
 import firm.nodes.Block
 import firm.nodes.Call
 import firm.nodes.Cmp
@@ -73,27 +74,27 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         currentTree = tree
     }
 
-
-    override fun visit(node: Add) {
-
+    fun buildBinOpTree(node: Binop) {
         if (!nodeMap.contains(node.left) || !nodeMap.contains(node.right)) {
             TODO("should be set everytime?")
             return
         }
-        println("visit ADD " + node.block.toString())
-        super.visit(node)
-
         updateCurrentBlock(node)
         val reg = registerTable.newRegisterFor(node)
         registerTable.putNode(CodeGenIR.RegisterRef(reg), reg)
         val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, res = CodeGenIR.RegisterRef(reg), operation = node)
         updateCurrentTree(tree, node)
+    }
+
+    override fun visit(node: Add) {
+        super.visit(node)
+        buildBinOpTree(node)
         println("visit ADD " + node.block.toString())
     }
 
     override fun visit(node: And) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit AND " + node.block.toString())
     }
 
@@ -105,7 +106,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Cmp) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit CMP "+ node.block.toString())
     }
 
@@ -131,6 +132,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
     }
 
     override fun visit(node: Div) {
+        // Div isn't from type BinOP
         super.visit(node)
         updateCurrentBlock(node)
         println("visit DIV "+ node.block.toString())
@@ -138,7 +140,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Eor) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit EOR "+ node.block.toString())
     }
 
@@ -168,13 +170,13 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Mul) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit MUL "+ node.block.toString())
     }
 
     override fun visit(node: Mulh) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit MULH "+ node.block.toString())
     }
 
@@ -186,7 +188,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Or) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit OR "+ node.block.toString())
     }
 
@@ -219,7 +221,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Sub) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit SUB "+ node.block.toString())
     }
 
@@ -231,19 +233,19 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
 
     override fun visit(node: Shl) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit SHL "+ node.block.toString())
     }
 
     override fun visit(node: Shr) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit SHR "+ node.block.toString())
     }
 
     override fun visit(node: Shrs) {
         super.visit(node)
-        updateCurrentBlock(node)
+        buildBinOpTree(node)
         println("visit SHRS "+ node.block.toString())
     }
 
