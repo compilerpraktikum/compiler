@@ -1,5 +1,7 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.backend.molkir.Memory
+import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.Target
 import firm.TargetValue
 import firm.nodes.Address
@@ -35,7 +37,7 @@ sealed class CodeGenIR {
 
     }
 
-    data class MemoryAddress(val reg: Target.InputOutputTarget.Memory) : CodeGenIR() {
+    data class MemoryAddress(val reg: Memory) : CodeGenIR() {
         override fun match(node: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
@@ -67,8 +69,8 @@ sealed class CodeGenIR {
         override fun cost(): Int = lhs.cost() + rhs.cost() + 1
     }
 
-    data class RegisterRef(val reg: ValueHolder<Target.InputOutputTarget.Register>) : CodeGenIR() {
-        constructor(reg: Target.InputOutputTarget.Register) : this(ValueHolder(reg))
+    data class RegisterRef(val reg: ValueHolder<Register>) : CodeGenIR() {
+        constructor(reg: Register) : this(ValueHolder(reg))
 
         override fun match(node: CodeGenIR): Boolean {
             if (node is CodeGenIR.RegisterRef) {

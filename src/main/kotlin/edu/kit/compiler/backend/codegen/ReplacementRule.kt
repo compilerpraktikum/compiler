@@ -56,8 +56,8 @@ val rules = listOf(
         )
 
         replaceWith {
-//            val newRegister = newRegister()
-            CodeGenIR.RegisterRef(resRegister) to listOf(
+            val newRegister = newRegister()
+            CodeGenIR.RegisterRef(newRegister) to listOf(
                 Instruction.movq(
                     Memory.constantOffset(const = constValue.get(), base = register.get()),
                     resRegister.get()
