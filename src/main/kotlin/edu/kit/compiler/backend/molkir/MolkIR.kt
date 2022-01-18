@@ -180,24 +180,20 @@ sealed class Instruction : MolkIR {
      */
     companion object {
 
-        fun label(name: String) = Instruction.Label(name)
+        fun label(name: String) = Label(name)
 
         fun call(name: String, arguments: List<Target.Input>, result: Target.Output?) =
             Call(name, arguments, result)
 
+        /* ktlint-disable no-multi-spaces */
         /* @formatter:off */
-        fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
-        fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
 
         fun cmpl(left: Target.Input, right: Target.Input) = BinaryOperation("cmpl", left, right)
         fun cmpq(left: Target.Input, right: Target.Input) = BinaryOperation("cmpq", left, right)
-        /* @formatter:on */
 
         /****************************************
          * Jumps
          ****************************************/
-        /* ktlint-disable no-multi-spaces */
-        /* @formatter:off */
         fun jmp(label: String) = Jump("jmp", label)
         fun jl(label: String)  = Jump("jl",  label)
         fun jle(label: String) = Jump("jle", label)
@@ -205,8 +201,27 @@ sealed class Instruction : MolkIR {
         fun jne(label: String) = Jump("jne", label)
         fun jg(label: String)  = Jump("jg",  label)
         fun jge(label: String) = Jump("jge", label)
-        /* @formatter:on */
-        /* ktlint-enable no-multi-spaces */
+
+        /****************************************
+         * Unary operations with result
+         ****************************************/
+        // move
+        fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
+        fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
+
+        // increment / decrement
+        fun incl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("incl", operand, result)
+        fun incq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("incq", operand, result)
+        fun decl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("decl", operand, result)
+        fun decq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("decq", operand, result)
+
+        // negate (2 complement)
+        fun negl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negl", operand, result)
+        fun negq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negq", operand, result)
+
+        // logical not
+        fun notl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notl", operand, result)
+        fun notq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notq", operand, result)
 
         /****************************************
          * Binary operations with result
@@ -214,8 +229,6 @@ sealed class Instruction : MolkIR {
         fun idivq(left: Target.Input, right: Target.Input, resultDiv: Target.Output, resultMod: Target.Output) =
             BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
 
-        /* ktlint-disable no-multi-spaces */
-        /* @formatter:off */
         // basic arithmetic
         fun addl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addl",  left, right, result)
         fun addq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addq",  left, right, result)
@@ -224,17 +237,7 @@ sealed class Instruction : MolkIR {
         fun imull(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imull", left, right, result)
         fun imulq(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imulq", left, right, result)
 
-        // increment / decrement
-        fun incl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("incl", left, right, result)
-        fun incq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("incq", left, right, result)
-        fun decl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("decl", left, right, result)
-        fun decq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("decq", left, right, result)
-
-        // negate (2 complement)
-        fun negl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("negl", left, right, result)
-        fun negq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("negq", left, right, result)
-        fun notl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("notl", left, right, result)
-        fun notq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("notq", left, right, result)
+        // basic logic
         fun andl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andl", left, right, result)
         fun andq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andq", left, right, result)
         fun orl(left: Target.Input, right: Target.Input, result: Target.Output)   = BinaryOperationWithResult("orl",  left, right, result)
@@ -253,6 +256,7 @@ sealed class Instruction : MolkIR {
         fun shlq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shlq", left, right, result)
         fun shrl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrl", left, right, result)
         fun shrq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrq", left, right, result)
+
         /* @formatter:on */
         /* ktlint-enable no-multi-spaces */
     }
