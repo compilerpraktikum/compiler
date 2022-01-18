@@ -1,9 +1,14 @@
 package edu.kit.compiler.backend.codegen
 
+import com.tylerthrailkill.helpers.prettyprint.pp
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
 import firm.Graph
+import firm.MethodType
+import firm.Mode
+import firm.Type
 import firm.nodes.Add
+import firm.nodes.Address
 import firm.nodes.And
 import firm.nodes.Binop
 import firm.nodes.Block
@@ -29,11 +34,11 @@ import firm.nodes.Return
 import firm.nodes.Shl
 import firm.nodes.Shr
 import firm.nodes.Shrs
+import firm.nodes.Start
 import firm.nodes.Store
 import firm.nodes.Sub
 
-
-class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeVisitorAdapter() {
+class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter() {
 
     val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
 
@@ -56,6 +61,7 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         // last visited block needs to be entered
         blockMap[currentBlock as Block] = currentTree
         println(blockMap)
+        blockMap.pp()
         BackEdges.disable(graph)
         //
     }
@@ -74,46 +80,61 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         currentTree = tree
     }
 
-    fun buildBinOpTree(node: Binop) {
-        if (!nodeMap.contains(node.left) || !nodeMap.contains(node.right)) {
-            TODO("should be set everytime?")
-            return
-        }
+    private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
+        check(nodeMap.contains(node.left)) { "expected pred node left to be initialized ${node.left}" }
+        check(nodeMap.contains(node.right)) { "expected pred node right to be initialized ${node.right}" }
+
+
         updateCurrentBlock(node)
-        val reg = registerTable.newRegisterFor(node)
-        registerTable.putNode(CodeGenIR.RegisterRef(reg), reg)
-        val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, res = CodeGenIR.RegisterRef(reg), operation = node)
+        val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, operation = op)
         updateCurrentTree(tree, node)
     }
 
     override fun visit(node: Add) {
         super.visit(node)
-        buildBinOpTree(node)
+        buildBinOpTree(node, BinOpENUM.ADD)
         println("visit ADD " + node.block.toString())
     }
 
     override fun visit(node: And) {
         super.visit(node)
-        buildBinOpTree(node)
+        buildBinOpTree(node, BinOpENUM.AND)
         println("visit AND " + node.block.toString())
     }
 
     override fun visit(node: Call) {
+        println("visit CALL " + node.block.toString())
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit CALL "+ node.block.toString())
+        val arguments = node.preds
+            .filter { it.mode != Mode.getM() }
+            .filter { it !is Address }
+            .map { nodeMap[it]!! }
+        val addr = node.getPred(1) as Address
+        val mode = (node.type as MethodType).getResType(0).mode
+
+        val call = CodeGenIR.Call(addr, arguments)
+        // R_i = call("foo", 2)
+        nodeMap[node] = call
+
+        println("visit CALL " + node.block.toString())
     }
 
     override fun visit(node: Cmp) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit CMP "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.CMP)
+        val left = nodeMap[node.left]!!
+        val right = nodeMap[node.right]!!
+        val cmp = CodeGenIR.BinOP(BinOpENUM.CMP,right, left, )
+        nodeMap[node] = cmp
+        println("visit CMP " + node.block.toString())
     }
 
     override fun visit(node: Cond) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit COND "+ node.block.toString())
+
+        println("visit COND " + node.block.toString())
     }
 
     override fun visit(node: Const) {
@@ -121,133 +142,160 @@ class FirmGraphToCodeGenTreeGraphGenerator(private val graph: Graph) : FirmNodeV
         updateCurrentBlock(node)
         val tree = CodeGenIR.Const(node.tarval.toString())
         updateCurrentTree(tree, node)
-        println("visit CONST "+ node.block.toString())
+        println("visit CONST " + node.block.toString())
         println(node.tarval.toString())
     }
 
     override fun visit(node: Conv) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit CONV "+ node.block.toString())
+        println("visit CONV " + node.block.toString())
     }
 
     override fun visit(node: Div) {
         // Div isn't from type BinOP
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit DIV "+ node.block.toString())
+        println("visit DIV " + node.block.toString())
     }
 
     override fun visit(node: Eor) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit EOR "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.EOR)
+        println("visit EOR " + node.block.toString())
     }
 
     override fun visit(node: Jmp) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit JMP "+ node.block.toString())
+        println("visit JMP " + node.block.toString())
     }
 
     override fun visit(node: Load) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit LOAD "+ node.block.toString())
+        println("visit LOAD " + node.block.toString())
     }
 
     override fun visit(node: Minus) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit MINUS "+ node.block.toString())
+        println("visit MINUS " + node.block.toString())
     }
 
     override fun visit(node: Mod) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit MOD "+ node.block.toString())
+        println("visit MOD " + node.block.toString())
     }
 
     override fun visit(node: Mul) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit MUL "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.MUL)
+        println("visit MUL " + node.block.toString())
     }
 
     override fun visit(node: Mulh) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit MULH "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.MULH)
+        println("visit MULH " + node.block.toString())
     }
 
     override fun visit(node: Not) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit NOT "+ node.block.toString())
+        println("visit NOT " + node.block.toString())
     }
 
     override fun visit(node: Or) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit OR "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.OR)
+        println("visit OR " + node.block.toString())
     }
 
     override fun visit(node: Phi) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit PHI "+ node.block.toString())
+        println("visit PHI " + node.block.toString())
     }
 
     override fun visit(node: Proj) {
         super.visit(node)
         updateCurrentBlock(node)
-        when (node.pred) {
+        when (val pred = node.pred) {
+            is Div -> nodeMap[node] = nodeMap[pred]!!
+            is Mod -> nodeMap[node] = nodeMap[pred]!!
+            is Load -> nodeMap[node] = nodeMap[pred]!!
+            is Start -> Unit // skip -> this is handled by succeeding proj
+            is Call -> Unit // skip -> this is handled by succeeding proj
+            is Proj -> {
+                when (val origin = pred.pred) {
+                    is Start ->  {
+                        println("node: $node, pred: $pred, predpred: $origin")
+                        allocateArguments(node)
+                    }
+                    is Call -> {
+                        nodeMap[node] = nodeMap[origin]!!
+                    }
 
+                }
+            }
+            else -> TODO("missing handling for case $pred")
         }
-        println("visit PROJ "+ node.block.toString())
+        println("visit PROJ " + node.block.toString())
+    }
+
+    private fun allocateArguments(node: Proj) {
+        val reg = registerTable.newRegisterFor(node)
+
+        val registerRef = CodeGenIR.RegisterRef(reg)
+        nodeMap[node] = registerRef
+        println("setting nodeMap for $node to $registerRef")
+        registerTable.putNode(registerRef, reg)
     }
 
     override fun visit(node: Return) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit RETURN "+ node.block.toString())
+        println("visit RETURN " + node.block.toString())
     }
 
     override fun visit(node: Store) {
         super.visit(node)
         updateCurrentBlock(node)
-        println("visit STORE "+ node.block.toString())
+        println("visit STORE " + node.block.toString())
     }
 
     override fun visit(node: Sub) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit SUB "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.SUB)
+        println("visit SUB " + node.block.toString())
     }
 
     override fun visitUnknown(node: Node) {
         super.visitUnknown(node)
         updateCurrentBlock(node)
-        println("visit NODE "+ node.block.toString())
+        println("visit NODE " + node.block.toString())
     }
 
     override fun visit(node: Shl) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit SHL "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.SHL)
+        println("visit SHL " + node.block.toString())
     }
 
     override fun visit(node: Shr) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit SHR "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.SHR)
+        println("visit SHR " + node.block.toString())
     }
 
     override fun visit(node: Shrs) {
         super.visit(node)
-        buildBinOpTree(node)
-        println("visit SHRS "+ node.block.toString())
+        buildBinOpTree(node, BinOpENUM.SHRS)
+        println("visit SHRS " + node.block.toString())
     }
+
 
 //TODO Vorgehensweise:
     /*

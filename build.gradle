@@ -38,6 +38,8 @@ dependencies {
     implementation 'com.github.ajalt.mordant:mordant:2.0.0-beta3'
     implementation 'com.github.Firmwehr:jFirm:fc897436f2'
     implementation 'net.java.dev.jna:jna:4.5.2'
+    implementation "com.tylerthrailkill.helpers:pretty-print:2.0.2"
+
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"

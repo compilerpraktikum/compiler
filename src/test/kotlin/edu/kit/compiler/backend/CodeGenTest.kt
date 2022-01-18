@@ -1,11 +1,10 @@
 package edu.kit.compiler.backend
 
-import edu.kit.compiler.backend.codegen.FirmGraphToCodeGenTreeGraphGenerator
+import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lex.Lexer
 import edu.kit.compiler.lex.SourceFile
 import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.optimization.doConstantPropagationAndFolding
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.transform.Transformation
@@ -35,7 +34,7 @@ class CodeGenTest {
         Util.lowerSels()
         dumpGraphs("after-lowering")
         Program.getGraphs().forEach {
-            val generator = FirmGraphToCodeGenTreeGraphGenerator(it)
+            val generator = FirmToCodeGenTranslator(it)
             val blocks = generator.buildTrees()
         }
     }
@@ -54,6 +53,19 @@ class CodeGenTest {
 
                 public int test() { int b = 1; int c = 1 + b; return c;}
             }
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testCall() {
+        setupGraph(
+            """
+                class Test {
+                    public static void main(String[] args) {}
+                    public int foo(int x) { return 2+x; }
+                    public int bar(int y, int z) { return foo(3+y)+; }
+                }
             """.trimIndent()
         )
     }

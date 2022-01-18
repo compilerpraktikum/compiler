@@ -36,112 +36,38 @@ class VirtualRegisterTable {
     fun getRegisterFor(node: CodeGenIR): MolkiRegister? = map[node]
 }
 
-//typealias Pattern = CodeGenIR
-//
-//fun interface ReplacementRule {
-//    fun matches(node: CodeGenIR, registers: VirtualRegisterTable): Pair<CodeGenIR, MolkIR>?
-//}
-//
-//val replacementRules: List<ReplacementRule> = listOf(
-//    // Constant -> Register
-//    ReplacementRule { node, registers ->
-//        if (node is CodeGenIR.Const) {
-//            val register = registers.newRegisterFor(node, Width.DOUBLE)
-//            CodeGenIR.RegisterRef(register) to Instruction.movq(Constant(node.const), register)
-//        } else {
-//            null
-//        }
-//    },
-//    // Read
-//)
-
-sealed class MatchIR {
-    abstract fun match(node: CodeGenIR): Boolean
-    abstract fun cost(): Int
-
-    class Const(
-        private val value: ValueHolder<Int>
-    ) : MatchIR() {
-        override fun match(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.Const) {
-                value.set(node.const.toInt())
-                return true
-            }
-            return false
-        }
-
-        override fun cost(): Int = 1
-    }
-
-    class Register(
-        private val id: ValueHolder<MolkiRegister>
-    ) : MatchIR() {
-        override fun match(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.RegisterRef) {
-                id.set(node.reg)
-                return true
-            }
-            return false
-        }
-
-        override fun cost(): Int = 1
-    }
-
-    class Load(
-        private val address: MatchIR
-    ) : MatchIR() {
-        override fun match(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.Indirection) {
-                return address.match(node.addr)
-            }
-            return false
-        }
-        override fun cost(): Int = address.cost() + 42
-    }
-
-    class Add(
-        private val left: MatchIR,
-        private val right: MatchIR,
-    ) : MatchIR() {
-        override fun match(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.BinOP && node.operation is firm.nodes.Add) {
-                return left.match(node.left) && right.match(node.right)
-            }
-            return false
-        }
-
-        override fun cost(): Int = left.cost() + right.cost() + 1
-    }
-}
 
 val rules = listOf(
+    // Rule 5: movq a(R_j), R_i -> R_k
     rule {
-        val constValue = value<Int>()
+        val constValue = value<String>()
         val register = value<MolkiRegister>()
+        val resRegister = value<MolkiRegister>()
 
+        // ADD match
         match(
-            MatchIR.Load(
-                MatchIR.Add(
-                    MatchIR.Const(constValue),
-                    MatchIR.Register(register),
+            CodeGenIR.Indirection(
+                CodeGenIR.BinOP(
+                    BinOpENUM.ADD,
+                    CodeGenIR.Const(constValue),
+                    CodeGenIR.RegisterRef(register),
                 )
             )
         )
 
         replaceWith {
-            val newRegister = newRegister()
-            CodeGenIR.RegisterRef(newRegister) to listOf(
+//            val newRegister = newRegister()
+            CodeGenIR.RegisterRef(resRegister) to listOf(
                 Instruction.movq(
-                    Memory(const = constValue.get(), base = register.get()),
-                    newRegister
+                    Memory.constantOffset(const = constValue.get(), base = register.get()),
+                    resRegister.get()
                 )
             )
         }
     }
 )
 
-class ValueHolder<T> {
-    private var value: T? = null
+data class ValueHolder<T>(private var value: T? = null) {
 
     fun set(v: T) {
         check(value == null) { "cannot set value twice" }
@@ -167,7 +93,7 @@ class ReplacerScope {
 // does not work yet because it does not support the needed dynamic programming approach yet
 class Rule(
     private val values: List<ValueHolder<*>>,
-    private val matcher: MatchIR,
+    private val matcher: CodeGenIR,
     private val replacement: ReplacerScope.() -> Pair<CodeGenIR, List<Instruction>>,
 ) {
     fun match(node: CodeGenIR): MatchResult? {
@@ -190,7 +116,7 @@ class Rule(
 
 class RuleBuilderScope {
     private val values = mutableListOf<ValueHolder<*>>()
-    private var matchPattern: MatchIR? = null
+    private var matchPattern: CodeGenIR? = null
     private var replacement: (ReplacerScope.() -> Pair<CodeGenIR, List<Instruction>>)? = null
 
     fun <T> value(): ValueHolder<T> {
@@ -199,7 +125,7 @@ class RuleBuilderScope {
         }
     }
 
-    fun match(pattern: MatchIR) {
+    fun match(pattern: CodeGenIR) {
         matchPattern = pattern
     }
 

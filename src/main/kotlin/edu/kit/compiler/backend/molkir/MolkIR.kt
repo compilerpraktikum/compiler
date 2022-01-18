@@ -62,11 +62,18 @@ class ReturnRegister(val width: Width) : Target.Output {
 
 class Memory
 private constructor(
-    val const: Int?,
+    val const: String?,
     val base: Register?,
     val index: Register?,
     val scale: Int?,
 ) : Target.InputOutput {
+            companion object {
+                fun constantOffset(const: String,
+                                   base: Register,
+                                   index: Register? = null,
+                                   scale: Int? = null) =
+                    Memory(const as String?, base, index, scale)
+            }
     init {
         if (scale != null) {
             check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
@@ -75,20 +82,13 @@ private constructor(
     }
 
     constructor(
-        const: Int,
-        base: Register,
-        index: Register? = null,
-        scale: Int? = null
-    ) : this(const as Int?, base, index, scale)
-
-    constructor(
         base: Register,
         index: Register? = null,
         scale: Int? = null
     ) : this(null, base, index, scale)
 
     constructor(
-        const: Int,
+        const: String,
         index: Register? = null,
         scale: Int? = null
     ) : this(const, null, index, scale)
