@@ -12,7 +12,7 @@ sealed interface Target : MolkIR {
     sealed interface InputOutput : Input, Output
 }
 
-class Constant(val value: Int) : Target.Input {
+class Constant(val value: String) : Target.Input {
     override fun toMolki(): String = "$$value"
 }
 

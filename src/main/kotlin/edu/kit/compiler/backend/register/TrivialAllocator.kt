@@ -1,6 +1,10 @@
 package edu.kit.compiler.backend.register
 
+import edu.kit.compiler.backend.molkir.Constant
+import edu.kit.compiler.backend.molkir.Memory
+import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Target
 import java.util.Stack
 import edu.kit.compiler.backend.molkir.Instruction as MolkInstr
@@ -38,9 +42,9 @@ class TrivialAllocator : AllocationStrategy {
 
         for (target in targets) {
             val platformTarget = when (target) {
-                is Target.InputOutputTarget.Constant -> PlatformTarget.Constant(target.value)
-                is Target.InputOutputTarget.Memory -> TODO()
-                is Target.InputOutputTarget.Register -> {
+                is Constant -> PlatformTarget.Constant(target.value)
+                is Memory -> TODO()
+                is Register -> {
                     // search for the register in stack to know where to load it from
                     val stackDepth = stackLayout.indexOf(target.id)
 
@@ -56,7 +60,7 @@ class TrivialAllocator : AllocationStrategy {
                     // TODO: assign the chosen general purpose register to the target instruction instace
                     // TODO: conver the molki instruction instance to target instruction instance
                 }
-                is Target.OutputTarget.ReturnRegister -> TODO()
+                is ReturnRegister -> TODO()
             }
 
             // TODO if the instruction has a return value, push it onto the stack

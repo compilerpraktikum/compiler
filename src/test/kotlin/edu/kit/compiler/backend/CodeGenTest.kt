@@ -1,14 +1,14 @@
 package edu.kit.compiler.backend
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
 import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.transform.Transformation
-import edu.kit.compiler.wrapper.wrappers.validate
 import firm.Dump
 import firm.Program
 import firm.Util
