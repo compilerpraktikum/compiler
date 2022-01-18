@@ -2,12 +2,11 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.lex.AnnotatableFile
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.wrapper.wrappers.Parsed
-import edu.kit.compiler.wrapper.wrappers.wrapErroneous
-import edu.kit.compiler.wrapper.wrappers.wrapValid
+import edu.kit.compiler.ast.Parsed
+import edu.kit.compiler.ast.wrapErroneous
+import edu.kit.compiler.ast.wrapValid
+import edu.kit.compiler.source.AnnotatableFile
+import edu.kit.compiler.source.AnnotationType
 
 /**
  * Abstract base class for a parser that consumes a token sequence and generates an abstract syntax tree from it.
@@ -20,7 +19,7 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     /**
      * While in panic mode, suppress errors
      */
-    protected var panicMode = false
+    private var panicMode = false
 
     /**
      * The lookahead buffer that provides the token stream and buffers tokens when a lookahead is required
@@ -137,16 +136,12 @@ abstract class AbstractParser(tokens: Sequence<Token>, protected val sourceFile:
     }
 
     /**
-     * Annotate the source input with an error message
+     * Annotate the source file with an error at the given [token].
      */
-    protected fun reportError(range: SourceRange, message: String) {
+    protected fun reportError(token: Token, message: String) {
         if (!panicMode)
-            sourceFile.annotate(AnnotationType.ERROR, range, message)
+            sourceFile.annotate(AnnotationType.ERROR, token.range, message)
 
         panicMode = true
-    }
-
-    protected fun reportError(token: Token, message: String) {
-        reportError(token.range, message)
     }
 }

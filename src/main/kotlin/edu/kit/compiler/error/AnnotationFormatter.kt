@@ -2,11 +2,10 @@ package edu.kit.compiler.error
 
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
-import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.rendering.TextStyles.bold
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceRange
 import java.io.PrintStream
 
 private const val TAB_SIZE = 4
@@ -27,7 +26,6 @@ private fun String.highlight(start: Int, end: Int, formatter: (String) -> String
     }
 }
 private fun String.highlight(start: Int, end: Int, style: TextStyle) = highlight(start, end) { style(it) }
-private fun String.highlight(start: Int, end: Int, style: TextStyles) = highlight(start, end) { style(it) }
 
 private fun PrintStream.formatLineWithHighlight(code: String, note: String?, codeLinePrefix: String, column: Int, length: Int, color: TextColors) {
     require(length >= 0)

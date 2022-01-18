@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.source
 
 class StringInputProvider(
     val content: String,

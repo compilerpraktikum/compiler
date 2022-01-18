@@ -1,12 +1,12 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
+import edu.kit.compiler.ast.Parsed
 import edu.kit.compiler.ast.expressionOf
 import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.emptyAnchorSet
 import edu.kit.compiler.utils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
 import org.junit.jupiter.api.Test
 
 @ExperimentalStdlibApi

@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.source
 
 import edu.kit.compiler.error.AnnotationFormatter
 import edu.kit.compiler.normalizeLineEndings

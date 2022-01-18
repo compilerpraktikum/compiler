@@ -1,7 +1,6 @@
 package edu.kit.compiler.semantic
 
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.StringTable
+import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.semantic.visitor.AssignmentLHSChecker
 import edu.kit.compiler.semantic.visitor.ConstantBoundariesChecker
 import edu.kit.compiler.semantic.visitor.MainMethodCounter
@@ -11,15 +10,16 @@ import edu.kit.compiler.semantic.visitor.NamespacePopulator
 import edu.kit.compiler.semantic.visitor.ReturnStatementSearcher
 import edu.kit.compiler.semantic.visitor.TypeAnalysisVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Semantic analysis pipeline
  *
- * @param program the semantic [AST][AstNode] from a parser instance
+ * @param program the semantic [AST][SemanticAST] from a parser instance
  * @param sourceFile input abstraction where errors can be reported
  * @param stringTable [StringTable] for name analysis
  */
-fun doSemanticAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringTable: StringTable) {
+fun doSemanticAnalysis(program: SemanticAST.Program, sourceFile: SourceFile, stringTable: StringTable) {
     doNameAnalysis(program, sourceFile, stringTable)
     program.accept(TypeAnalysisVisitor(sourceFile))
     program.accept(MainMethodVerifier(sourceFile))
@@ -32,7 +32,7 @@ fun doSemanticAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringT
 /**
  * Name analysis pipeline
  */
-fun doNameAnalysis(program: AstNode.Program, sourceFile: SourceFile, stringTable: StringTable) {
+fun doNameAnalysis(program: SemanticAST.Program, sourceFile: SourceFile, stringTable: StringTable) {
     val global = GlobalNamespace().apply {
         defineBuiltIns(sourceFile, stringTable)
     }

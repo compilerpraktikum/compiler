@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.lex.SourceFile
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.utils.createLexer
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

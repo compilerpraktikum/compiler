@@ -1,7 +1,8 @@
 package edu.kit.compiler.transform
 
+import edu.kit.compiler.Logger
 import edu.kit.compiler.ast.AST
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.VariableNode
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
@@ -77,7 +78,7 @@ object FirmContext {
      */
     fun init() {
         Firm.init("x86_64-linux-gnu", arrayOf("pic=1"))
-        println("Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}")
+        Logger.debug { "Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}" }
 
         typeRegistry = TypeRegistry()
     }
@@ -92,7 +93,7 @@ object FirmContext {
      */
     fun constructMethod(
         methodEntity: Entity,
-        method: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration,
+        method: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration,
         variables: Int,
         block: () -> Unit
     ): Graph {
@@ -171,8 +172,6 @@ object FirmContext {
 
     /**
      * Finish construction of a subroutine
-     *
-     * @param block callback into [TransformationMethodVisitor] that generates the method's body.
      */
     private fun finishSubroutine(): Graph {
         // insert end node
@@ -193,13 +192,13 @@ object FirmContext {
     /**
      * Construct a binary expression.
      *
-     * @param expr the [AstNode.Expression.BinaryOperation] variant that is being constructed
+     * @param expr the [SemanticAST.Expression.BinaryOperation] variant that is being constructed
      * @param surroundingMethod the method this expression is in
      * @param transformer the [TransformationMethodVisitor] that will generate code for partial expressions
      */
     fun binaryExpression(
-        expr: AstNode.Expression.BinaryOperation,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        expr: SemanticAST.Expression.BinaryOperation,
+        surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
         val expression = when (expr.operation) {
@@ -289,8 +288,8 @@ object FirmContext {
      * @param transformer an [AbstractVisitor] that will transform the partial expressions of this assignemtn
      */
     private fun generateAssignment(
-        expr: AstNode.Expression.BinaryOperation,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        expr: SemanticAST.Expression.BinaryOperation,
+        surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
         val leftHandSide = expr.left
@@ -303,16 +302,16 @@ object FirmContext {
         }
 
         when (leftHandSide) {
-            is AstNode.Expression.ArrayAccessExpression -> {
+            is SemanticAST.Expression.ArrayAccessExpression -> {
                 leftHandSide.target.accept(transformer)
                 leftHandSide.index.accept(transformer)
                 arrayWriteAccess(leftHandSide, evalRightHandSide())
             }
-            is AstNode.Expression.FieldAccessExpression -> {
+            is SemanticAST.Expression.FieldAccessExpression -> {
                 leftHandSide.target.accept(transformer)
                 fieldWriteAccess(leftHandSide, evalRightHandSide())
             }
-            is AstNode.Expression.IdentifierExpression -> identifierWriteAccess(
+            is SemanticAST.Expression.IdentifierExpression -> identifierWriteAccess(
                 leftHandSide,
                 surroundingMethod,
                 transformer,
@@ -377,8 +376,8 @@ object FirmContext {
      * @return a node that contains the result of the boolean operation (as a byte)
      */
     private fun generateShortCircuitEvaluation(
-        left: AstNode.Expression,
-        right: AstNode.Expression,
+        left: SemanticAST.Expression,
+        right: SemanticAST.Expression,
         transformer: AbstractVisitor,
         operation: AST.BinaryExpression.Operation
     ): Node {
@@ -435,7 +434,7 @@ object FirmContext {
      * for non-conditional expressions.
      */
     private fun generateShortCircuitCondition(
-        expr: AstNode.Expression.BinaryOperation,
+        expr: SemanticAST.Expression.BinaryOperation,
         trueBlock: Block,
         falseBlock: Block,
         transformer: TransformationMethodVisitor,
@@ -470,13 +469,13 @@ object FirmContext {
      * condition
      */
     private fun generateBooleanCondition(
-        expr: AstNode.Expression,
+        expr: SemanticAST.Expression,
         trueBlock: Block,
         falseBlock: Block,
         transformer: TransformationMethodVisitor
     ) {
         when (expr) {
-            is AstNode.Expression.BinaryOperation -> {
+            is SemanticAST.Expression.BinaryOperation -> {
                 when (expr.operation) {
                     AST.BinaryExpression.Operation.ASSIGNMENT -> {
                         expr.accept(transformer)
@@ -561,21 +560,21 @@ object FirmContext {
                     AST.BinaryExpression.Operation.MODULO -> throw AssertionError("cannot have a numeric operation as a condition")
                 }
             }
-            is AstNode.Expression.MethodInvocationExpression,
-            is AstNode.Expression.FieldAccessExpression,
-            is AstNode.Expression.IdentifierExpression,
-            is AstNode.Expression.ArrayAccessExpression -> {
+            is SemanticAST.Expression.MethodInvocationExpression,
+            is SemanticAST.Expression.FieldAccessExpression,
+            is SemanticAST.Expression.IdentifierExpression,
+            is SemanticAST.Expression.ArrayAccessExpression -> {
                 expr.accept(transformer)
                 generateBooleanCheck(expressionStack.pop(), trueBlock, falseBlock)
             }
-            is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> {
+            is SemanticAST.Expression.LiteralExpression.LiteralBoolExpression -> {
                 generateBooleanCheck(
                     construction.newConst(if (expr.value) 1 else 0, Mode.getBu()),
                     trueBlock,
                     falseBlock
                 )
             }
-            is AstNode.Expression.UnaryOperation -> when (expr.operation) {
+            is SemanticAST.Expression.UnaryOperation -> when (expr.operation) {
                 AST.UnaryExpression.Operation.NOT -> generateBooleanCondition(
                     expr.inner,
                     falseBlock,
@@ -584,11 +583,11 @@ object FirmContext {
                 )
                 AST.UnaryExpression.Operation.MINUS -> throw AssertionError("cannot have a numeric operation as a condition")
             }
-            is AstNode.Expression.NewArrayExpression,
-            is AstNode.Expression.NewObjectExpression,
-            is AstNode.Expression.LiteralExpression.LiteralIntExpression,
-            is AstNode.Expression.LiteralExpression.LiteralNullExpression,
-            is AstNode.Expression.LiteralExpression.LiteralThisExpression -> throw AssertionError("cannot have non-boolean expression as condition")
+            is SemanticAST.Expression.NewArrayExpression,
+            is SemanticAST.Expression.NewObjectExpression,
+            is SemanticAST.Expression.LiteralExpression.LiteralIntExpression,
+            is SemanticAST.Expression.LiteralExpression.LiteralNullExpression,
+            is SemanticAST.Expression.LiteralExpression.LiteralThisExpression -> throw AssertionError("cannot have non-boolean expression as condition")
         }
     }
 
@@ -604,8 +603,8 @@ object FirmContext {
      * @param transformer the transformer that is being used to generate code
      */
     private fun generateRelationCondition(
-        left: AstNode.Expression,
-        right: AstNode.Expression,
+        left: SemanticAST.Expression,
+        right: SemanticAST.Expression,
         trueBlock: Block,
         falseBlock: Block,
         relation: Relation,
@@ -657,7 +656,7 @@ object FirmContext {
      * Generate a while-loop with all necessary control flow. All condition expressions will be evaluated using the
      * short-circuit rules.
      */
-    fun whileStatement(whileStatement: AstNode.Statement.WhileStatement, transformer: TransformationMethodVisitor) {
+    fun whileStatement(whileStatement: SemanticAST.Statement.WhileStatement, transformer: TransformationMethodVisitor) {
         val conditionBlock = construction.newBlock()
         val doBlock = construction.newBlock()
         val afterBlock = construction.newBlock()
@@ -682,7 +681,7 @@ object FirmContext {
      */
     fun ifStatement(
         withElse: Boolean,
-        ifStatement: AstNode.Statement.IfStatement,
+        ifStatement: SemanticAST.Statement.IfStatement,
         transformer: TransformationMethodVisitor
     ) {
         val thenBlock = construction.newBlock()
@@ -754,8 +753,8 @@ object FirmContext {
      * @param transformer the [TransformationMethodVisitor] that generates code for the method
      */
     fun identifierReadAccess(
-        identifierExpression: AstNode.Expression.IdentifierExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+        identifierExpression: SemanticAST.Expression.IdentifierExpression,
+        surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor
     ) {
         val valueNode = when (val definition = identifierExpression.definition!!.node) {
@@ -763,7 +762,7 @@ object FirmContext {
                 // an identifierExpression on a field is always an implicit field access on `this`,
                 // so we have to load the pointer. If it wasn't an access on `this`, it wouldn't be an
                 // identifier-expression but a field-access-expression
-                loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+                loadThis(surroundingMethod as SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 val loadNode = construction.newLoad(
                     construction.currentMem,
                     getFieldMember(definition.node),
@@ -789,9 +788,9 @@ object FirmContext {
      * Write [value] to a member or variable identified by [identifierExpression] and then push [value] onto the
      * expression stack.
      */
-    fun identifierWriteAccess(
-        identifierExpression: AstNode.Expression.IdentifierExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration,
+    private fun identifierWriteAccess(
+        identifierExpression: SemanticAST.Expression.IdentifierExpression,
+        surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration,
         transformer: TransformationMethodVisitor,
         value: Node
     ) {
@@ -800,7 +799,7 @@ object FirmContext {
                 // an identifierExpression on a field is always an implicit field access on `this`,
                 // so we have to load the pointer. If it wasn't an access on `this`, it wouldn't be an
                 // identifier-expression but a field-access-expression
-                loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+                loadThis(surroundingMethod as SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 val loadNode = construction.newStore(
                     construction.currentMem,
                     getFieldMember(definition.node),
@@ -824,14 +823,14 @@ object FirmContext {
 
     /**
      * Generate an access node to any defined field of an explicit target expression (like `a.field`). Implicit field
-     * access on the `this` pointer are not [AstNode.Expression.FieldAccessExpression] and therefore not handled here.
+     * access on the `this` pointer are not [SemanticAST.Expression.FieldAccessExpression] and therefore not handled here.
      * If the access is writing, the node pushed to the expression stack will be the accessed member, if the access is
      * reading, the node will be the member's content.
      *
      * @param fieldAccessExpression the expression referencing the field to load
      */
     fun fieldReadAccess(
-        fieldAccessExpression: AstNode.Expression.FieldAccessExpression,
+        fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression,
     ) {
         val loadNode = construction.newLoad(
             construction.currentMem,
@@ -851,7 +850,7 @@ object FirmContext {
     /**
      * Generate a write access event to a field and push the result value onto the expression stack
      */
-    fun fieldWriteAccess(fieldAccessExpression: AstNode.Expression.FieldAccessExpression, value: Node) {
+    private fun fieldWriteAccess(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression, value: Node) {
         val storeNode = construction.newStore(
             construction.currentMem,
             getFieldMember(fieldAccessExpression.definition!!.node),
@@ -869,7 +868,7 @@ object FirmContext {
     /**
      * Generate a field member node for access
      */
-    private fun getFieldMember(fieldDeclaration: AstNode.ClassMember.FieldDeclaration): Node {
+    private fun getFieldMember(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration): Node {
         return construction.newMember(
             expressionStack.pop(),
             typeRegistry.getField(
@@ -885,7 +884,7 @@ object FirmContext {
      *
      * @param arrayAccess the array access expression
      */
-    fun arrayReadAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression) {
+    fun arrayReadAccess(arrayAccess: SemanticAST.Expression.ArrayAccessExpression) {
         val indexNode = expressionStack.pop()
         val targetNode = expressionStack.pop()
         val addressNode = getArrayPointer(arrayAccess, indexNode, targetNode)
@@ -911,7 +910,7 @@ object FirmContext {
     /**
      * Generate a write access event to an array and push the result value onto the expression stack
      */
-    fun arrayWriteAccess(arrayAccess: AstNode.Expression.ArrayAccessExpression, value: Node) {
+    private fun arrayWriteAccess(arrayAccess: SemanticAST.Expression.ArrayAccessExpression, value: Node) {
         val indexNode = expressionStack.pop()
         val targetNode = expressionStack.pop()
         val addressNode = getArrayPointer(arrayAccess, indexNode, targetNode)
@@ -932,7 +931,7 @@ object FirmContext {
      * Calculate the address of an array element
      */
     private fun getArrayPointer(
-        arrayAccess: AstNode.Expression.ArrayAccessExpression,
+        arrayAccess: SemanticAST.Expression.ArrayAccessExpression,
         indexNode: Node,
         targetNode: Node
     ): Node {
@@ -961,13 +960,13 @@ object FirmContext {
      * anything) don't pop wrong data from the stack.
      */
     fun methodInvocation(
-        methodInvocationExpression: AstNode.Expression.MethodInvocationExpression,
-        surroundingMethod: AstNode.ClassMember.SubroutineDeclaration
+        methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression,
+        surroundingMethod: SemanticAST.ClassMember.SubroutineDeclaration
     ) {
         val numberOfArguments = methodInvocationExpression.arguments.size
 
         val call: Node = when (val type = methodInvocationExpression.type!!) {
-            is AstNode.Expression.MethodInvocationExpression.Type.Internal -> {
+            is SemanticAST.Expression.MethodInvocationExpression.Type.Internal -> {
                 val args = (0 until numberOfArguments).map { this.expressionStack.pop() }.asReversed()
 
                 val method = typeRegistry.getInternalMethod(type.name)
@@ -978,11 +977,11 @@ object FirmContext {
                     method.type
                 )
             }
-            is AstNode.Expression.MethodInvocationExpression.Type.Normal -> {
+            is SemanticAST.Expression.MethodInvocationExpression.Type.Normal -> {
                 // if no target is specified, it is implicitely `this`, but we need to generate the code for it manually, because
                 // the transformer won't do it if `target == null`
                 if (methodInvocationExpression.target == null) {
-                    loadThis(surroundingMethod as AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration)
+                    loadThis(surroundingMethod as SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration)
                 }
                 val target = expressionStack.pop()
 
@@ -1019,7 +1018,7 @@ object FirmContext {
     /**
      * Load `this` pointer into expression stack
      */
-    fun loadThis(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    fun loadThis(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         expressionStack.push(
             construction.getVariable(
                 0,
@@ -1032,7 +1031,7 @@ object FirmContext {
      * Store the initial value of a local variable in its state
      */
     fun localVariableDeclaration(
-        localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration,
+        localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration,
         transformer: TransformationMethodVisitor
     ) {
         if (localVariableDeclaration.initializer != null) {
@@ -1063,7 +1062,7 @@ object FirmContext {
      *
      * @param newArrayExpression the new-array expression
      */
-    fun newArrayAllocation(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+    fun newArrayAllocation(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
         val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getLu())
         val arrayLengthNode = construction.newConv(expressionStack.pop(), Mode.getLu())
         val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
@@ -1076,7 +1075,7 @@ object FirmContext {
      *
      * @param newObjectExpression the new-object expression
      */
-    fun newObjectAllocation(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    fun newObjectAllocation(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         val typeSizeNode =
             construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getLu())
         allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
@@ -1088,7 +1087,7 @@ object FirmContext {
      * @param sizeNode a node containing the size of allocated memory. It must be of type Lu.
      */
     private fun allocateMemory(sizeNode: Node) {
-        val method = typeRegistry.ALLOCATE
+        val method = typeRegistry.allocate
 
         val callNode = construction.newCall(
             construction.currentMem,

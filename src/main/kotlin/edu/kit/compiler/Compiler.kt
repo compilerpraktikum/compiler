@@ -1,21 +1,21 @@
 package edu.kit.compiler
 
+import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.Backend
 import edu.kit.compiler.backend.FirmBackend
 import edu.kit.compiler.backend.createCompilerBackend
 import edu.kit.compiler.backend.createCompilerBackendWithMolki
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lex.Lexer
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.optimization.Optimization
+import edu.kit.compiler.lexer.Lexer
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.optimization.doOptimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.semantic.visitor.PrettyPrintVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.transform.Transformation
-import edu.kit.compiler.wrapper.wrappers.validate
 import firm.Dump.dumpGraph
 import firm.Program
 import firm.Util
@@ -140,7 +140,7 @@ class Compiler(private val config: Config) {
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
-                        Optimization.constantPropagationAndFolding()
+                        doOptimization(config.optimizationLevel)
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(
@@ -171,7 +171,7 @@ class Compiler(private val config: Config) {
         }
     }
 
-    fun dumpGraphsIfEnabled(flag: Dump, phase: String) {
+    private fun dumpGraphsIfEnabled(flag: Dump, phase: String) {
         if (config.dump.contains(flag)) {
             Program.getGraphs().forEach { dumpGraph(it, phase) }
         }
@@ -254,10 +254,16 @@ class Compiler(private val config: Config) {
         override fun toString(): String = cliFlag
     }
 
+    enum class OptimizationLevel(val intValue: Int) {
+        Base(0),
+        Full(1),
+    }
+
     interface Config {
         val mode: Mode
         val sourceFile: Path
         val outputFile: Path?
         val dump: Set<Dump>
+        val optimizationLevel: OptimizationLevel
     }
 }

@@ -1,17 +1,15 @@
 # Compiler
 
-This repository is part of a Uni-Project to write a complete Compiler for a
-subset of Java.
+This repository is part of a [Uni-Project](https://pp.ipd.kit.edu/lehre/WS202122/compprakt/) to write a complete Compiler for a subset of Java.
 
 ## Features
 
 - error recovery using context sensitive anchor sets
 - source annotated error messages
-- type-safe AST annotations and wrapping using `Wrapped`
 
 ## Documentation
 
-- [MiniJava Syntax](./docs/parser/MiniJava%20Syntax.md): left-factorized Grammar, `First` and `Follow` sets
+- [MiniJava Syntax](./docs/parser/MiniJava%20-%20Syntax.md): left-factorized Grammar, `First` and `Follow` sets
 - [Lexer DEA](./docs/LexerDEA.svg): deterministic automata for the lexer
 - [Wrapper AST Prototype](./docs/parser/WrappedAstPrototype.hs): Wrapper prototype written in haskell
 
@@ -44,13 +42,17 @@ $ ./run <arguments>
 # Or just
 $ java -jar out/libs/compiler-all.jar <arguments>
 ```
-
+Use `--help` for information on CLI arguments.
 
 ## Structure
 
 The repository is organized into packages:
-- ast: The `AST` type, Visitor and `Wrapper` type
-- error: Functionality for attaching Errors and Warnings to source-locations
-- lex: The lexer and functionality for getting the current source-location
-- parser
-- prettyprinter: PrettyPrinting Visitor
+- ast: abstract syntax tree
+- backend: assembly generation from FIRM graph
+- error: error handling and output
+- lexer: lexer for input tokenization
+- optimization: program optimization on FIRM graph
+- parser: parser for AST construction
+- semantic: semantic analysis (types, names, lvalue, etc.)
+- source: input handling + source file annotations
+- transform: AST to FIRM graph conversion

@@ -1,121 +1,121 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import java.lang.IllegalStateException
 
 /**
- * Abstract visitor pattern for [AstNode] structure. When overridden, child nodes have to be visited manually (with [accept])
+ * Abstract visitor pattern for [SemanticAST] structure. When overridden, child nodes have to be visited manually (with [accept])
  */
 abstract class AbstractVisitor {
 
-    open fun visitProgram(program: AstNode.Program) {
+    open fun visitProgram(program: SemanticAST.Program) {
         program.classes.forEach { it.accept(this) }
     }
 
-    open fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    open fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         classDeclaration.members.forEach { it.accept(this) }
     }
 
-    open fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    open fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         fieldDeclaration.type.accept(this)
     }
 
-    open fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    open fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         methodDeclaration.returnType.accept(this)
         methodDeclaration.parameters.forEach { it.accept(this) }
         methodDeclaration.block.accept(this)
     }
 
-    open fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    open fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         mainMethodDeclaration.returnType.accept(this)
         mainMethodDeclaration.parameters.forEach { it.accept(this) }
         mainMethodDeclaration.block.accept(this)
     }
 
-    open fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+    open fun visitParameter(parameter: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) {
         parameter.type.accept(this)
     }
 
-    open fun visitStatement(statement: AstNode.Statement) {
+    open fun visitStatement(statement: SemanticAST.Statement) {
         statement.acceptStatement(this)
     }
 
-    open fun visitBlock(block: AstNode.Statement.Block) {
+    open fun visitBlock(block: SemanticAST.Statement.Block) {
         block.statements.forEach { it.accept(this) }
     }
 
-    open fun visitExpressionStatement(expressionStatement: AstNode.Statement.ExpressionStatement) {
+    open fun visitExpressionStatement(expressionStatement: SemanticAST.Statement.ExpressionStatement) {
         expressionStatement.expression.accept(this)
     }
 
-    open fun visitIfStatement(ifStatement: AstNode.Statement.IfStatement) {
+    open fun visitIfStatement(ifStatement: SemanticAST.Statement.IfStatement) {
         ifStatement.condition.accept(this)
         ifStatement.thenCase.accept(this)
         ifStatement.elseCase?.accept(this)
     }
 
-    open fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    open fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
         localVariableDeclaration.type.accept(this)
         localVariableDeclaration.initializer?.accept(this)
     }
 
-    open fun visitReturnStatement(returnStatement: AstNode.Statement.ReturnStatement) {
+    open fun visitReturnStatement(returnStatement: SemanticAST.Statement.ReturnStatement) {
         returnStatement.expression?.accept(this)
     }
 
-    open fun visitWhileStatement(whileStatement: AstNode.Statement.WhileStatement) {
+    open fun visitWhileStatement(whileStatement: SemanticAST.Statement.WhileStatement) {
         whileStatement.condition.accept(this)
         whileStatement.statement.accept(this)
     }
 
-    open fun visitExpression(expression: AstNode.Expression) {
+    open fun visitExpression(expression: SemanticAST.Expression) {
         expression.acceptExpression(this)
     }
 
-    open fun visitArrayAccessExpression(arrayAccessExpression: AstNode.Expression.ArrayAccessExpression) {
+    open fun visitArrayAccessExpression(arrayAccessExpression: SemanticAST.Expression.ArrayAccessExpression) {
         arrayAccessExpression.target.accept(this)
         arrayAccessExpression.index.accept(this)
     }
 
-    open fun visitBinaryOperation(binaryOperation: AstNode.Expression.BinaryOperation) {
+    open fun visitBinaryOperation(binaryOperation: SemanticAST.Expression.BinaryOperation) {
         binaryOperation.left.accept(this)
         binaryOperation.right.accept(this)
     }
 
-    open fun visitFieldAccessExpression(fieldAccessExpression: AstNode.Expression.FieldAccessExpression) {
+    open fun visitFieldAccessExpression(fieldAccessExpression: SemanticAST.Expression.FieldAccessExpression) {
         fieldAccessExpression.target.accept(this)
     }
 
-    open fun visitIdentifierExpression(identifierExpression: AstNode.Expression.IdentifierExpression) {
+    open fun visitIdentifierExpression(identifierExpression: SemanticAST.Expression.IdentifierExpression) {
     }
 
-    open fun visitLiteralBoolExpression(literalBoolExpression: AstNode.Expression.LiteralExpression.LiteralBoolExpression) {
+    open fun visitLiteralBoolExpression(literalBoolExpression: SemanticAST.Expression.LiteralExpression.LiteralBoolExpression) {
     }
 
-    open fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+    open fun visitLiteralIntExpression(literalIntExpression: SemanticAST.Expression.LiteralExpression.LiteralIntExpression) {
     }
 
-    open fun visitLiteralNullExpression(literalNullExpression: AstNode.Expression.LiteralExpression.LiteralNullExpression) {
+    open fun visitLiteralNullExpression(literalNullExpression: SemanticAST.Expression.LiteralExpression.LiteralNullExpression) {
     }
 
-    open fun visitLiteralThisExpression(literalThisExpression: AstNode.Expression.LiteralExpression.LiteralThisExpression) {
+    open fun visitLiteralThisExpression(literalThisExpression: SemanticAST.Expression.LiteralExpression.LiteralThisExpression) {
     }
 
-    open fun visitMethodInvocationExpression(methodInvocationExpression: AstNode.Expression.MethodInvocationExpression) {
+    open fun visitMethodInvocationExpression(methodInvocationExpression: SemanticAST.Expression.MethodInvocationExpression) {
         methodInvocationExpression.target?.accept(this)
         methodInvocationExpression.arguments.forEach { it.accept(this) }
     }
 
-    open fun visitNewArrayExpression(newArrayExpression: AstNode.Expression.NewArrayExpression) {
+    open fun visitNewArrayExpression(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
         newArrayExpression.type.accept(this)
         newArrayExpression.length.accept(this)
     }
 
-    open fun visitNewObjectExpression(newObjectExpression: AstNode.Expression.NewObjectExpression) {
+    open fun visitNewObjectExpression(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
     }
 
-    open fun visitUnaryOperation(unaryOperation: AstNode.Expression.UnaryOperation) {
+    open fun visitUnaryOperation(unaryOperation: SemanticAST.Expression.UnaryOperation) {
         unaryOperation.inner.accept(this)
     }
 
@@ -136,64 +136,64 @@ abstract class AbstractVisitor {
     }
 }
 
-fun AstNode.accept(visitor: AbstractVisitor) {
+fun SemanticAST.accept(visitor: AbstractVisitor) {
     when (this) {
-        is AstNode.Program -> visitor.visitProgram(this)
-        is AstNode.ClassDeclaration -> visitor.visitClassDeclaration(this)
-        is AstNode.ClassMember -> this.accept(visitor)
-        is AstNode.ClassMember.SubroutineDeclaration.Parameter -> visitor.visitParameter(this)
-        is AstNode.Expression -> this.accept(visitor)
-        is AstNode.Statement -> this.accept(visitor)
+        is SemanticAST.Program -> visitor.visitProgram(this)
+        is SemanticAST.ClassDeclaration -> visitor.visitClassDeclaration(this)
+        is SemanticAST.ClassMember -> this.accept(visitor)
+        is SemanticAST.ClassMember.SubroutineDeclaration.Parameter -> visitor.visitParameter(this)
+        is SemanticAST.Expression -> this.accept(visitor)
+        is SemanticAST.Statement -> this.accept(visitor)
     }
 }
 
-fun AstNode.ClassMember.accept(visitor: AbstractVisitor) {
+fun SemanticAST.ClassMember.accept(visitor: AbstractVisitor) {
     when (this) {
-        is AstNode.ClassMember.FieldDeclaration -> visitor.visitFieldDeclaration(this)
-        is AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration -> visitor.visitMainMethodDeclaration(this)
-        is AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration -> visitor.visitMethodDeclaration(this)
+        is SemanticAST.ClassMember.FieldDeclaration -> visitor.visitFieldDeclaration(this)
+        is SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration -> visitor.visitMainMethodDeclaration(this)
+        is SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration -> visitor.visitMethodDeclaration(this)
     }
 }
 
-fun AstNode.Statement.accept(visitor: AbstractVisitor) {
+fun SemanticAST.Statement.accept(visitor: AbstractVisitor) {
     visitor.visitStatement(this)
 }
 
-fun AstNode.Statement.acceptStatement(visitor: AbstractVisitor) {
+fun SemanticAST.Statement.acceptStatement(visitor: AbstractVisitor) {
     when (this) {
-        is AstNode.Statement.Block -> visitor.visitBlock(this)
-        is AstNode.Statement.ExpressionStatement -> visitor.visitExpressionStatement(this)
-        is AstNode.Statement.IfStatement -> visitor.visitIfStatement(this)
-        is AstNode.Statement.LocalVariableDeclaration -> visitor.visitLocalVariableDeclaration(this)
-        is AstNode.Statement.ReturnStatement -> visitor.visitReturnStatement(this)
-        is AstNode.Statement.WhileStatement -> visitor.visitWhileStatement(this)
+        is SemanticAST.Statement.Block -> visitor.visitBlock(this)
+        is SemanticAST.Statement.ExpressionStatement -> visitor.visitExpressionStatement(this)
+        is SemanticAST.Statement.IfStatement -> visitor.visitIfStatement(this)
+        is SemanticAST.Statement.LocalVariableDeclaration -> visitor.visitLocalVariableDeclaration(this)
+        is SemanticAST.Statement.ReturnStatement -> visitor.visitReturnStatement(this)
+        is SemanticAST.Statement.WhileStatement -> visitor.visitWhileStatement(this)
     }
 }
 
-fun AstNode.Expression.accept(visitor: AbstractVisitor) {
+fun SemanticAST.Expression.accept(visitor: AbstractVisitor) {
     visitor.visitExpression(this)
 }
 
-fun AstNode.Expression.acceptExpression(visitor: AbstractVisitor) {
+fun SemanticAST.Expression.acceptExpression(visitor: AbstractVisitor) {
     when (this) {
-        is AstNode.Expression.ArrayAccessExpression -> visitor.visitArrayAccessExpression(this)
-        is AstNode.Expression.BinaryOperation -> visitor.visitBinaryOperation(this)
-        is AstNode.Expression.FieldAccessExpression -> visitor.visitFieldAccessExpression(this)
-        is AstNode.Expression.IdentifierExpression -> visitor.visitIdentifierExpression(this)
-        is AstNode.Expression.LiteralExpression -> this.accept(visitor)
-        is AstNode.Expression.MethodInvocationExpression -> visitor.visitMethodInvocationExpression(this)
-        is AstNode.Expression.NewArrayExpression -> visitor.visitNewArrayExpression(this)
-        is AstNode.Expression.NewObjectExpression -> visitor.visitNewObjectExpression(this)
-        is AstNode.Expression.UnaryOperation -> visitor.visitUnaryOperation(this)
+        is SemanticAST.Expression.ArrayAccessExpression -> visitor.visitArrayAccessExpression(this)
+        is SemanticAST.Expression.BinaryOperation -> visitor.visitBinaryOperation(this)
+        is SemanticAST.Expression.FieldAccessExpression -> visitor.visitFieldAccessExpression(this)
+        is SemanticAST.Expression.IdentifierExpression -> visitor.visitIdentifierExpression(this)
+        is SemanticAST.Expression.LiteralExpression -> this.accept(visitor)
+        is SemanticAST.Expression.MethodInvocationExpression -> visitor.visitMethodInvocationExpression(this)
+        is SemanticAST.Expression.NewArrayExpression -> visitor.visitNewArrayExpression(this)
+        is SemanticAST.Expression.NewObjectExpression -> visitor.visitNewObjectExpression(this)
+        is SemanticAST.Expression.UnaryOperation -> visitor.visitUnaryOperation(this)
     }
 }
 
-fun AstNode.Expression.LiteralExpression.accept(visitor: AbstractVisitor) {
+fun SemanticAST.Expression.LiteralExpression.accept(visitor: AbstractVisitor) {
     when (this) {
-        is AstNode.Expression.LiteralExpression.LiteralBoolExpression -> visitor.visitLiteralBoolExpression(this)
-        is AstNode.Expression.LiteralExpression.LiteralIntExpression -> visitor.visitLiteralIntExpression(this)
-        is AstNode.Expression.LiteralExpression.LiteralNullExpression -> visitor.visitLiteralNullExpression(this)
-        is AstNode.Expression.LiteralExpression.LiteralThisExpression -> visitor.visitLiteralThisExpression(this)
+        is SemanticAST.Expression.LiteralExpression.LiteralBoolExpression -> visitor.visitLiteralBoolExpression(this)
+        is SemanticAST.Expression.LiteralExpression.LiteralIntExpression -> visitor.visitLiteralIntExpression(this)
+        is SemanticAST.Expression.LiteralExpression.LiteralNullExpression -> visitor.visitLiteralNullExpression(this)
+        is SemanticAST.Expression.LiteralExpression.LiteralThisExpression -> visitor.visitLiteralThisExpression(this)
     }
 }
 

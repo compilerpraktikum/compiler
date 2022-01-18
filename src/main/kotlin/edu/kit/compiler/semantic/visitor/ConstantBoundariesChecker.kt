@@ -1,7 +1,7 @@
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
+import edu.kit.compiler.source.SourceFile
 import java.math.BigInteger
 
 private val MAX_INT = BigInteger("2147483647")
@@ -12,7 +12,7 @@ private val MAX_INT_NEGATED = BigInteger("2147483648")
  */
 class ConstantBoundariesChecker(val sourceFile: SourceFile) : AbstractVisitor() {
 
-    override fun visitLiteralIntExpression(literalIntExpression: AstNode.Expression.LiteralExpression.LiteralIntExpression) {
+    override fun visitLiteralIntExpression(literalIntExpression: SemanticAST.Expression.LiteralExpression.LiteralIntExpression) {
         val maxValue = if (literalIntExpression.isNegated) MAX_INT_NEGATED else MAX_INT
         val isValid = (BigInteger(literalIntExpression.value) <= maxValue)
 

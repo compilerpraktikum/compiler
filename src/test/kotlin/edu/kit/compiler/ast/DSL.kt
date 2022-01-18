@@ -1,11 +1,10 @@
 package edu.kit.compiler.ast
 
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourcePosition
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.StringTable
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
+import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourcePosition
+import edu.kit.compiler.source.SourceRange
 
 abstract class AstDsl<T>(var res: MutableList<T> = mutableListOf())
 
@@ -92,8 +91,8 @@ class ClassMemberDsl(res: MutableList<Parsed<AST.ClassMember>> = mutableListOf()
 object ExprDsl {
     fun <T> literal(v: T) = when (v) {
         is Boolean -> AST.LiteralExpression.Boolean(v)
-        null -> AST.LiteralExpression.Null()
-        "this" -> AST.LiteralExpression.This()
+        null -> AST.LiteralExpression.Null
+        "this" -> AST.LiteralExpression.This
         is String -> {
             check(v.matches("-?(0|[1-9]\\d*)".toRegex()))
             if (v.startsWith("-")) {

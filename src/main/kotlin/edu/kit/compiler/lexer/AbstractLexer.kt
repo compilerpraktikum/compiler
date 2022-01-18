@@ -1,6 +1,9 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.lexer
 
 import edu.kit.compiler.Token
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.InputProvider
+import edu.kit.compiler.source.SourceFile
 
 /**
  * Generic base class for lexers.
@@ -28,7 +31,7 @@ abstract class AbstractLexer(
 
     /**
      * Lexes the given input.
-     * @return [Flow] of [Tokens][Token]
+     * @return [Sequence] of [Tokens][Token]
      */
     fun tokens(): Sequence<Token> = sequence {
         // need to use next() instead of peek() because otherwise the source position is not correct

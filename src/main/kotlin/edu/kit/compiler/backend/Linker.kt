@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend
 
 import edu.kit.compiler.CompilationException
+import edu.kit.compiler.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,6 +19,7 @@ class Linker {
             "-o", executableFile.toAbsolutePath().toString()
         ).inheritIO()
 
+        Logger.debug { "Linking executable using gcc ..." }
         try {
             val process = processBuilder.start()
             val exitCode = process.waitFor()

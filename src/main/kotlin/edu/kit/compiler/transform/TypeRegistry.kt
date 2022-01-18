@@ -1,9 +1,9 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.prependIfNotNull
-import edu.kit.compiler.semantic.AstNode
 import edu.kit.compiler.semantic.InternalFunction
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.dimension
@@ -125,7 +125,7 @@ class TypeRegistry {
 
     private val internalMethods = mutableMapOf<String, Entity>()
 
-    private fun createInternalMethod(func: AstNode.Expression.MethodInvocationExpression.Type.Internal): Entity {
+    private fun createInternalMethod(func: SemanticAST.Expression.MethodInvocationExpression.Type.Internal): Entity {
         val entity = createMethod(Program.getGlobalType(), func.name, func.returnType, func.parameters, null)
         val prevValue = internalMethods.putIfAbsent(func.name, entity)
         require(prevValue == null) { "internal method `${func.fullName}` already registered" }
@@ -149,7 +149,7 @@ class TypeRegistry {
         createInternalMethod(InternalFunction.SYSTEM_OUT_WRITE)
         createInternalMethod(InternalFunction.SYSTEM_OUT_FLUSH)
     }
-    val ALLOCATE = createAllocateFunction()
+    val allocate = createAllocateFunction()
 
     fun getInternalMethod(name: String): Entity {
         return internalMethods[name] ?: throw IllegalArgumentException("unknown internal method `$name`")

@@ -1,7 +1,7 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.lex.Symbol
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 
@@ -9,19 +9,19 @@ import edu.kit.compiler.semantic.visitor.AbstractVisitor
  * A visitor implementation that constructs class types for the firm graph.
  */
 class ClassConstructionVisitor : AbstractVisitor() {
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         FirmContext.typeRegistry.createClass(classDeclaration.name.symbol)
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         // do not descend
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         // do not descend
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         // do not descend
     }
 }
@@ -30,9 +30,9 @@ class ClassConstructionVisitor : AbstractVisitor() {
  * A visitor implementation that constructs method types for the firm graph.
  */
 class MethodConstructionVisitor : AbstractVisitor() {
-    var currentClassSymbol: Symbol? = null
+    private var currentClassSymbol: Symbol? = null
 
-    override fun visitClassDeclaration(classDeclaration: AstNode.ClassDeclaration) {
+    override fun visitClassDeclaration(classDeclaration: SemanticAST.ClassDeclaration) {
         currentClassSymbol = classDeclaration.name.symbol
         val classType = FirmContext.typeRegistry.getClassType(classDeclaration.name.symbol)
         super.visitClassDeclaration(classDeclaration)
@@ -40,7 +40,7 @@ class MethodConstructionVisitor : AbstractVisitor() {
         classType.finishLayout()
     }
 
-    override fun visitFieldDeclaration(fieldDeclaration: AstNode.ClassMember.FieldDeclaration) {
+    override fun visitFieldDeclaration(fieldDeclaration: SemanticAST.ClassMember.FieldDeclaration) {
         FirmContext.typeRegistry.createField(
             currentClassSymbol!!,
             fieldDeclaration.name.symbol,
@@ -49,7 +49,7 @@ class MethodConstructionVisitor : AbstractVisitor() {
         // do not descend
     }
 
-    override fun visitMethodDeclaration(methodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MethodDeclaration) {
+    override fun visitMethodDeclaration(methodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MethodDeclaration) {
         FirmContext.typeRegistry.createMethod(
             currentClassSymbol!!,
             methodDeclaration.name.symbol,
@@ -60,7 +60,7 @@ class MethodConstructionVisitor : AbstractVisitor() {
         // do not descend
     }
 
-    override fun visitMainMethodDeclaration(mainMethodDeclaration: AstNode.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
+    override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
         // overwrite types to match a c main method (`int main() {}`)
         FirmContext.typeRegistry.createMethod(
             currentClassSymbol!!,

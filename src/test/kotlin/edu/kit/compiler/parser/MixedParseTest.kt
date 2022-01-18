@@ -2,11 +2,11 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.ILLEGAL_SOURCE_RANGE
+import edu.kit.compiler.ast.Parsed
 import edu.kit.compiler.ast.astOf
 import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import edu.kit.compiler.wrapper.wrappers.Parsed
 import org.junit.jupiter.api.Test
 import kotlin.test.Ignore
 
@@ -259,7 +259,7 @@ internal class MixedParseTest {
                                     listOf(
                                         AST.IfStatement(
                                             AST.FieldAccessExpression(
-                                                AST.LiteralExpression.Null().wrapMockValid(),
+                                                AST.LiteralExpression.Null.wrapMockValid(),
                                                 "nothing".toSymbol().wrapMockValid()
                                             )
                                                 .wrapMockValid(),

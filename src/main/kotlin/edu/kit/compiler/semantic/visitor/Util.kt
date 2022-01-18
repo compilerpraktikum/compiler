@@ -1,13 +1,15 @@
 
 package edu.kit.compiler.semantic.visitor
 
-import edu.kit.compiler.lex.AnnotatableFile
-import edu.kit.compiler.lex.AnnotationType
-import edu.kit.compiler.lex.SourceFile
-import edu.kit.compiler.lex.SourceNote
-import edu.kit.compiler.lex.SourceRange
+import edu.kit.compiler.source.AnnotatableFile
+import edu.kit.compiler.source.AnnotationType
+import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.source.SourceNote
+import edu.kit.compiler.source.SourceRange
 
-fun AnnotatableFile.error(lazyAnnotation: () -> AnnotationBuilder) = this.annotate(lazyAnnotation().toAnnotation(AnnotationType.ERROR))
+fun AnnotatableFile.error(lazyAnnotation: () -> AnnotationBuilder) = this.annotate(
+    lazyAnnotation().toAnnotation(AnnotationType.ERROR)
+)
 fun AnnotatableFile.errorIf(condition: Boolean, lazyAnnotation: () -> AnnotationBuilder) {
     if (condition) {
         this.annotate(lazyAnnotation().toAnnotation(AnnotationType.ERROR))

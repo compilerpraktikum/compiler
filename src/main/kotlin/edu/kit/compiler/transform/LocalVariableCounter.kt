@@ -1,6 +1,6 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.semantic.AstNode
+import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 
@@ -20,20 +20,20 @@ class LocalVariableCounter(startIndex: Int) : AbstractVisitor() {
     /**
      * Mapping of local variables to an integer id
      */
-    val definitionMapping = mutableMapOf<AstNode.Statement.LocalVariableDeclaration, Int>()
+    val definitionMapping = mutableMapOf<SemanticAST.Statement.LocalVariableDeclaration, Int>()
 
     /**
      * Mapping of parameters to an integer id
      */
-    val parameterMapping = mutableMapOf<AstNode.ClassMember.SubroutineDeclaration.Parameter, Int>()
+    val parameterMapping = mutableMapOf<SemanticAST.ClassMember.SubroutineDeclaration.Parameter, Int>()
 
-    override fun visitParameter(parameter: AstNode.ClassMember.SubroutineDeclaration.Parameter) {
+    override fun visitParameter(parameter: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) {
         if (!(parameter.type is SemanticType.Class && parameter.type.name.text == "String")) {
             parameterMapping[parameter] = numberOfVariables++
         }
     }
 
-    override fun visitLocalVariableDeclaration(localVariableDeclaration: AstNode.Statement.LocalVariableDeclaration) {
+    override fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
         definitionMapping[localVariableDeclaration] = numberOfVariables++
     }
 }

@@ -1,9 +1,8 @@
-package edu.kit.compiler.wrapper.wrappers
+package edu.kit.compiler.ast
 
-import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.AST.Type
-import edu.kit.compiler.lex.SourceRange
-import edu.kit.compiler.lex.Symbol
+import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.source.SourceRange
 
 abstract class AbstractAstVisitor {
 
@@ -193,7 +192,7 @@ abstract class AbstractAstVisitor {
     open fun visitIfStatement(ifStatement: Parsed<AST.IfStatement>): Parsed<AST.IfStatement> = ifStatement.map {
         val cond = visitExpression(it.condition)
         val thenStmt = visitStatement(it.trueStatement)
-        val elseStmt = it.falseStatement?.let { it -> visitStatement(it) }
+        val elseStmt = it.falseStatement?.let { visitStatement(it) }
 
         AST.IfStatement(cond, thenStmt, elseStmt)
     }.mapPosition { visitSourceRange(it) }
@@ -202,14 +201,14 @@ abstract class AbstractAstVisitor {
         localVariableDeclaration.map {
             val name = visitIdentifier(it.name)
             val type = visitType(it.type)
-            val initializer = it.initializer?.let { it -> visitExpression(it) }
+            val initializer = it.initializer?.let { visitExpression(it) }
 
             AST.LocalVariableDeclarationStatement(name, type, initializer)
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitReturnStatement(returnStatement: Parsed<AST.ReturnStatement>): Parsed<AST.ReturnStatement> =
         returnStatement.map {
-            AST.ReturnStatement(it.expression?.let { it -> visitExpression(it) })
+            AST.ReturnStatement(it.expression?.let { visitExpression(it) })
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitWhileStatement(whileStatement: Parsed<AST.WhileStatement>): Parsed<AST.WhileStatement> =

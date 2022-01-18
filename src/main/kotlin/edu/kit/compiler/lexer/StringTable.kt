@@ -1,4 +1,4 @@
-package edu.kit.compiler.lex
+package edu.kit.compiler.lexer
 
 import edu.kit.compiler.semantic.VariableDefinition
 
@@ -45,12 +45,5 @@ class StringTable(
     fun registerKeyword(name: String) {
         require(!symbols.contains(name)) { "keyword '$name' already registered" }
         symbols[name] = Symbol(name, isKeyword = true)
-    }
-
-    /**
-     * Get the [Symbol] associated with the given identifier name.
-     */
-    fun getSymbolOrNull(name: String): Symbol? {
-        return symbols[name]
     }
 }

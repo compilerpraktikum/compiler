@@ -117,7 +117,7 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String {
             val args = arguments.joinToString(" | ") { it.toMolki() }
             val resultStr = result?.let { " -> ${it.toMolki()}" } ?: ""
-            return "call $name [ $arguments ]$resultStr"
+            return "call $name [ $args ]$resultStr"
         }
     }
 
