@@ -67,31 +67,33 @@ private constructor(
     val index: Register?,
     val scale: Int?,
 ) : Target.InputOutput {
-            companion object {
-                fun constantOffset(const: String,
-                                   base: Register,
-                                   index: Register? = null,
-                                   scale: Int? = null) =
-                    Memory(const as String?, base, index, scale)
-            }
+    companion object {
+        fun of(
+            const: String,
+            base: Register,
+            index: Register? = null,
+            scale: Int? = null
+        ) = Memory(const, base, index, scale)
+
+        fun of(
+            base: Register,
+            index: Register? = null,
+            scale: Int? = null
+        ) = Memory(null, base, index, scale)
+
+        fun of(
+            const: String,
+            index: Register? = null,
+            scale: Int? = null
+        ) = Memory(const, null, index, scale)
+    }
+
     init {
         if (scale != null) {
             check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
             check(index != null) { "cannot provide scale without index" }
         }
     }
-
-    constructor(
-        base: Register,
-        index: Register? = null,
-        scale: Int? = null
-    ) : this(null, base, index, scale)
-
-    constructor(
-        const: String,
-        index: Register? = null,
-        scale: Int? = null
-    ) : this(const, null, index, scale)
 
     override fun toMolki(): String {
         val constStr = const?.toString() ?: ""

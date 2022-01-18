@@ -1,14 +1,11 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
-import edu.kit.compiler.backend.molkir.MolkIR
-import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 import edu.kit.compiler.backend.molkir.RegisterId
-import edu.kit.compiler.backend.molkir.Target
 import edu.kit.compiler.backend.molkir.Width
 import firm.nodes.Node
+import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 
 class VirtualRegisterTable {
     val map: MutableMap<CodeGenIR, MolkiRegister> = mutableMapOf()
@@ -32,10 +29,8 @@ class VirtualRegisterTable {
         map[node] = register
     }
 
-
     fun getRegisterFor(node: CodeGenIR): MolkiRegister? = map[node]
 }
-
 
 val rules = listOf(
     // Rule 5: movq a(R_j), R_i -> R_k
@@ -59,7 +54,7 @@ val rules = listOf(
             val newRegister = newRegister()
             CodeGenIR.RegisterRef(newRegister) to listOf(
                 Instruction.movq(
-                    Memory.constantOffset(const = constValue.get(), base = register.get()),
+                    Memory.of(const = constValue.get(), base = register.get()),
                     resRegister.get()
                 )
             )
@@ -73,6 +68,7 @@ data class ValueHolder<T>(private var value: T? = null) {
         check(value == null) { "cannot set value twice" }
         value = v
     }
+
     fun get(): T = value ?: error("value not initialized")
 
     fun reset() {
