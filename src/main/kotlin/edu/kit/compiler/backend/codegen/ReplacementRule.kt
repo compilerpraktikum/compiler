@@ -1,58 +1,59 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Instruction
+import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.MolkIR
+import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Target
-import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Constant
-import edu.kit.compiler.backend.molkir.Target.InputOutputTarget.Register
 import edu.kit.compiler.backend.molkir.Width
 import firm.nodes.Node
 
 class VirtualRegisterTable {
-    val map: MutableMap<CodeGenIR, Register> = mutableMapOf()
+    val map: MutableMap<CodeGenIR, MolkiRegister> = mutableMapOf()
     private var nextRegisterId: Int = 0
 
-    fun newRegisterFor(node: CodeGenIR, width: Width): Register {
+    fun newRegisterFor(node: CodeGenIR, width: Width): MolkiRegister {
         val registerId = nextRegisterId++
-        val register = Register(RegisterId(registerId), width)
+        val register = MolkiRegister(RegisterId(registerId), width)
         map[node] = register
         return register
     }
 
-    fun newRegisterFor(node: Node): Register {
+    fun newRegisterFor(node: Node): MolkiRegister {
         val registerId = nextRegisterId++
         val width = Width.fromByteSize(node.mode.sizeBytes)
             ?: error("cannot infer register width from mode \"${node.mode.name}\"")
-        return Register(RegisterId(registerId), width)
+        return MolkiRegister(RegisterId(registerId), width)
     }
 
-    fun putNode(node: CodeGenIR, register: Register) {
+    fun putNode(node: CodeGenIR, register: MolkiRegister) {
         map[node] = register
     }
 
 
-    fun getRegisterFor(node: CodeGenIR): Register? = map[node]
+    fun getRegisterFor(node: CodeGenIR): MolkiRegister? = map[node]
 }
 
-typealias Pattern = CodeGenIR
-
-fun interface ReplacementRule {
-    fun matches(node: CodeGenIR, registers: VirtualRegisterTable): Pair<CodeGenIR, MolkIR>?
-}
-
-val replacementRules: List<ReplacementRule> = listOf(
-    // Constant -> Register
-    ReplacementRule { node, registers ->
-        if (node is CodeGenIR.Const) {
-            val register = registers.newRegisterFor(node, Width.DOUBLE)
-            CodeGenIR.RegisterRef(register) to Instruction.movq(Constant(node.const), register)
-        } else {
-            null
-        }
-    },
-    // Read
-)
+//typealias Pattern = CodeGenIR
+//
+//fun interface ReplacementRule {
+//    fun matches(node: CodeGenIR, registers: VirtualRegisterTable): Pair<CodeGenIR, MolkIR>?
+//}
+//
+//val replacementRules: List<ReplacementRule> = listOf(
+//    // Constant -> Register
+//    ReplacementRule { node, registers ->
+//        if (node is CodeGenIR.Const) {
+//            val register = registers.newRegisterFor(node, Width.DOUBLE)
+//            CodeGenIR.RegisterRef(register) to Instruction.movq(Constant(node.const), register)
+//        } else {
+//            null
+//        }
+//    },
+//    // Read
+//)
 
 sealed class MatchIR {
     abstract fun match(node: CodeGenIR): Boolean
@@ -73,7 +74,7 @@ sealed class MatchIR {
     }
 
     class Register(
-        private val id: ValueHolder<Target.InputOutputTarget.Register>
+        private val id: ValueHolder<MolkiRegister>
     ) : MatchIR() {
         override fun match(node: CodeGenIR): Boolean {
             if (node is CodeGenIR.RegisterRef) {
@@ -116,7 +117,7 @@ sealed class MatchIR {
 val rules = listOf(
     rule {
         val constValue = value<Int>()
-        val register = value<Register>()
+        val register = value<MolkiRegister>()
 
         match(
             MatchIR.Load(
@@ -131,7 +132,7 @@ val rules = listOf(
             val newRegister = newRegister()
             CodeGenIR.RegisterRef(newRegister) to listOf(
                 Instruction.movq(
-                    Target.InputOutputTarget.Memory(const = constValue.get(), base = register.get()),
+                    Memory(const = constValue.get(), base = register.get()),
                     newRegister
                 )
             )
@@ -160,7 +161,7 @@ data class MatchResult(
 )
 
 class ReplacerScope {
-    fun newRegister(): Register = TODO()
+    fun newRegister(): MolkiRegister = TODO()
 }
 
 // does not work yet because it does not support the needed dynamic programming approach yet
