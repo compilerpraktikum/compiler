@@ -2,13 +2,13 @@ package edu.kit.compiler.backend.molkir
 
 import java.io.PrintStream
 
-@JvmInline
-value class RegisterId(private val registerNumber: Int) : MolkIR {
-    override fun toMolki() = "%@$registerNumber"
-}
-
 interface MolkIR {
     fun toMolki(): String
+}
+
+@JvmInline
+value class RegisterId(private val registerNumber: Int) : MolkIR {
+    override fun toMolki() = registerNumber.toString()
 }
 
 enum class Width(val inBytes: Int, val suffix: String) {
@@ -48,7 +48,7 @@ sealed class Target : MolkIR {
         }
 
         data class Register(val id: RegisterId, val width: Width) : InputOutputTarget() {
-            override fun toMolki(): String = id.toMolki() + width.suffix
+            override fun toMolki(): String = "%@" + id.toMolki() + width.suffix
 
             companion object {
                 fun byte(id: RegisterId) = Register(id, Width.BYTE)
