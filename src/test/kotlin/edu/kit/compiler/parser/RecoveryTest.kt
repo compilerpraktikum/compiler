@@ -1,7 +1,7 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.source.SourceFile
-import edu.kit.compiler.utils.createLexer
+import edu.kit.compiler.utils.createParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -40,8 +40,7 @@ class RecoveryTest {
                 errorPositions.add(curr - errorPositions.size)
         } while (curr > -1)
 
-        val (lexer, sourceFile) = createLexer(input.replace("#", ""))
-        val parser = Parser(sourceFile, lexer.tokens())
+        val (parser, sourceFile) = createParser(input.replace("#", ""))
         parser.parse()
 
         sourceFile.printAnnotations()

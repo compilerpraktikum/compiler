@@ -1,8 +1,7 @@
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.validate
-import edu.kit.compiler.error.AnnotationFormatter
-import edu.kit.compiler.utils.createLexer
+import edu.kit.compiler.utils.createParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -39,11 +38,10 @@ class RegressionTest {
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun testParse(input: String, shouldSucceed: Boolean = false) {
-        val (lexer, sourceFile) = createLexer(input)
-        val parser = Parser(sourceFile, lexer.tokens())
+        val (parser, sourceFile) = createParser(input)
         val ast = parser.parse()
 
-        sourceFile.printAnnotations(AnnotationFormatter.DEFAULT)
+        sourceFile.printAnnotations()
 
         assertEquals(shouldSucceed, ast.validate() != null)
     }
