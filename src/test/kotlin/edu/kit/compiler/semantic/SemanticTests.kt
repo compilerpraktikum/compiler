@@ -6,6 +6,7 @@ import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.ConstantBoundariesChecker
 import edu.kit.compiler.semantic.visitor.MainMethodCounter
 import edu.kit.compiler.semantic.visitor.MainMethodVerifier
+import edu.kit.compiler.semantic.visitor.ReturnStatementSearcher
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.utils.createLexer
@@ -159,6 +160,43 @@ internal class SemanticTests {
             """.trimIndent(),
             ::ConstantBoundariesChecker,
             shouldSucceed = true
+        )
+    }
+
+    @Test
+    fun testReturnsInvalid() {
+        testCheck(
+            """
+            class Fibonacci {
+                public int fib(int n) {
+                    int a = 0;
+                    int b = 1;
+                    if (true) {
+                        if (false) {
+                            return 0;
+                        } else {
+                            if (false) {
+                                return 2;
+                            } else {
+                                a = 5;
+                            }
+                        }
+                    } else {
+                        return 3;
+                    }
+                    while (n > 0) {
+                        int c = a + b;
+                        a = b;
+                        b = c;
+                        n = n - 1;
+                    }
+                }
+                public static void main(String[] args) {}
+            }
+
+            """.trimIndent(),
+            ::ReturnStatementSearcher,
+            shouldSucceed = false
         )
     }
 
