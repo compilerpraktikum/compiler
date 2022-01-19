@@ -2,9 +2,9 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.AbstractAstVisitor
 import edu.kit.compiler.source.SourceRange
+import edu.kit.compiler.utils.createParser
 import edu.kit.compiler.utils.debug
 import edu.kit.compiler.utils.emptyAnchorSet
-import edu.kit.compiler.utils.withParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -77,7 +77,8 @@ class SourceRangeTest {
             it.startsWith("#")
         }
         println("source: $source")
-        val parsed = withParser(source.joinToString("\n")) { runParser() }
+        val (parser) = createParser(source.joinToString("\n"))
+        val parsed = parser.runParser()
         val sourceRangeCollector = SourceRangeCollector()
         println("parsed:    $parsed")
         sourceRangeCollector.runVisitor(parsed)

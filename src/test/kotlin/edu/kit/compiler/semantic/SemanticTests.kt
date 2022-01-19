@@ -164,7 +164,7 @@ internal class SemanticTests {
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun testCheck(input: String, acceptor: (SourceFile) -> AbstractVisitor, shouldSucceed: Boolean = false) {
-        val (lexer, sourceFile) = createLexer(input, 3)
+        val (lexer, sourceFile) = createLexer(input)
         val parser = Parser(sourceFile, lexer.tokens())
         val ast = parser.parse().validate() ?: run {
             sourceFile.printAnnotations()

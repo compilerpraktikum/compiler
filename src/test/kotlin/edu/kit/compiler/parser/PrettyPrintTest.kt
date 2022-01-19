@@ -2,7 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.utils.assertIdempotence
-import edu.kit.compiler.utils.createAST
+import edu.kit.compiler.utils.createSemanticAST
 import edu.kit.compiler.utils.prettyPrint
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -301,8 +301,8 @@ class PrettyPrintTest {
     }
 
     private fun assertPrettyPrintEqualsDesired(input: String, expected: String) {
-        val ast = createAST(input)
-        val pretty = prettyPrint(ast!!)
+        val (ast) = createSemanticAST(input)
+        val pretty = prettyPrint(ast)
 
         assertEquals(expected, pretty.normalizeIndent().normalizeLineEndings())
     }
