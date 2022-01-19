@@ -82,3 +82,12 @@ fun prettyPrint(program: SemanticAST.Program): String {
     printStream.flush()
     return out.toString(Charsets.UTF_8)
 }
+
+fun assertAnnotations(expectedAnnotations: List<String>, source: SourceFile) {
+    assertEquals(expectedAnnotations.size, source.getAnnotations().count())
+    expectedAnnotations.asSequence()
+        .zip(source.getAnnotations())
+        .forEachIndexed { index, (expected, actual) ->
+            assertEquals(expected, actual.message, "annotation #$index differs")
+        }
+}
