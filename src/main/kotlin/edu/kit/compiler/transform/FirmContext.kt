@@ -77,6 +77,7 @@ object FirmContext {
      * Initialize the firm framework
      */
     fun init() {
+        Firm.VERSION = Firm.FirmVersion.RELEASE
         Firm.init("x86_64-linux-gnu", arrayOf("pic=1"))
         Logger.debug { "Initialized libFirm Version: ${Firm.getMajorVersion()}.${Firm.getMinorVersion()}" }
 
