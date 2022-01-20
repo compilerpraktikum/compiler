@@ -4,7 +4,7 @@ import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.utils.assertIdempotence
 import edu.kit.compiler.utils.createSemanticAST
 import edu.kit.compiler.utils.prettyPrint
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 private fun String.normalizeIndent() = replace("\t", " ".repeat(4))

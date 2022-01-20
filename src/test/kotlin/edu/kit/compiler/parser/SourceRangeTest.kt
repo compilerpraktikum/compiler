@@ -5,7 +5,7 @@ import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.utils.createParser
 import edu.kit.compiler.utils.debug
 import edu.kit.compiler.utils.emptyAnchorSet
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 data class RangeLine(val ranges: MutableMap<Int, MutableList<SourceRange>>, val currentLine: Int) {
@@ -71,7 +71,7 @@ class SourceRangeTest {
         }
     }
 
-    fun <T> expectRanges(code: String, runParser: Parser.() -> T, runVisitor: SourceRangeCollector.(T) -> Unit) {
+    private fun <T> expectRanges(code: String, runParser: Parser.() -> T, runVisitor: SourceRangeCollector.(T) -> Unit) {
 
         val (_, source) = code.lineSequence().partition {
             it.startsWith("#")

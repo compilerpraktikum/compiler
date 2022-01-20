@@ -2,7 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.utils.createParser
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**

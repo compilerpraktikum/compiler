@@ -2,7 +2,7 @@ package edu.kit.compiler.parser
 
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.utils.createParser
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
@@ -10,7 +10,6 @@ import kotlin.test.assertEquals
  * position is marked with '#'. The test routine will determine the positions of '#' characters, remove those characters
  * and then assert that the errors are found there.
  */
-
 class RecoveryTest {
 
     @Test

@@ -4,7 +4,7 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.utils.createLexer
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 internal class NameAnalysisTest {

@@ -7,7 +7,7 @@ import edu.kit.compiler.ast.wrapMockValid
 import edu.kit.compiler.utils.emptyAnchorSet
 import edu.kit.compiler.utils.expectNode
 import edu.kit.compiler.utils.toSymbol
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 
 @ExperimentalStdlibApi
 internal class ExpressionParseTest {
