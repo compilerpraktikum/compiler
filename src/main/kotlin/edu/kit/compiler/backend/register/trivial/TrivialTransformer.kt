@@ -4,7 +4,6 @@ import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.PlatformTarget
 import edu.kit.compiler.backend.register.PlatformTransformer
-import java.util.Stack
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 import edu.kit.compiler.backend.molkir.Memory as MolkiMemory
@@ -23,7 +22,7 @@ class TrivialTransformer : PlatformTransformer {
     /**
      * Current stack layout of virtual registers
      */
-    private val stackLayout = Stack<MolkiRegister>()
+    private val stackLayout = ArrayDeque<MolkiRegister>()
 
     /**
      * Generated code in [RegisterIR]
@@ -56,8 +55,7 @@ class TrivialTransformer : PlatformTransformer {
         check(stackLayout.any { it.id == virtualRegister.id }) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
 
         // calculate the current location of the register content on the stack
-        val stackDepth = stackLayout.elements()
-            .toList()
+        val stackDepth = stackLayout.toList()
             .stream()
             .limit(stackLayout.indexOfFirst { it.id == virtualRegister.id }.toLong())
             .map { it.width.inBytes }
@@ -88,7 +86,7 @@ class TrivialTransformer : PlatformTransformer {
             Width.QUAD -> PlatformInstruction.pushq(platformRegister)
         }
 
-        stackLayout.push(virtualRegister)
+        stackLayout.addFirst(virtualRegister)
         generatedCode.add(instruction)
     }
 
