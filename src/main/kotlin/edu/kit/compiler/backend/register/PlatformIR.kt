@@ -170,6 +170,9 @@ sealed class Instruction : PlatformIR {
     }
 
     companion object {
+        fun movb(from: PlatformTarget, to: PlatformTarget) =
+            BinaryOperation("movb", from, to)
+
         fun movl(from: PlatformTarget, to: PlatformTarget) =
             BinaryOperation("movl", from, to)
 

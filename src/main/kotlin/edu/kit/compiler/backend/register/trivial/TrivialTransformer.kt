@@ -94,7 +94,11 @@ class TrivialTransformer : PlatformTransformer {
         }
 
         val instruction = when (virtualRegister.width) {
-            Width.BYTE, Width.WORD -> TODO("not implemented")
+            Width.BYTE -> PlatformInstruction.movb(
+                platformRegister,
+                stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+            )
+            Width.WORD -> TODO("not implemented")
             Width.DOUBLE -> PlatformInstruction.movl(
                 platformRegister,
                 stackLayout[virtualRegister.id]!!.generateMemoryAddress()
