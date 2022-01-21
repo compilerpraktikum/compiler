@@ -37,18 +37,18 @@ sealed class PlatformTarget : PlatformIR {
         class R14 : GeneralPurposeRegister("r14")
         class R15 : GeneralPurposeRegister("r15")
 
-        fun halfWordWidth(): PlatformTarget {
+        fun halfWordWidth(): PlatformTarget.GeneralPurposeRegister {
             throw NotImplementedError("8 bit registers have not been implemented")
         }
 
-        fun wordWidth(): PlatformTarget {
+        fun wordWidth(): PlatformTarget.GeneralPurposeRegister {
             throw NotImplementedError("16 bit registers have not been implemented")
         }
 
         /**
          * Use a 32 bit register
          */
-        fun doubleWidth(): PlatformTarget {
+        fun doubleWidth(): PlatformTarget.GeneralPurposeRegister {
             this.width = Width.WIDTH_32
             return this
         }
@@ -56,7 +56,7 @@ sealed class PlatformTarget : PlatformIR {
         /**
          * Use a 64 bit register
          */
-        fun quadWidth(): PlatformTarget {
+        fun quadWidth(): PlatformTarget.GeneralPurposeRegister {
             this.width = Width.WIDTH_64
             return this
         }
@@ -176,11 +176,8 @@ sealed class Instruction : PlatformIR {
         fun movq(from: PlatformTarget, to: PlatformTarget) =
             BinaryOperation("movq", from, to)
 
-        fun pushl(operand: PlatformTarget) =
-            UnaryOperation("pushl", operand)
-
-        fun pushq(operand: PlatformTarget) =
-            UnaryOperation("pushq", operand)
+        fun subq(from: PlatformTarget, value: PlatformTarget) =
+            BinaryOperation("subq", from, value)
 
         /****************************************
          * Binary operations with result
