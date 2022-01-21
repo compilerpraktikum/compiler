@@ -147,7 +147,7 @@ class TrivialTransformer : PlatformTransformer {
     private fun transformOperand(molkiTarget: MolkiTarget.Input): PlatformTarget {
         return when (molkiTarget) {
             is MolkiConstant -> PlatformTarget.Constant(molkiTarget.value)
-            is MolkiMemory -> TODO()
+            is MolkiMemory -> generateTransformMemory(molkiTarget)
             is MolkiRegister -> {
                 val platformRegister = allocateRegister(molkiTarget)
                 generateLoadVirtualRegisterValue(molkiTarget, platformRegister)
