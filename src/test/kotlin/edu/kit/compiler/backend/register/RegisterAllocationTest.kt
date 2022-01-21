@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend.register
 
 import edu.kit.compiler.backend.molkir.Constant
+import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
@@ -26,6 +27,31 @@ internal class RegisterAllocationTest {
                 Register(RegisterId(0), Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE)
+            )
+        )
+        println(allocator.transformCode(code).joinToString("\n") { it.toAssembler() })
+    }
+
+    @Test
+    fun testNoSpill() {
+        val allocator = TrivialTransformer()
+        val code = listOf(
+            MolkInstruction.movl(
+                Constant("1"),
+                Register(RegisterId(0), Width.DOUBLE)
+            ),
+            MolkInstruction.movl(
+                Constant("2"),
+                Register(RegisterId(1), Width.DOUBLE)
+            ),
+            MolkInstruction.addl(
+                Register(RegisterId(0), Width.DOUBLE),
+                Register(RegisterId(1), Width.DOUBLE),
+                Register(RegisterId(1), Width.DOUBLE)
+            ),
+            MolkInstruction.movl(
+                Register(RegisterId(1), Width.DOUBLE),
+                Memory.of("0xffff7f34", index = Register(RegisterId(1), Width.DOUBLE), scale = 4)
             )
         )
         println(allocator.transformCode(code).joinToString("\n") { it.toAssembler() })

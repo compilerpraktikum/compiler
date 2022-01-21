@@ -16,39 +16,39 @@ sealed class PlatformTarget : PlatformIR {
     /**
      * An x86-64 general purpose register
      */
-    sealed class GeneralPurposeRegister(private val registerName: String) : PlatformTarget() {
+    sealed class Register(private val registerName: String) : PlatformTarget() {
 
         private var width = Width.WIDTH_64
 
-        class RAX : GeneralPurposeRegister("rax")
-        class RBX : GeneralPurposeRegister("rbx")
-        class RCX : GeneralPurposeRegister("rcx")
-        class RDX : GeneralPurposeRegister("rdx")
-        class RSI : GeneralPurposeRegister("rsi")
-        class RDI : GeneralPurposeRegister("rdi")
-        class RSP : GeneralPurposeRegister("rsp")
-        class RBP : GeneralPurposeRegister("rbp")
-        class R8 : GeneralPurposeRegister("r8")
-        class R9 : GeneralPurposeRegister("r9")
-        class R10 : GeneralPurposeRegister("r10")
-        class R11 : GeneralPurposeRegister("r11")
-        class R12 : GeneralPurposeRegister("r12")
-        class R13 : GeneralPurposeRegister("r13")
-        class R14 : GeneralPurposeRegister("r14")
-        class R15 : GeneralPurposeRegister("r15")
+        class RAX : Register("rax")
+        class RBX : Register("rbx")
+        class RCX : Register("rcx")
+        class RDX : Register("rdx")
+        class RSI : Register("rsi")
+        class RDI : Register("rdi")
+        class RSP : Register("rsp")
+        class RBP : Register("rbp")
+        class R8 : Register("r8")
+        class R9 : Register("r9")
+        class R10 : Register("r10")
+        class R11 : Register("r11")
+        class R12 : Register("r12")
+        class R13 : Register("r13")
+        class R14 : Register("r14")
+        class R15 : Register("r15")
 
-        fun halfWordWidth(): PlatformTarget.GeneralPurposeRegister {
+        fun halfWordWidth(): Register {
             throw NotImplementedError("8 bit registers have not been implemented")
         }
 
-        fun wordWidth(): PlatformTarget.GeneralPurposeRegister {
+        fun wordWidth(): Register {
             throw NotImplementedError("16 bit registers have not been implemented")
         }
 
         /**
          * Use a 32 bit register
          */
-        fun doubleWidth(): PlatformTarget.GeneralPurposeRegister {
+        fun doubleWidth(): Register {
             this.width = Width.WIDTH_32
             return this
         }
@@ -56,7 +56,7 @@ sealed class PlatformTarget : PlatformIR {
         /**
          * Use a 64 bit register
          */
-        fun quadWidth(): PlatformTarget.GeneralPurposeRegister {
+        fun quadWidth(): Register {
             this.width = Width.WIDTH_64
             return this
         }
@@ -89,11 +89,32 @@ sealed class PlatformTarget : PlatformIR {
     }
 
     class Memory private constructor(
-        val const: Int?,
-        val base: PlatformTarget?,
-        val index: PlatformTarget?,
+        val const: String?,
+        val base: Register?,
+        val index: Register?,
         val scale: Int?,
     ) : PlatformTarget() {
+        companion object {
+            fun of(
+                const: String,
+                base: Register,
+                index: Register? = null,
+                scale: Int? = null
+            ) = Memory(const, base, index, scale)
+
+            fun of(
+                base: Register,
+                index: Register? = null,
+                scale: Int? = null
+            ) = Memory(null, base, index, scale)
+
+            fun of(
+                const: String,
+                index: Register? = null,
+                scale: Int? = null
+            ) = Memory(const, null, index, scale)
+        }
+
         init {
             if (scale != null) {
                 check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
@@ -101,33 +122,8 @@ sealed class PlatformTarget : PlatformIR {
             }
         }
 
-        constructor(
-            const: Int,
-            base: PlatformTarget,
-            index: PlatformTarget? = null,
-            scale: Int? = null
-        ) : this(const as Int?, base, index, scale)
-
-        constructor(
-            base: PlatformTarget,
-            index: PlatformTarget? = null,
-            scale: Int? = null
-        ) : this(
-            null,
-            base,
-            index,
-            scale
-        )
-
-        constructor(const: Int, index: PlatformTarget? = null, scale: Int? = null) : this(
-            const,
-            null,
-            index,
-            scale
-        )
-
         override fun toAssembler(): String {
-            val constStr = const?.toString() ?: ""
+            val constStr = const ?: ""
             val baseStr = base?.toAssembler() ?: ""
             val extStr = if (index != null) {
                 val indexStr = index.toAssembler()

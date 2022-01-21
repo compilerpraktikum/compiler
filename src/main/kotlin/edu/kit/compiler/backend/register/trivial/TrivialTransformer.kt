@@ -11,7 +11,7 @@ import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 import edu.kit.compiler.backend.molkir.ReturnRegister as MolkiReturnRegister
 import edu.kit.compiler.backend.molkir.Target as MolkiTarget
 import edu.kit.compiler.backend.register.Instruction as PlatformInstruction
-import edu.kit.compiler.backend.register.PlatformTarget.GeneralPurposeRegister as PlatformRegister
+import edu.kit.compiler.backend.register.PlatformTarget.Register as PlatformRegister
 
 /**
  * Trivial register allocation that just loads operands into registers from stack, executes the operation and dumps
@@ -23,7 +23,8 @@ class TrivialTransformer : PlatformTransformer {
      * All virtual registers are saved in a table on the stack
      */
     private data class StackSlot(val virtualRegisterId: RegisterId, val offset: Int, val width: Width) {
-        fun generateMemoryAddress(): PlatformTarget.Memory = PlatformTarget.Memory(-offset, PlatformRegister.RBP())
+        fun generateMemoryAddress(): PlatformTarget.Memory =
+            PlatformTarget.Memory.of((-offset).toString(), PlatformRegister.RBP(), null, null)
     }
 
     /**
@@ -48,7 +49,11 @@ class TrivialTransformer : PlatformTransformer {
 
     // assume that the `codeBlock` is a whole function
     override fun transformCode(codeBlock: List<MolkiInstruction>): List<PlatformInstruction> {
-        codeBlock.forEach(::transformInstruction)
+        codeBlock.forEach {
+            transformInstruction(it)
+            freeAllRegisters()
+        }
+
         generatedCode.add(
             0,
             PlatformInstruction.subq(PlatformRegister.RBP(), PlatformTarget.Constant(currentSlotOffset.toString()))
@@ -130,8 +135,8 @@ class TrivialTransformer : PlatformTransformer {
     /**
      * Dissociate a [PlatformRegister] from a virtual register and make it available for allocation again.
      */
-    private fun freeRegister(register: PlatformRegister) {
-        allocator.freeRegister(register)
+    private fun freeAllRegisters() {
+        allocator.freeAll()
     }
 
     /**
@@ -151,14 +156,49 @@ class TrivialTransformer : PlatformTransformer {
     }
 
     /**
+     * Transform a memory expression form MolkIR to PlatformIR
+     */
+    private fun generateTransformMemory(mem: MolkiMemory): PlatformTarget.Memory {
+        val base = if (mem.base != null) {
+            val platformRegister = allocateRegister(mem.base)
+            generateLoadVirtualRegisterValue(mem.base, platformRegister)
+            platformRegister
+        } else {
+            null
+        }
+
+        val index = if (mem.index != null) {
+            val platformRegister = allocateRegister(mem.index)
+            generateLoadVirtualRegisterValue(mem.index, platformRegister)
+            platformRegister
+        } else {
+            null
+        }
+
+        val const = mem.const
+
+        return if (base != null) {
+            if (const != null) {
+                PlatformTarget.Memory.of(const, base, index, mem.scale)
+            } else {
+                PlatformTarget.Memory.of(base, index, mem.scale)
+            }
+        } else if (const != null) {
+            PlatformTarget.Memory.of(const, index, mem.scale)
+        } else {
+            throw IllegalArgumentException("cannot have memory without base and const")
+        }
+    }
+
+    /**
      * Transform a [MolkiTarget.Output] into a [PlatformTarget]. If the output is a register,
      * a new one will be allocated, but no value will be loaded
      */
     private fun transformResult(molkiTarget: MolkiTarget.Output): PlatformTarget {
-        when (molkiTarget) {
-            is MolkiMemory -> TODO()
+        return when (molkiTarget) {
+            is MolkiMemory -> generateTransformMemory(molkiTarget)
             is MolkiRegister -> {
-                return allocateRegister(molkiTarget)
+                allocateRegister(molkiTarget)
             }
             is MolkiReturnRegister -> TODO()
         }
@@ -188,9 +228,6 @@ class TrivialTransformer : PlatformTransformer {
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
         generatedCode.add(transformedInstr)
-
-        // free allocated registers
-        arrayOf(left, right).filterIsInstance<PlatformRegister>().forEach(::freeRegister)
     }
 
     /**
@@ -210,9 +247,6 @@ class TrivialTransformer : PlatformTransformer {
         // generate spill code
         if (instr.result is MolkiRegister)
             generateSpillCode(instr.result, right)
-
-        // free allocated registers
-        arrayOf(left, right).filterIsInstance<PlatformRegister>().forEach(::freeRegister)
     }
 
     /**
@@ -231,8 +265,5 @@ class TrivialTransformer : PlatformTransformer {
         // generate spill code
         if (instr.result is MolkiRegister)
             generateSpillCode(instr.result, result)
-
-        // free allocated registers
-        arrayOf(operand, result).filterIsInstance<PlatformRegister>().forEach(::freeRegister)
     }
 }
