@@ -14,20 +14,20 @@ internal class RegisterAllocationTest {
     fun testSimpleRegisterAllocation() {
         val allocator = TrivialTransformer()
         val code = listOf(
-            MolkInstruction.movq(
+            MolkInstruction.movl(
                 Constant("1"),
                 Register(RegisterId(0), Width.DOUBLE)
             ),
-            MolkInstruction.movq(
+            MolkInstruction.movl(
                 Constant("2"),
                 Register(RegisterId(1), Width.DOUBLE)
             ),
-            MolkInstruction.addq(
+            MolkInstruction.addl(
                 Register(RegisterId(0), Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE)
             )
         )
-        allocator.transformCode(code)
+        println(allocator.transformCode(code).joinToString("\n") { it.toAssembler() })
     }
 }
