@@ -27,4 +27,8 @@ object SimpleCallingConvention : CallingConvention {
             PlatformInstruction.op("ret"),
         )
     }
+
+    override fun taintRegister(register: PlatformTarget.Register) {
+        // do nothing, because we needn't save registers
+    }
 }

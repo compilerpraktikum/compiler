@@ -131,6 +131,7 @@ class TrivialFunctionTransformer(
      */
     private fun allocateRegister(virtualRegister: MolkiRegister): PlatformRegister {
         val platformRegister = this.allocator.allocateRegister()
+        this.callingConvention.taintRegister(platformRegister)
 
         return when (virtualRegister.width) {
             Width.BYTE -> platformRegister.halfWordWidth()
