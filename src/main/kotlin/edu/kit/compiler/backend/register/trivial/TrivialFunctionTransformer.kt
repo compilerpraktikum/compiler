@@ -24,6 +24,10 @@ class TrivialFunctionTransformer(
     private val callingConvention: CallingConvention,
 ) : FunctionTransformer {
 
+    companion object {
+        private const val RETURN_VALUE_SLOT = -1
+    }
+
     /**
      * All virtual registers are saved in a table on the stack
      */
@@ -65,7 +69,13 @@ class TrivialFunctionTransformer(
 
         // TODO the epilogue might have to be inserted at multiple locations, if there are early returns.
         //  create a special method then and call it
-        val epilogue = callingConvention.generateFunctionEpilogue()
+        val epilogue = if (stackLayout.containsKey(RegisterId(RETURN_VALUE_SLOT))) {
+            val returnValueSlot = stackLayout[RegisterId(RETURN_VALUE_SLOT)]!!
+            callingConvention.generateFunctionEpilogue(returnValueSlot.generateMemoryAddress(), returnValueSlot.width)
+        } else {
+            callingConvention.generateFunctionEpilogue(null, null)
+        }
+
         generatedCode.addAll(epilogue)
 
         return generatedCode
@@ -95,30 +105,35 @@ class TrivialFunctionTransformer(
     /**
      * Generate code to spill a value from a register onto the stack
      *
-     * @param virtualRegister the MolkIR register that is being spilled
+     * @param virtualRegisterId the MolkIR register that is being spilled
+     * @param registerWidth the width of the spilled register
      * @param platformRegister the currently associated platform register
      */
-    private fun generateSpillCode(virtualRegister: MolkiRegister, platformRegister: PlatformTarget) {
-        if (!stackLayout.containsKey(virtualRegister.id)) {
-            stackLayout[virtualRegister.id] = StackSlot(virtualRegister.id, currentSlotOffset, virtualRegister.width)
+    private fun generateSpillCode(
+        virtualRegisterId: RegisterId,
+        registerWidth: Width,
+        platformRegister: PlatformTarget
+    ) {
+        if (!stackLayout.containsKey(virtualRegisterId)) {
+            stackLayout[virtualRegisterId] = StackSlot(virtualRegisterId, currentSlotOffset, registerWidth)
 
             /* eight byte alignment for fast quad-word-access */
             currentSlotOffset += 8
         }
 
-        val instruction = when (virtualRegister.width) {
+        val instruction = when (registerWidth) {
             Width.BYTE -> PlatformInstruction.movb(
                 platformRegister,
-                stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
             )
             Width.WORD -> TODO("not implemented")
             Width.DOUBLE -> PlatformInstruction.movl(
                 platformRegister,
-                stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
             )
             Width.QUAD -> PlatformInstruction.movq(
                 platformRegister,
-                stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
             )
         }
 
@@ -126,14 +141,13 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * Allocate a [PlatformRegister] for a [virtualRegister] and generate an instruction to load its value from the
-     * stack.
+     * Allocate a [PlatformRegister] and set its prefix to the correct width.
      */
-    private fun allocateRegister(virtualRegister: MolkiRegister): PlatformRegister {
+    private fun allocateRegister(registerWidth: Width): PlatformRegister {
         val platformRegister = this.allocator.allocateRegister()
         this.callingConvention.taintRegister(platformRegister)
 
-        return when (virtualRegister.width) {
+        return when (registerWidth) {
             Width.BYTE -> platformRegister.halfWordWidth()
             Width.WORD -> platformRegister.wordWidth()
             Width.DOUBLE -> platformRegister.doubleWidth()
@@ -157,7 +171,7 @@ class TrivialFunctionTransformer(
             is MolkiConstant -> PlatformTarget.Constant(molkiTarget.value)
             is MolkiMemory -> generateTransformMemory(molkiTarget)
             is MolkiRegister -> {
-                val platformRegister = allocateRegister(molkiTarget)
+                val platformRegister = allocateRegister(molkiTarget.width)
                 generateLoadVirtualRegisterValue(molkiTarget, platformRegister)
                 platformRegister
             }
@@ -169,7 +183,7 @@ class TrivialFunctionTransformer(
      */
     private fun generateTransformMemory(mem: MolkiMemory): PlatformTarget.Memory {
         val base = if (mem.base != null) {
-            val platformRegister = allocateRegister(mem.base)
+            val platformRegister = allocateRegister(mem.base.width)
             generateLoadVirtualRegisterValue(mem.base, platformRegister)
             platformRegister
         } else {
@@ -177,7 +191,7 @@ class TrivialFunctionTransformer(
         }
 
         val index = if (mem.index != null) {
-            val platformRegister = allocateRegister(mem.index)
+            val platformRegister = allocateRegister(mem.index.width)
             generateLoadVirtualRegisterValue(mem.index, platformRegister)
             platformRegister
         } else {
@@ -207,9 +221,11 @@ class TrivialFunctionTransformer(
         return when (molkiTarget) {
             is MolkiMemory -> generateTransformMemory(molkiTarget)
             is MolkiRegister -> {
-                allocateRegister(molkiTarget)
+                allocateRegister(molkiTarget.width)
             }
-            is MolkiReturnRegister -> TODO()
+            is MolkiReturnRegister -> {
+                allocateRegister(molkiTarget.width)
+            }
         }
     }
 
@@ -255,7 +271,9 @@ class TrivialFunctionTransformer(
 
         // generate spill code
         if (instr.result is MolkiRegister)
-            generateSpillCode(instr.result, right)
+            generateSpillCode(instr.result.id, instr.result.width, right)
+        else if (instr.result is MolkiReturnRegister)
+            generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, right)
     }
 
     /**
@@ -273,6 +291,8 @@ class TrivialFunctionTransformer(
 
         // generate spill code
         if (instr.result is MolkiRegister)
-            generateSpillCode(instr.result, result)
+            generateSpillCode(instr.result.id, instr.result.width, result)
+        else if (instr.result is MolkiReturnRegister)
+            generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, result)
     }
 }
