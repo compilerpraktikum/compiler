@@ -79,9 +79,6 @@ class TrivialFunctionTransformer(
         // check the register has been assigned before
         check(stackLayout.containsKey(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
 
-        // calculate the current location of the register content on the stack
-        val slotOffset = stackLayout[virtualRegister.id]!!.offset
-
         // generate an offset to RSP to load the value from
         val memoryLocation = stackLayout[virtualRegister.id]!!.generateMemoryAddress()
 
