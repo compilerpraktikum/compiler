@@ -140,12 +140,13 @@ sealed class PlatformTarget : PlatformIR {
     }
 }
 
-sealed class Instruction : PlatformIR {
-    class Label(val name: String) : Instruction() {
+sealed class PlatformInstruction : PlatformIR {
+    class Label(val name: String) : PlatformInstruction() {
         override fun toAssembler(): String = "$name:"
     }
 
-    class Call(val name: String, val arguments: List<PlatformTarget>, val result: PlatformTarget?) : Instruction() {
+    class Call(val name: String, val arguments: List<PlatformTarget>, val result: PlatformTarget?) :
+        PlatformInstruction() {
         override fun toAssembler(): String {
             val args = arguments.joinToString(" | ") { it.toAssembler() }
             val resultStr = result?.let { " -> ${it.toAssembler()}" } ?: ""
@@ -153,16 +154,32 @@ sealed class Instruction : PlatformIR {
         }
     }
 
-    class Jump(val name: String, val label: String) : Instruction() {
+    class Jump(val name: String, val label: String) : PlatformInstruction() {
         override fun toAssembler(): String = "$name $label"
     }
 
-    class BinaryOperation(val name: String, val left: PlatformTarget, val right: PlatformTarget) : Instruction() {
-        override fun toAssembler(): String = "$name ${left.toAssembler()}, ${right.toAssembler()}"
+    /**
+     * Operation without any operands
+     */
+    class Operation(val name: String) : PlatformInstruction() {
+        override fun toAssembler(): String {
+            return name
+        }
     }
 
-    class UnaryOperation(val name: String, val operand: PlatformTarget) : Instruction() {
+    /**
+     * Operation with one operand
+     */
+    class UnaryOperation(val name: String, val operand: PlatformTarget) : PlatformInstruction() {
         override fun toAssembler(): String = "$name ${operand.toAssembler()}"
+    }
+
+    /**
+     * Operation with two operands, the second usually being the result target (if any).
+     */
+    class BinaryOperation(val name: String, val left: PlatformTarget, val right: PlatformTarget) :
+        PlatformInstruction() {
+        override fun toAssembler(): String = "$name ${left.toAssembler()}, ${right.toAssembler()}"
     }
 
     companion object {
@@ -178,18 +195,22 @@ sealed class Instruction : PlatformIR {
         fun subq(from: PlatformTarget, value: PlatformTarget) =
             BinaryOperation("subq", from, value)
 
-        /****************************************
-         * Binary operations with result
-         ****************************************/
-        fun idivq(
-            left: PlatformTarget,
-            right: PlatformTarget,
-            resultDiv: PlatformTarget,
-            resultMod: PlatformTarget
-        ) =
-            BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
+        /**
+         * Generate an operand-less operation
+         */
+        fun op(name: String) =
+            Operation(name)
 
-        private fun binOp(
+        /**
+         * Generate a unary operation
+         */
+        fun unOp(name: String, operand: PlatformTarget) =
+            UnaryOperation(name, operand)
+
+        /**
+         * Generate a binary operation
+         */
+        fun binOp(
             name: String,
             left: PlatformTarget,
             right: PlatformTarget
@@ -202,7 +223,7 @@ sealed class Instruction : PlatformIR {
         val right: PlatformTarget,
         val resultLeft: PlatformTarget,
         val resultRight: PlatformTarget
-    ) : Instruction() {
+    ) : PlatformInstruction() {
         override fun toAssembler(): String =
             "$name [ ${left.toAssembler()} | ${right.toAssembler()} ] -> [ ${resultLeft.toAssembler()} | ${resultRight.toAssembler()} ]"
     }

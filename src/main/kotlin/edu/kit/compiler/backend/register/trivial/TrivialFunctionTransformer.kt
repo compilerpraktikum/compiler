@@ -2,22 +2,27 @@ package edu.kit.compiler.backend.register.trivial
 
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.backend.register.FunctionTransformer
+import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
-import edu.kit.compiler.backend.register.PlatformTransformer
+import edu.kit.compiler.backend.register.calls.CallingConvention
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 import edu.kit.compiler.backend.molkir.Memory as MolkiMemory
 import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 import edu.kit.compiler.backend.molkir.ReturnRegister as MolkiReturnRegister
 import edu.kit.compiler.backend.molkir.Target as MolkiTarget
-import edu.kit.compiler.backend.register.Instruction as PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget.Register as PlatformRegister
 
 /**
  * Trivial register allocation that just loads operands into registers from stack, executes the operation and dumps
  * pushes result back on stack.
+ *
+ * @param callingConvention the calling convention this function is called with
  */
-class TrivialTransformer : PlatformTransformer {
+class TrivialFunctionTransformer(
+    private val callingConvention: CallingConvention,
+) : FunctionTransformer {
 
     /**
      * All virtual registers are saved in a table on the stack
@@ -47,17 +52,22 @@ class TrivialTransformer : PlatformTransformer {
      */
     private val allocator = TrivialAllocator()
 
-    // assume that the `codeBlock` is a whole function
-    override fun transformCode(codeBlock: List<MolkiInstruction>): List<PlatformInstruction> {
+    override fun transformCode(codeBlock: List<MolkiInstruction>) {
         codeBlock.forEach {
             transformInstruction(it)
             freeAllRegisters()
         }
+    }
 
-        generatedCode.add(
-            0,
-            PlatformInstruction.subq(PlatformRegister.RBP(), PlatformTarget.Constant(currentSlotOffset.toString()))
-        )
+    override fun getPlatformCode(): List<PlatformInstruction> {
+        val prologue = callingConvention.generateFunctionPrologue(this.currentSlotOffset)
+        generatedCode.addAll(0, prologue)
+
+        // TODO the epilogue might have to be inserted at multiple locations, if there are early returns.
+        //  create a special method then and call it
+        val epilogue = callingConvention.generateFunctionEpilogue()
+        generatedCode.addAll(epilogue)
+
         return generatedCode
     }
 

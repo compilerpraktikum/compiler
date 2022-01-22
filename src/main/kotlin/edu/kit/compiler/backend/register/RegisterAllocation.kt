@@ -1,13 +1,14 @@
 package edu.kit.compiler.backend.register
 
-import edu.kit.compiler.backend.register.trivial.TrivialTransformer
+import edu.kit.compiler.backend.register.calls.CallingConvention
+import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
 
 object RegisterAllocation {
 
     /**
      * Allocation strategy. Initialize with different instance to change strategy
      */
-    private val allocatorFactory: () -> PlatformTransformer = ::TrivialTransformer
+    private val allocatorFactory: (CallingConvention) -> FunctionTransformer = ::TrivialFunctionTransformer
 
     fun allocate(program: Unit) {
         TODO("allocate registers")
