@@ -94,7 +94,7 @@ class TrivialFunctionTransformer(
 
         val instruction = when (virtualRegister.width) {
             Width.BYTE -> PlatformInstruction.movb(memoryLocation, target)
-            Width.WORD -> TODO("not implemented")
+            Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
             Width.DOUBLE -> PlatformInstruction.movl(memoryLocation, target)
             Width.QUAD -> PlatformInstruction.movq(memoryLocation, target)
         }
@@ -126,7 +126,7 @@ class TrivialFunctionTransformer(
                 platformRegister,
                 stackLayout[virtualRegisterId]!!.generateMemoryAddress()
             )
-            Width.WORD -> TODO("not implemented")
+            Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
             Width.DOUBLE -> PlatformInstruction.movl(
                 platformRegister,
                 stackLayout[virtualRegisterId]!!.generateMemoryAddress()
