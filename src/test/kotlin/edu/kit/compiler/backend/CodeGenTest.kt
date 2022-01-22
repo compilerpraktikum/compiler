@@ -1,7 +1,16 @@
 package edu.kit.compiler.backend
 
+import com.tylerthrailkill.helpers.prettyprint.pp
 import edu.kit.compiler.ast.validate
+import edu.kit.compiler.backend.codegen.BinOpENUM
+import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
+import edu.kit.compiler.backend.codegen.ReplacementSystem
+import edu.kit.compiler.backend.codegen.ValueHolder
+import edu.kit.compiler.backend.codegen.VirtualRegisterTable
+import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
@@ -64,9 +73,53 @@ class CodeGenTest {
                 class Test {
                     public static void main(String[] args) {}
                     public int foo(int x) { return 2+x; }
-                    public int bar(int y, int z) { return foo(3+y)+; }
+                    public int bar(int y, int z) { return foo(3+y)+2; }
                 }
             """.trimIndent()
         )
     }
+
+
+    @Test
+    fun testReplacementSystemConst() {
+        val body =CodeGenIR.Const("2")
+        val registerTable = VirtualRegisterTable()
+        val res = body.accept(ReplacementSystem(registerTable))
+        println("codegen tree:")
+        res?.replacement.pp()
+        println("molki output:")
+        res?.instructions?.forEach { it.toMolki().pp() }
+    }
+
+    @Test
+    fun testReplacementSystemAdd() {
+        val body = CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2"), CodeGenIR.Const("3"))
+        val registerTable = VirtualRegisterTable()
+        val res = body.accept(ReplacementSystem(registerTable))
+        println("codegen tree:")
+        res?.replacement.pp()
+        println("molki output:")
+        res?.instructions?.forEach { it.toMolki().pp() }
+    }
+
+    @Test
+    fun testReplacementSystem() {
+        val body = CodeGenIR.BinOP(
+            operation = BinOpENUM.ADD,
+            left = CodeGenIR.Const("2"),
+            right = CodeGenIR.RegisterRef(
+                reg = ValueHolder(
+                    value = Register(
+                        id = RegisterId(0),
+                        width = Width.DOUBLE
+                    )
+                )
+            )
+        )
+        val res = body.accept(ReplacementSystem(VirtualRegisterTable()))
+        println("result: $res")
+        res.pp()
+    }
+
+
 }

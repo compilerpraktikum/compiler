@@ -1,7 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Instruction
-import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import firm.nodes.Node
@@ -29,38 +28,14 @@ class VirtualRegisterTable {
         map[node] = register
     }
 
+    fun newRegister(width: Width): MolkiRegister {
+        val registerId = nextRegisterId++
+        return MolkiRegister(RegisterId(registerId), width)
+    }
+
     fun getRegisterFor(node: CodeGenIR): MolkiRegister? = map[node]
 }
 
-val rules = listOf(
-    // Rule 5: movq a(R_j), R_i -> R_k
-    rule {
-        val constValue = value<String>()
-        val register = value<MolkiRegister>()
-        val resRegister = value<MolkiRegister>()
-
-        // ADD match
-        match(
-            CodeGenIR.Indirection(
-                CodeGenIR.BinOP(
-                    BinOpENUM.ADD,
-                    CodeGenIR.Const(constValue),
-                    CodeGenIR.RegisterRef(register),
-                )
-            )
-        )
-
-        replaceWith {
-            val newRegister = newRegister()
-            CodeGenIR.RegisterRef(newRegister) to listOf(
-                Instruction.movq(
-                    Memory.of(const = constValue.get(), base = register.get()),
-                    resRegister.get()
-                )
-            )
-        }
-    }
-)
 
 data class ValueHolder<T>(private var value: T? = null) {
 
@@ -80,10 +55,14 @@ data class MatchResult(
     val replacement: CodeGenIR,
     val instructions: List<Instruction>,
     val cost: Int,
-)
+) {
+    fun prependInstructions(other: List<Instruction>?): MatchResult {
+        return this.copy(instructions = (other ?: listOf()) + instructions)
+    }
+}
 
-class ReplacerScope {
-    fun newRegister(): MolkiRegister = TODO()
+class ReplacerScope(private val registerTable: VirtualRegisterTable) {
+    fun newRegister(width: Width): MolkiRegister = registerTable.newRegister(width)
 }
 
 // does not work yet because it does not support the needed dynamic programming approach yet
@@ -92,19 +71,20 @@ class Rule(
     private val matcher: CodeGenIR,
     private val replacement: ReplacerScope.() -> Pair<CodeGenIR, List<Instruction>>,
 ) {
-    fun match(node: CodeGenIR): MatchResult? {
+    fun match(node: CodeGenIR, virtualRegisterTable: VirtualRegisterTable): MatchResult? {
         values.forEach { it.reset() }
 
-        val matches = matcher.match(node)
+        val matches = matcher.matches(node)
         if (!matches) {
             return null
         }
+        val scope = ReplacerScope(virtualRegisterTable)
+        val (replacement, instructions) = scope.replacement()
 
-        val scope = ReplacerScope()
-        val result = scope.replacement()
+
         return MatchResult(
-            result.first,
-            result.second,
+            replacement,
+            instructions,
             matcher.cost(),
         )
     }
