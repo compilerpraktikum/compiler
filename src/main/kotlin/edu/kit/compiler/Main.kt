@@ -5,9 +5,9 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.defaultLazy
-import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
 import kotlin.system.exitProcess
 
@@ -33,10 +33,11 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
                 } ?: Compiler.OptimizationLevel.Base
         }
 
-    private val verbose by option("-v", "--verbose", help = "enable verbose logging").flag(default = false)
+    private val verbosity by option("-v", "--verbosity", help = "set logging level (default: info)")
+        .choice(Logger.Level.values().associateBy { it.name.lowercase() }).default(Logger.Level.INFO)
 
     override fun run() {
-        Logger.level = if (verbose) Logger.Level.ALL else Logger.Level.INFO
+        Logger.level = verbosity
         val compiler = Compiler(this)
         exitProcess(compiler.compile())
     }
