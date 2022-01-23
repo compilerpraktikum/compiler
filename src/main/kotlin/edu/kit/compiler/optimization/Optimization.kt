@@ -24,6 +24,7 @@ private fun getOptimizationsForLevel(level: Compiler.OptimizationLevel): List<Op
     Compiler.OptimizationLevel.Base -> listOf(ConstantPropagationAndFolding)
     Compiler.OptimizationLevel.Full -> listOf(
         ConstantPropagationAndFolding,
+        ArithmeticOptimization,
     )
 }
 
