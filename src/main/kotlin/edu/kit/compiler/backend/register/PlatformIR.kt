@@ -145,12 +145,9 @@ sealed class PlatformInstruction : PlatformIR {
         override fun toAssembler(): String = "$name:"
     }
 
-    class Call(val name: String, val arguments: List<PlatformTarget>, val result: PlatformTarget?) :
-        PlatformInstruction() {
+    class Call(val name: String) : PlatformInstruction() {
         override fun toAssembler(): String {
-            val args = arguments.joinToString(" | ") { it.toAssembler() }
-            val resultStr = result?.let { " -> ${it.toAssembler()}" } ?: ""
-            return "call $name [ $arguments ]$resultStr"
+            return "call $name"
         }
     }
 
@@ -191,6 +188,9 @@ sealed class PlatformInstruction : PlatformIR {
 
         fun movq(from: PlatformTarget, to: PlatformTarget) =
             BinaryOperation("movq", from, to)
+
+        fun addq(from: PlatformTarget, value: PlatformTarget) =
+            BinaryOperation("addq", from, value)
 
         fun subq(from: PlatformTarget, value: PlatformTarget) =
             BinaryOperation("subq", from, value)

@@ -28,6 +28,11 @@ interface CallingConvention {
     fun generateFunctionEpilogue(returnValue: PlatformTarget?, returnWidth: Width?): List<PlatformInstruction>
 
     /**
+     * Get the [PlatformTarget] where the function's return value will be located at
+     */
+    fun getReturnValueTarget(): PlatformTarget
+
+    /**
      * Mark a register as used by the function, so it can be saved if required by the calling convention
      *
      * @param register that is being used by the function

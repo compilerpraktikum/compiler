@@ -6,6 +6,7 @@ import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
 import edu.kit.compiler.backend.register.calls.CallingConvention
+import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 import edu.kit.compiler.backend.molkir.Memory as MolkiMemory
@@ -238,7 +239,7 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
             is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
             is MolkiInstruction.BinaryOperationWithTwoPartResult -> TODO()
-            is MolkiInstruction.Call -> TODO()
+            is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> PlatformInstruction.Jump(instr.name, instr.label)
             is MolkiInstruction.Label -> PlatformInstruction.Label(instr.name)
             is MolkiInstruction.UnaryOperationWithResult -> transformUnaryOperationWithResult(instr)
@@ -290,9 +291,52 @@ class TrivialFunctionTransformer(
         generatedCode.add(transformedInstr)
 
         // generate spill code
-        if (instr.result is MolkiRegister)
-            generateSpillCode(instr.result.id, instr.result.width, result)
-        else if (instr.result is MolkiReturnRegister)
-            generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, result)
+        when (instr.result) {
+            is MolkiRegister -> generateSpillCode(instr.result.id, instr.result.width, result)
+            is MolkiReturnRegister -> generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, result)
+            else -> throw IllegalStateException("unexpected: instruction result target is not a register")
+        }
+    }
+
+    private fun transformFunctionCall(instr: MolkiInstruction.Call) {
+        var parameterZone = 0
+
+        for (i in (0 until instr.arguments.size).reversed()) {
+            // TODO stack alignment probably must be guaranteed somehow?
+
+            // TODO how do we know how big the arguments are?
+
+            // push argument (possibly without using a register, as memory -> register -> memory probably isn't faster
+            // than memory -> memory)
+        }
+
+        // generate function call
+        generatedCode.add(PlatformInstruction.Call(instr.name))
+
+        // save return value
+        if (instr.result != null) {
+            // TODO get the calling convention from somewhere else
+            val platformRegister = SimpleCallingConvention.getReturnValueTarget()
+
+            when (instr.result) {
+                is MolkiRegister -> generateSpillCode(instr.result.id, instr.result.width, platformRegister)
+                is MolkiReturnRegister -> generateSpillCode(
+                    RegisterId(RETURN_VALUE_SLOT),
+                    instr.result.width,
+                    platformRegister
+                )
+                else -> {
+                    throw IllegalStateException("unexpected: instruction result target is not a register")
+                }
+            }
+        }
+
+        // cleanup stack
+        generatedCode.add(
+            PlatformInstruction.addq(
+                PlatformTarget.Register.RSP(),
+                PlatformTarget.Constant(parameterZone.toString())
+            )
+        )
     }
 }
