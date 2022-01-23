@@ -1,8 +1,10 @@
 package edu.kit.compiler
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.defaultLazy
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
@@ -22,7 +24,14 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
         .choices(Compiler.Dump.values().associateBy { it.cliFlag }).distinct()
 
     override val optimizationLevel by option(help = "optimization level (higher number = more optimizations)")
-        .switch(Compiler.OptimizationLevel.values().associateBy { "-O${it.intValue}" }).default(Compiler.OptimizationLevel.Base)
+        .switch(Compiler.OptimizationLevel.values().associateBy { "-O${it.intValue}" })
+        .defaultLazy {
+            System.getenv("COMPILER_OPTIMIZATION_LEVEL")
+                ?.let {
+                    val level = it.toIntOrNull() ?: throw CliktError("invalid optimization level: $it")
+                    Compiler.OptimizationLevel.of(level) ?: throw CliktError("unknown optimization level: $level")
+                } ?: Compiler.OptimizationLevel.Base
+        }
 
     private val verbose by option("-v", "--verbose", help = "enable verbose logging").flag(default = false)
 
