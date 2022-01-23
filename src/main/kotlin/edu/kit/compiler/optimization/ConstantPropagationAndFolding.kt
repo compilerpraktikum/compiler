@@ -61,6 +61,8 @@ import firm.nodes.Sync
 import firm.nodes.Tuple
 import firm.nodes.Unknown
 
+val ConstantPropagationAndFolding = Optimization("constant propagation and folding", ::applyConstantPropagationAndFolding)
+
 /**
  * What is expected seems to be a mix of
  *      * Constant Folding (lecture and compileroptimizations.com: x = 1 + 8 * 2; ==> x = 17;) and
@@ -87,7 +89,7 @@ import firm.nodes.Unknown
  *          }
  *
  */
-fun doConstantPropagationAndFolding(graph: Graph): Boolean {
+private fun applyConstantPropagationAndFolding(graph: Graph): Boolean {
     BackEdges.enable(graph)
 
     val analysis = ConstantAnalysis(graph)
