@@ -27,7 +27,7 @@ internal class OptimizationTests {
             fail("invalid program")
         }
 
-        Transformation.transform(program)
+        Transformation.transform(program, stringTable)
         Util.lowerSels()
 
         Program.getGraphs().forEach {
