@@ -391,6 +391,8 @@ fun Graph.replaceCondition(node: Cond, selector: Boolean) {
         falseEdge.rewireTo(newJmp(node.block))
         trueEdge.rewireTo(newBad(Mode.getX()))
     }
+
+    keepAlive(node.block)
 }
 
 /**
