@@ -16,11 +16,11 @@ internal class RegisterAllocationTest {
     fun testSimpleRegisterAllocation() {
         val code = listOf(
             MolkiInstruction.movl(
-                Constant("1"),
+                Constant("1", Width.DOUBLE),
                 Register(RegisterId(0), Width.DOUBLE)
             ),
             MolkiInstruction.movl(
-                Constant("2"),
+                Constant("2", Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE)
             ),
             MolkiInstruction.addl(
@@ -37,11 +37,11 @@ internal class RegisterAllocationTest {
     fun testNoSpill() {
         val code = listOf(
             MolkiInstruction.movl(
-                Constant("1"),
+                Constant("1", Width.DOUBLE),
                 Register(RegisterId(0), Width.DOUBLE)
             ),
             MolkiInstruction.movl(
-                Constant("2"),
+                Constant("2", Width.DOUBLE),
                 Register(RegisterId(1), Width.DOUBLE)
             ),
             MolkiInstruction.addl(
@@ -51,7 +51,7 @@ internal class RegisterAllocationTest {
             ),
             MolkiInstruction.movl(
                 Register(RegisterId(1), Width.DOUBLE),
-                Memory.of("0xffff7f34", index = Register(RegisterId(1), Width.DOUBLE), scale = 4)
+                Memory.of("0xffff7f34", index = Register(RegisterId(1), Width.DOUBLE), scale = 4, width=Width.DOUBLE)
             )
         )
 

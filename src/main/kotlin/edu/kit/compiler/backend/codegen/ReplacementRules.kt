@@ -24,7 +24,7 @@ enum class ReplacementRules(val rule: Rule) {
             println("perform do constant replacement")
             val newRegister = newRegister(Width.QUAD)
             RegisterRef(newRegister) to listOf(
-                Instruction.movq(Memory.of(constValue.get()), newRegister)
+                Instruction.movq(Memory.of(constValue.get(), width=Width.QUAD), newRegister)
             )
         }
     }),
@@ -65,7 +65,7 @@ enum class ReplacementRules(val rule: Rule) {
 
         replaceWith {
             CodeGenIR.MemoryAddress(addrValue) to listOf(
-                Instruction.movq(Memory.of(registerId.get()), addrValue.get())
+                Instruction.movq(Memory.of(registerId.get(), width=addrValue.get().width), addrValue.get())
             )
         }
     }),
@@ -87,11 +87,11 @@ enum class ReplacementRules(val rule: Rule) {
         )
 
         replaceWith {
-            val memoryAddress = Memory.of(registerWithAddr.get())
+            val memoryAddress = Memory.of(registerWithAddr.get(), width=registerWithValue.get().width)
             CodeGenIR.MemoryAddress(memoryAddress) to listOf(
                 Instruction.movq(
-                    Memory.of(registerWithValue.get()),
-                    Memory.of("0", registerWithAddr.get())
+                    Memory.of(registerWithValue.get(), width=registerWithValue.get().width),
+                    Memory.of("0", registerWithAddr.get(), width=registerWithAddr.get().width)
                 )
             )
         }
@@ -119,7 +119,7 @@ enum class ReplacementRules(val rule: Rule) {
             val newRegister = newRegister(Width.QUAD)
             RegisterRef(newRegister) to listOf(
                 Instruction.movq(
-                    Memory.of(const = constValue.get(), base = register.get()),
+                    Memory.of(const = constValue.get(), base = register.get(), width= Width.QUAD),
                     resRegister.get()
                 )
             )
