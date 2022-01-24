@@ -61,7 +61,7 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
     }
 
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
-        val variableCounter = LocalVariableCounter(1)
+        val variableCounter = LocalVariableCounter(1, true) // start at 1 to account for implicit this parameter
         methodDeclaration.accept(variableCounter)
 
         localVariableDeclarations = variableCounter.definitionMapping
@@ -81,7 +81,7 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
     }
 
     override fun visitMainMethodDeclaration(mainMethodDeclaration: SemanticAST.ClassMember.SubroutineDeclaration.MainMethodDeclaration) {
-        val variableCounter = LocalVariableCounter(0)
+        val variableCounter = LocalVariableCounter(0, false)
         mainMethodDeclaration.accept(variableCounter)
 
         localVariableDeclarations = variableCounter.definitionMapping
