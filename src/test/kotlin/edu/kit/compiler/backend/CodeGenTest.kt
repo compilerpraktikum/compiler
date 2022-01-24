@@ -5,9 +5,11 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
+import edu.kit.compiler.backend.codegen.MatchResult
 import edu.kit.compiler.backend.codegen.ReplacementSystem
 import edu.kit.compiler.backend.codegen.ValueHolder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
+import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
@@ -22,6 +24,8 @@ import firm.Dump
 import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class CodeGenTest {
 
@@ -67,6 +71,49 @@ class CodeGenTest {
     }
 
     @Test
+    fun testStatementSeq() {
+        setupGraph(
+            """
+            class Test {
+                public int i;
+
+                public static void main(String[] args) {
+                    Test test = new Test();
+                    test.i = 5;
+                    System.out.println(test.i);
+                    test.i=test.i+1;
+                    System.out.println(test.i);
+                    System.out.println(test.i);
+                    System.out.println(test.i);
+                }
+
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testStatementReuse() {
+        setupGraph(
+            """
+            class Test {
+                public int i;
+
+                public static void main(String[] args) {
+                    Test test = new Test();
+                    int a = System.in.read();
+                    System.out.println(a);
+                    System.out.println(a);
+                }
+
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    @Test
     fun testCall() {
         setupGraph(
             """
@@ -80,45 +127,81 @@ class CodeGenTest {
     }
 
 
-    @Test
-    fun testReplacementSystemConst() {
-        val body =CodeGenIR.Const("2")
+    private fun transformToMolki(block: (VirtualRegisterTable) -> CodeGenIR): MatchResult {
         val registerTable = VirtualRegisterTable()
-        val res = body.accept(ReplacementSystem(registerTable))
+        val res = block(registerTable).accept(ReplacementSystem(registerTable))
         println("codegen tree:")
         res?.replacement.pp()
         println("molki output:")
         res?.instructions?.forEach { it.toMolki().pp() }
+        assertNotNull(res, "expect global MatchResult not be non-null")
+        return res
+    }
+
+    private fun assertMolkiEquals(actual: List<MolkIR>, expected: List<String>) {
+        assertEquals(actual.map { it.toMolki() }, expected)
+    }
+
+    @Test
+    fun testReplacementSystemConst() {
+        val instructions = transformToMolki() {
+            CodeGenIR.Const("2")
+        }
     }
 
     @Test
     fun testReplacementSystemAdd() {
-        val body = CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2"), CodeGenIR.Const("3"))
-        val registerTable = VirtualRegisterTable()
-        val res = body.accept(ReplacementSystem(registerTable))
-        println("codegen tree:")
-        res?.replacement.pp()
-        println("molki output:")
-        res?.instructions?.forEach { it.toMolki().pp() }
+        val res = transformToMolki() {
+            CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2"), CodeGenIR.Const("3"))
+        }
+        assertMolkiEquals(
+            res.instructions, listOf(
+                "movq 2(), %@0",
+                "movq 3(), %@1",
+                "addq [ %@0 | %@1 ] -> %@2"
+            )
+        )
+    }
+
+    @Test
+    fun testNestedAdd() {
+
+        val res = transformToMolki() {
+            CodeGenIR.BinOP(
+                BinOpENUM.ADD,
+                CodeGenIR.Const("22"),
+                CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("33"), CodeGenIR.Const("44"))
+            )
+        }
+        assertMolkiEquals(
+            res.instructions, listOf(
+                "movq 22(), %@0",
+                "movq 33(), %@1",
+                "movq 44(), %@2",
+                "addq [ %@1 | %@2 ] -> %@3",
+                "addq [ %@0 | %@3 ] -> %@4",
+            )
+        )
     }
 
     @Test
     fun testReplacementSystem() {
-        val body = CodeGenIR.BinOP(
-            operation = BinOpENUM.ADD,
-            left = CodeGenIR.Const("2"),
-            right = CodeGenIR.RegisterRef(
-                reg = ValueHolder(
-                    value = Register(
-                        id = RegisterId(0),
-                        width = Width.DOUBLE
+        val res = transformToMolki() {
+            CodeGenIR.BinOP(
+                BinOpENUM.ADD,
+                CodeGenIR.Const("2"),
+                CodeGenIR.RegisterRef(
+                    Register(
+                        id = it.newRegister(Width.QUAD).id,
+                        width = Width.QUAD
                     )
                 )
             )
-        )
-        val res = body.accept(ReplacementSystem(VirtualRegisterTable()))
-        println("result: $res")
-        res.pp()
+        }
+        assertMolkiEquals(res.instructions, listOf(
+            "movq 2(), %@1",
+            "addq [ %@1 | %@0 ] -> %@2",
+        ))
     }
 
 
