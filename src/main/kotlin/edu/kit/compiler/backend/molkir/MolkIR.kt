@@ -10,9 +10,11 @@ sealed interface Target : MolkIR {
     sealed interface Input : Target
     sealed interface Output : Target
     sealed interface InputOutput : Input, Output
+
+    val width: Width
 }
 
-class Constant(val value: String) : Target.Input {
+class Constant(val value: String, override val width: Width) : Target.Input {
     override fun toMolki(): String = "$$value"
 }
 
@@ -38,7 +40,7 @@ enum class Width(val inBytes: Int, val suffix: String) {
     }
 }
 
-class Register(val id: RegisterId, val width: Width) : Target.InputOutput {
+class Register(val id: RegisterId, override val width: Width) : Target.InputOutput {
     override fun toMolki(): String = "%@" + id.toMolki() + width.suffix
 
     companion object {
@@ -49,7 +51,7 @@ class Register(val id: RegisterId, val width: Width) : Target.InputOutput {
     }
 }
 
-class ReturnRegister(val width: Width) : Target.Output {
+class ReturnRegister(override val width: Width) : Target.Output {
     override fun toMolki(): String = "%@r0" + width.suffix
 
     companion object {
@@ -66,26 +68,30 @@ private constructor(
     val base: Register?,
     val index: Register?,
     val scale: Int?,
+    override val width: Width,
 ) : Target.InputOutput {
     companion object {
         fun of(
             const: String,
             base: Register,
             index: Register? = null,
-            scale: Int? = null
-        ) = Memory(const, base, index, scale)
+            scale: Int? = null,
+            width: Width
+        ) = Memory(const, base, index, scale, width)
 
         fun of(
             base: Register,
             index: Register? = null,
-            scale: Int? = null
-        ) = Memory(null, base, index, scale)
+            scale: Int? = null,
+            width: Width
+        ) = Memory(null, base, index, scale, width)
 
         fun of(
             const: String,
             index: Register? = null,
-            scale: Int? = null
-        ) = Memory(const, null, index, scale)
+            scale: Int? = null,
+            width: Width
+        ) = Memory(const, null, index, scale, width)
     }
 
     init {

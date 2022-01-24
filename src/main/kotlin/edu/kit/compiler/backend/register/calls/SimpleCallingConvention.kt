@@ -59,6 +59,10 @@ object SimpleCallingConvention : CallingConvention {
         return epilogue
     }
 
+    override fun getReturnValueTarget(): PlatformTarget {
+        return PlatformTarget.Register.RAX()
+    }
+
     override fun taintRegister(register: PlatformTarget.Register) {
         // do nothing, because we needn't save registers
     }
