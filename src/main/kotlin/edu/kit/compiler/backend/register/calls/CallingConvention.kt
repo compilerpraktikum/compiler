@@ -10,8 +10,6 @@ import edu.kit.compiler.backend.register.PlatformTarget
  */
 interface CallingConvention {
 
-    // TODO the calling convention must somehow know which registers are being used by the function
-
     /**
      * Generate the function prologue for a function called by this convention+
      *
