@@ -1,6 +1,10 @@
 package edu.kit.compiler.backend.codegen
 
 import com.tylerthrailkill.helpers.prettyprint.pp
+import edu.kit.compiler.backend.molkir.Memory
+import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
 import firm.Graph
@@ -37,6 +41,7 @@ import firm.nodes.Shrs
 import firm.nodes.Start
 import firm.nodes.Store
 import firm.nodes.Sub
+import firm.nodes.Unknown
 
 class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter() {
 
@@ -78,6 +83,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     fun updateCurrentTree(tree: CodeGenIR, node: Node) {
         nodeMap[node] = tree
         currentTree = tree
+        println(tree.toString())
     }
 
     private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
@@ -106,32 +112,35 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         println("visit CALL " + node.block.toString())
         super.visit(node)
         updateCurrentBlock(node)
+        node.preds.forEach { println("Preds are: ${it.toString()}") }
         val arguments = node.preds
             .filter { it.mode != Mode.getM() }
             .filter { it !is Address }
             .map { nodeMap[it]!! }
         val addr = node.getPred(1) as Address
-        val mode = (node.type as MethodType).getResType(0).mode
+        println("visit CALL " + node.block.toString())
+        //val mode = (node.type as MethodType).getResType(0).mode
 
         val call = CodeGenIR.Call(addr, arguments)
         // R_i = call("foo", 2)
         nodeMap[node] = call
+        println(call.toString())
 
-        println("visit CALL " + node.block.toString())
     }
 
     override fun visit(node: Cmp) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.CMP)
+        updateCurrentBlock(node)
         val left = nodeMap[node.left]!!
         val right = nodeMap[node.right]!!
-        val cmp = CodeGenIR.BinOP(BinOpENUM.CMP,right, left, )
-        nodeMap[node] = cmp
+        val cmp = CodeGenIR.Compare(node.relation,right, left)
+        updateCurrentTree(cmp, node)
         println("visit CMP " + node.block.toString())
     }
 
     override fun visit(node: Cond) {
         super.visit(node)
+        BackEdges.getOuts(node).forEach { it -> println(it.node.toString()) }
         updateCurrentBlock(node)
 
         println("visit COND " + node.block.toString())
@@ -149,6 +158,12 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Conv) {
         super.visit(node)
         updateCurrentBlock(node)
+        val opMode = node.op.mode
+        val mode = node.mode
+        val opTree = nodeMap[node.op]!!
+        val conv = CodeGenIR.Conv(opMode, mode, opTree)
+        nodeMap[node] = conv
+        updateCurrentTree(conv, node)
         println("visit CONV " + node.block.toString())
     }
 
@@ -222,10 +237,12 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Proj) {
         super.visit(node)
         updateCurrentBlock(node)
+        println(node.pred.toString())
         when (val pred = node.pred) {
             is Div -> nodeMap[node] = nodeMap[pred]!!
             is Mod -> nodeMap[node] = nodeMap[pred]!!
             is Load -> nodeMap[node] = nodeMap[pred]!!
+            is Store -> nodeMap[pred.getPred(0)]
             is Start -> Unit // skip -> this is handled by succeeding proj
             is Call -> Unit // skip -> this is handled by succeeding proj
             is Proj -> {
@@ -237,12 +254,11 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
                     is Call -> {
                         nodeMap[node] = nodeMap[origin]!!
                     }
-
                 }
             }
             else -> TODO("missing handling for case $pred")
         }
-        println("visit PROJ " + node.block.toString())
+        println("visit PROJ ${node.toString()} " + node.block.toString())
     }
 
     private fun allocateArguments(node: Proj) {
@@ -257,12 +273,23 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Return) {
         super.visit(node)
         updateCurrentBlock(node)
+        println("---")
+        node.preds.forEach {println("preds ${it.toString()}") }
+        println("---")
+        println("---")
+        node.preds.forEach {println("predstree ${nodeMap[it].toString()}") }
+        println("---")
         println("visit RETURN " + node.block.toString())
     }
 
     override fun visit(node: Store) {
+        node.preds.forEach { println("Store preds are: ${it.mode.toString()}, ${nodeMap[it]}") }
         super.visit(node)
         updateCurrentBlock(node)
+        val value = nodeMap[node.value]!!
+        val address = nodeMap[node.getPred(1)]!!
+        val tree = CodeGenIR.Assign(lhs = address, rhs = value)
+        updateCurrentTree(tree, node)
         println("visit STORE " + node.block.toString())
     }
 
@@ -271,8 +298,8 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         buildBinOpTree(node, BinOpENUM.SUB)
         println("visit SUB " + node.block.toString())
     }
-
-    override fun visitUnknown(node: Node) {
+    //TODO
+   override fun visit(node: Unknown) {
         super.visitUnknown(node)
         updateCurrentBlock(node)
         println("visit NODE " + node.block.toString())

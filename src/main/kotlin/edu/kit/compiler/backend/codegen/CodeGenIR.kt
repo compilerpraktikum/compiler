@@ -2,6 +2,10 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.Target
+import firm.Mode
+import firm.Relation
+import firm.TargetValue
 import firm.nodes.Address
 import kotlin.math.max
 
@@ -20,6 +24,39 @@ sealed class CodeGenIR {
         }
 
         override fun cost(): Int = left.cost() + right.cost() + 1
+    }
+
+    data class Compare(val relation: Relation, val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
+        override fun match(node: CodeGenIR): Boolean {
+            if (node is CodeGenIR.Compare && node.relation == relation) {
+                return left.match(node.left) && right.match(node.right)
+            }
+            return false
+        }
+
+        override fun cost(): Int = left.cost() + right.cost() + 1
+    }
+
+    data class Store(val addr: MemoryAddress, val value: CodeGenIR, val width: Int) : CodeGenIR(){
+        override fun match(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
+
+    }
+
+    data class Return(val tree: CodeGenIR, val returnValue: CodeGenIR) : CodeGenIR() {
+        override fun match(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
+
     }
 
     data class Indirection(val addr: CodeGenIR) : CodeGenIR() {
@@ -115,6 +152,16 @@ sealed class CodeGenIR {
 
     }
 
+    data class Conv(val opMode: Mode, val mode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
+        override fun match(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
+    }
+
     fun <T> accept(visitor: CodeGenIRVisitor<T>): T =
         when (this) {
             is Assign -> visitor.visit(this)
@@ -129,7 +176,7 @@ sealed class CodeGenIR {
 }
 
 enum class BinOpENUM {
-    ADD, AND, CMP, EOR, MUL, MULH, OR, SUB, SHL, SHR, SHRS
+    ADD, AND, EOR, MUL, MULH, OR, SUB, SHL, SHR, SHRS
 }
 
 interface CodeGenIRVisitor<T> {
