@@ -187,6 +187,10 @@ object FirmContext {
         this.graph = null
         this.returnNodes.clear()
         this.exitBlocks.clear()
+
+        // unreachable returns may introduce Bad nodes, remove them before subsequent phases
+        firm.bindings.binding_irgopt.remove_bads(graph.ptr)
+
         return graph
     }
 
