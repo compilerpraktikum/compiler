@@ -4,7 +4,6 @@ import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.transform.Transformation
 import edu.kit.compiler.utils.createSemanticAST
 import firm.Firm
-import firm.Graph
 import firm.Program
 import firm.Util
 import org.junit.jupiter.api.AfterEach
@@ -21,17 +20,19 @@ internal class OptimizationTests {
         Firm.finish()
     }
 
-    private fun check(input: String, optimization: (Graph) -> Unit) {
+    private fun check(input: String, optimization: Optimization) {
         val (program, sourceFile, stringTable) = createSemanticAST(input)
         doSemanticAnalysis(program, sourceFile, stringTable)
         if (sourceFile.hasError) {
             fail("invalid program")
         }
 
-        Transformation.transform(program)
+        Transformation.transform(program, stringTable)
         Util.lowerSels()
 
-        Program.getGraphs().forEach(optimization)
+        Program.getGraphs().forEach {
+            optimization.apply(it)
+        }
     }
 
     @Test
@@ -51,7 +52,7 @@ internal class OptimizationTests {
                 }
             }
             """.trimIndent(),
-            ::doConstantPropagationAndFolding
+            ConstantPropagationAndFolding
         )
     }
 
@@ -66,7 +67,7 @@ internal class OptimizationTests {
                     }
                 }
             """.trimIndent(),
-            ::doConstantPropagationAndFolding
+            ConstantPropagationAndFolding
         )
     }
 }

@@ -135,7 +135,7 @@ class Compiler(private val config: Config) {
                             return@run
                         }
 
-                        Transformation.transform(program)
+                        Transformation.transform(program, stringTable)
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterConstruction, "after-construction")
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
