@@ -84,6 +84,21 @@ internal class RegisterAllocationTest {
         println(platformCode.joinToString("\n") { it.toAssembler() })
     }
 
+    @Test
+    fun testDivision() {
+        val code = listOf(
+            MolkiInstruction.idivq(
+                Constant("8", Width.DOUBLE),
+                Constant("2", Width.DOUBLE),
+                Register(RegisterId(0), Width.DOUBLE),
+                Register(RegisterId(1), Width.DOUBLE)
+            ),
+        )
+
+        val platformCode = transformCode(code)
+        println(platformCode.joinToString("\n") { it.toAssembler() })
+    }
+
     /**
      * Call the trivial register allocator with the trivial calling convention and generate the requested code.
      */
