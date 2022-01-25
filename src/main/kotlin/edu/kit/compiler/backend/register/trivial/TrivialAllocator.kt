@@ -10,25 +10,6 @@ import edu.kit.compiler.backend.register.RegisterAllocator
  */
 class TrivialAllocator : RegisterAllocator {
 
-    private val registerFactories = mutableMapOf<EnumRegister, () -> PlatformTarget.Register>(
-        EnumRegister.RAX to PlatformTarget.Register::RAX,
-        EnumRegister.RBX to PlatformTarget.Register::RBX,
-        EnumRegister.RCX to PlatformTarget.Register::RCX,
-        EnumRegister.RDX to PlatformTarget.Register::RDX,
-        EnumRegister.RSI to PlatformTarget.Register::RSI,
-        EnumRegister.RDI to PlatformTarget.Register::RDI,
-        EnumRegister.RSP to PlatformTarget.Register::RSP,
-        EnumRegister.RBP to PlatformTarget.Register::RBP,
-        EnumRegister.R8 to PlatformTarget.Register::R8,
-        EnumRegister.R9 to PlatformTarget.Register::R9,
-        EnumRegister.R10 to PlatformTarget.Register::R10,
-        EnumRegister.R11 to PlatformTarget.Register::R11,
-        EnumRegister.R12 to PlatformTarget.Register::R12,
-        EnumRegister.R13 to PlatformTarget.Register::R13,
-        EnumRegister.R14 to PlatformTarget.Register::R14,
-        EnumRegister.R15 to PlatformTarget.Register::R15
-    )
-
     /**
      * List of all general purpose registers and whether they are currently allocated or free.
      * Sorted in a way to prefer allocating registers that are not required by the 64 bit ABI calling convention or are
@@ -58,7 +39,7 @@ class TrivialAllocator : RegisterAllocator {
     /**
      * A map of currently allocated handles to their factory, so they can be associated when being freed
      */
-    private val allocatedRegisterHandles = mutableMapOf<EnumRegister, PlatformTarget.Register>()
+    private val allocatedRegisters = mutableSetOf<EnumRegister>()
 
     /**
      * Allocate the next available register from the register list and return a handle to it
@@ -76,7 +57,7 @@ class TrivialAllocator : RegisterAllocator {
     }
 
     override fun freeRegister(register: EnumRegister) {
-        this.allocatedRegisterHandles.remove(register)
+        this.allocatedRegisters.remove(register)
         this.freeRegisters[register] = true
     }
 
@@ -84,12 +65,13 @@ class TrivialAllocator : RegisterAllocator {
      * Free all currently allocated registers
      */
     override fun freeAll() {
-        val allocated = this.allocatedRegisterHandles.keys.toList()
-        allocated.forEach(::freeRegister)
+        // copy the list to avoid comodification
+        val handles = this.allocatedRegisters.toList()
+        handles.forEach(::freeRegister)
     }
 
     override fun isAllocated(register: EnumRegister): Boolean {
-        return this.allocatedRegisterHandles.containsKey(register)
+        return this.allocatedRegisters.contains(register)
     }
 
     override fun forceAllocate(register: EnumRegister): PlatformTarget.Register {
@@ -97,8 +79,8 @@ class TrivialAllocator : RegisterAllocator {
 
         freeRegisters[register] = false
 
-        val registerHandle = registerFactories[register]!!.invoke()
-        this.allocatedRegisterHandles[registerHandle.register] = registerHandle
+        val registerHandle = PlatformTarget.Register(register)
+        this.allocatedRegisters.add(register)
         return registerHandle
     }
 }

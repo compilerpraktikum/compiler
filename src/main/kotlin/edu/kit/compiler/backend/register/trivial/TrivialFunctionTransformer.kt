@@ -35,7 +35,7 @@ class TrivialFunctionTransformer(
      */
     private data class StackSlot(val virtualRegisterId: RegisterId, val offset: Int, val width: Width) {
         fun generateMemoryAddress(): PlatformTarget.Memory =
-            PlatformTarget.Memory.of((-offset).toString(), PlatformRegister.RBP(), null, null)
+            PlatformTarget.Memory.of((-offset).toString(), PlatformRegister(EnumRegister.RBP), null, null)
     }
 
     /**
@@ -130,8 +130,25 @@ class TrivialFunctionTransformer(
      */
     private fun allocateRegister(registerWidth: Width): PlatformRegister {
         val platformRegister = this.allocator.allocateRegister()
-        this.callingConvention.taintRegister(platformRegister)
-        return platformRegister.width(registerWidth)
+        prepareRegister(platformRegister, registerWidth)
+        return platformRegister
+    }
+
+    /**
+     * Allocate a specific [PlatformRegister] and set its prefix to the correct width.
+     */
+    private fun forceAllocateRegister(register: EnumRegister, registerWidth: Width): PlatformRegister {
+        val platformRegister = this.allocator.forceAllocate(register)
+        prepareRegister(platformRegister, registerWidth)
+        return platformRegister
+    }
+
+    /**
+     * Inform calling convention about the used register and setup the register width
+     */
+    private fun prepareRegister(register: PlatformTarget.Register, registerWidth: Width) {
+        this.callingConvention.taintRegister(register)
+        register.width(registerWidth)
     }
 
     /**
@@ -216,7 +233,7 @@ class TrivialFunctionTransformer(
         when (instr) {
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
             is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
-            is MolkiInstruction.DivisionOperation -> transformBinaryOperationWithTwoPartResult(instr)
+            is MolkiInstruction.DivisionOperation -> transformDivision(instr)
             is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> PlatformInstruction.Jump(instr.name, instr.label)
             is MolkiInstruction.Label -> PlatformInstruction.Label(instr.name)
@@ -249,10 +266,7 @@ class TrivialFunctionTransformer(
         generatedCode.add(transformedInstr)
 
         // generate spill code
-        if (instr.result is MolkiRegister)
-            generateSpillCode(instr.result.id, instr.result.width, right)
-        else if (instr.result is MolkiReturnRegister)
-            generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, right)
+        spillResultIfNecessary(instr.result, right)
     }
 
     /**
@@ -269,14 +283,7 @@ class TrivialFunctionTransformer(
         generatedCode.add(transformedInstr)
 
         // generate spill code
-        when (instr.result) {
-            is MolkiRegister -> generateSpillCode(instr.result.id, instr.result.width, result)
-            is MolkiReturnRegister -> generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, result)
-            else -> {
-                // we just assume that the instruction already wrote the result to the correct target, as we made the
-                // target the second operand to a binary operation
-            }
-        }
+        spillResultIfNecessary(instr.result, result)
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
@@ -299,12 +306,12 @@ class TrivialFunctionTransformer(
                 val platformRegister = SimpleCallingConvention.getReturnValueTarget(instr.result.width)
 
                 when (instr.result) {
-                    is edu.kit.compiler.backend.molkir.Register -> generateSpillCode(
+                    is MolkiRegister -> generateSpillCode(
                         instr.result.id,
                         instr.result.width,
                         platformRegister
                     )
-                    is edu.kit.compiler.backend.molkir.ReturnRegister -> generateSpillCode(
+                    is MolkiReturnRegister -> generateSpillCode(
                         RegisterId(RETURN_VALUE_SLOT),
                         instr.result.width,
                         platformRegister
@@ -320,7 +327,62 @@ class TrivialFunctionTransformer(
         }
     }
 
-    private fun transformBinaryOperationWithTwoPartResult(instr: MolkiInstruction.DivisionOperation) {
-        TODO()
+    private fun transformDivision(instr: MolkiInstruction.DivisionOperation) {
+        // we assume that we can always forcibly allocate those registers, because at the beginning of this instruction,
+        // no registers should be allocated (using the trivial function transformation)
+        val rdx = forceAllocateRegister(EnumRegister.RDX, Width.QUAD)
+        val rax = forceAllocateRegister(EnumRegister.RAX, Width.QUAD)
+        val divisorRegister = allocateRegister(Width.QUAD)
+
+        val source = transformOperand(instr.left)
+        val divisorSource = transformOperand(instr.right)
+
+        val resultLeft = transformResult(instr.resultLeft)
+        val resultRight = transformResult(instr.resultRight)
+
+        // expand 32 bit numbers to 64 bit
+        generatedCode.add(PlatformInstruction.xor(rdx, rdx, Width.QUAD))
+        signedExtend(source, rax)
+        signedExtend(divisorSource, divisorRegister)
+
+        // perform division
+        generatedCode.add(PlatformInstruction.unOp("idivq", divisorRegister))
+
+        // move result to correct target
+        generatedCode.add(PlatformInstruction.mov(rdx.doubleWidth(), resultLeft, Width.DOUBLE))
+        generatedCode.add(PlatformInstruction.mov(rax.doubleWidth(), resultRight, Width.DOUBLE))
+
+        // generate spill code
+        spillResultIfNecessary(instr.resultLeft, resultLeft)
+        spillResultIfNecessary(instr.resultRight, resultRight)
+    }
+
+    /**
+     * Move [source] into [target] register extending it to 64 bit.
+     */
+    private fun signedExtend(source: PlatformTarget, target: PlatformTarget.Register) {
+        when (source) {
+            is PlatformTarget.Constant -> generatedCode.add(PlatformInstruction.mov(source, target, Width.QUAD))
+            is PlatformTarget.Memory,
+            is PlatformTarget.Register -> generatedCode.add(PlatformInstruction.binOp("movslq", source, target))
+        }
+    }
+
+    /**
+     * Generates spill code if necessary. Does nothing otherwise.
+     */
+    private fun spillResultIfNecessary(molkiTarget: MolkiTarget.Output, platformTarget: PlatformTarget) {
+        when (molkiTarget) {
+            is MolkiRegister -> generateSpillCode(molkiTarget.id, molkiTarget.width, platformTarget)
+            is MolkiReturnRegister -> generateSpillCode(
+                RegisterId(RETURN_VALUE_SLOT),
+                molkiTarget.width,
+                platformTarget
+            )
+            else -> {
+                // we just assume that the instruction already wrote the result to the correct target, as we made the
+                // target an operand to an operation
+            }
+        }
     }
 }

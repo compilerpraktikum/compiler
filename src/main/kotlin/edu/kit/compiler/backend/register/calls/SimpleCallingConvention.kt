@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend.register.calls
 
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.backend.register.EnumRegister
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
 import edu.kit.compiler.backend.register.RegisterAllocator
@@ -13,11 +14,15 @@ object SimpleCallingConvention : CallingConvention {
 
     override fun generateFunctionPrologue(reservedSpace: Int): List<PlatformInstruction> {
         return listOf(
-            PlatformInstruction.unOp("push", PlatformTarget.Register.RBP()),
-            PlatformInstruction.binOp("movq", PlatformTarget.Register.RSP(), PlatformTarget.Register.RBP()),
+            PlatformInstruction.unOp("push", PlatformTarget.Register(EnumRegister.RBP)),
+            PlatformInstruction.binOp(
+                "movq",
+                PlatformTarget.Register(EnumRegister.RSP),
+                PlatformTarget.Register(EnumRegister.RBP)
+            ),
             PlatformInstruction.binOp(
                 "subq",
-                PlatformTarget.Register.RSP(),
+                PlatformTarget.Register(EnumRegister.RSP),
                 PlatformTarget.Constant(reservedSpace.toString())
             ),
         )
@@ -34,7 +39,7 @@ object SimpleCallingConvention : CallingConvention {
             epilogue.add(
                 PlatformInstruction.mov(
                     returnValue,
-                    PlatformTarget.Register.RAX().width(returnWidth),
+                    PlatformTarget.Register(EnumRegister.RAX).width(returnWidth),
                     returnWidth
                 )
             )
@@ -47,7 +52,7 @@ object SimpleCallingConvention : CallingConvention {
     }
 
     override fun getReturnValueTarget(width: Width): PlatformTarget {
-        return PlatformTarget.Register.RAX().width(width)
+        return PlatformTarget.Register(EnumRegister.RAX).width(width)
     }
 
     override fun taintRegister(register: PlatformTarget.Register) {
@@ -83,7 +88,7 @@ object SimpleCallingConvention : CallingConvention {
         override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
             instructionAppender(
                 PlatformInstruction.add(
-                    PlatformTarget.Register.RSP(),
+                    PlatformTarget.Register(EnumRegister.RSP),
                     PlatformTarget.Constant(parameterZoneWidth.toString()),
                     Width.QUAD
                 )

@@ -20,30 +20,9 @@ sealed class PlatformTarget : PlatformIR {
      *
      * @param register the [EnumRegister] that is referenced by this handle
      */
-    sealed class Register(val register: EnumRegister) : PlatformTarget() {
-
-        private var width = Width.QUAD
-
-        class RAX : Register(EnumRegister.RAX)
-        class RBX : Register(EnumRegister.RBX)
-        class RCX : Register(EnumRegister.RCX)
-        class RDX : Register(EnumRegister.RDX)
-        class RSI : Register(EnumRegister.RSI)
-        class RDI : Register(EnumRegister.RDI)
-        class RSP : Register(EnumRegister.RSP)
-        class RBP : Register(EnumRegister.RBP)
-        class R8 : Register(EnumRegister.R8)
-        class R9 : Register(EnumRegister.R9)
-        class R10 : Register(EnumRegister.R10)
-        class R11 : Register(EnumRegister.R11)
-        class R12 : Register(EnumRegister.R12)
-        class R13 : Register(EnumRegister.R13)
-        class R14 : Register(EnumRegister.R14)
-        class R15 : Register(EnumRegister.R15)
-
+    data class Register(val register: EnumRegister, val width: Width = Width.QUAD) : PlatformTarget() {
         fun width(width: Width): Register {
-            this.width = width
-            return this
+            return this.copy(register = this.register, width = width)
         }
 
         fun halfWordWidth() = width(Width.BYTE)
