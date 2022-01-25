@@ -127,10 +127,17 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String = "$name:"
     }
 
+    /**
+     * @param name function name
+     * @param arguments [Target.Input]s for arguments
+     * @param result where to store the function's result value
+     * @param external whether this is an external function linked at a later point
+     */
     class Call(
         val name: String,
         val arguments: List<Target.Input>,
-        val result: Target.Output?
+        val result: Target.Output?,
+        val external: Boolean
     ) : Instruction() {
         override fun toMolki(): String {
             val args = arguments.joinToString(" | ") { it.toMolki() }
@@ -190,8 +197,8 @@ sealed class Instruction : MolkIR {
 
         fun label(name: String) = Label(name)
 
-        fun call(name: String, arguments: List<Target.Input>, result: Target.Output?) =
-            Call(name, arguments, result)
+        fun call(name: String, arguments: List<Target.Input>, result: Target.Output?, external: Boolean) =
+            Call(name, arguments, result, external)
 
         /* ktlint-disable no-multi-spaces */
         /* @formatter:off */
