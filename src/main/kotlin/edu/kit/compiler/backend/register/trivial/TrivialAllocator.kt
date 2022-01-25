@@ -1,11 +1,12 @@
 package edu.kit.compiler.backend.register.trivial
 
 import edu.kit.compiler.backend.register.PlatformTarget
+import edu.kit.compiler.backend.register.RegisterAllocator
 
 /**
  * Trivial allocator for registers that just takes the next available register from a list of free registers
  */
-class TrivialAllocator {
+class TrivialAllocator : RegisterAllocator {
 
     /**
      * List of all general purpose registers and whether they are currently allocated or free
@@ -36,7 +37,7 @@ class TrivialAllocator {
     /**
      * Allocate the next available register from the register list and return a handle to it
      */
-    fun allocateRegister(): PlatformTarget.Register {
+    override fun allocateRegister(): PlatformTarget.Register {
         val selectedRegisterFactory = freeRegisters.entries.first { (_, free) -> free }.key
         freeRegisters[selectedRegisterFactory] = false
 
@@ -48,14 +49,14 @@ class TrivialAllocator {
     /**
      * Free an allocated register so it can be allocated again
      */
-    fun freeRegister(registerHandle: PlatformTarget.Register) {
+    override fun freeRegister(registerHandle: PlatformTarget.Register) {
         this.freeRegisters[this.allocatedRegisterHandles.remove(registerHandle)!!] = true
     }
 
     /**
      * Free all currently allocated registers
      */
-    fun freeAll() {
+    override fun freeAll() {
         val allocated = this.allocatedRegisterHandles.keys.toList()
         allocated.forEach(::freeRegister)
     }
