@@ -51,8 +51,33 @@ internal class RegisterAllocationTest {
             ),
             MolkiInstruction.movl(
                 Register(RegisterId(1), Width.DOUBLE),
-                Memory.of("0xffff7f34", index = Register(RegisterId(1), Width.DOUBLE), scale = 4, width=Width.DOUBLE)
+                Memory.of("0xffff7f34", index = Register(RegisterId(1), Width.DOUBLE), scale = 4, width = Width.DOUBLE)
             )
+        )
+
+        val platformCode = transformCode(code)
+        println(platformCode.joinToString("\n") { it.toAssembler() })
+    }
+
+    @Test
+    fun testCall() {
+        val code = listOf(
+            MolkiInstruction.movl(
+                Constant("1", Width.DOUBLE),
+                Register(RegisterId(0), Width.DOUBLE)
+            ),
+            MolkiInstruction.movl(
+                Constant("2", Width.DOUBLE),
+                Register(RegisterId(1), Width.DOUBLE)
+            ),
+            MolkiInstruction.call(
+                "foo",
+                listOf(
+                    Register(RegisterId(0), Width.DOUBLE),
+                    Register(RegisterId(1), Width.DOUBLE),
+                ),
+                Register(RegisterId(2), Width.DOUBLE)
+            ),
         )
 
         val platformCode = transformCode(code)

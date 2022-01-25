@@ -28,8 +28,10 @@ interface CallingConvention {
 
     /**
      * Get the [PlatformTarget] where the function's return value will be located at
+     *
+     * @param width bit-width of return value
      */
-    fun getReturnValueTarget(): PlatformTarget
+    fun getReturnValueTarget(width: Width): PlatformTarget
 
     /**
      * Mark a register as used by the function, so it can be saved if required by the calling convention

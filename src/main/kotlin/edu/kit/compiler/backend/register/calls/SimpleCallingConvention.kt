@@ -38,7 +38,7 @@ object SimpleCallingConvention : CallingConvention {
                         PlatformTarget.Register.RAX().halfWordWidth()
                     )
                 )
-                Width.WORD -> TODO()
+                Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
                 Width.DOUBLE -> epilogue.add(
                     PlatformInstruction.movl(
                         returnValue,
@@ -60,8 +60,13 @@ object SimpleCallingConvention : CallingConvention {
         return epilogue
     }
 
-    override fun getReturnValueTarget(): PlatformTarget {
-        return PlatformTarget.Register.RAX()
+    override fun getReturnValueTarget(width: Width): PlatformTarget {
+        return when (width) {
+            Width.BYTE -> PlatformTarget.Register.RAX().halfWordWidth()
+            Width.WORD -> PlatformTarget.Register.RAX().wordWidth()
+            Width.DOUBLE -> PlatformTarget.Register.RAX().doubleWidth()
+            Width.QUAD -> PlatformTarget.Register.RAX().quadWidth()
+        }
     }
 
     override fun taintRegister(register: PlatformTarget.Register) {

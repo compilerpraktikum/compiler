@@ -294,49 +294,51 @@ class TrivialFunctionTransformer(
         when (instr.result) {
             is MolkiRegister -> generateSpillCode(instr.result.id, instr.result.width, result)
             is MolkiReturnRegister -> generateSpillCode(RegisterId(RETURN_VALUE_SLOT), instr.result.width, result)
-            else -> throw IllegalStateException("unexpected: instruction result target is not a register")
+            else -> {
+                // we just assume that the instruction already wrote the result to the correct target, as we made the
+                // target the second operand to a binary operation
+            }
         }
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
-        var parameterZone = 0
+        SimpleCallingConvention.generateFunctionCall(allocator) {
+            for (i in (0 until instr.arguments.size).reversed()) {
+                val argumentSource = transformOperand(instr.arguments[i])
+                prepareArgument(argumentSource, instr.arguments[i].width, generatedCode::add)
 
-        for (i in (0 until instr.arguments.size).reversed()) {
-            // TODO stack alignment probably must be guaranteed somehow?
-
-            // TODO how do we know how big the arguments are?
-
-            // push argument (possibly without using a register, as memory -> register -> memory probably isn't faster
-            // than memory -> memory)
-        }
-
-        // generate function call
-        generatedCode.add(PlatformInstruction.Call(instr.name))
-
-        // save return value
-        if (instr.result != null) {
-            // TODO get the calling convention from somewhere else
-            val platformRegister = SimpleCallingConvention.getReturnValueTarget()
-
-            when (instr.result) {
-                is MolkiRegister -> generateSpillCode(instr.result.id, instr.result.width, platformRegister)
-                is MolkiReturnRegister -> generateSpillCode(
-                    RegisterId(RETURN_VALUE_SLOT),
-                    instr.result.width,
-                    platformRegister
-                )
-                else -> {
-                    throw IllegalStateException("unexpected: instruction result target is not a register")
+                // immediately free this temporary source, because we already stored the parameter where we need it
+                if (argumentSource is PlatformTarget.Register) {
+                    allocator.freeRegister(argumentSource)
                 }
             }
-        }
 
-        // cleanup stack
-        generatedCode.add(
-            PlatformInstruction.addq(
-                PlatformTarget.Register.RSP(),
-                PlatformTarget.Constant(parameterZone.toString())
-            )
-        )
+            // generate actual call instruction
+            generateCall(instr.name, generatedCode::add)
+
+            // save return value
+            if (instr.result != null) {
+                val platformRegister = SimpleCallingConvention.getReturnValueTarget(instr.result.width)
+
+                when (instr.result) {
+                    is edu.kit.compiler.backend.molkir.Register -> generateSpillCode(
+                        instr.result.id,
+                        instr.result.width,
+                        platformRegister
+                    )
+                    is edu.kit.compiler.backend.molkir.ReturnRegister -> generateSpillCode(
+                        RegisterId(RETURN_VALUE_SLOT),
+                        instr.result.width,
+                        platformRegister
+                    )
+                    else -> {
+                        throw IllegalStateException("unexpected: instruction result target is not a register")
+                    }
+                }
+            }
+
+            // cleanup stack
+            cleanupStack(generatedCode::add)
+        }
     }
 }
