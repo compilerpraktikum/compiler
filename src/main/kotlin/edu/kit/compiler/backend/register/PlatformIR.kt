@@ -195,6 +195,15 @@ sealed class PlatformInstruction : PlatformIR {
         fun subq(from: PlatformTarget, value: PlatformTarget) =
             BinaryOperation("subq", from, value)
 
+        fun pushb(operand: PlatformTarget) =
+            UnaryOperation("pushb", operand)
+
+        fun pushl(operand: PlatformTarget) =
+            UnaryOperation("pushl", operand)
+
+        fun pushq(operand: PlatformTarget) =
+            UnaryOperation("pushq", operand)
+
         /**
          * Generate an operand-less operation
          */
