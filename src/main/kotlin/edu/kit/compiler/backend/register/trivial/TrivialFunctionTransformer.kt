@@ -129,8 +129,8 @@ class TrivialFunctionTransformer(
      * Allocate a [PlatformRegister] and set its prefix to the correct width.
      */
     private fun allocateRegister(registerWidth: Width): PlatformRegister {
-        val platformRegister = this.allocator.allocateRegister()
-        prepareRegister(platformRegister, registerWidth)
+        val platformRegister = this.allocator.allocateRegister().width(registerWidth)
+        prepareRegister(platformRegister)
         return platformRegister
     }
 
@@ -138,17 +138,16 @@ class TrivialFunctionTransformer(
      * Allocate a specific [PlatformRegister] and set its prefix to the correct width.
      */
     private fun forceAllocateRegister(register: EnumRegister, registerWidth: Width): PlatformRegister {
-        val platformRegister = this.allocator.forceAllocate(register)
-        prepareRegister(platformRegister, registerWidth)
+        val platformRegister = this.allocator.forceAllocate(register).width(registerWidth)
+        prepareRegister(platformRegister)
         return platformRegister
     }
 
     /**
      * Inform calling convention about the used register and setup the register width
      */
-    private fun prepareRegister(register: PlatformTarget.Register, registerWidth: Width) {
+    private fun prepareRegister(register: PlatformTarget.Register) {
         this.callingConvention.taintRegister(register)
-        register.width(registerWidth)
     }
 
     /**
