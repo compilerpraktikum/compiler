@@ -6,8 +6,8 @@ import edu.kit.compiler.backend.register.EnumRegister
 import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
+import edu.kit.compiler.backend.register.RegisterAllocation
 import edu.kit.compiler.backend.register.calls.CallingConvention
-import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 import edu.kit.compiler.backend.molkir.Memory as MolkiMemory
@@ -286,7 +286,7 @@ class TrivialFunctionTransformer(
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
-        SimpleCallingConvention.generateFunctionCall(allocator) {
+        RegisterAllocation.getInternalCallingConvention().generateFunctionCall(allocator) {
             for (i in (0 until instr.arguments.size).reversed()) {
                 val argumentSource = transformOperand(instr.arguments[i])
                 prepareArgument(argumentSource, instr.arguments[i].width, generatedCode::add)
@@ -302,7 +302,8 @@ class TrivialFunctionTransformer(
 
             // save return value
             if (instr.result != null) {
-                val platformRegister = SimpleCallingConvention.getReturnValueTarget(instr.result.width)
+                val platformRegister =
+                    RegisterAllocation.getInternalCallingConvention().getReturnValueTarget(instr.result.width)
 
                 when (instr.result) {
                     is MolkiRegister -> generateSpillCode(
