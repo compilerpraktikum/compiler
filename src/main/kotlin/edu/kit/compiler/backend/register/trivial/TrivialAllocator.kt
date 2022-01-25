@@ -9,23 +9,29 @@ import edu.kit.compiler.backend.register.RegisterAllocator
 class TrivialAllocator : RegisterAllocator {
 
     /**
-     * List of all general purpose registers and whether they are currently allocated or free
+     * List of all general purpose registers and whether they are currently allocated or free.
+     * Sorted in a way to prefer allocating registers that are not required by the 64 bit ABI calling convention or are
+     * reserved for division. This way, we hopefully need less spilling during function calls.
      */
     private val freeRegisters = mutableMapOf<() -> PlatformTarget.Register, Boolean>(
-        PlatformTarget.Register::RAX to true,
         PlatformTarget.Register::RBX to true,
-        PlatformTarget.Register::RCX to true,
-        PlatformTarget.Register::RDX to true,
         PlatformTarget.Register::RSI to true,
         PlatformTarget.Register::RDI to true,
-        PlatformTarget.Register::R8 to true,
-        PlatformTarget.Register::R9 to true,
         PlatformTarget.Register::R10 to true,
         PlatformTarget.Register::R11 to true,
         PlatformTarget.Register::R12 to true,
         PlatformTarget.Register::R13 to true,
         PlatformTarget.Register::R14 to true,
-        PlatformTarget.Register::R15 to true
+        PlatformTarget.Register::R15 to true,
+
+        // reserved for `div` operation
+        PlatformTarget.Register::RAX to true,
+
+        // reserved for x64 ABI
+        PlatformTarget.Register::R9 to true,
+        PlatformTarget.Register::R8 to true,
+        PlatformTarget.Register::RDX to true,
+        PlatformTarget.Register::RCX to true,
     )
 
     /**
