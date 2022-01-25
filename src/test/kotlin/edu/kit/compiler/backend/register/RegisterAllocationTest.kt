@@ -125,7 +125,8 @@ internal class RegisterAllocationTest {
                     Register(RegisterId(0), Width.DOUBLE),
                     Register(RegisterId(1), Width.DOUBLE),
                 ),
-                Register(RegisterId(2), Width.DOUBLE)
+                Register(RegisterId(2), Width.DOUBLE),
+                false
             ),
         )
 
