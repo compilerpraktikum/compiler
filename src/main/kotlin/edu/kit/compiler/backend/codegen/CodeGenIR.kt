@@ -2,16 +2,21 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
-import edu.kit.compiler.backend.molkir.Target
 import firm.Mode
 import firm.Relation
-import firm.TargetValue
 import firm.nodes.Address
 import kotlin.math.max
+
+class GraphPrinter() {
+    var id = 0
+
+    fun freshId() = id++
+}
 
 sealed class CodeGenIR {
     abstract fun matches(node: CodeGenIR): Boolean
     abstract fun cost(): Int
+    abstract fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String
 
     //TODO make binops
     data class BinOP(val operation: BinOpENUM, val left: CodeGenIR, val right: CodeGenIR) :
@@ -24,21 +29,41 @@ sealed class CodeGenIR {
         }
 
         override fun cost(): Int = left.cost() + right.cost() + 1
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"BinOP $operation\"];")
+                appendLine("$parent -> $id;");
+                appendLine(left.toGraphviz(id, graphPrinter))
+                appendLine(right.toGraphviz(id, graphPrinter))
+            }
+        }
     }
 
     data class Compare(val relation: Relation, val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
-        override fun match(node: CodeGenIR): Boolean {
+        override fun matches(node: CodeGenIR): Boolean {
             if (node is CodeGenIR.Compare && node.relation == relation) {
-                return left.match(node.left) && right.match(node.right)
+                return left.matches(node.left) && right.matches(node.right)
             }
             return false
         }
 
         override fun cost(): Int = left.cost() + right.cost() + 1
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Relation $relation\"];")
+                appendLine("$parent -> $id;");
+                appendLine(left.toGraphviz(id, graphPrinter))
+                appendLine(right.toGraphviz(id, graphPrinter))
+            }
+        }
     }
 
-    data class Store(val addr: MemoryAddress, val value: CodeGenIR, val width: Int) : CodeGenIR(){
-        override fun match(node: CodeGenIR): Boolean {
+    data class Return(val returnValue: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
 
@@ -46,15 +71,13 @@ sealed class CodeGenIR {
             TODO("Not yet implemented")
         }
 
-    }
-
-    data class Return(val tree: CodeGenIR, val returnValue: CodeGenIR) : CodeGenIR() {
-        override fun match(node: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun cost(): Int {
-            TODO("Not yet implemented")
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Return\"];")
+                appendLine("$parent -> $id;");
+                appendLine(returnValue.toGraphviz(id, graphPrinter))
+            }
         }
 
     }
@@ -68,6 +91,15 @@ sealed class CodeGenIR {
         }
 
         override fun cost(): Int = 1 + addr.cost()
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Indirection\"];")
+                appendLine("$parent -> $id;");
+                appendLine(addr.toGraphviz(id, graphPrinter))
+            }
+        }
 
     }
 
@@ -85,6 +117,14 @@ sealed class CodeGenIR {
 
         override fun cost(): Int =
             3
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"MemoryAddress ${mem.get()}\"];")
+                appendLine("$parent -> $id;");
+            }
+        }
     }
 
     data class Cond(val cond: CodeGenIR, val ifTrue: CodeGenIR, val ifFalse: CodeGenIR) : CodeGenIR() {
@@ -96,6 +136,10 @@ sealed class CodeGenIR {
             }
 
         override fun cost(): Int = 1 + cond.cost() + max(ifTrue.cost(), ifFalse.cost())
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
+            TODO("Not yet implemented")
+        }
+
     }
 
     data class Assign(val lhs: CodeGenIR, val rhs: CodeGenIR) : CodeGenIR() {
@@ -107,6 +151,16 @@ sealed class CodeGenIR {
             }
 
         override fun cost(): Int = lhs.cost() + rhs.cost() + 1
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Assign\"];")
+                appendLine("$parent -> $id;");
+                appendLine(lhs.toGraphviz(id, graphPrinter))
+                appendLine(rhs.toGraphviz(id, graphPrinter))
+            }
+        }
     }
 
     data class RegisterRef(val reg: ValueHolder<Register>) : CodeGenIR() {
@@ -121,6 +175,14 @@ sealed class CodeGenIR {
         }
 
         override fun cost(): Int = 1
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"RegisterRef ${reg.get().id.value} ${reg.get().width}\"];")
+                appendLine("$parent -> $id;");
+            }
+        }
     }
 
     data class Const(val const: ValueHolder<String>) : CodeGenIR() {
@@ -136,6 +198,14 @@ sealed class CodeGenIR {
         }
 
         override fun cost(): Int = 1
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Const ${const.get()}\"];")
+                appendLine("$parent -> $id;");
+            }
+        }
     }
 
     data class Call(val name: Address, val arguments: List<CodeGenIR>) : CodeGenIR() {
@@ -150,16 +220,56 @@ sealed class CodeGenIR {
 
         fun getName(): String = name.entity.ldName!!
 
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Call &${name.entity}\"];")
+                appendLine("$parent -> $id;");
+                arguments.forEach {
+                    appendLine(it.toGraphviz(id, graphPrinter))
+                }
+            }
+        }
+
     }
 
-    data class Conv(val opMode: Mode, val mode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
-        override fun match(node: CodeGenIR): Boolean {
+    data class Conv(val fromMode: Mode, val toMode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
 
         override fun cost(): Int {
             TODO("Not yet implemented")
         }
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
+            TODO("Not yet implemented")
+        }
+    }
+
+    /**
+     * Sequential Execution of two nodes, representing the value of <pre>second</pre>
+     */
+    data class Seq(val value: CodeGenIR, val exec: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean =
+            if(node is Seq) {
+                value.matches(node.value) && exec.matches(node.exec)
+            } else {
+                false
+            }
+
+        override fun cost(): Int = value.cost() + exec.cost()
+
+        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Seq\"];")
+                appendLine("$parent -> $id;");
+                appendLine(value.toGraphviz(id, graphPrinter))
+                appendLine(exec.toGraphviz(id, graphPrinter))
+            }
+        }
+
     }
 
     fun <T> accept(visitor: CodeGenIRVisitor<T>): T =
@@ -172,6 +282,10 @@ sealed class CodeGenIR {
             is Indirection -> visitor.visit(this)
             is MemoryAddress -> visitor.visit(this)
             is RegisterRef -> visitor.visit(this)
+            is Compare -> visitor.visit(this)
+            is Conv -> visitor.visit(this)
+            is Return -> visitor.visit(this)
+            is Seq -> visitor.visit(this)
         }
 }
 
@@ -181,8 +295,8 @@ enum class BinOpENUM {
 
 interface CodeGenIRVisitor<T> {
     fun visit(node: CodeGenIR.BinOP): T {
-        val left = node.left.accept(this)
-        val right = node.right.accept(this)
+        val left: T = node.left.accept(this)
+        val right: T = node.right.accept(this)
         return transform(node, left, right)
     }
 
@@ -229,4 +343,33 @@ interface CodeGenIRVisitor<T> {
     }
 
     fun transform(node: CodeGenIR.Call, arguments: List<T>): T
+
+    fun visit(node: CodeGenIR.Compare): T {
+        val left = node.left.accept(this)
+        val right = node.right.accept(this)
+        return transform(node, left, right)
+    }
+
+    fun transform(node: CodeGenIR.Compare, left: T, right: T): T
+
+    fun visit(node: CodeGenIR.Conv): T {
+        val opTree = node.opTree.accept(this)
+        return transform(node, opTree)
+    }
+
+    fun transform(node: CodeGenIR.Conv, opTree: T): T
+
+    fun visit(node: CodeGenIR.Return): T {
+        val returnValue = node.returnValue.accept(this)
+        return transform(node, returnValue)
+    }
+
+    fun transform(node: CodeGenIR.Return, returnValue: T): T
+    fun visit(node: CodeGenIR.Seq): T {
+        val first = node.value.accept(this)
+        val second = node.exec.accept(this)
+        return transform(node, first, second)
+    }
+
+    fun transform(node: CodeGenIR.Seq, first: T, second: T): T
 }
