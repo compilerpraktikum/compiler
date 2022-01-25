@@ -238,7 +238,7 @@ class TrivialFunctionTransformer(
         when (instr) {
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
             is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
-            is MolkiInstruction.BinaryOperationWithTwoPartResult -> TODO()
+            is MolkiInstruction.DivisionOperation -> transformBinaryOperationWithTwoPartResult(instr)
             is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> PlatformInstruction.Jump(instr.name, instr.label)
             is MolkiInstruction.Label -> PlatformInstruction.Label(instr.name)
@@ -340,5 +340,9 @@ class TrivialFunctionTransformer(
             // cleanup stack
             cleanupStack(generatedCode::add)
         }
+    }
+
+    private fun transformBinaryOperationWithTwoPartResult(instr: MolkiInstruction.DivisionOperation) {
+        TODO()
     }
 }

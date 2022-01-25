@@ -168,7 +168,7 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
     }
 
-    class BinaryOperationWithTwoPartResult(
+    class DivisionOperation(
         val name: String,
         val left: Target.Input,
         val right: Target.Input,
@@ -235,7 +235,7 @@ sealed class Instruction : MolkIR {
          * Binary operations with result
          ****************************************/
         fun idivq(left: Target.Input, right: Target.Input, resultDiv: Target.Output, resultMod: Target.Output) =
-            BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod)
+            DivisionOperation("idivq", left, right, resultDiv, resultMod)
 
         // basic arithmetic
         fun addl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addl",  left, right, result)
