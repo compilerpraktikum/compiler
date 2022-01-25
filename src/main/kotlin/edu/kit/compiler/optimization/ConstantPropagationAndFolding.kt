@@ -300,7 +300,7 @@ private class ConstantAnalysis(graph: Graph) : WorkListVisitor(graph) {
         val value = when (val pred = node.pred) {
             is Div, is Mod, is Proj -> getValueOf(pred)
             is Start, is Cond, is Call, is Load -> Bad
-            else -> error("unexpected node type: ${node.javaClass.simpleName}")
+            else -> error("unexpected node type: ${pred.javaClass.simpleName}")
         }
         update(node, value)
     }
