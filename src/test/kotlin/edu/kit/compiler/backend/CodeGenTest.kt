@@ -5,6 +5,7 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
+import edu.kit.compiler.backend.codegen.GraphPrinter
 import edu.kit.compiler.backend.codegen.MatchResult
 import edu.kit.compiler.backend.codegen.ReplacementSystem
 import edu.kit.compiler.backend.codegen.ValueHolder
@@ -24,6 +25,7 @@ import firm.Dump
 import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -49,6 +51,11 @@ class CodeGenTest {
         Program.getGraphs().forEach {
             val generator = FirmToCodeGenTranslator(it)
             val blocks = generator.buildTrees()
+            blocks.values.forEach {
+                File("/tmp/graph").writeText(
+                    "digraph {${it?.toGraphviz(0, GraphPrinter())}}"
+                )
+            }
         }
     }
 
@@ -62,9 +69,10 @@ class CodeGenTest {
         setupGraph(
             """
             class Test {
-                public static void main(String[] args) {System.out.println(1);}
+                public int i;
+                public static void main(String[] args) {}
 
-                public int test() { int b = 1; int c = 1 + b; return c;}
+                public int test() { return System.in.read() +1 ;}
             }
             """.trimIndent()
         )
@@ -78,13 +86,13 @@ class CodeGenTest {
                 public int i;
 
                 public static void main(String[] args) {
-                    Test test = new Test();
-                    test.i = 5;
-                    System.out.println(test.i);
-                    test.i=test.i+1;
-                    System.out.println(test.i);
-                    System.out.println(test.i);
-                    System.out.println(test.i);
+                    int a = System.in.read();
+                    System.out.println(a);
+                    System.out.println(a);
+                }
+
+                public void inc() {
+                    i=i+1;
                 }
 
 
@@ -102,9 +110,11 @@ class CodeGenTest {
 
                 public static void main(String[] args) {
                     Test test = new Test();
-                    int a = System.in.read();
+                    test.i =   System.in.read() +  System.in.read();
+                    /*int a = System.in.read();
                     System.out.println(a);
-                    System.out.println(a);
+                    System.out.println(a); */
+
                 }
 
 
@@ -198,10 +208,12 @@ class CodeGenTest {
                 )
             )
         }
-        assertMolkiEquals(res.instructions, listOf(
-            "movq 2(), %@1",
-            "addq [ %@1 | %@0 ] -> %@2",
-        ))
+        assertMolkiEquals(
+            res.instructions, listOf(
+                "movq 2(), %@1",
+                "addq [ %@1 | %@0 ] -> %@2",
+            )
+        )
     }
 
 

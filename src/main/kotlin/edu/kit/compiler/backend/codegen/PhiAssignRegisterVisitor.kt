@@ -14,8 +14,7 @@ class PhiAssignRegisterVisitor : FirmNodeVisitorAdapter() {
             return
         }
 
-        val reg = registerTable.newRegisterFor(node)
+        val reg = registerTable.getOrCreateRegisterFor(node)
         map[node] = CodeGenIR.RegisterRef(reg)
-        registerTable.putNode(map[node]!!, reg)
     }
 }

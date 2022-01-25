@@ -7,25 +7,33 @@ import firm.nodes.Node
 import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 
 class VirtualRegisterTable {
-    val map: MutableMap<CodeGenIR, MolkiRegister> = mutableMapOf()
+    val map: MutableMap<Node, MolkiRegister> = mutableMapOf()
     private var nextRegisterId: Int = 0
 
-    fun newRegisterFor(node: CodeGenIR, width: Width): MolkiRegister {
-        val registerId = nextRegisterId++
-        val register = MolkiRegister(RegisterId(registerId), width)
-        map[node] = register
-        return register
+    /**
+     *
+     */
+    fun getOrCreateRegisterFor(node: Node): MolkiRegister {
+        return map[node] ?: newRegisterFor(node)
     }
 
-    fun newRegisterFor(node: Node): MolkiRegister {
+    fun setRegisterFor(node: Node, register: MolkiRegister) {
+        if(map[node] == null) {
+            map[node] = register
+        } else {
+            error("invalid call to setRegisterFor: node $node already has a register")
+        }
+    }
+
+
+    private fun newRegisterFor(node: Node): MolkiRegister {
+        if(map[node] != null) error("invalid call to newRegisterFor node $node. The node already has a register")
         val registerId = nextRegisterId++
         val width = Width.fromByteSize(node.mode.sizeBytes)
-            ?: error("cannot infer register width from mode \"${node.mode.name}\"")
-        return MolkiRegister(RegisterId(registerId), width)
-    }
-
-    fun putNode(node: CodeGenIR, register: MolkiRegister) {
-        map[node] = register
+            ?: error("cannot infer register width from mode \"${node.mode.name}\" of node $node")
+        val molkiRegister = MolkiRegister(RegisterId(registerId), width)
+        map[node] = molkiRegister
+        return molkiRegister
     }
 
     fun newRegister(width: Width): MolkiRegister {
@@ -33,7 +41,7 @@ class VirtualRegisterTable {
         return MolkiRegister(RegisterId(registerId), width)
     }
 
-    fun getRegisterFor(node: CodeGenIR): MolkiRegister? = map[node]
+    fun getRegisterFor(node: Node): MolkiRegister? = map[node]
 }
 
 

@@ -40,7 +40,7 @@ enum class Width(val inBytes: Int, val suffix: String) {
     }
 }
 
-class Register(val id: RegisterId, override val width: Width) : Target.InputOutput {
+data class Register(val id: RegisterId, override val width: Width) : Target.InputOutput {
     override fun toMolki(): String = "%@" + id.toMolki() + width.suffix
 
     companion object {

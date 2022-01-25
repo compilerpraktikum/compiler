@@ -56,5 +56,21 @@ class ReplacementSystem(private val registerTable: VirtualRegisterTable) : CodeG
         return findOptimalReplacementRule(innerReplaced)?.prependInstructions(arguments.mapNotNull { it?.instructions }.flatten())
     }
 
+    override fun transform(node: CodeGenIR.Compare, left: MatchResult?, right: MatchResult?): MatchResult? {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(node: CodeGenIR.Conv, opTree: MatchResult?): MatchResult? {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(node: CodeGenIR.Return, returnValue: MatchResult?): MatchResult? {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(node: CodeGenIR.Seq, first: MatchResult?, second: MatchResult?): MatchResult? {
+        TODO("Not yet implemented")
+    }
+
 
 }
