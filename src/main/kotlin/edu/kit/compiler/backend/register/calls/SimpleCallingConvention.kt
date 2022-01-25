@@ -3,6 +3,7 @@ package edu.kit.compiler.backend.register.calls
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
+import edu.kit.compiler.backend.register.RegisterAllocator
 
 /**
  * Very simplistic calling convention used only for non-ABI functions of a MiniJava program (i.e. everything other than
@@ -65,5 +66,46 @@ object SimpleCallingConvention : CallingConvention {
 
     override fun taintRegister(register: PlatformTarget.Register) {
         // do nothing, because we needn't save registers
+    }
+
+    override fun generateFunctionCall(
+        allocator: RegisterAllocator,
+        init: CallingConvention.FunctionCallBuilder.() -> Unit
+    ) {
+        SimpleFunctionCallBuilder(allocator).apply(init)
+    }
+
+    /**
+     * A very simple call builder that just pushes all arguments onto the stack
+     */
+    class SimpleFunctionCallBuilder(allocator: RegisterAllocator) : CallingConvention.FunctionCallBuilder(allocator) {
+        private var parameterZoneWidth = 0
+
+        override fun prepareArgument(
+            source: PlatformTarget,
+            width: Width,
+            instructionAppender: (PlatformInstruction) -> Unit
+        ) {
+            parameterZoneWidth += width.inBytes
+            when (width) {
+                Width.BYTE -> instructionAppender(PlatformInstruction.pushb(source))
+                Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
+                Width.DOUBLE -> instructionAppender(PlatformInstruction.pushl(source))
+                Width.QUAD -> instructionAppender(PlatformInstruction.pushq(source))
+            }
+        }
+
+        override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
+            instructionAppender(PlatformInstruction.Call(name))
+        }
+
+        override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
+            instructionAppender(
+                PlatformInstruction.addq(
+                    PlatformTarget.Register.RSP(),
+                    PlatformTarget.Constant(parameterZoneWidth.toString())
+                )
+            )
+        }
     }
 }
