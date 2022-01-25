@@ -171,6 +171,13 @@ sealed class PlatformInstruction : PlatformIR {
             Width.QUAD -> unOp("pushq", operand)
         }
 
+        fun pop(operand: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> unOp("popb", operand)
+            Width.WORD -> unOp("popw", operand)
+            Width.DOUBLE -> unOp("popl", operand)
+            Width.QUAD -> unOp("popq", operand)
+        }
+
         /**
          * Generate an operand-less operation
          */
