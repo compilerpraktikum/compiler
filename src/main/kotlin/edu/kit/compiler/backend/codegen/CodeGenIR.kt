@@ -178,8 +178,14 @@ sealed class CodeGenIR {
 
         override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
             val id = graphPrinter.freshId()
+            val valueId = graphPrinter.freshId()
+            val widthId = graphPrinter.freshId()
             return buildString {
-                appendLine("$id[label=\"RegisterRef ${reg.get().id.value} ${reg.get().width}\"];")
+                appendLine("$id[label=\"Ref\"];")
+                appendLine("$valueId[label=\"@${reg.get().id.value}\"];")
+                appendLine("$widthId[label=\"${reg.get().width}\"];")
+                appendLine("$id -> $valueId");
+                appendLine("$id -> $widthId");
                 appendLine("$parent -> $id;");
             }
         }
@@ -243,7 +249,12 @@ sealed class CodeGenIR {
         }
 
         override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
-            TODO("Not yet implemented")
+            val id = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
+                appendLine("$parent -> $id;");
+                appendLine(opTree.toGraphviz(id, graphPrinter))
+            }
         }
     }
 
