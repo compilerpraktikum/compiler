@@ -26,6 +26,8 @@ import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -52,9 +54,20 @@ class CodeGenTest {
             val generator = FirmToCodeGenTranslator(it)
             val blocks = generator.buildTrees()
             blocks.values.forEach {
-                File("/tmp/graph").writeText(
+                val file = Files.createTempFile("graph-", ".dot").toFile()
+                file.writeText(
                     "digraph {${it?.toGraphviz(0, GraphPrinter())}}"
                 )
+                try {
+
+                    val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
+                    val svgText = dotProcess.inputStream.bufferedReader().readText()
+                    val output = File("./graph.svg")
+                    output.writeText(svgText)
+                    println("write graph-file to ${output.absolutePath}")
+                } catch (ex: IOException) {
+                    println("rendering graph with dot failed: $ex")
+                }
             }
         }
     }
