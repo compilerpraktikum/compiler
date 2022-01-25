@@ -23,7 +23,7 @@ object PlatformTransformation {
      * @param function instruction list of the function
      * @param callingConvention the calling convention this function must adhere to when called
      */
-    fun allocateRegistersForFunction(
+    fun transformFunction(
         function: List<MolkiInstruction>,
         callingConvention: CallingConvention
     ): List<PlatformInstruction> {
