@@ -1,16 +1,10 @@
 package edu.kit.compiler.backend.codegen
 
 import com.tylerthrailkill.helpers.prettyprint.pp
-import edu.kit.compiler.backend.molkir.Memory
-import edu.kit.compiler.backend.molkir.Register
-import edu.kit.compiler.backend.molkir.RegisterId
-import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
 import firm.Graph
-import firm.MethodType
 import firm.Mode
-import firm.Type
 import firm.nodes.Add
 import firm.nodes.Address
 import firm.nodes.And
@@ -43,17 +37,26 @@ import firm.nodes.Store
 import firm.nodes.Sub
 import firm.nodes.Unknown
 
+/**
+ * We need to be careful with control flow dependencies:
+ * If we remove, duplicate or change their order, the resulting program will be incorrect.
+ * To solve this, we need to handle "blue" nodes differently:
+ *   - For "blue" edges we generate the actual code for (calling, storing, writing), followed by writing to a new virtual
+ *     register. The result of the computation is then represented that register.
+ *   - For black edges, that reference a "blue" node, we just load from that register.
+ */
 class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter() {
 
     val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
 
+    // value map
     var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     var registerTable = VirtualRegisterTable()
     var currentTree: CodeGenIR? = null
     var currentBlock: Node? = null
     var nextBlock = false
 
-    fun buildTrees() {
+    fun buildTrees(): Map<Block, CodeGenIR?> {
         println(graph.entity.ldName)
         breakCriticalEdges(graph)
         val phiVisitor = PhiAssignRegisterVisitor()
@@ -68,7 +71,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         println(blockMap)
         blockMap.pp()
         BackEdges.disable(graph)
-        //
+        return blockMap
     }
 
     fun updateCurrentBlock(node: Node) {
@@ -96,6 +99,10 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         updateCurrentTree(tree, node)
     }
 
+    override fun visit(node: Start) {
+        nodeMap[node] = CodeGenIR.Const("0")
+    }
+
     override fun visit(node: Add) {
         super.visit(node)
         buildBinOpTree(node, BinOpENUM.ADD)
@@ -118,10 +125,11 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
             .filter { it !is Address }
             .map { nodeMap[it]!! }
         val addr = node.getPred(1) as Address
+        val seqPred = nodeMap[node.getPred(0)]!!
         println("visit CALL " + node.block.toString())
         //val mode = (node.type as MethodType).getResType(0).mode
 
-        val call = CodeGenIR.Call(addr, arguments)
+        val call = CodeGenIR.Seq(value = CodeGenIR.Call(addr, arguments), exec = seqPred)
         // R_i = call("foo", 2)
         nodeMap[node] = call
         println(call.toString())
@@ -133,7 +141,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         updateCurrentBlock(node)
         val left = nodeMap[node.left]!!
         val right = nodeMap[node.right]!!
-        val cmp = CodeGenIR.Compare(node.relation,right, left)
+        val cmp = CodeGenIR.Compare(node.relation, right, left)
         updateCurrentTree(cmp, node)
         println("visit CMP " + node.block.toString())
     }
@@ -158,10 +166,10 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Conv) {
         super.visit(node)
         updateCurrentBlock(node)
-        val opMode = node.op.mode
-        val mode = node.mode
+        val from = node.op.mode
+        val to = node.mode
         val opTree = nodeMap[node.op]!!
-        val conv = CodeGenIR.Conv(opMode, mode, opTree)
+        val conv = CodeGenIR.Conv(from, to, opTree)
         nodeMap[node] = conv
         updateCurrentTree(conv, node)
         println("visit CONV " + node.block.toString())
@@ -241,18 +249,82 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         when (val pred = node.pred) {
             is Div -> nodeMap[node] = nodeMap[pred]!!
             is Mod -> nodeMap[node] = nodeMap[pred]!!
-            is Load -> nodeMap[node] = nodeMap[pred]!!
+            //TODO
+            is Load -> {
+
+                //BackEdges.getOuts(pred).forEach{
+                //   it ->
+                //}
+                if (node.mode == Mode.getM()) {
+                    println("node: $node")
+
+                    // does the call have a result value?
+                    val resultProjection =
+                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getT() }
+                    if (resultProjection != null) {
+                        val valueProjection = BackEdges.getOuts(resultProjection).first().node
+                        val reg = registerTable.getOrCreateRegisterFor(valueProjection)
+
+                        val codegenExecute = when(val callIR = nodeMap[pred]!!) {
+                            is CodeGenIR.Seq -> CodeGenIR.Seq(value = CodeGenIR.Assign(CodeGenIR.RegisterRef(reg), callIR.value), exec = callIR.exec)
+                            else -> error("invalid state")
+                        }
+                        val codegenRef = CodeGenIR.RegisterRef(reg)
+
+                        nodeMap[valueProjection] = codegenRef
+                        nodeMap[node] = codegenExecute
+                    } else {
+                        nodeMap[node] = nodeMap[pred]!!
+                    }
+
+
+                } else {
+                    // can be skipped. The value projection is handled by the control flow projection
+                }
+            }
             is Store -> nodeMap[pred.getPred(0)]
-            is Start -> Unit // skip -> this is handled by succeeding proj
-            is Call -> Unit // skip -> this is handled by succeeding proj
+            is Start -> nodeMap[node] = nodeMap[pred]!! // skip -> this is handled by succeeding proj
+            // we need to decide if its a controlFlow Proj
+            is Call -> {
+                //BackEdges.getOuts(pred).forEach{
+                //   it ->
+                //}
+                if (node.mode == Mode.getM()) {
+                    println("node: $node")
+
+                    // does the call have a result value?
+                    val resultProjection =
+                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getT() }
+                    if (resultProjection != null) {
+                        val valueProjection = BackEdges.getOuts(resultProjection).first().node
+                        val reg = registerTable.getOrCreateRegisterFor(valueProjection)
+
+                        val codegenExecute = when(val callIR = nodeMap[pred]!!) {
+                            is CodeGenIR.Seq -> CodeGenIR.Seq(value = CodeGenIR.Assign(CodeGenIR.RegisterRef(reg), callIR.value), exec = callIR.exec)
+                            else -> error("invalid state")
+                        }
+                        val codegenRef = CodeGenIR.RegisterRef(reg)
+
+                        nodeMap[valueProjection] = codegenRef
+                        nodeMap[node] = codegenExecute
+                    } else {
+                        nodeMap[node] = nodeMap[pred]!!
+                    }
+
+
+                } else {
+                    // can be skipped. The value projection is handled by the control flow projection
+                }
+            } // skip -> this is handled by succeeding proj
             is Proj -> {
                 when (val origin = pred.pred) {
-                    is Start ->  {
+                    is Start -> {
                         println("node: $node, pred: $pred, predpred: $origin")
                         allocateArguments(node)
                     }
                     is Call -> {
-                        nodeMap[node] = nodeMap[origin]!!
+//                        nodeMap[node] = nodeMap[pred]!!
+                        // handled by call outer call case
                     }
                 }
             }
@@ -262,22 +334,28 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     }
 
     private fun allocateArguments(node: Proj) {
-        val reg = registerTable.newRegisterFor(node)
+        val reg = registerTable.getOrCreateRegisterFor(node)
 
         val registerRef = CodeGenIR.RegisterRef(reg)
         nodeMap[node] = registerRef
         println("setting nodeMap for $node to $registerRef")
-        registerTable.putNode(registerRef, reg)
     }
 
     override fun visit(node: Return) {
         super.visit(node)
         updateCurrentBlock(node)
+        node.preds.forEach { println("predstree ${nodeMap[it].toString()}") }
+        val value = node.getPred(1)
+        val controlFlow = node.getPred(0)
+        // Seq(controlFlow, ret) or ret(seq(controlFlow, val))
+        // ret() <- val
+        val res = CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = nodeMap[controlFlow]!!))
+        updateCurrentTree(res, node)
         println("---")
-        node.preds.forEach {println("preds ${it.toString()}") }
+        node.preds.forEach { println("preds ${it.toString()}") }
         println("---")
         println("---")
-        node.preds.forEach {println("predstree ${nodeMap[it].toString()}") }
+
         println("---")
         println("visit RETURN " + node.block.toString())
     }
@@ -288,7 +366,8 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         updateCurrentBlock(node)
         val value = nodeMap[node.value]!!
         val address = nodeMap[node.getPred(1)]!!
-        val tree = CodeGenIR.Assign(lhs = address, rhs = value)
+        val tree =
+            CodeGenIR.Seq(value = CodeGenIR.Assign(lhs = address, rhs = value), exec = nodeMap[node.getPred(0)]!!)
         updateCurrentTree(tree, node)
         println("visit STORE " + node.block.toString())
     }
@@ -298,8 +377,9 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         buildBinOpTree(node, BinOpENUM.SUB)
         println("visit SUB " + node.block.toString())
     }
+
     //TODO
-   override fun visit(node: Unknown) {
+    override fun visit(node: Unknown) {
         super.visitUnknown(node)
         updateCurrentBlock(node)
         println("visit NODE " + node.block.toString())
