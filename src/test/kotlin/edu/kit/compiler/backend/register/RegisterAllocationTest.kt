@@ -8,8 +8,16 @@ import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 
+/**
+ * These are some regression tests for the trivial register allocation.
+ * These tests are extremely volatile, as they just compare the generated output against a string of expected output.
+ * Any (valid) change in register allocation likely triggers a red test-case here, because this is not a sensible way to
+ * test for correctness. But we want to have at least somewhat of a fail-safe against accidental regression and doing it
+ * correctly would require extensive mocking, which requires disproportional effort compared to the benefit.
+ */
 internal class RegisterAllocationTest {
 
     @Test
@@ -29,8 +37,27 @@ internal class RegisterAllocationTest {
                 Register(RegisterId(1), Width.DOUBLE)
             )
         )
-        val platformCode = transformCode(code)
-        println(platformCode.joinToString("\n") { it.toAssembler() })
+        val platformCode = transformCode(code).joinToString("\n") { it.toAssembler() }
+        println(platformCode)
+
+        assertEquals(
+            """
+                push %rbp
+                movq %rsp, %rbp
+                subq %rsp, ${'$'}16
+                movl ${'$'}1, %ebx
+                movl %ebx, 0(%rbp)
+                movl ${'$'}2, %ebx
+                movl %ebx, -8(%rbp)
+                movl 0(%rbp), %ebx
+                movl -8(%rbp), %esi
+                addl %ebx, %esi
+                movl %esi, -8(%rbp)
+                leave
+                ret
+            """.trimIndent(),
+            platformCode.trimIndent()
+        )
     }
 
     @Test
@@ -55,8 +82,30 @@ internal class RegisterAllocationTest {
             )
         )
 
-        val platformCode = transformCode(code)
-        println(platformCode.joinToString("\n") { it.toAssembler() })
+        val platformCode = transformCode(code).joinToString("\n") { it.toAssembler() }
+        println(platformCode)
+
+        assertEquals(
+            """
+                push %rbp
+                movq %rsp, %rbp
+                subq %rsp, ${'$'}16
+                movl ${'$'}1, %ebx
+                movl %ebx, 0(%rbp)
+                movl ${'$'}2, %ebx
+                movl %ebx, -8(%rbp)
+                movl 0(%rbp), %ebx
+                movl -8(%rbp), %esi
+                addl %ebx, %esi
+                movl %esi, -8(%rbp)
+                movl -8(%rbp), %ebx
+                movl -8(%rbp), %esi
+                movl %ebx, 0xffff7f34(,%esi,4)
+                leave
+                ret
+            """.trimIndent(),
+            platformCode.trimIndent()
+        )
     }
 
     @Test
@@ -80,8 +129,30 @@ internal class RegisterAllocationTest {
             ),
         )
 
-        val platformCode = transformCode(code)
-        println(platformCode.joinToString("\n") { it.toAssembler() })
+        val platformCode = transformCode(code).joinToString("\n") { it.toAssembler() }
+        println(platformCode)
+
+        assertEquals(
+            """
+                push %rbp
+                movq %rsp, %rbp
+                subq %rsp, ${'$'}24
+                movl ${'$'}1, %ebx
+                movl %ebx, 0(%rbp)
+                movl ${'$'}2, %ebx
+                movl %ebx, -8(%rbp)
+                movl -8(%rbp), %ebx
+                pushl %ebx
+                movl 0(%rbp), %ebx
+                pushl %ebx
+                call foo
+                movl %eax, -16(%rbp)
+                addq %rsp, ${'$'}8
+                leave
+                ret
+            """.trimIndent(),
+            platformCode.trimIndent()
+        )
     }
 
     @Test
@@ -95,8 +166,27 @@ internal class RegisterAllocationTest {
             ),
         )
 
-        val platformCode = transformCode(code)
-        println(platformCode.joinToString("\n") { it.toAssembler() })
+        val platformCode = transformCode(code).joinToString("\n") { it.toAssembler() }
+        println(platformCode)
+
+        assertEquals(
+            """
+                push %rbp
+                movq %rsp, %rbp
+                subq %rsp, ${'$'}16
+                xorq %rdx, %rdx
+                movq ${'$'}8, %rax
+                movq ${'$'}2, %rbx
+                idivq %rbx
+                movl %edx, %esi
+                movl %eax, %edi
+                movl %esi, 0(%rbp)
+                movl %edi, -8(%rbp)
+                leave
+                ret
+            """.trimIndent(),
+            platformCode.trimIndent()
+        )
     }
 
     /**
