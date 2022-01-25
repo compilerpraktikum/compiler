@@ -31,27 +31,13 @@ object SimpleCallingConvention : CallingConvention {
 
         if (returnValue != null) {
             require(returnWidth != null) { "returnWidth cannot be null if returnValue is not null" }
-            when (returnWidth) {
-                Width.BYTE -> epilogue.add(
-                    PlatformInstruction.movb(
-                        returnValue,
-                        PlatformTarget.Register.RAX().halfWordWidth()
-                    )
+            epilogue.add(
+                PlatformInstruction.mov(
+                    returnValue,
+                    PlatformTarget.Register.RAX().width(returnWidth),
+                    returnWidth
                 )
-                Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
-                Width.DOUBLE -> epilogue.add(
-                    PlatformInstruction.movl(
-                        returnValue,
-                        PlatformTarget.Register.RAX().doubleWidth()
-                    )
-                )
-                Width.QUAD -> epilogue.add(
-                    PlatformInstruction.movq(
-                        returnValue,
-                        PlatformTarget.Register.RAX().quadWidth()
-                    )
-                )
-            }
+            )
         }
 
         epilogue.add(PlatformInstruction.op("leave"))
@@ -61,12 +47,7 @@ object SimpleCallingConvention : CallingConvention {
     }
 
     override fun getReturnValueTarget(width: Width): PlatformTarget {
-        return when (width) {
-            Width.BYTE -> PlatformTarget.Register.RAX().halfWordWidth()
-            Width.WORD -> PlatformTarget.Register.RAX().wordWidth()
-            Width.DOUBLE -> PlatformTarget.Register.RAX().doubleWidth()
-            Width.QUAD -> PlatformTarget.Register.RAX().quadWidth()
-        }
+        return PlatformTarget.Register.RAX().width(width)
     }
 
     override fun taintRegister(register: PlatformTarget.Register) {
@@ -92,12 +73,7 @@ object SimpleCallingConvention : CallingConvention {
             instructionAppender: (PlatformInstruction) -> Unit
         ) {
             parameterZoneWidth += width.inBytes
-            when (width) {
-                Width.BYTE -> instructionAppender(PlatformInstruction.pushb(source))
-                Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
-                Width.DOUBLE -> instructionAppender(PlatformInstruction.pushl(source))
-                Width.QUAD -> instructionAppender(PlatformInstruction.pushq(source))
-            }
+            instructionAppender(PlatformInstruction.push(source, width))
         }
 
         override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
@@ -106,9 +82,10 @@ object SimpleCallingConvention : CallingConvention {
 
         override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
             instructionAppender(
-                PlatformInstruction.addq(
+                PlatformInstruction.add(
                     PlatformTarget.Register.RSP(),
-                    PlatformTarget.Constant(parameterZoneWidth.toString())
+                    PlatformTarget.Constant(parameterZoneWidth.toString()),
+                    Width.QUAD
                 )
             )
         }

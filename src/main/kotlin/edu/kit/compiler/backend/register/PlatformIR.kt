@@ -41,31 +41,15 @@ sealed class PlatformTarget : PlatformIR {
         class R14 : Register(EnumRegister.R14)
         class R15 : Register(EnumRegister.R15)
 
-        fun halfWordWidth(): Register {
-            this.width = Width.BYTE
+        fun width(width: Width): Register {
+            this.width = width
             return this
         }
 
-        fun wordWidth(): Register {
-            this.width = Width.WORD
-            return this
-        }
-
-        /**
-         * Use a 32 bit register
-         */
-        fun doubleWidth(): Register {
-            this.width = Width.DOUBLE
-            return this
-        }
-
-        /**
-         * Use a 64 bit register
-         */
-        fun quadWidth(): Register {
-            this.width = Width.QUAD
-            return this
-        }
+        fun halfWordWidth() = width(Width.BYTE)
+        fun wordWidth() = width(Width.WORD)
+        fun doubleWidth() = width(Width.DOUBLE)
+        fun quadWidth() = width(Width.QUAD)
 
         override fun toAssembler(): String {
             return "%${register.getFullRegisterName(this.width)}"
@@ -173,29 +157,40 @@ sealed class PlatformInstruction : PlatformIR {
     }
 
     companion object {
-        fun movb(from: PlatformTarget, to: PlatformTarget) =
-            BinaryOperation("movb", from, to)
+        fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> binOp("movb", from, to)
+            Width.WORD -> binOp("movw", from, to)
+            Width.DOUBLE -> binOp("movl", from, to)
+            Width.QUAD -> binOp("movq", from, to)
+        }
 
-        fun movl(from: PlatformTarget, to: PlatformTarget) =
-            BinaryOperation("movl", from, to)
+        fun add(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> binOp("addb", from, value)
+            Width.WORD -> binOp("addw", from, value)
+            Width.DOUBLE -> binOp("addl", from, value)
+            Width.QUAD -> binOp("addq", from, value)
+        }
 
-        fun movq(from: PlatformTarget, to: PlatformTarget) =
-            BinaryOperation("movq", from, to)
+        fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> binOp("subb", from, value)
+            Width.WORD -> binOp("subw", from, value)
+            Width.DOUBLE -> binOp("subl", from, value)
+            Width.QUAD -> binOp("subq", from, value)
+        }
 
-        fun addq(from: PlatformTarget, value: PlatformTarget) =
-            BinaryOperation("addq", from, value)
+        fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> binOp("xorb", left, right)
+            Width.WORD -> binOp("xorw", left, right)
+            Width.DOUBLE -> binOp("xorl", left, right)
+            Width.QUAD -> binOp("xorq", left, right)
+        }
 
-        fun subq(from: PlatformTarget, value: PlatformTarget) =
-            BinaryOperation("subq", from, value)
-
-        fun pushb(operand: PlatformTarget) =
-            UnaryOperation("pushb", operand)
-
-        fun pushl(operand: PlatformTarget) =
-            UnaryOperation("pushl", operand)
-
-        fun pushq(operand: PlatformTarget) =
-            UnaryOperation("pushq", operand)
+        fun push(operand: PlatformTarget, width: Width) = when (width) {
+            Width.BYTE -> unOp("pushb", operand)
+            Width.WORD -> unOp("pushw", operand)
+            Width.DOUBLE -> unOp("pushl", operand)
+            Width.QUAD -> unOp("pushq", operand)
+        }
 
         /**
          * Generate an operand-less operation

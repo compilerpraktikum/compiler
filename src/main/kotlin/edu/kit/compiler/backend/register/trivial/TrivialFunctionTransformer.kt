@@ -2,6 +2,7 @@ package edu.kit.compiler.backend.register.trivial
 
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.backend.register.EnumRegister
 import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
@@ -92,14 +93,7 @@ class TrivialFunctionTransformer(
 
         // generate an offset to RSP to load the value from
         val memoryLocation = stackLayout[virtualRegister.id]!!.generateMemoryAddress()
-
-        val instruction = when (virtualRegister.width) {
-            Width.BYTE -> PlatformInstruction.movb(memoryLocation, target)
-            Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
-            Width.DOUBLE -> PlatformInstruction.movl(memoryLocation, target)
-            Width.QUAD -> PlatformInstruction.movq(memoryLocation, target)
-        }
-
+        val instruction = PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         generatedCode.add(instruction)
     }
 
@@ -122,21 +116,11 @@ class TrivialFunctionTransformer(
             currentSlotOffset += 8
         }
 
-        val instruction = when (registerWidth) {
-            Width.BYTE -> PlatformInstruction.movb(
-                platformRegister,
-                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
-            )
-            Width.WORD -> throw IllegalStateException("16bit addressing is not supported")
-            Width.DOUBLE -> PlatformInstruction.movl(
-                platformRegister,
-                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
-            )
-            Width.QUAD -> PlatformInstruction.movq(
-                platformRegister,
-                stackLayout[virtualRegisterId]!!.generateMemoryAddress()
-            )
-        }
+        val instruction = PlatformInstruction.mov(
+            platformRegister,
+            stackLayout[virtualRegisterId]!!.generateMemoryAddress(),
+            registerWidth
+        )
 
         generatedCode.add(instruction)
     }
@@ -147,13 +131,7 @@ class TrivialFunctionTransformer(
     private fun allocateRegister(registerWidth: Width): PlatformRegister {
         val platformRegister = this.allocator.allocateRegister()
         this.callingConvention.taintRegister(platformRegister)
-
-        return when (registerWidth) {
-            Width.BYTE -> platformRegister.halfWordWidth()
-            Width.WORD -> platformRegister.wordWidth()
-            Width.DOUBLE -> platformRegister.doubleWidth()
-            Width.QUAD -> platformRegister.quadWidth()
-        }
+        return platformRegister.width(registerWidth)
     }
 
     /**
