@@ -197,6 +197,9 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Load) {
         super.visit(node)
         updateCurrentBlock(node)
+        nodeMap[node] =
+            CodeGenIR.Seq(value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!), exec = nodeMap[node.getPred(0)]!!)
+
         println("visit LOAD " + node.block.toString())
     }
 
@@ -260,18 +263,22 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
 
                     // does the call have a result value?
                     val resultProjection =
-                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getT() }
+                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getIs() }
                     if (resultProjection != null) {
-                        val valueProjection = BackEdges.getOuts(resultProjection).first().node
-                        val reg = registerTable.getOrCreateRegisterFor(valueProjection)
+                        val reg = registerTable.getOrCreateRegisterFor(resultProjection)
 
-                        val codegenExecute = when(val callIR = nodeMap[pred]!!) {
-                            is CodeGenIR.Seq -> CodeGenIR.Seq(value = CodeGenIR.Assign(CodeGenIR.RegisterRef(reg), callIR.value), exec = callIR.exec)
+                        val codegenExecute = when (val loadIR = nodeMap[pred]!!) {
+                            is CodeGenIR.Seq -> CodeGenIR.Seq(
+                                value = CodeGenIR.Assign(
+                                    CodeGenIR.RegisterRef(reg),
+                                    loadIR.value
+                                ), exec = loadIR.exec
+                            )
                             else -> error("invalid state")
                         }
                         val codegenRef = CodeGenIR.RegisterRef(reg)
 
-                        nodeMap[valueProjection] = codegenRef
+                        nodeMap[resultProjection] = codegenRef
                         nodeMap[node] = codegenExecute
                     } else {
                         nodeMap[node] = nodeMap[pred]!!
@@ -282,9 +289,8 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
                     // can be skipped. The value projection is handled by the control flow projection
                 }
             }
-            is Store -> nodeMap[pred.getPred(0)]
-            is Start -> nodeMap[node] = nodeMap[pred]!! // skip -> this is handled by succeeding proj
-            // we need to decide if its a controlFlow Proj
+            is Store -> nodeMap[node] = nodeMap[pred]!!
+            is Start -> nodeMap[node] = nodeMap[pred]!!
             is Call -> {
                 //BackEdges.getOuts(pred).forEach{
                 //   it ->
@@ -299,8 +305,13 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
                         val valueProjection = BackEdges.getOuts(resultProjection).first().node
                         val reg = registerTable.getOrCreateRegisterFor(valueProjection)
 
-                        val codegenExecute = when(val callIR = nodeMap[pred]!!) {
-                            is CodeGenIR.Seq -> CodeGenIR.Seq(value = CodeGenIR.Assign(CodeGenIR.RegisterRef(reg), callIR.value), exec = callIR.exec)
+                        val codegenExecute = when (val callIR = nodeMap[pred]!!) {
+                            is CodeGenIR.Seq -> CodeGenIR.Seq(
+                                value = CodeGenIR.Assign(
+                                    CodeGenIR.RegisterRef(reg),
+                                    callIR.value
+                                ), exec = callIR.exec
+                            )
                             else -> error("invalid state")
                         }
                         val codegenRef = CodeGenIR.RegisterRef(reg)
@@ -344,12 +355,19 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Return) {
         super.visit(node)
         updateCurrentBlock(node)
+        println("visit RETURN $node ${node.preds}")
         node.preds.forEach { println("predstree ${nodeMap[it].toString()}") }
-        val value = node.getPred(1)
-        val controlFlow = node.getPred(0)
-        // Seq(controlFlow, ret) or ret(seq(controlFlow, val))
-        // ret() <- val
-        val res = CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = nodeMap[controlFlow]!!))
+        val nodePreds = node.preds.toList()
+
+        val controlFlow = nodePreds[0]
+        val value = nodePreds.getOrNull(1)
+
+        val res = if (value == null) {
+            CodeGenIR.Return(nodeMap[controlFlow]!!)
+        } else {
+            CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = nodeMap[controlFlow]!!))
+        }
+
         updateCurrentTree(res, node)
         println("---")
         node.preds.forEach { println("preds ${it.toString()}") }
