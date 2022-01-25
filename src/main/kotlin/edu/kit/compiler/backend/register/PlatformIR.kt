@@ -1,5 +1,7 @@
 package edu.kit.compiler.backend.register
 
+import edu.kit.compiler.backend.molkir.Width
+
 // NOTE: This file is a copy-paste result of MolkIR.kt, and thus not complete
 
 /**
@@ -15,41 +17,45 @@ interface PlatformIR {
 sealed class PlatformTarget : PlatformIR {
     /**
      * An x86-64 general purpose register
+     *
+     * @param register the [EnumRegister] that is referenced by this handle
      */
-    sealed class Register(private val registerName: String) : PlatformTarget() {
+    sealed class Register(val register: EnumRegister) : PlatformTarget() {
 
-        private var width = Width.WIDTH_64
+        private var width = Width.QUAD
 
-        class RAX : Register("rax")
-        class RBX : Register("rbx")
-        class RCX : Register("rcx")
-        class RDX : Register("rdx")
-        class RSI : Register("rsi")
-        class RDI : Register("rdi")
-        class RSP : Register("rsp")
-        class RBP : Register("rbp")
-        class R8 : Register("r8")
-        class R9 : Register("r9")
-        class R10 : Register("r10")
-        class R11 : Register("r11")
-        class R12 : Register("r12")
-        class R13 : Register("r13")
-        class R14 : Register("r14")
-        class R15 : Register("r15")
+        class RAX : Register(EnumRegister.RAX)
+        class RBX : Register(EnumRegister.RBX)
+        class RCX : Register(EnumRegister.RCX)
+        class RDX : Register(EnumRegister.RDX)
+        class RSI : Register(EnumRegister.RSI)
+        class RDI : Register(EnumRegister.RDI)
+        class RSP : Register(EnumRegister.RSP)
+        class RBP : Register(EnumRegister.RBP)
+        class R8 : Register(EnumRegister.R8)
+        class R9 : Register(EnumRegister.R9)
+        class R10 : Register(EnumRegister.R10)
+        class R11 : Register(EnumRegister.R11)
+        class R12 : Register(EnumRegister.R12)
+        class R13 : Register(EnumRegister.R13)
+        class R14 : Register(EnumRegister.R14)
+        class R15 : Register(EnumRegister.R15)
 
         fun halfWordWidth(): Register {
-            throw NotImplementedError("8 bit registers have not been implemented")
+            this.width = Width.BYTE
+            return this
         }
 
         fun wordWidth(): Register {
-            throw NotImplementedError("16 bit registers have not been implemented")
+            this.width = Width.WORD
+            return this
         }
 
         /**
          * Use a 32 bit register
          */
         fun doubleWidth(): Register {
-            this.width = Width.WIDTH_32
+            this.width = Width.DOUBLE
             return this
         }
 
@@ -57,25 +63,12 @@ sealed class PlatformTarget : PlatformIR {
          * Use a 64 bit register
          */
         fun quadWidth(): Register {
-            this.width = Width.WIDTH_64
+            this.width = Width.QUAD
             return this
         }
 
         override fun toAssembler(): String {
-            return when (width) {
-                Width.WIDTH_64 -> "%$registerName"
-                Width.WIDTH_32 -> {
-                    require(!this.registerName.last().isDigit()) { "there are no 32bit equivalents to %$registerName" }
-                    "%${registerName.replace('r', 'e')}"
-                }
-            }
-        }
-
-        /**
-         * Register bit width
-         */
-        private enum class Width {
-            WIDTH_32, WIDTH_64
+            return "%${register.getFullRegisterName(this.width)}"
         }
     }
 
