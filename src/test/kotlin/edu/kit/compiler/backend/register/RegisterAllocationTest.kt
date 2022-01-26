@@ -194,7 +194,7 @@ internal class RegisterAllocationTest {
      * Call the trivial register allocator with the trivial calling convention and generate the requested code.
      */
     private fun transformCode(code: List<MolkiInstruction>): List<PlatformInstruction> {
-        val allocator = TrivialFunctionTransformer(SimpleCallingConvention)
+        val allocator = TrivialFunctionTransformer(SimpleCallingConvention, FunctionSignature())
         allocator.transformCode(code)
         return allocator.getPlatformCode()
     }

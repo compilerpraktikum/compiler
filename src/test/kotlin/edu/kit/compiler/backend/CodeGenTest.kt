@@ -8,19 +8,16 @@ import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
 import edu.kit.compiler.backend.codegen.GraphPrinter
 import edu.kit.compiler.backend.codegen.MatchResult
 import edu.kit.compiler.backend.codegen.ReplacementSystem
-import edu.kit.compiler.backend.codegen.ValueHolder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
 import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
-import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
-import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
-import edu.kit.compiler.transform.Transformation
+import edu.kit.compiler.source.SourceFile
 import firm.Dump
 import firm.Program
 import firm.Util
@@ -46,7 +43,7 @@ class CodeGenTest {
             sourceFile.printAnnotations()
         }.validate()!!
         doSemanticAnalysis(program, sourceFile, stringTable)
-        Transformation.transform(program)
+//        Transformation.transform(program)
         dumpGraphs("after-construction")
         Util.lowerSels()
         dumpGraphs("after-lowering")
@@ -149,7 +146,6 @@ class CodeGenTest {
         )
     }
 
-
     private fun transformToMolki(block: (VirtualRegisterTable) -> CodeGenIR): MatchResult {
         val registerTable = VirtualRegisterTable()
         val res = block(registerTable).accept(ReplacementSystem(registerTable))
@@ -178,7 +174,8 @@ class CodeGenTest {
             CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2"), CodeGenIR.Const("3"))
         }
         assertMolkiEquals(
-            res.instructions, listOf(
+            res.instructions,
+            listOf(
                 "movq 2(), %@0",
                 "movq 3(), %@1",
                 "addq [ %@0 | %@1 ] -> %@2"
@@ -197,7 +194,8 @@ class CodeGenTest {
             )
         }
         assertMolkiEquals(
-            res.instructions, listOf(
+            res.instructions,
+            listOf(
                 "movq 22(), %@0",
                 "movq 33(), %@1",
                 "movq 44(), %@2",
@@ -222,12 +220,11 @@ class CodeGenTest {
             )
         }
         assertMolkiEquals(
-            res.instructions, listOf(
+            res.instructions,
+            listOf(
                 "movq 2(), %@1",
                 "addq [ %@1 | %@0 ] -> %@2",
             )
         )
     }
-
-
 }

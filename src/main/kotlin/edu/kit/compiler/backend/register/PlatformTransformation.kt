@@ -15,19 +15,22 @@ object PlatformTransformation {
     /**
      * Allocation strategy. Initialize with different instance to change strategy
      */
-    private val allocatorFactory: (CallingConvention) -> FunctionTransformer = ::TrivialFunctionTransformer
+    private val allocatorFactory: (CallingConvention, FunctionSignature) -> FunctionTransformer =
+        ::TrivialFunctionTransformer
 
     /**
      * Allocate registers for a function
      *
      * @param function instruction list of the function
+     * @param signature the function signature
      * @param callingConvention the calling convention this function must adhere to when called
      */
     fun transformFunction(
         function: List<MolkiInstruction>,
+        signature: FunctionSignature,
         callingConvention: CallingConvention
     ): List<PlatformInstruction> {
-        val allocationStrategy = allocatorFactory.invoke(callingConvention)
+        val allocationStrategy = allocatorFactory.invoke(callingConvention, signature)
         allocationStrategy.transformCode(function)
         return allocationStrategy.getPlatformCode()
     }

@@ -3,6 +3,7 @@ package edu.kit.compiler.backend.register.trivial
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.EnumRegister
+import edu.kit.compiler.backend.register.FunctionSignature
 import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
@@ -21,9 +22,11 @@ import edu.kit.compiler.backend.register.PlatformTarget.Register as PlatformRegi
  * pushes result back on stack.
  *
  * @param callingConvention the calling convention this function is called with
+ * @param signature the function signature
  */
 class TrivialFunctionTransformer(
     private val callingConvention: CallingConvention,
+    private val signature: FunctionSignature
 ) : FunctionTransformer {
 
     companion object {
@@ -88,12 +91,19 @@ class TrivialFunctionTransformer(
      * actual register or a known memory location)
      */
     private fun generateLoadVirtualRegisterValue(virtualRegister: MolkiRegister, target: PlatformTarget) {
-        // check the register has been assigned before
-        check(stackLayout.containsKey(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
+        val instruction = if (virtualRegister.id.value < this.signature.parameterCount) {
+            // generate an offset to RSP to load the value from
+            val memoryLocation = this.signature.generateStackOffset(virtualRegister.id.value)
+            PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
+        } else {
+            // check the register has been assigned before
+            check(stackLayout.containsKey(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
 
-        // generate an offset to RSP to load the value from
-        val memoryLocation = stackLayout[virtualRegister.id]!!.generateMemoryAddress()
-        val instruction = PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
+            // generate an offset to RSP to load the value from
+            val memoryLocation = stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+            PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
+        }
+
         generatedCode.add(instruction)
     }
 
@@ -113,7 +123,7 @@ class TrivialFunctionTransformer(
             stackLayout[virtualRegisterId] = StackSlot(virtualRegisterId, currentSlotOffset, registerWidth)
 
             /* eight byte alignment for fast quad-word-access */
-            currentSlotOffset += 8
+            currentSlotOffset += Width.QUAD.inBytes
         }
 
         val instruction = PlatformInstruction.mov(
