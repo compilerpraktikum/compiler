@@ -2,6 +2,7 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.Width
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
@@ -16,7 +17,6 @@ class GraphPrinter() {
 sealed class CodeGenIR {
     abstract fun matches(node: CodeGenIR): Boolean
     abstract fun cost(): Int
-    abstract fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String
 
     //TODO make binops
     data class BinOP(val operation: BinOpENUM, val left: CodeGenIR, val right: CodeGenIR) :
@@ -30,15 +30,6 @@ sealed class CodeGenIR {
 
         override fun cost(): Int = left.cost() + right.cost() + 1
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"BinOP $operation\"];")
-                appendLine("$parent -> $id;");
-                appendLine(left.toGraphviz(id, graphPrinter))
-                appendLine(right.toGraphviz(id, graphPrinter))
-            }
-        }
     }
 
     data class Compare(val relation: Relation, val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
@@ -51,34 +42,18 @@ sealed class CodeGenIR {
 
         override fun cost(): Int = left.cost() + right.cost() + 1
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Relation $relation\"];")
-                appendLine("$parent -> $id;");
-                appendLine(left.toGraphviz(id, graphPrinter))
-                appendLine(right.toGraphviz(id, graphPrinter))
-            }
-        }
     }
 
     data class Return(val returnValue: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun cost(): Int {
-            TODO("Not yet implemented")
-        }
-
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Return\"];")
-                appendLine("$parent -> $id;");
-                appendLine(returnValue.toGraphviz(id, graphPrinter))
+        override fun matches(node: CodeGenIR): Boolean =
+            if (node is Return) {
+                returnValue.matches(node.returnValue)
+            } else {
+                false
             }
-        }
+
+        override fun cost() = 1 + returnValue.cost()
+
 
     }
 
@@ -92,14 +67,6 @@ sealed class CodeGenIR {
 
         override fun cost(): Int = 1 + addr.cost()
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Indirection\"];")
-                appendLine("$parent -> $id;");
-                appendLine(addr.toGraphviz(id, graphPrinter))
-            }
-        }
 
     }
 
@@ -118,13 +85,6 @@ sealed class CodeGenIR {
         override fun cost(): Int =
             3
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"MemoryAddress ${mem.get()}\"];")
-                appendLine("$parent -> $id;");
-            }
-        }
     }
 
     data class Cond(val cond: CodeGenIR, val ifTrue: CodeGenIR, val ifFalse: CodeGenIR) : CodeGenIR() {
@@ -136,10 +96,6 @@ sealed class CodeGenIR {
             }
 
         override fun cost(): Int = 1 + cond.cost() + max(ifTrue.cost(), ifFalse.cost())
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
-            TODO("Not yet implemented")
-        }
-
     }
 
     data class Assign(val lhs: CodeGenIR, val rhs: CodeGenIR) : CodeGenIR() {
@@ -152,15 +108,6 @@ sealed class CodeGenIR {
 
         override fun cost(): Int = lhs.cost() + rhs.cost() + 1
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Assign\"];")
-                appendLine("$parent -> $id;");
-                appendLine(lhs.toGraphviz(id, graphPrinter))
-                appendLine(rhs.toGraphviz(id, graphPrinter))
-            }
-        }
     }
 
     data class RegisterRef(val reg: ValueHolder<Register>) : CodeGenIR() {
@@ -176,42 +123,21 @@ sealed class CodeGenIR {
 
         override fun cost(): Int = 1
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            val valueId = graphPrinter.freshId()
-            val widthId = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Ref\"];")
-                appendLine("$valueId[label=\"@${reg.get().id.value}\"];")
-                appendLine("$widthId[label=\"${reg.get().width}\"];")
-                appendLine("$id -> $valueId");
-                appendLine("$id -> $widthId");
-                appendLine("$parent -> $id;");
-            }
-        }
     }
 
-    data class Const(val const: ValueHolder<String>) : CodeGenIR() {
-        constructor(const: String) : this(ValueHolder(const))
+    data class Const(val const: ValueHolder<String>, val width: ValueHolder<Width>) : CodeGenIR() {
+        constructor(const: String, mode: Width) : this(ValueHolder(const), ValueHolder(mode))
 
         override fun matches(node: CodeGenIR): Boolean {
             if (node is Const) {
-                println("match ${node.const} with $const")
                 const.set(node.const.get())
+                width.set(node.width.get())
                 return true
             }
             return false
         }
 
         override fun cost(): Int = 1
-
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Const ${const.get()}\"];")
-                appendLine("$parent -> $id;");
-            }
-        }
     }
 
     data class Call(val name: Address, val arguments: List<CodeGenIR>) : CodeGenIR() {
@@ -226,17 +152,6 @@ sealed class CodeGenIR {
 
         fun getName(): String = name.entity.ldName!!
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Call &${name.entity}\"];")
-                appendLine("$parent -> $id;");
-                arguments.forEach {
-                    appendLine(it.toGraphviz(id, graphPrinter))
-                }
-            }
-        }
-
     }
 
     data class Conv(val fromMode: Mode, val toMode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
@@ -248,14 +163,6 @@ sealed class CodeGenIR {
             TODO("Not yet implemented")
         }
 
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
-                appendLine("$parent -> $id;");
-                appendLine(opTree.toGraphviz(id, graphPrinter))
-            }
-        }
     }
 
     /**
@@ -263,24 +170,13 @@ sealed class CodeGenIR {
      */
     data class Seq(val value: CodeGenIR, val exec: CodeGenIR) : CodeGenIR() {
         override fun matches(node: CodeGenIR): Boolean =
-            if(node is Seq) {
+            if (node is Seq) {
                 value.matches(node.value) && exec.matches(node.exec)
             } else {
                 false
             }
 
         override fun cost(): Int = value.cost() + exec.cost()
-
-        override fun toGraphviz(parent: Int, graphPrinter: GraphPrinter) : String {
-            val id = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Seq\"];")
-                appendLine("$parent -> $id;");
-                appendLine(value.toGraphviz(id, graphPrinter))
-                appendLine(exec.toGraphviz(id, graphPrinter))
-            }
-        }
-
     }
 
     fun <T> accept(visitor: CodeGenIRVisitor<T>): T =
@@ -298,6 +194,80 @@ sealed class CodeGenIR {
             is Return -> visitor.visit(this)
             is Seq -> visitor.visit(this)
         }
+}
+
+fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
+    val id = graphPrinter.freshId()
+    return when (this) {
+        is CodeGenIR.Assign -> buildString {
+            appendLine("$id[label=\"Assign\"];")
+            appendLine("$parent -> $id;");
+            appendLine(lhs.toGraphviz(id, graphPrinter))
+            appendLine(rhs.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.BinOP -> buildString {
+            appendLine("$id[label=\"BinOP $operation\"];")
+            appendLine("$parent -> $id;");
+            appendLine(left.toGraphviz(id, graphPrinter))
+            appendLine(right.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.Call -> buildString {
+            appendLine("$id[label=\"Call &${name.entity}\"];")
+            appendLine("$parent -> $id;");
+            arguments.forEach {
+                appendLine(it.toGraphviz(id, graphPrinter))
+            }
+        }
+        is CodeGenIR.Compare -> buildString {
+            appendLine("$id[label=\"Relation $relation\"];")
+            appendLine("$parent -> $id;");
+            appendLine(left.toGraphviz(id, graphPrinter))
+            appendLine(right.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.Cond -> TODO()
+        is CodeGenIR.Const -> buildString {
+            appendLine("$id[label=\"Const ${const.get()}\"];")
+            appendLine("$parent -> $id;");
+        }
+        is CodeGenIR.Conv -> buildString {
+            appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
+            appendLine("$parent -> $id;");
+            appendLine(opTree.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.Indirection -> buildString {
+            appendLine("$id[label=\"Indirection\"];")
+            appendLine("$parent -> $id;");
+            appendLine(addr.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.MemoryAddress -> buildString {
+            appendLine("$id[label=\"MemoryAddress ${mem.get()}\"];")
+            appendLine("$parent -> $id;");
+        }
+        is CodeGenIR.RegisterRef -> {
+            val valueId = graphPrinter.freshId()
+            val widthId = graphPrinter.freshId()
+            return buildString {
+                appendLine("$id[label=\"Ref\"];")
+                appendLine("$valueId[label=\"@${reg.get().id.value}\"];")
+                appendLine("$widthId[label=\"${reg.get().width}\"];")
+                appendLine("$id -> $valueId");
+                appendLine("$id -> $widthId");
+                appendLine("$parent -> $id;");
+            }
+        }
+        is CodeGenIR.Return -> buildString {
+            appendLine("$id[label=\"Return\"];")
+            appendLine("$parent -> $id;");
+            appendLine(returnValue.toGraphviz(id, graphPrinter))
+        }
+        is CodeGenIR.Seq ->
+            buildString {
+                appendLine("$id[label=\"Seq\"];")
+                appendLine("$parent -> $id;");
+                appendLine(value.toGraphviz(id, graphPrinter))
+                appendLine(exec.toGraphviz(id, graphPrinter))
+            }
+    }
 }
 
 enum class BinOpENUM {
@@ -382,5 +352,5 @@ interface CodeGenIRVisitor<T> {
         return transform(node, first, second)
     }
 
-    fun transform(node: CodeGenIR.Seq, first: T, second: T): T
+    fun transform(node: CodeGenIR.Seq, value: T, exec: T): T
 }
