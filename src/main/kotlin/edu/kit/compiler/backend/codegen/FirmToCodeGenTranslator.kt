@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend.codegen
 
 import com.tylerthrailkill.helpers.prettyprint.pp
+import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
 import firm.Graph
@@ -100,7 +101,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     }
 
     override fun visit(node: Start) {
-        nodeMap[node] = CodeGenIR.Const("0")
+        nodeMap[node] = CodeGenIR.Const("0", Width.BYTE)
     }
 
     override fun visit(node: Add) {
@@ -157,7 +158,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Const) {
         super.visit(node)
         updateCurrentBlock(node)
-        val tree = CodeGenIR.Const(node.tarval.toString())
+        val tree = CodeGenIR.Const(node.tarval.toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
         updateCurrentTree(tree, node)
         println("visit CONST " + node.block.toString())
         println(node.tarval.toString())
