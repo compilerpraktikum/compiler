@@ -9,6 +9,8 @@ import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
+import edu.kit.compiler.lexer.initializeKeywords
+import edu.kit.compiler.lexer.lexTestRepr
 import edu.kit.compiler.optimization.doOptimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis

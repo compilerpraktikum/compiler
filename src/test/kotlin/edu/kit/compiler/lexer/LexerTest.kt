@@ -1,6 +1,5 @@
 package edu.kit.compiler.lexer
 
-import edu.kit.compiler.Token
 import edu.kit.compiler.utils.createLexer
 import edu.kit.compiler.utils.toSymbol
 import kotlin.test.Ignore

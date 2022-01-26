@@ -1,10 +1,10 @@
 package edu.kit.compiler.utils
 
 import edu.kit.compiler.ast.validate
-import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.lexer.Symbol
+import edu.kit.compiler.lexer.initializeKeywords
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.parser.anchorSetOf
 import edu.kit.compiler.semantic.SemanticAST

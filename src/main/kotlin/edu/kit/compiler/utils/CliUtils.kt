@@ -1,4 +1,4 @@
-package edu.kit.compiler
+package edu.kit.compiler.utils
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.Context

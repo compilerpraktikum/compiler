@@ -4,7 +4,7 @@ import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
-import edu.kit.compiler.Token
+import edu.kit.compiler.lexer.Token
 
 data class ColorScheme(
     val comment: TextStyle,
