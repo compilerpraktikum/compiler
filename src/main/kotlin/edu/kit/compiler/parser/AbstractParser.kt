@@ -1,10 +1,10 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.Token
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.ast.Parsed
 import edu.kit.compiler.ast.wrapErroneous
 import edu.kit.compiler.ast.wrapValid
+import edu.kit.compiler.lexer.Token
 import edu.kit.compiler.source.AnnotatableFile
 import edu.kit.compiler.source.AnnotationType
 

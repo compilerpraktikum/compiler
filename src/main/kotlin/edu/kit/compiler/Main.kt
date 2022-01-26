@@ -9,6 +9,9 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
+import edu.kit.compiler.utils.Logger
+import edu.kit.compiler.utils.choices
+import edu.kit.compiler.utils.distinct
 import kotlin.system.exitProcess
 
 class Cli : CliktCommand(name = "mjavac"), Compiler.Config {

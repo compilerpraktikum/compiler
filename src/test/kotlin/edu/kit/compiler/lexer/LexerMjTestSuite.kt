@@ -1,8 +1,5 @@
 package edu.kit.compiler.lexer
 
-import edu.kit.compiler.Token
-import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lexTestRepr
 import edu.kit.compiler.utils.MjTestSuite
 import kotlin.io.path.readLines
 import kotlin.test.assertEquals

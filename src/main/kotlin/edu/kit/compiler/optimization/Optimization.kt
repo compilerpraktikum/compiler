@@ -1,7 +1,7 @@
 package edu.kit.compiler.optimization
 
 import edu.kit.compiler.Compiler
-import edu.kit.compiler.Logger
+import edu.kit.compiler.utils.Logger
 import firm.ClassType
 import firm.Graph
 import firm.Program
