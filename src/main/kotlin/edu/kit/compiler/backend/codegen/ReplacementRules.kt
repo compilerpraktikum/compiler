@@ -4,10 +4,8 @@ import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
-import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Width
-import firm.nodes.Node
-import edu.kit.compiler.backend.molkir.Register as MolkiRegister
 
 enum class ReplacementRules(val rule: Rule) {
     /**
@@ -15,16 +13,15 @@ enum class ReplacementRules(val rule: Rule) {
      */
     READ_CONSTANT(rule {
         val constValue = value<String>()
+        val widthValue = value<Width>()
 
         match(
-            CodeGenIR.Const(constValue)
+            CodeGenIR.Const(constValue, widthValue)
         )
-        println("after match $constValue")
         replaceWith {
-            println("perform do constant replacement")
-            val newRegister = newRegister(Width.QUAD)
+            val newRegister = newRegister(widthValue.get())
             RegisterRef(newRegister) to listOf(
-                Instruction.movq(Memory.of(constValue.get(), width=Width.QUAD), newRegister)
+                Instruction.movq(Constant(constValue.get(), widthValue.get()), newRegister)
             )
         }
     }),
@@ -65,7 +62,7 @@ enum class ReplacementRules(val rule: Rule) {
 
         replaceWith {
             CodeGenIR.MemoryAddress(addrValue) to listOf(
-                Instruction.movq(Memory.of(registerId.get(), width=addrValue.get().width), addrValue.get())
+                Instruction.movq(Memory.of(registerId.get(), width = addrValue.get().width), addrValue.get())
             )
         }
     }),
@@ -87,11 +84,11 @@ enum class ReplacementRules(val rule: Rule) {
         )
 
         replaceWith {
-            val memoryAddress = Memory.of(registerWithAddr.get(), width=registerWithValue.get().width)
+            val memoryAddress = Memory.of(registerWithAddr.get(), width = registerWithValue.get().width)
             CodeGenIR.MemoryAddress(memoryAddress) to listOf(
                 Instruction.movq(
-                    Memory.of(registerWithValue.get(), width=registerWithValue.get().width),
-                    Memory.of("0", registerWithAddr.get(), width=registerWithAddr.get().width)
+                    Memory.of(registerWithValue.get(), width = registerWithValue.get().width),
+                    Memory.of("0", registerWithAddr.get(), width = registerWithAddr.get().width)
                 )
             )
         }
@@ -104,28 +101,33 @@ enum class ReplacementRules(val rule: Rule) {
         val constValue = value<String>()
         val register = value<Register>()
         val resRegister = value<Register>()
+        val widthValue = value<Width>()
 
+        // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
         match(
             CodeGenIR.Indirection(
                 CodeGenIR.BinOP(
                     BinOpENUM.ADD,
-                    CodeGenIR.Const(constValue),
+                    CodeGenIR.Const(constValue, widthValue),
                     RegisterRef(register),
                 )
             )
         )
 
         replaceWith {
-            val newRegister = newRegister(Width.QUAD)
+            val newRegister = newRegister(widthValue.get())
             RegisterRef(newRegister) to listOf(
                 Instruction.movq(
-                    Memory.of(const = constValue.get(), base = register.get(), width= Width.QUAD),
+                    Memory.of(const = constValue.get(), base = register.get(), width = widthValue.get()),
                     resRegister.get()
                 )
             )
         }
     }),
 
+    /**
+     * `addq R_i R_j -> R_k`
+     */
     ADD_REGISTER_VALUES(rule {
         val leftRegister = value<Register>()
         val rightRegister = value<Register>()
@@ -145,7 +147,58 @@ enum class ReplacementRules(val rule: Rule) {
                 )
             )
         }
-    })
+    }),
+
+    /**
+     * `movq R_i $@result; jmp functionReturn`
+     */
+    RETURN_REGISTER_CONTENT(rule {
+        val resRegister = value<Register>()
+        match(
+            CodeGenIR.Return(
+                RegisterRef(resRegister)
+            )
+        )
+
+        replaceWith {
+            RegisterRef(resRegister.get()) to listOf(
+                Instruction.movq(
+                    resRegister.get(),
+                    edu.kit.compiler.backend.molkir.ReturnRegister(resRegister.get().width)
+                )
+                // TODO jmp to returnLabel
+            )
+        }
+    }),
+
+    /**
+     * `movq $a $@result; jmp functionReturn`
+     */
+    RETURN_CONSTANT(rule {
+        val constValue = value<String>()
+        val widthValue = value<Width>()
+        match(
+            CodeGenIR.Return(
+                CodeGenIR.Const(constValue, widthValue)
+            )
+        )
+
+        replaceWith {
+            CodeGenIR.Const(constValue.get(), widthValue.get()) to listOf(
+                Instruction.movq(
+                    Constant(constValue.get(), widthValue.get()),
+                    edu.kit.compiler.backend.molkir.ReturnRegister(widthValue.get())
+                )
+            )
+        }
+    }),
+
+//    SEQ_CONCAT(rule {
+//      val value = value<edu.kit.compiler.backend.codegen.CodeGenIR>()
+//      val  exec = value<edu.kit.compiler.backend.codegen.CodeGenIR>()
+//
+//      match(edu.kit.compiler.backend.codegen.CodeGenIR.Seq(value, exec))
+//    })
     ;
 
 }
