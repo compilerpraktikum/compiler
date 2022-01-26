@@ -6,6 +6,7 @@ import edu.kit.compiler.backend.molkir.Width
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
+import firm.nodes.Block
 import kotlin.math.max
 
 class GraphPrinter() {
@@ -96,6 +97,18 @@ sealed class CodeGenIR {
             }
 
         override fun cost(): Int = 1 + cond.cost() + max(ifTrue.cost(), ifFalse.cost())
+    }
+
+    data class Jmp(val block: ValueHolder<Block>) : CodeGenIR() {
+        constructor(block: Block) : this(ValueHolder(block))
+        override fun matches(node: CodeGenIR) = if (node is Jmp) {
+            block.set(node.block.get())
+            true
+        } else {
+            false
+        }
+
+        override fun cost() = 1
     }
 
     data class Assign(val lhs: CodeGenIR, val rhs: CodeGenIR) : CodeGenIR() {

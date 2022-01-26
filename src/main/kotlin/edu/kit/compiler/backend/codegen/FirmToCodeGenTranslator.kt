@@ -147,6 +147,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         updateCurrentTree(cmp, node)
         println("visit CMP " + node.block.toString())
     }
+
     //TODO
     override fun visit(node: Cond) {
 
@@ -159,6 +160,11 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
         println("is already there ${blockMap[trueBlock]}")
         println("visit COND " + node.block.toString())
+        nodeMap[node] = CodeGenIR.Cond(
+            cond = nodeMap[node.getPred(0)]!!,
+            ifTrue = CodeGenIR.Jmp(trueBlock),
+            ifFalse = CodeGenIR.Jmp(falseBlock)
+        )
     }
 
     override fun visit(node: Const) {
@@ -196,6 +202,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         buildBinOpTree(node, BinOpENUM.EOR)
         println("visit EOR " + node.block.toString())
     }
+
     //TODO
     override fun visit(node: Jmp) {
         super.visit(node)
@@ -206,7 +213,12 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Load) {
         super.visit(node)
         updateCurrentBlock(node)
-        updateCurrentTree(CodeGenIR.Seq(value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!), exec = nodeMap[node.getPred(0)]!!), node)
+        updateCurrentTree(
+            CodeGenIR.Seq(
+                value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!),
+                exec = nodeMap[node.getPred(0)]!!
+            ), node
+        )
         println("visit LOAD " + node.block.toString())
     }
 
