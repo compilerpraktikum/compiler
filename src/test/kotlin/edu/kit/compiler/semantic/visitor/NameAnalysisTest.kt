@@ -4,13 +4,13 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.utils.createLexer
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 internal class NameAnalysisTest {
 
     private fun checkNames(shouldSucceed: Boolean, input: () -> String) {
-        val (lexer, sourceFile, stringTable) = createLexer(input(), 3)
+        val (lexer, sourceFile, stringTable) = createLexer(input())
         val parser = Parser(sourceFile, lexer.tokens())
         val ast = parser.parse().validate()
         sourceFile.printAnnotations()

@@ -1,0 +1,77 @@
+# Kindly provided by https://github.com/I-Al-Istannen (adapted from https://github.com/Firmwehr/gentle/blob/master/.github/workflows/mjtest.yml)
+
+name: MJTest
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  basic:
+    name: Basic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: ./build
+      - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
+      - run: "git -C mjtest/tests reset --hard origin/master"
+      - run: "./mjtest/mjt.py lexer syntax ast semantic ./run"
+
+  firm:
+    name: Compile using FIRM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: ./build
+      - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
+      - run: "git -C mjtest/tests reset --hard origin/master"
+      - run: "./mjtest/mjt.py compile-firm-only compile-firm ./run"
+
+  own-backend:
+    name: Compile using own backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: ./build
+      - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
+      - run: "git -C mjtest/tests reset --hard origin/master"
+      - run: "rm mjtest/tests/exec/ReallyEfficientFactorization.java"
+      - run: "./mjtest/mjt.py compile-only compile ./run"
+
+  firm-with-optimizations:
+    name: Compile using FIRM with all optimizations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: ./build
+      - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
+      - run: "git -C mjtest/tests reset --hard origin/master"
+      - run: "./mjtest/mjt.py compile-firm-only compile-firm ./run"
+        env:
+          COMPILER_OPTIMIZATION_LEVEL: 1

@@ -1,7 +1,6 @@
 package edu.kit.compiler.transform
 
 import edu.kit.compiler.semantic.SemanticAST
-import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 
 /**
@@ -10,12 +9,14 @@ import edu.kit.compiler.semantic.visitor.AbstractVisitor
  * @param startIndex where to start counting variables. Can be used if implicit variables are added to the front of the
  * variable tuple
  */
-class LocalVariableCounter(startIndex: Int) : AbstractVisitor() {
+class LocalVariableCounter(startIndex: Int, private val includeParameters: Boolean) : AbstractVisitor() {
+    private var nextVariableIndex = startIndex
 
     /**
      * Total number of variables in the visited method
      */
-    var numberOfVariables = startIndex
+    val numberOfVariables
+        get() = nextVariableIndex
 
     /**
      * Mapping of local variables to an integer id
@@ -28,12 +29,13 @@ class LocalVariableCounter(startIndex: Int) : AbstractVisitor() {
     val parameterMapping = mutableMapOf<SemanticAST.ClassMember.SubroutineDeclaration.Parameter, Int>()
 
     override fun visitParameter(parameter: SemanticAST.ClassMember.SubroutineDeclaration.Parameter) {
-        if (!(parameter.type is SemanticType.Class && parameter.type.name.text == "String")) {
-            parameterMapping[parameter] = numberOfVariables++
-        }
+        if (!includeParameters)
+            return
+
+        parameterMapping[parameter] = nextVariableIndex++
     }
 
     override fun visitLocalVariableDeclaration(localVariableDeclaration: SemanticAST.Statement.LocalVariableDeclaration) {
-        definitionMapping[localVariableDeclaration] = numberOfVariables++
+        definitionMapping[localVariableDeclaration] = nextVariableIndex++
     }
 }

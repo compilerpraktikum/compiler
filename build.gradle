@@ -14,7 +14,7 @@ buildscript {
 
     dependencies {
         classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
-        classpath group: 'gradle.plugin.com.github.johnrengelman', name: 'shadow', version: '7.1.0'
+        classpath group: 'gradle.plugin.com.github.johnrengelman', name: 'shadow', version: '7.1.2'
     }
 }
 
@@ -34,28 +34,28 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.ajalt.clikt:clikt:3.3.0'
+    implementation 'com.github.ajalt.clikt:clikt:3.4.0'
     implementation 'com.github.ajalt.mordant:mordant:2.0.0-beta3'
-    implementation 'com.github.Firmwehr:jFirm:fc897436f2'
+    implementation 'com.github.Firmwehr:jFirm:5b0164832e'
     implementation 'net.java.dev.jna:jna:4.5.2'
     implementation "com.tylerthrailkill.helpers:pretty-print:2.0.2"
 
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
 }
 
 // define JVM target version
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
-        jvmTarget = "16"
+        jvmTarget = "17"
     }
 }
 
 java {
-    targetCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 jar {
@@ -86,7 +86,7 @@ configurations {
 }
 
 dependencies {
-    ktlint("com.pinterest:ktlint:0.43.0") {
+    ktlint('com.pinterest:ktlint:0.43.2') {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
         }

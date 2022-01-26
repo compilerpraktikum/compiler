@@ -20,48 +20,50 @@ internal val emptyAnchorSet = anchorSetOf().intoUnion()
 
 fun String.toSymbol() = Symbol(this, isKeyword = false)
 
-fun createLexer(input: String, fileName: String = "/path/to/file"): Triple<Lexer, SourceFile, StringTable> {
-    val stringTable = StringTable(StringTable::initializeKeywords)
-    val sourceFile = SourceFile.from(fileName, input)
-    return Triple(Lexer(sourceFile, stringTable), sourceFile, stringTable)
-}
-
-fun getTestCasePathName(index: Int): String {
-    val stackFrame = Exception().stackTrace[index] ?: return "unknown"
+fun generateTestCasePath(): String {
+    val stackFrame = Exception().stackTrace.asSequence()
+        .takeWhile { it.moduleName == null }
+        .lastOrNull() ?: error("unexpected stack trace")
     return "/tests/${stackFrame.fileName}/${stackFrame.methodName}"
 }
 
-fun createLexer(input: String, stackIndex: Int) = createLexer(input, getTestCasePathName(stackIndex))
-
-inline fun <T> withParser(sourceFile: SourceFile, f: Parser.() -> T): T {
+fun createLexer(sourceFile: SourceFile): Triple<Lexer, SourceFile, StringTable> {
     val stringTable = StringTable(StringTable::initializeKeywords)
-    val lexer = Lexer(sourceFile, stringTable)
-    val parser = Parser(sourceFile, lexer.tokens())
-    return parser.f().also {
+    return Triple(Lexer(sourceFile, stringTable), sourceFile, stringTable)
+}
+
+fun createLexer(input: String) =
+    createLexer(SourceFile.from(generateTestCasePath(), input))
+
+fun createParser(sourceFile: SourceFile): Triple<Parser, SourceFile, StringTable> {
+    val (lexer, _, stringTable) = createLexer(sourceFile)
+    return Triple(Parser(sourceFile, lexer.tokens()), sourceFile, stringTable)
+}
+
+fun createParser(input: String) =
+    createParser(SourceFile.from(generateTestCasePath(), input))
+
+fun createSemanticAST(sourceFile: SourceFile, messageOnFail: String = "failed to parse input"): Triple<SemanticAST.Program, SourceFile, StringTable> {
+    val (parser, _, stringTable) = createParser(sourceFile)
+    val ast = parser.parse().validate() ?: run {
         sourceFile.printAnnotations()
+        fail(messageOnFail)
     }
+    return Triple(ast, sourceFile, stringTable)
 }
-
-inline fun <T> withParser(input: String, f: Parser.() -> T): T =
-    withParser(SourceFile.from("/path/to/file", input), f)
-
-fun createAst(source: SourceFile): SemanticAST.Program? = withParser(source) { parse().validate() }
-
-fun createAST(input: String): SemanticAST.Program? {
-    val sourceFile = SourceFile.from("/path/to/file", input)
-    return createAst(sourceFile)
-}
+fun createSemanticAST(input: String, messageOnFail: String = "failed to parse input") =
+    createSemanticAST(SourceFile.from(generateTestCasePath(), input), messageOnFail = messageOnFail)
 
 fun assertIdempotence(input: String) {
     println("========[ input ]========")
     println(input)
 
-    val ast1 = createAST(input) ?: fail("failed to parse input")
+    val (ast1) = createSemanticAST(input)
     val pretty1 = prettyPrint(ast1)
     println("=======[ Pretty1 ]=======")
     println(pretty1)
 
-    val ast2 = createAST(pretty1) ?: fail("failed to parse pretty printed output")
+    val (ast2) = createSemanticAST(pretty1, messageOnFail = "failed to parse pretty printed output")
     val pretty2 = prettyPrint(ast2)
     println("=======[ Pretty2 ]=======")
     println(pretty2)
@@ -79,4 +81,13 @@ fun prettyPrint(program: SemanticAST.Program): String {
 
     printStream.flush()
     return out.toString(Charsets.UTF_8)
+}
+
+fun assertAnnotations(expectedAnnotations: List<String>, source: SourceFile) {
+    assertEquals(expectedAnnotations.size, source.getAnnotations().count())
+    expectedAnnotations.asSequence()
+        .zip(source.getAnnotations())
+        .forEachIndexed { index, (expected, actual) ->
+            assertEquals(expected, actual.message, "annotation #$index differs")
+        }
 }

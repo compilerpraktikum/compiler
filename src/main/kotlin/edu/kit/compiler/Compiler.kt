@@ -135,7 +135,7 @@ class Compiler(private val config: Config) {
                             return@run
                         }
 
-                        Transformation.transform(program)
+                        Transformation.transform(program, stringTable)
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterConstruction, "after-construction")
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
@@ -256,7 +256,15 @@ class Compiler(private val config: Config) {
 
     enum class OptimizationLevel(val intValue: Int) {
         Base(0),
-        Full(1),
+        Full(1);
+
+        companion object {
+            fun of(intValue: Int) = when (intValue) {
+                0 -> Base
+                1 -> Full
+                else -> null
+            }
+        }
     }
 
     interface Config {

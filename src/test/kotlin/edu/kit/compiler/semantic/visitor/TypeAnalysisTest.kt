@@ -2,9 +2,9 @@ package edu.kit.compiler.semantic.visitor
 
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.parser.Parser
-import edu.kit.compiler.semantic.doSemanticAnalysis
+import edu.kit.compiler.semantic.doNameAnalysis
 import edu.kit.compiler.utils.createLexer
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -19,7 +19,8 @@ class TypeAnalysisTest {
             fail("failed to parse program")
         }
 
-        doSemanticAnalysis(ast, sourceFile, stringTable)
+        doNameAnalysis(ast, sourceFile, stringTable)
+        ast.accept(TypeAnalysisVisitor(sourceFile))
 
         sourceFile.printAnnotations()
 
@@ -160,41 +161,6 @@ class TypeAnalysisTest {
                                 return 2;
                             } else {
                                 return 3;
-                            }
-                        }
-                    } else {
-                        return 3;
-                    }
-                    while (n > 0) {
-                        int c = a + b;
-                        a = b;
-                        b = c;
-                        n = n - 1;
-                    }
-                }
-                public static void main(String[] args) {}
-            }
-
-            """.trimIndent()
-        }
-    }
-
-    @Test
-    fun testReturnsInvalid() {
-        check(false) {
-            """
-            class Fibonacci {
-                public int fib(int n) {
-                    int a = 0;
-                    int b = 1;
-                    if (true) {
-                        if (false) {
-                            return 0;
-                        } else {
-                            if (false) {
-                                return 2;
-                            } else {
-                                a = 5;
                             }
                         }
                     } else {
