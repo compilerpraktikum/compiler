@@ -3,12 +3,9 @@ package edu.kit.compiler.exec
 import edu.kit.compiler.Compiler
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.error.ExitCode
-import edu.kit.compiler.lexer.Lexer
-import edu.kit.compiler.lexer.StringTable
-import edu.kit.compiler.lexer.initializeKeywords
-import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.utils.MjTestSuite
+import edu.kit.compiler.utils.createParser
 import edu.kit.compiler.utils.normalizeLineEndings
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.condition.EnabledOnOs
@@ -58,9 +55,7 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
     }
 
     override fun TestContext.execute() {
-        val stringTable = StringTable(StringTable::initializeKeywords)
-        val lexer = Lexer(source, stringTable)
-        val parser = Parser(source, lexer.tokens())
+        val (parser, _, stringTable) = createParser(source)
         val program = parser.parse().validate()
         checkStep(!source.hasError && program != null)
 
