@@ -34,17 +34,17 @@ object X64ABICallingConvention : CallingConvention {
 
         prologue.add(PlatformInstruction.unOp("push", PlatformTarget.Register(EnumRegister.RBP)))
         prologue.add(
-            PlatformInstruction.binOp(
-                "movq",
+            PlatformInstruction.mov(
                 PlatformTarget.Register(EnumRegister.RSP),
-                PlatformTarget.Register(EnumRegister.RBP)
+                PlatformTarget.Register(EnumRegister.RBP),
+                Width.QUAD
             )
         )
         prologue.add(
-            PlatformInstruction.binOp(
-                "subq",
+            PlatformInstruction.sub(
                 PlatformTarget.Register(EnumRegister.RSP),
-                PlatformTarget.Constant(reservedSpace.toString())
+                PlatformTarget.Constant(reservedSpace.toString()),
+                Width.QUAD
             )
         )
 
@@ -68,8 +68,6 @@ object X64ABICallingConvention : CallingConvention {
         returnWidth: Width?
     ): List<PlatformInstruction> {
         val epilogue = mutableListOf<PlatformInstruction>()
-
-        epilogue.add(PlatformInstruction.Label("_epilogue"))
 
         // pop tainted registers in reverse order
         for (nonVolatileRegister in nonVolatileRegisters.reversed()) {
