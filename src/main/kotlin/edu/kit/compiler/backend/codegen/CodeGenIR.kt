@@ -140,6 +140,17 @@ sealed class CodeGenIR {
         override fun cost(): Int = 1
     }
 
+    data class Div(val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
+
+    }
+
     data class Call(val name: Address, val arguments: List<CodeGenIR>) : CodeGenIR() {
         override fun matches(node: CodeGenIR): Boolean =
             if (node is Call && node.name == name && node.arguments.size == arguments.size) {
@@ -151,6 +162,27 @@ sealed class CodeGenIR {
         override fun cost(): Int = 1 + arguments.sumOf { it.cost() }
 
         fun getName(): String = name.entity.ldName!!
+
+    }
+
+    data class UnaryOP(val op: UnaryOpENUM, val value: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
+    }
+
+    data class Mod(val right: CodeGenIR, val left: CodeGenIR) : CodeGenIR() {
+        override fun matches(node: CodeGenIR): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun cost(): Int {
+            TODO("Not yet implemented")
+        }
 
     }
 
@@ -193,6 +225,7 @@ sealed class CodeGenIR {
             is Conv -> visitor.visit(this)
             is Return -> visitor.visit(this)
             is Seq -> visitor.visit(this)
+            else -> TODO("Not yet implemented")
         }
 }
 
@@ -267,11 +300,16 @@ fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
                 appendLine(value.toGraphviz(id, graphPrinter))
                 appendLine(exec.toGraphviz(id, graphPrinter))
             }
+        else -> TODO("Not yet implemented")
     }
 }
 
 enum class BinOpENUM {
     ADD, AND, EOR, MUL, MULH, OR, SUB, SHL, SHR, SHRS
+}
+
+enum class UnaryOpENUM {
+    MINUS, NOT
 }
 
 interface CodeGenIRVisitor<T> {

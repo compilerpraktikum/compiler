@@ -154,6 +154,33 @@ class CodeGenTest {
         )
     }
 
+    @Test
+    fun testDiv() {
+        setupGraph(
+            """
+                class Test {
+                    public static void main(String[] args) {
+                        int i = 10 / 2;
+                    }
+                }
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testMod() {
+        setupGraph(
+            """
+                class Test {
+                    public static void main(String[] args) {
+                        int i = 10 % 2;
+                    }
+                }
+            """.trimIndent()
+        )
+    }
+
+
 
     private fun transformToMolki(block: (VirtualRegisterTable) -> CodeGenIR): MatchResult {
         val registerTable = VirtualRegisterTable()

@@ -101,7 +101,8 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     }
 
     override fun visit(node: Start) {
-        nodeMap[node] = CodeGenIR.Const("0", Width.BYTE)
+        super.visit(node)
+        updateCurrentTree(CodeGenIR.Const("0", Width.BYTE), node)
     }
 
     override fun visit(node: Add) {
@@ -146,7 +147,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         updateCurrentTree(cmp, node)
         println("visit CMP " + node.block.toString())
     }
-
+    //TODO
     override fun visit(node: Cond) {
         super.visit(node)
         BackEdges.getOuts(node).forEach { it -> println(it.node.toString()) }
@@ -180,6 +181,8 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         // Div isn't from type BinOP
         super.visit(node)
         updateCurrentBlock(node)
+        val div = CodeGenIR.Div(nodeMap[node.left]!!, nodeMap[node.right]!!)
+        updateCurrentTree(div, node)
         println("visit DIV " + node.block.toString())
     }
 
@@ -188,7 +191,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
         buildBinOpTree(node, BinOpENUM.EOR)
         println("visit EOR " + node.block.toString())
     }
-
+    //TODO
     override fun visit(node: Jmp) {
         super.visit(node)
         updateCurrentBlock(node)
@@ -198,21 +201,21 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Load) {
         super.visit(node)
         updateCurrentBlock(node)
-        nodeMap[node] =
-            CodeGenIR.Seq(value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!), exec = nodeMap[node.getPred(0)]!!)
-
+        updateCurrentTree(CodeGenIR.Seq(value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!), exec = nodeMap[node.getPred(0)]!!), node)
         println("visit LOAD " + node.block.toString())
     }
 
     override fun visit(node: Minus) {
         super.visit(node)
         updateCurrentBlock(node)
+        updateCurrentTree(CodeGenIR.UnaryOP(op = UnaryOpENUM.MINUS, value = nodeMap[node.op]!!), node)
         println("visit MINUS " + node.block.toString())
     }
 
     override fun visit(node: Mod) {
         super.visit(node)
         updateCurrentBlock(node)
+        updateCurrentTree(CodeGenIR.Mod(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!), node)
         println("visit MOD " + node.block.toString())
     }
 
@@ -231,6 +234,7 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     override fun visit(node: Not) {
         super.visit(node)
         updateCurrentBlock(node)
+        updateCurrentTree(CodeGenIR.UnaryOP(op = UnaryOpENUM.NOT, value = nodeMap[node.op]!!), node)
         println("visit NOT " + node.block.toString())
     }
 
