@@ -149,10 +149,15 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     }
     //TODO
     override fun visit(node: Cond) {
-        super.visit(node)
-        BackEdges.getOuts(node).forEach { it -> println(it.node.toString()) }
-        updateCurrentBlock(node)
 
+        super.visit(node)
+        updateCurrentBlock(node)
+        val projs = BackEdges.getOuts(node).map { it.node as Proj }
+        val trueProj = projs.find { it -> it.num == Cond.pnTrue }
+        val falseProj = projs.find { it -> it.num == Cond.pnFalse }
+        val trueBlock = BackEdges.getOuts(trueProj).iterator().next().node!! as Block
+        val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
+        println("is already there ${blockMap[trueBlock]}")
         println("visit COND " + node.block.toString())
     }
 
@@ -343,6 +348,9 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
                         // handled by call outer call case
                     }
                 }
+            }
+            is Cond -> {
+                println(pred.toString())
             }
             else -> TODO("missing handling for case $pred")
         }

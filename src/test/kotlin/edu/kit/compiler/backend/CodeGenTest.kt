@@ -179,6 +179,29 @@ class CodeGenTest {
             """.trimIndent()
         )
     }
+    @Test
+    fun testCond() {
+        setupGraph(
+            """
+                class Test {
+                    public int i;
+                    public static void main(String[] args) {
+                        Test tester = new Test();
+                        tester.i = tester.test();
+                        System.out.println(tester.i);
+                    }
+
+                    public int test() {
+                        if (3 == 2) {
+                            return 2;
+                        } else {
+                            return 3;
+                        }
+                    }
+                }
+            """.trimIndent()
+        )
+    }
 
 
 
