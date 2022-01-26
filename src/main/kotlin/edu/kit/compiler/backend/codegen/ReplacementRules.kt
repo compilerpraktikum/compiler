@@ -193,12 +193,25 @@ enum class ReplacementRules(val rule: Rule) {
         }
     }),
 
-//    SEQ_CONCAT(rule {
-//      val value = value<edu.kit.compiler.backend.codegen.CodeGenIR>()
-//      val  exec = value<edu.kit.compiler.backend.codegen.CodeGenIR>()
-//
-//      match(edu.kit.compiler.backend.codegen.CodeGenIR.Seq(value, exec))
-//    })
+    /**
+     * `movq 0($R_i) -> R_j`
+     */
+    LOAD_FROM_ADDRESS_IN_REGISTER(rule {
+        val registerValue = value<Register>()
+        match(
+            CodeGenIR.Indirection(RegisterRef(registerValue))
+        )
+        replaceWith {
+            val valueRegister = newRegister(registerValue.get().width)
+            RegisterRef(valueRegister) to
+                listOf(
+                    Instruction.movq(
+                        Memory.of(const = "0", base = registerValue.get(), width = registerValue.get().width),
+                        valueRegister
+                    )
+                )
+        }
+    })
     ;
 
 }
