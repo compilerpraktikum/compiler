@@ -4,6 +4,7 @@ import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
+import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
@@ -190,11 +191,48 @@ internal class RegisterAllocationTest {
         )
     }
 
+    @Test
+    fun testParameters() {
+        val code = listOf(
+            MolkiInstruction.addl(
+                Register(RegisterId(0), Width.DOUBLE),
+                Register(RegisterId(1), Width.DOUBLE),
+                ReturnRegister(Width.DOUBLE)
+            )
+        )
+
+        val platformCode =
+            transformCode(code, FunctionSignature(Width.DOUBLE, Width.DOUBLE)).joinToString("\n") { it.toAssembler() }
+        println(platformCode)
+
+        assertEquals(
+            """
+                push %rbp
+                movq %rsp, %rbp
+                subq %rsp, ${'$'}8
+                movl 16(%rbp), %ebx
+                movl 20(%rbp), %esi
+                addl %ebx, %esi
+                movl %esi, 0(%rbp)
+                movl 0(%rbp), %eax
+                leave
+                ret
+            """.trimIndent(),
+            platformCode.trimIndent()
+        )
+    }
+
     /**
      * Call the trivial register allocator with the trivial calling convention and generate the requested code.
+     *
+     * @param code list of molki instructions
+     * @param signature signature of the transformed function
      */
-    private fun transformCode(code: List<MolkiInstruction>): List<PlatformInstruction> {
-        val allocator = TrivialFunctionTransformer(SimpleCallingConvention, FunctionSignature())
+    private fun transformCode(
+        code: List<MolkiInstruction>,
+        signature: FunctionSignature = FunctionSignature()
+    ): List<PlatformInstruction> {
+        val allocator = TrivialFunctionTransformer(SimpleCallingConvention, signature)
         allocator.transformCode(code)
         return allocator.getPlatformCode()
     }
