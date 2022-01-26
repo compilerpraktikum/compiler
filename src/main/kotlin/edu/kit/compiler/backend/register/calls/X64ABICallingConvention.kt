@@ -110,6 +110,24 @@ object X64ABICallingConvention : CallingConvention {
         allocator: RegisterAllocator,
         init: CallingConvention.FunctionCallBuilder.() -> Unit
     ) {
-        TODO("not implemented")
+        X64FunctionCallBuilder(allocator).apply(init)
+    }
+
+    class X64FunctionCallBuilder(allocator: RegisterAllocator) : CallingConvention.FunctionCallBuilder(allocator) {
+        override fun prepareArgument(
+            source: PlatformTarget,
+            width: Width,
+            instructionAppender: (PlatformInstruction) -> Unit
+        ) {
+            TODO("not implemented")
+        }
+
+        override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
+            TODO("not implemented")
+        }
+
+        override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
+            TODO("not implemented")
+        }
     }
 }
