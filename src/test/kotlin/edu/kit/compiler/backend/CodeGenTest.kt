@@ -10,6 +10,7 @@ import edu.kit.compiler.backend.codegen.MatchResult
 import edu.kit.compiler.backend.codegen.ReplacementSystem
 import edu.kit.compiler.backend.codegen.ValueHolder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
+import edu.kit.compiler.backend.codegen.toGraphviz
 import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
@@ -22,6 +23,7 @@ import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.transform.Transformation
 import firm.Dump
+import firm.Entity
 import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
@@ -37,7 +39,24 @@ class CodeGenTest {
         Program.getGraphs().forEach { Dump.dumpGraph(it, phase) }
     }
 
-    fun setupGraph(code: String) {
+    private fun renderCodeGenIrToFile(filePrefix: String, tree: CodeGenIR?) {
+        val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
+        file.writeText(
+            "digraph {${tree?.toGraphviz(0, GraphPrinter())}}"
+        )
+        println("Dot-File: $file")
+        try {
+            val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
+            val svgText = dotProcess.inputStream.bufferedReader().readText()
+            val output = File("./graph-$filePrefix.svg")
+            output.writeText(svgText)
+            println("write graph-file to ${output.absolutePath}")
+        } catch (ex: IOException) {
+            println("rendering graph with dot failed: $ex")
+        }
+    }
+
+    private fun setupGraph(code: String): Map<Entity, List<CodeGenIR?>> {
         val sourceFile = SourceFile.from("/path/to/file", code)
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(sourceFile, stringTable)
@@ -46,29 +65,15 @@ class CodeGenTest {
             sourceFile.printAnnotations()
         }.validate()!!
         doSemanticAnalysis(program, sourceFile, stringTable)
-        Transformation.transform(program)
+        Transformation.transform(program, stringTable)
         dumpGraphs("after-construction")
         Util.lowerSels()
         dumpGraphs("after-lowering")
-        Program.getGraphs().forEach {
+        return Program.getGraphs().associate {
             val generator = FirmToCodeGenTranslator(it)
             val blocks = generator.buildTrees()
-            blocks.values.forEach {
-                val file = Files.createTempFile("graph-", ".dot").toFile()
-                file.writeText(
-                    "digraph {${it?.toGraphviz(0, GraphPrinter())}}"
-                )
-                try {
-
-                    val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
-                    val svgText = dotProcess.inputStream.bufferedReader().readText()
-                    val output = File("./graph.svg")
-                    output.writeText(svgText)
-                    println("write graph-file to ${output.absolutePath}")
-                } catch (ex: IOException) {
-                    println("rendering graph with dot failed: $ex")
-                }
-            }
+            blocks.values.forEach { block -> renderCodeGenIrToFile(it.entity.toString(), block) }
+            it.entity to blocks.values.toList()
         }
     }
 
@@ -166,16 +171,36 @@ class CodeGenTest {
     }
 
     @Test
+    fun testBothRead() {
+        val instructions = setupGraph(
+            """
+            class Test {
+                    public int i;
+                    public static void main(String[] args) {}
+
+                    public int inc() { return i=i+1; }
+            }
+        """.trimIndent()
+        )
+        val converted = instructions.mapValues { (name, codeGenBlocks) ->
+            codeGenBlocks.map { codeGenBlock ->
+                transformToMolki() { codeGenBlock!! }
+            }
+        }
+        println(converted)
+    }
+
+    @Test
     fun testReplacementSystemConst() {
         val instructions = transformToMolki() {
-            CodeGenIR.Const("2")
+            CodeGenIR.Const("2", Width.QUAD)
         }
     }
 
     @Test
     fun testReplacementSystemAdd() {
         val res = transformToMolki() {
-            CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2"), CodeGenIR.Const("3"))
+            CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
         }
         assertMolkiEquals(
             res.instructions, listOf(
@@ -192,8 +217,8 @@ class CodeGenTest {
         val res = transformToMolki() {
             CodeGenIR.BinOP(
                 BinOpENUM.ADD,
-                CodeGenIR.Const("22"),
-                CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("33"), CodeGenIR.Const("44"))
+                CodeGenIR.Const("22", Width.QUAD),
+                CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("33", Width.QUAD), CodeGenIR.Const("44", Width.QUAD))
             )
         }
         assertMolkiEquals(
@@ -212,7 +237,7 @@ class CodeGenTest {
         val res = transformToMolki() {
             CodeGenIR.BinOP(
                 BinOpENUM.ADD,
-                CodeGenIR.Const("2"),
+                CodeGenIR.Const("2", Width.QUAD),
                 CodeGenIR.RegisterRef(
                     Register(
                         id = it.newRegister(Width.QUAD).id,
