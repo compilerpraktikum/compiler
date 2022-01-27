@@ -270,7 +270,13 @@ fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
             appendLine(left.toGraphviz(id, graphPrinter))
             appendLine(right.toGraphviz(id, graphPrinter))
         }
-        is CodeGenIR.Cond -> TODO()
+        is CodeGenIR.Cond -> buildString {
+            appendLine("$id[label=Cond];")
+            appendLine("$parent -> $id;")
+            appendLine(cond.toGraphviz(id, graphPrinter))
+            appendLine(ifTrue.toGraphviz(id, graphPrinter))
+            appendLine(ifFalse.toGraphviz(id, graphPrinter))
+        }
         is CodeGenIR.Const -> buildString {
             appendLine("$id[label=\"Const ${const.get()}\"];")
             appendLine("$parent -> $id;");
@@ -313,7 +319,10 @@ fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
                 appendLine(value.toGraphviz(id, graphPrinter))
                 appendLine(exec.toGraphviz(id, graphPrinter))
             }
-        else -> TODO("Not yet implemented")
+        is CodeGenIR.Div -> TODO()
+        is CodeGenIR.Jmp -> TODO()
+        is CodeGenIR.Mod -> TODO()
+        is CodeGenIR.UnaryOP -> TODO()
     }
 }
 
