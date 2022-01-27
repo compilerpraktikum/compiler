@@ -22,6 +22,12 @@ private fun RegisterGraph.onlyInEdge(node: RegisterId) = inEdges(node).toList().
 
 private fun Edge<RegisterId>.toMove() = Move(start, end)
 
+/**
+ * Generates a sequence of [move operations][Move] that implements the given [permutation] of registers.
+ * @param[permutation] permutation of registers that may have conflicts (e.g. a -> b, b -> a)
+ * @param[generateTempRegister] generates a new [RegisterId] that can be used as a temporary register for conflict resolution
+ * @return a sequence of [moves][Move] without any conflicts (e.g. b -> temp, a -> b, temp -> a)
+ */
 fun generateMoveSequence(permutation: List<Move>, generateTempRegister: () -> RegisterId): List<Move> {
     val moves = mutableListOf<Move>()
 
