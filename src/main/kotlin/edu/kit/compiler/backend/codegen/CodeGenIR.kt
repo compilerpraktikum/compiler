@@ -320,7 +320,10 @@ fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
                 appendLine(exec.toGraphviz(id, graphPrinter))
             }
         is CodeGenIR.Div -> TODO()
-        is CodeGenIR.Jmp -> TODO()
+        is CodeGenIR.Jmp -> buildString {
+            appendLine("$id[label=\"JMP\"];")
+            appendLine("$parent -> $id;");
+        }
         is CodeGenIR.Mod -> TODO()
         is CodeGenIR.UnaryOP -> TODO()
     }

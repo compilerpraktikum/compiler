@@ -49,7 +49,6 @@ import firm.nodes.Unknown
 class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: VirtualRegisterTable = VirtualRegisterTable()) : FirmNodeVisitorAdapter() {
 
     val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
-
     // value map
     var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     var currentTree: CodeGenIR = CodeGenIR.Const("0", Width.BYTE)
@@ -78,8 +77,11 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         if (currentBlock == null) {
             currentBlock = node.block
         } else if (currentBlock != node.block) {
-            println("update blockMap for $currentBlock to $currentTree")
-            blockMap[currentBlock as Block] = currentTree!!
+            if (!blockMap.contains(currentBlock as Block)) {
+                println("update blockMap for $currentBlock to $currentTree")
+                blockMap[currentBlock as Block] = currentTree!!
+                }
+
             currentBlock = node.block
             currentTree = CodeGenIR.Const("9999", Width.BYTE)
         }

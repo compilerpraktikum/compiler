@@ -15,7 +15,7 @@ import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
-import edu.kit.compiler.initializeKeywords
+import edu.kit.compiler.lexer.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.source.SourceFile
