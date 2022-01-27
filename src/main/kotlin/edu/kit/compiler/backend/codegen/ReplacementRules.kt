@@ -211,6 +211,46 @@ enum class ReplacementRules(val rule: Rule) {
                     )
                 )
         }
+    }),
+
+    ASSIGN_REG_FROM_MEM_ADDR_IN_REG(rule {
+        val registerWithAddress = value<Register>()
+        val registerToWriteTo = value<Register>()
+
+        match(
+            CodeGenIR.Assign(
+                RegisterRef(registerToWriteTo),
+                CodeGenIR.Indirection(RegisterRef(registerWithAddress))
+            )
+        )
+        replaceWith {
+            RegisterRef(registerToWriteTo) to
+                listOf(
+                    Instruction.movq(
+                        Memory.of(
+                            const = "0",
+                            base = registerWithAddress.get(),
+                            width = registerWithAddress.get().width
+                        ),
+                        registerToWriteTo.get()
+                    )
+                )
+        }
+    }),
+
+    ASSIGN_REGISTER_REGISTER(rule {
+        val registerWithValue = value<Register>()
+        val registerToWriteTo = value<Register>()
+
+        match(
+            CodeGenIR.Assign(                RegisterRef(registerToWriteTo),
+                RegisterRef(registerWithValue)
+            )
+        )
+        replaceWith {
+            RegisterRef(registerToWriteTo) to
+                listOf(Instruction.movq(registerWithValue.get(), registerToWriteTo.get()))
+        }
     })
     ;
 

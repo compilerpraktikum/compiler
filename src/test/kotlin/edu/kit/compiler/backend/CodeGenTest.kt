@@ -56,7 +56,10 @@ class CodeGenTest {
         }
     }
 
-    private fun setupGraph(code: String): Map<Entity, List<CodeGenIR?>> {
+    private fun setupGraph(
+        code: String,
+        registerTable: VirtualRegisterTable = VirtualRegisterTable()
+    ): Map<Entity, List<CodeGenIR?>> {
         val sourceFile = SourceFile.from("/path/to/file", code)
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(sourceFile, stringTable)
@@ -70,7 +73,7 @@ class CodeGenTest {
         Util.lowerSels()
         dumpGraphs("after-lowering")
         return Program.getGraphs().associate {
-            val generator = FirmToCodeGenTranslator(it)
+            val generator = FirmToCodeGenTranslator(it, registerTable)
             val blocks = generator.buildTrees()
             blocks.values.forEach { block -> renderCodeGenIrToFile(it.entity.toString(), block) }
             it.entity to blocks.values.toList()
@@ -179,6 +182,7 @@ class CodeGenTest {
             """.trimIndent()
         )
     }
+
     @Test
     fun testCond() {
         setupGraph(
@@ -204,9 +208,10 @@ class CodeGenTest {
     }
 
 
-
-    private fun transformToMolki(block: (VirtualRegisterTable) -> CodeGenIR): MatchResult {
-        val registerTable = VirtualRegisterTable()
+    private fun transformToMolki(
+        registerTable: VirtualRegisterTable = VirtualRegisterTable(),
+        block: (VirtualRegisterTable) -> CodeGenIR
+    ): MatchResult {
         val res = block(registerTable).accept(ReplacementSystem(registerTable))
         println("codegen tree:")
         res?.replacement.pp()
@@ -222,6 +227,7 @@ class CodeGenTest {
 
     @Test
     fun testBothRead() {
+        val registerTable = VirtualRegisterTable()
         val instructions = setupGraph(
             """
             class Test {
@@ -231,10 +237,10 @@ class CodeGenTest {
                     public int inc() { return i=i+1; }
             }
         """.trimIndent()
-        )
+        , registerTable)
         val converted = instructions.mapValues { (name, codeGenBlocks) ->
             codeGenBlocks.map { codeGenBlock ->
-                transformToMolki() { codeGenBlock!! }
+                transformToMolki(registerTable) { codeGenBlock!! }
             }
         }
         println(converted)

@@ -18,7 +18,7 @@ class VirtualRegisterTable {
     }
 
     fun setRegisterFor(node: Node, register: MolkiRegister) {
-        if(map[node] == null) {
+        if (map[node] == null) {
             map[node] = register
         } else {
             error("invalid call to setRegisterFor: node $node already has a register")
@@ -27,7 +27,7 @@ class VirtualRegisterTable {
 
 
     private fun newRegisterFor(node: Node): MolkiRegister {
-        if(map[node] != null) error("invalid call to newRegisterFor node $node. The node already has a register")
+        if (map[node] != null) error("invalid call to newRegisterFor node $node. The node already has a register")
         val registerId = nextRegisterId++
         val width = Width.fromByteSize(node.mode.sizeBytes)
             ?: error("cannot infer register width from mode \"${node.mode.name}\" of node $node")
@@ -64,9 +64,7 @@ data class MatchResult(
     val instructions: List<Instruction>,
     val cost: Int,
 ) {
-    fun prependInstructions(other: List<Instruction>?): MatchResult {
-        return this.copy(instructions = (other ?: listOf()) + instructions)
-    }
+
 }
 
 class ReplacerScope(private val registerTable: VirtualRegisterTable) {

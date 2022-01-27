@@ -46,13 +46,12 @@ import firm.nodes.Unknown
  *     register. The result of the computation is then represented that register.
  *   - For black edges, that reference a "blue" node, we just load from that register.
  */
-class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter() {
+class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: VirtualRegisterTable = VirtualRegisterTable()) : FirmNodeVisitorAdapter() {
 
     val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
 
     // value map
     var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
-    var registerTable = VirtualRegisterTable()
     var currentTree: CodeGenIR? = null
     var currentBlock: Node? = null
     var nextBlock = false
@@ -60,12 +59,11 @@ class FirmToCodeGenTranslator(private val graph: Graph) : FirmNodeVisitorAdapter
     fun buildTrees(): Map<Block, CodeGenIR?> {
         println(graph.entity.ldName)
         breakCriticalEdges(graph)
-        val phiVisitor = PhiAssignRegisterVisitor()
+        val phiVisitor = PhiAssignRegisterVisitor(registerTable)
         BackEdges.enable(graph)
         graph.walkTopological(phiVisitor)
         println("Phi visitor result: ${phiVisitor.registerTable.map.size} new registers")
         nodeMap = phiVisitor.map
-        registerTable = phiVisitor.registerTable
         graph.walkTopological(this)
         // last visited block needs to be entered
         blockMap[currentBlock as Block] = currentTree
