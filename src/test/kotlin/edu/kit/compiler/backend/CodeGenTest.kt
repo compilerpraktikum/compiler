@@ -5,22 +5,19 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
-import edu.kit.compiler.backend.codegen.GraphPrinter
-import edu.kit.compiler.backend.codegen.MatchResult
-import edu.kit.compiler.backend.codegen.ReplacementSystem
-import edu.kit.compiler.backend.codegen.ValueHolder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
-import edu.kit.compiler.backend.codegen.toGraphviz
+import edu.kit.compiler.backend.codegen.toGraphViz
+import edu.kit.compiler.backend.codegen.transform
+import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
-import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
-import edu.kit.compiler.initializeKeywords
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
-import edu.kit.compiler.source.SourceFile
+import edu.kit.compiler.lexer.initializeKeywords
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
+import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.transform.Transformation
 import firm.Dump
 import firm.Entity
@@ -42,7 +39,7 @@ class CodeGenTest {
     private fun renderCodeGenIrToFile(filePrefix: String, tree: CodeGenIR?) {
         val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
         file.writeText(
-            "digraph {${tree?.toGraphviz(0, GraphPrinter())}}"
+            "digraph {${tree?.toGraphViz()}}"
         )
         println("Dot-File: $file")
         try {
@@ -215,18 +212,19 @@ class CodeGenTest {
     private fun transformToMolki(
         registerTable: VirtualRegisterTable = VirtualRegisterTable(),
         block: (VirtualRegisterTable) -> CodeGenIR
-    ): MatchResult {
-        val res = block(registerTable).accept(ReplacementSystem(registerTable))
+    ): List<Instruction> {
+        val res = block(registerTable).transform(registerTable)
         println("codegen tree:")
-        res?.replacement.pp()
+        res.node.pp()
         println("molki output:")
-        res?.instructions?.forEach { it.toMolki().pp() }
+        val instructions = res.instructions.build()
+        instructions.forEach { it.toMolki().pp() }
         assertNotNull(res, "expect global MatchResult not be non-null")
-        return res
+        return instructions
     }
 
     private fun assertMolkiEquals(actual: List<MolkIR>, expected: List<String>) {
-        assertEquals(actual.map { it.toMolki() }, expected)
+        assertEquals(expected, actual.map { it.toMolki() })
     }
 
     @Test
@@ -263,9 +261,9 @@ class CodeGenTest {
             CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
         }
         assertMolkiEquals(
-            res.instructions, listOf(
-                "movq 2(), %@0",
-                "movq 3(), %@1",
+            res, listOf(
+                "movq $2, %@0",
+                "movq $3, %@1",
                 "addq [ %@0 | %@1 ] -> %@2"
             )
         )
@@ -282,10 +280,10 @@ class CodeGenTest {
             )
         }
         assertMolkiEquals(
-            res.instructions, listOf(
-                "movq 22(), %@0",
-                "movq 33(), %@1",
-                "movq 44(), %@2",
+            res, listOf(
+                "movq $22, %@0",
+                "movq $33, %@1",
+                "movq $44, %@2",
                 "addq [ %@1 | %@2 ] -> %@3",
                 "addq [ %@0 | %@3 ] -> %@4",
             )
@@ -307,7 +305,7 @@ class CodeGenTest {
             )
         }
         assertMolkiEquals(
-            res.instructions, listOf(
+            res, listOf(
                 "movq 2(), %@1",
                 "addq [ %@1 | %@0 ] -> %@2",
             )

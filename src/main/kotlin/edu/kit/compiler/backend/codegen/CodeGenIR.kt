@@ -1,227 +1,306 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.utils.MatchPattern
+import edu.kit.compiler.utils.ValueHolder
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 import firm.nodes.Block
-import kotlin.math.max
 
-class GraphPrinter() {
-    var id = 0
+fun defaultReplacement(node: CodeGenIR) = Replacement(
+    node = node,
+    instructions = instructionListOf(),
+    cost = 0,
+)
 
-    fun freshId() = id++
-}
+sealed class CodeGenIR : MatchPattern<CodeGenIR> {
+    var replacement: Replacement? = null
 
-sealed class CodeGenIR {
-    abstract fun matches(node: CodeGenIR): Boolean
-    abstract fun cost(): Int
+    abstract override fun matches(target: CodeGenIR): Boolean
 
-    //TODO make binops
-    data class BinOP(val operation: BinOpENUM, val left: CodeGenIR, val right: CodeGenIR) :
-        CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.BinOP && node.operation == operation) {
-                return left.matches(node.left) && right.matches(node.right)
+    /**
+     * Sequential Execution of two nodes, representing the value of <pre>second</pre>
+     */
+    class Seq
+    private constructor(private val valueHolder: ValueHolder<CodeGenIR>, private val execHolder: ValueHolder<CodeGenIR>) : CodeGenIR() {
+        constructor(value: CodeGenIR, exec: CodeGenIR) : this(
+            ValueHolder.Constant(value),
+            ValueHolder.Constant(exec),
+        )
+        constructor(value: ValueHolder.Variable<CodeGenIR>, exec: ValueHolder.Variable<CodeGenIR>) : this(
+            value as ValueHolder<CodeGenIR>,
+            exec as ValueHolder<CodeGenIR>,
+        )
+
+        val value
+            get() = valueHolder.get().also {
+                check(valueHolder is ValueHolder.Constant)
             }
-            return false
+        val exec
+            get() = execHolder.get().also {
+                check(execHolder is ValueHolder.Constant)
+            }
+
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Seq)
+                return false
+
+            check(valueHolder is ValueHolder.Variable)
+            check(execHolder is ValueHolder.Variable)
+
+            valueHolder.set(target.value)
+            execHolder.set(target.exec)
+
+            return true
         }
-
-        override fun cost(): Int = left.cost() + right.cost() + 1
-
     }
 
-    data class Compare(val relation: Relation, val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.Compare && node.relation == relation) {
-                return left.matches(node.left) && right.matches(node.right)
+    class RegisterRef
+    private constructor(
+        private val registerHolder: ValueHolder<Register>,
+        private val replacementHolder: ValueHolder.Variable<Replacement>?,
+    ) : CodeGenIR() {
+        constructor(reg: Register) : this(ValueHolder.Constant(reg), null)
+        constructor(
+            value: ValueHolder.Variable<Register>,
+            nodeHolder: ValueHolder.Variable<Replacement>? = null
+        ) : this(value as ValueHolder<Register>, nodeHolder)
+
+        val register: Register
+            get() = registerHolder.get().also {
+                check(registerHolder is ValueHolder.Constant)
             }
-            return false
+
+        override fun matches(target: CodeGenIR): Boolean {
+            check(registerHolder is ValueHolder.Variable)
+            if (target is RegisterRef) {
+                replacementHolder?.set(defaultReplacement(target))
+                registerHolder.set(target.register)
+                return true
+            } else {
+                val replacement = target.replacement
+                if (replacement != null && replacement.node is RegisterRef) {
+                    replacementHolder?.set(replacement)
+                    registerHolder.set(replacement.node.register)
+                    return true
+                } else {
+                    return false
+                }
+            }
+        }
+    }
+
+    data class Const(private val valueHolder: ValueHolder<Value>) : CodeGenIR() {
+        data class Value(
+            val value: String,
+            val mode: Width,
+        ) {
+            fun toMolki() = Constant(value, mode)
         }
 
-        override fun cost(): Int = left.cost() + right.cost() + 1
+        constructor(const: String, mode: Width) : this(ValueHolder.Constant(Value(const, mode)))
 
+        val value: Value
+            get() = valueHolder.get().also {
+                check(valueHolder is ValueHolder.Constant)
+            }
+
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Const)
+                return false
+
+            when (valueHolder) {
+                is ValueHolder.Constant -> {
+                    val expected = valueHolder.get()
+                    val actual = target.valueHolder.get()
+                    return expected.mode == actual.mode && expected.value == actual.value
+                }
+                is ValueHolder.Variable -> {
+                    valueHolder.set(target.value)
+                    return true
+                }
+            }
+        }
+    }
+
+    // TODO make binops
+    data class BinOP(val operation: BinOpENUM, val left: CodeGenIR, val right: CodeGenIR) :
+        CodeGenIR() {
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is BinOP || target.operation != operation)
+                return false
+
+            val matchesInOrder = left.matches(target.left) && right.matches(target.right)
+            if (matchesInOrder)
+                return true
+
+            return if (operation.isCommutative) {
+                left.matches(target.right) && right.matches(target.left)
+            } else {
+                false
+            }
+        }
+    }
+
+    // TODO maybe commutative? is this needed?
+    data class Compare(val relation: Relation, val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Compare || target.relation != relation)
+                return false
+
+            return left.matches(target.left) && right.matches(target.right)
+        }
     }
 
     data class Return(val returnValue: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean =
-            if (node is Return) {
-                returnValue.matches(node.returnValue)
-            } else {
-                false
-            }
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Return)
+                return false
 
-        override fun cost() = 1 + returnValue.cost()
-
-
+            return returnValue.matches(target.returnValue)
+        }
     }
 
-    data class Indirection(val addr: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            if (node is Indirection) {
-                return addr.matches(node.addr)
-            }
-            return false
+    data class Indirection(val address: CodeGenIR) : CodeGenIR() {
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Indirection)
+                return false
+
+            return address.matches(target.address)
         }
-
-        override fun cost(): Int = 1 + addr.cost()
-
-
     }
 
-    data class MemoryAddress(val mem: ValueHolder<Memory>) : CodeGenIR() {
-        constructor(mem: Memory) : this(ValueHolder(mem))
+    class MemoryAddress
+    private constructor(private val memoryHolder: ValueHolder<Memory>) : CodeGenIR() {
+        constructor(mem: Memory) : this(ValueHolder.Constant(mem))
+        constructor(value: ValueHolder.Variable<Memory>) : this(value as ValueHolder<Memory>)
 
-        override fun matches(node: CodeGenIR): Boolean {
-            return if (node is MemoryAddress) {
-                mem.set(node.mem.get())
-                true
-            } else {
-                false
+        val memory: Memory
+            get() = memoryHolder.get().also {
+                check(memoryHolder is ValueHolder.Constant)
             }
+
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is MemoryAddress)
+                return false
+
+            check(memoryHolder is ValueHolder.Variable)
+            memoryHolder.set(target.memoryHolder.get())
+            return true
         }
-
-        override fun cost(): Int =
-            3
-
     }
 
     data class Cond(val cond: CodeGenIR, val ifTrue: CodeGenIR, val ifFalse: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean =
-            if (node is Cond) {
-                cond.matches(node.cond) && ifTrue.matches(node.ifTrue) && ifFalse.matches(node.ifFalse)
-            } else {
-                false
-            }
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Cond)
+                return false
 
-        override fun cost(): Int = 1 + cond.cost() + max(ifTrue.cost(), ifFalse.cost())
+            return cond.matches(target.cond) && ifTrue.matches(target.ifTrue) && ifFalse.matches(target.ifFalse)
+        }
     }
 
-    data class Jmp(val block: ValueHolder<Block>) : CodeGenIR() {
-        constructor(block: Block) : this(ValueHolder(block))
-        override fun matches(node: CodeGenIR) = if (node is Jmp) {
-            block.set(node.block.get())
-            true
-        } else {
-            false
-        }
+    class Jmp
+    private constructor(private val blockHolder: ValueHolder<Block>) : CodeGenIR() {
+        constructor(block: Block) : this(ValueHolder.Constant(block))
+        constructor(value: ValueHolder.Variable<Block>) : this(value as ValueHolder<Block>)
 
-        override fun cost() = 1
+        val block: Block
+            get() = blockHolder.get().also {
+                check(blockHolder is ValueHolder.Constant)
+            }
+
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Jmp)
+                return false
+
+            check(blockHolder is ValueHolder.Variable)
+            blockHolder.set(target.block)
+            return true
+        }
     }
 
     data class Assign(val lhs: CodeGenIR, val rhs: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean =
-            if (node is Assign) {
-                lhs.matches(node.lhs) && rhs.matches(node.rhs)
-            } else {
-                false
-            }
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Assign)
+                return false
 
-        override fun cost(): Int = lhs.cost() + rhs.cost() + 1
-
-    }
-
-    data class RegisterRef(val reg: ValueHolder<Register>) : CodeGenIR() {
-        constructor(reg: Register) : this(ValueHolder(reg))
-
-        override fun matches(node: CodeGenIR): Boolean {
-            if (node is CodeGenIR.RegisterRef) {
-                reg.set(node.reg.get())
-                return true
-            }
-            return false
+            return lhs.matches(target.lhs) && rhs.matches(target.rhs)
         }
-
-        override fun cost(): Int = 1
-
-    }
-
-    data class Const(val const: ValueHolder<String>, val width: ValueHolder<Width>) : CodeGenIR() {
-        constructor(const: String, mode: Width) : this(ValueHolder(const), ValueHolder(mode))
-
-        override fun matches(node: CodeGenIR): Boolean {
-            if (node is Const) {
-                const.set(node.const.get())
-                width.set(node.width.get())
-                return true
-            }
-            return false
-        }
-
-        override fun cost(): Int = 1
     }
 
     data class Div(val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun cost(): Int {
-            TODO("Not yet implemented")
-        }
-
-    }
-
-    data class Call(val name: Address, val arguments: List<CodeGenIR>) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean =
-            if (node is Call && node.name == name && node.arguments.size == arguments.size) {
-                arguments.zip(node.arguments).all { (self, other) -> self.matches(other) }
-            } else {
-                false
-            }
-
-        override fun cost(): Int = 1 + arguments.sumOf { it.cost() }
-
-        fun getName(): String = name.entity.ldName!!
-
-    }
-
-    data class UnaryOP(val op: UnaryOpENUM, val value: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun cost(): Int {
+        override fun matches(target: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
     }
 
     data class Mod(val right: CodeGenIR, val left: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
+        override fun matches(target: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
+    }
 
-        override fun cost(): Int {
+    class Call
+    private constructor(
+        private val addressHolder: ValueHolder<Address>,
+        private val argumentsHolder: ValueHolder<List<CodeGenIR>>,
+    ) : CodeGenIR() {
+        constructor(address: Address, arguments: List<CodeGenIR>) : this(
+            ValueHolder.Constant(address),
+            ValueHolder.Constant(arguments)
+        )
+        constructor(address: ValueHolder<Address>, arguments: ValueHolder.Variable<List<CodeGenIR>>) : this(
+            address,
+            arguments as ValueHolder<List<CodeGenIR>>,
+        )
+
+        val address: Address
+            get() = addressHolder.get().also {
+                check(addressHolder is ValueHolder.Constant)
+            }
+        val arguments: List<CodeGenIR>
+            get() = argumentsHolder.get().also {
+                check(argumentsHolder is ValueHolder.Constant)
+            }
+
+        val linkerName: String
+            get() = address.entity.ldName!!
+
+        override fun matches(target: CodeGenIR): Boolean {
+            if (target !is Call)
+                return false
+
+            when (addressHolder) {
+                is ValueHolder.Constant -> {
+                    if (addressHolder.get() != target.address)
+                        return false
+                }
+                is ValueHolder.Variable -> {
+                    addressHolder.set(target.address)
+                }
+            }
+
+            check(argumentsHolder is ValueHolder.Variable)
+            argumentsHolder.set(target.arguments)
+
+            return true
+        }
+    }
+
+    data class UnaryOP(val op: UnaryOpENUM, val value: CodeGenIR) : CodeGenIR() {
+        override fun matches(target: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
-
     }
 
     data class Conv(val fromMode: Mode, val toMode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean {
+        override fun matches(target: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
-
-        override fun cost(): Int {
-            TODO("Not yet implemented")
-        }
-
-    }
-
-    /**
-     * Sequential Execution of two nodes, representing the value of <pre>second</pre>
-     */
-    data class Seq(val value: CodeGenIR, val exec: CodeGenIR) : CodeGenIR() {
-        override fun matches(node: CodeGenIR): Boolean =
-            if (node is Seq) {
-                value.matches(node.value) && exec.matches(node.exec)
-            } else {
-                false
-            }
-
-        override fun cost(): Int = value.cost() + exec.cost()
     }
 
     fun <T> accept(visitor: CodeGenIRVisitor<T>): T =
@@ -240,85 +319,180 @@ sealed class CodeGenIR {
             is Seq -> visitor.visit(this)
             else -> TODO("Not yet implemented")
         }
+
+    fun walkDepthFirst(walker: (CodeGenIR) -> Unit) {
+        when (this) {
+            is Assign -> {
+                lhs.walkDepthFirst(walker)
+                rhs.walkDepthFirst(walker)
+            }
+            is BinOP -> {
+                left.walkDepthFirst(walker)
+                right.walkDepthFirst(walker)
+            }
+            is Call -> {
+                arguments.forEach {
+                    it.walkDepthFirst(walker)
+                }
+            }
+            is Cond -> {
+                cond.walkDepthFirst(walker)
+                ifTrue.walkDepthFirst(walker)
+                ifFalse.walkDepthFirst(walker)
+            }
+            is Const -> {}
+            is Indirection -> {
+                address.walkDepthFirst(walker)
+            }
+            is MemoryAddress -> {}
+            is RegisterRef -> {}
+            is Compare -> {
+                left.walkDepthFirst(walker)
+                right.walkDepthFirst(walker)
+            }
+            is Conv -> {
+                opTree.walkDepthFirst(walker)
+            }
+            is Return -> {
+                returnValue.walkDepthFirst(walker)
+            }
+            is Seq -> {
+                // TODO is this the correct order?
+                value.walkDepthFirst(walker)
+                exec.walkDepthFirst(walker)
+            }
+            is Div -> TODO()
+            is Jmp -> TODO()
+            is Mod -> TODO()
+            is UnaryOP -> TODO()
+
+            // utility matching nodes should not occur in the real graph
+            is Noop,
+            is SaveNodeTo -> error("invalid CodeGenIR graph")
+        }
+
+        walker(this)
+    }
 }
 
-fun CodeGenIR.toGraphviz(parent: Int, graphPrinter: GraphPrinter): String {
-    val id = graphPrinter.freshId()
-    return when (this) {
-        is CodeGenIR.Assign -> buildString {
-            appendLine("$id[label=\"Assign\"];")
-            appendLine("$parent -> $id;");
-            appendLine(lhs.toGraphviz(id, graphPrinter))
-            appendLine(rhs.toGraphviz(id, graphPrinter))
+class Noop : CodeGenIR() {
+    override fun matches(target: CodeGenIR): Boolean {
+        error("not a valid match pattern")
+    }
+}
+
+class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: () -> CodeGenIR) : CodeGenIR() {
+    private val child by lazy { childFn() }
+
+    override fun matches(target: CodeGenIR): Boolean {
+        storage.set(target)
+        return child.matches(target)
+    }
+}
+
+private class GraphVizBuilder {
+    private var nextId = 0
+    fun freshId() = nextId++
+
+    private val stringBuilder = StringBuilder()
+
+    fun appendLine(line: String) {
+        stringBuilder.appendLine(line)
+    }
+
+    fun build() = stringBuilder.toString()
+}
+
+fun CodeGenIR.toGraphViz(): String {
+    val builder = GraphVizBuilder()
+    toGraphViz(0, builder)
+    return builder.build()
+}
+
+private fun CodeGenIR.toGraphViz(parent: Int, builder: GraphVizBuilder) {
+    val id = builder.freshId()
+    when (this) {
+        is CodeGenIR.Assign -> {
+            builder.appendLine("$id[label=\"Assign\"];")
+            builder.appendLine("$parent -> $id;")
+            lhs.toGraphViz(id, builder)
+            rhs.toGraphViz(id, builder)
         }
-        is CodeGenIR.BinOP -> buildString {
-            appendLine("$id[label=\"BinOP $operation\"];")
-            appendLine("$parent -> $id;");
-            appendLine(left.toGraphviz(id, graphPrinter))
-            appendLine(right.toGraphviz(id, graphPrinter))
+        is CodeGenIR.BinOP -> {
+            builder.appendLine("$id[label=\"BinOP $operation\"];")
+            builder.appendLine("$parent -> $id;")
+            left.toGraphViz(id, builder)
+            right.toGraphViz(id, builder)
         }
-        is CodeGenIR.Call -> buildString {
-            appendLine("$id[label=\"Call &${name.entity}\"];")
-            appendLine("$parent -> $id;");
+        is CodeGenIR.Call -> {
+            builder.appendLine("$id[label=\"Call &${address.entity}\"];")
+            builder.appendLine("$parent -> $id;")
             arguments.forEach {
-                appendLine(it.toGraphviz(id, graphPrinter))
+                it.toGraphViz(id, builder)
             }
         }
-        is CodeGenIR.Compare -> buildString {
-            appendLine("$id[label=\"Relation $relation\"];")
-            appendLine("$parent -> $id;");
-            appendLine(left.toGraphviz(id, graphPrinter))
-            appendLine(right.toGraphviz(id, graphPrinter))
+        is CodeGenIR.Compare -> {
+            builder.appendLine("$id[label=\"Relation $relation\"];")
+            builder.appendLine("$parent -> $id;")
+            left.toGraphViz(id, builder)
+            right.toGraphViz(id, builder)
         }
         is CodeGenIR.Cond -> TODO()
-        is CodeGenIR.Const -> buildString {
-            appendLine("$id[label=\"Const ${const.get()}\"];")
-            appendLine("$parent -> $id;");
+        is CodeGenIR.Const -> {
+            builder.appendLine("$id[label=\"Const ${value.value} (${value.mode.name})\"];")
+            builder.appendLine("$parent -> $id;")
         }
-        is CodeGenIR.Conv -> buildString {
-            appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
-            appendLine("$parent -> $id;");
-            appendLine(opTree.toGraphviz(id, graphPrinter))
+        is CodeGenIR.Conv -> {
+            builder.appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
+            builder.appendLine("$parent -> $id;")
+            opTree.toGraphViz(id, builder)
         }
-        is CodeGenIR.Indirection -> buildString {
-            appendLine("$id[label=\"Indirection\"];")
-            appendLine("$parent -> $id;");
-            appendLine(addr.toGraphviz(id, graphPrinter))
+        is CodeGenIR.Indirection -> {
+            builder.appendLine("$id[label=\"Indirection\"];")
+            builder.appendLine("$parent -> $id;")
+            address.toGraphViz(id, builder)
         }
-        is CodeGenIR.MemoryAddress -> buildString {
-            appendLine("$id[label=\"MemoryAddress ${mem.get()}\"];")
-            appendLine("$parent -> $id;");
+        is CodeGenIR.MemoryAddress -> {
+            builder.appendLine("$id[label=\"MemoryAddress $memory\"];")
+            builder.appendLine("$parent -> $id;")
         }
         is CodeGenIR.RegisterRef -> {
-            val valueId = graphPrinter.freshId()
-            val widthId = graphPrinter.freshId()
-            return buildString {
-                appendLine("$id[label=\"Ref\"];")
-                appendLine("$valueId[label=\"@${reg.get().id.value}\"];")
-                appendLine("$widthId[label=\"${reg.get().width}\"];")
-                appendLine("$id -> $valueId");
-                appendLine("$id -> $widthId");
-                appendLine("$parent -> $id;");
-            }
+            val valueId = builder.freshId()
+            val widthId = builder.freshId()
+            builder.appendLine("$id[label=\"Ref\"];")
+            builder.appendLine("$valueId[label=\"@${register.id}\"];")
+            builder.appendLine("$widthId[label=\"${register.width}\"];")
+            builder.appendLine("$id -> $valueId")
+            builder.appendLine("$id -> $widthId")
+            builder.appendLine("$parent -> $id;")
         }
-        is CodeGenIR.Return -> buildString {
-            appendLine("$id[label=\"Return\"];")
-            appendLine("$parent -> $id;");
-            appendLine(returnValue.toGraphviz(id, graphPrinter))
+        is CodeGenIR.Return -> {
+            builder.appendLine("$id[label=\"Return\"];")
+            builder.appendLine("$parent -> $id;")
+            returnValue.toGraphViz(id, builder)
         }
         is CodeGenIR.Seq ->
-            buildString {
-                appendLine("$id[label=\"Seq\"];")
-                appendLine("$parent -> $id;");
-                appendLine(value.toGraphviz(id, graphPrinter))
-                appendLine(exec.toGraphviz(id, graphPrinter))
+            {
+                builder.appendLine("$id[label=\"Seq\"];")
+                builder.appendLine("$parent -> $id;")
+                value.toGraphViz(id, builder)
+                exec.toGraphViz(id, builder)
             }
         else -> TODO("Not yet implemented")
     }
 }
 
-enum class BinOpENUM {
-    ADD, AND, EOR, MUL, MULH, OR, SUB, SHL, SHR, SHRS
+enum class BinOpENUM(val isCommutative: Boolean) {
+    ADD(true),
+    AND(true),
+    EOR(true),
+    MUL(true),
+    MULH(true),
+    OR(true),
+    SUB(false),
+    SHL(false),
+    SHR(false),
+    SHRS(false),
 }
 
 enum class UnaryOpENUM {
@@ -335,7 +509,7 @@ interface CodeGenIRVisitor<T> {
     fun transform(node: CodeGenIR.BinOP, left: T, right: T): T
 
     fun visit(node: CodeGenIR.Indirection): T {
-        val addr = node.addr.accept(this)
+        val addr = node.address.accept(this)
         return transform(node, addr)
     }
 
@@ -364,10 +538,8 @@ interface CodeGenIRVisitor<T> {
     fun visit(node: CodeGenIR.RegisterRef): T = transform(node)
     fun transform(node: CodeGenIR.RegisterRef): T
 
-
     fun visit(node: CodeGenIR.Const): T = transform(node)
     fun transform(node: CodeGenIR.Const): T
-
 
     fun visit(node: CodeGenIR.Call): T {
         val arguments = node.arguments.map { it.accept(this) }

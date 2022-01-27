@@ -1,36 +1,57 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
-import edu.kit.compiler.backend.molkir.Constant
+import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.utils.Rule
+import edu.kit.compiler.utils.rule
 
-enum class ReplacementRules(val rule: Rule) {
-    /**
-     * Rule 1: `movq $a, R_i`
-     */
-    READ_CONSTANT(rule {
-        val constValue = value<String>()
-        val widthValue = value<Width>()
+fun Replacement?.assertExists() = this ?: error("no replacement found")
+
+val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
+    rule("seq") {
+        val value = variable<CodeGenIR>()
+        val exec = variable<CodeGenIR>()
 
         match(
-            CodeGenIR.Const(constValue, widthValue)
+            CodeGenIR.Seq(value, exec)
         )
+
         replaceWith {
-            val newRegister = newRegister(widthValue.get())
-            RegisterRef(newRegister) to listOf(
-                Instruction.movq(Constant(constValue.get(), widthValue.get()), newRegister)
+            val execReplacement = exec.get().replacement.assertExists() // TODO does is need to exist?
+            val valueReplacement = value.get().replacement
+            Replacement(
+                node = value.get(),
+                instructions = execReplacement.instructions.apply {
+                    valueReplacement?.let { append(it.instructions) }
+                },
+                cost = execReplacement.cost + (valueReplacement?.cost ?: 0)
             )
         }
-    }),
+    },
+    rule("read constant: `movq \$a, R_i`") {
+        val const = variable<CodeGenIR.Const.Value>()
 
-    /**
-     * Rule 2: `movq x, R_i`
-     */
-    READ_MEMORY_ADDR(rule {
-        val addrValue = value<Memory>()
+        match(
+            CodeGenIR.Const(const)
+        )
+
+        replaceWith {
+            val newRegister = newRegister(const.get().mode)
+            Replacement(
+                node = RegisterRef(newRegister),
+                instructions = instructionListOf(
+                    Instruction.movq(const.get().toMolki(), newRegister)
+                ),
+                cost = 1,
+            )
+        }
+    },
+    rule("read memory addr: `movq x, R_i`") {
+        val addrValue = variable<Memory>()
 
         match(
             CodeGenIR.MemoryAddress(addrValue)
@@ -38,18 +59,18 @@ enum class ReplacementRules(val rule: Rule) {
 
         replaceWith {
             val newRegister = newRegister(Width.QUAD)
-            RegisterRef(newRegister) to listOf(
-                Instruction.movq(addrValue.get(), newRegister)
+            Replacement(
+                node = CodeGenIR.RegisterRef(newRegister),
+                instructions = instructionListOf(
+                    Instruction.movq(addrValue.get(), newRegister)
+                ),
+                cost = 1,
             )
         }
-    }),
-
-    /**
-     * Rule 3: `movq R_i, x`
-     */
-    ASSIGN_MEMORY_REGISTER(rule {
-        val addrValue = value<Memory>()
-        val registerId = value<Register>()
+    },
+    rule("assign memory register: `movq R_i, x`") {
+        val addrValue = variable<Memory>()
+        val registerId = variable<Register>()
 
         match(
             CodeGenIR.Assign(
@@ -61,18 +82,21 @@ enum class ReplacementRules(val rule: Rule) {
         )
 
         replaceWith {
-            CodeGenIR.MemoryAddress(addrValue) to listOf(
-                Instruction.movq(Memory.of(registerId.get(), width = addrValue.get().width), addrValue.get())
+            Replacement(
+                node = CodeGenIR.MemoryAddress(addrValue),
+                instructions = instructionListOf(
+                    Instruction.movq(
+                        Memory.of(registerId.get(), width = addrValue.get().width),
+                        addrValue.get()
+                    )
+                ),
+                cost = 1,
             )
         }
-    }),
-
-    /**
-     * Rule 4: `movq R_j, 0(R_i)
-     */
-    ASSIGN_ADDR_IN_REGISTER_VALUE_IN_REGISTER(rule {
-        val registerWithAddr = value<Register>()
-        val registerWithValue = value<Register>()
+    },
+    rule("assign addr in register value in register: `movq R_j, (R_i)`") {
+        val registerWithAddr = variable<Register>()
+        val registerWithValue = variable<Register>()
 
         match(
             CodeGenIR.Assign(
@@ -85,75 +109,86 @@ enum class ReplacementRules(val rule: Rule) {
 
         replaceWith {
             val memoryAddress = Memory.of(registerWithAddr.get(), width = registerWithValue.get().width)
-            CodeGenIR.MemoryAddress(memoryAddress) to listOf(
-                Instruction.movq(
-                    Memory.of(registerWithValue.get(), width = registerWithValue.get().width),
-                    Memory.of("0", registerWithAddr.get(), width = registerWithAddr.get().width)
-                )
+            Replacement(
+                node = CodeGenIR.MemoryAddress(memoryAddress),
+                instructions = instructionListOf(
+                    Instruction.movq(
+                        Memory.of(registerWithValue.get(), width = registerWithValue.get().width),
+                        Memory.of("0", registerWithAddr.get(), width = registerWithAddr.get().width)
+                    )
+                ),
+                cost = 1,
             )
         }
-    }),
+    },
+    rule("read mem at const offset of register: `movq a(R_j), R_i`") {
+        val constValue = variable<CodeGenIR.Const.Value>()
+        val register = variable<Register>()
+        val resRegister = variable<Register>()
+        val widthValue = variable<Width>()
 
-    /**
-     * Rule 5: `movq a(R_j), R_i`
-     */
-    READ_MEM_AT_CONST_OFFSET_OF_REGISTER(rule {
-        val constValue = value<String>()
-        val register = value<Register>()
-        val resRegister = value<Register>()
-        val widthValue = value<Width>()
-
-        // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
         match(
             CodeGenIR.Indirection(
                 CodeGenIR.BinOP(
                     BinOpENUM.ADD,
-                    CodeGenIR.Const(constValue, widthValue),
+                    CodeGenIR.Const(constValue),
                     RegisterRef(register),
                 )
             )
         )
 
+        condition {
+            // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
+            true
+        }
+
         replaceWith {
             val newRegister = newRegister(widthValue.get())
-            RegisterRef(newRegister) to listOf(
-                Instruction.movq(
-                    Memory.of(const = constValue.get(), base = register.get(), width = widthValue.get()),
-                    resRegister.get()
-                )
+            Replacement(
+                node = RegisterRef(newRegister),
+                instructions = instructionListOf(
+                    Instruction.movq(
+                        Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
+                        resRegister.get()
+                    )
+                ),
+                cost = 1,
             )
         }
-    }),
+    },
+    rule("add register values: `addq [ R_i | R_j ] -> R_k`") {
+        val leftRegister = variable<Register>()
+        val rightRegister = variable<Register>()
 
-    /**
-     * `addq R_i R_j -> R_k`
-     */
-    ADD_REGISTER_VALUES(rule {
-        val leftRegister = value<Register>()
-        val rightRegister = value<Register>()
+        val left = variable<Replacement>()
+        val right = variable<Replacement>()
+
         match(
             CodeGenIR.BinOP(
                 BinOpENUM.ADD,
-                RegisterRef(leftRegister),
-                RegisterRef(rightRegister)
+                RegisterRef(leftRegister, left),
+                RegisterRef(rightRegister, right)
             )
         )
+
         replaceWith {
-            assert(leftRegister.get().width == rightRegister.get().width) { "Widths of `l` and `r` need to be the same in `BinOp(ADD, l, r)`" }
+            check(leftRegister.get().width == rightRegister.get().width) { "Widths of `l` and `r` need to be the same in `BinOp(ADD, l, r)`" }
+
             val resRegister = newRegister(leftRegister.get().width)
-            RegisterRef(resRegister) to listOf(
-                Instruction.addq(
-                    leftRegister.get(), rightRegister.get(), resRegister
-                )
+            Replacement(
+                node = RegisterRef(resRegister),
+                instructions = left.get().instructions
+                    .append(right.get().instructions)
+                    .append(
+                        Instruction.addq(leftRegister.get(), rightRegister.get(), resRegister)
+                    ),
+                cost = left.get().cost + right.get().cost + 1,
             )
         }
-    }),
+    },
+    rule("return register content: `movq R_i \$@result; jmp functionReturn`") {
+        val resRegister = variable<Register>()
 
-    /**
-     * `movq R_i $@result; jmp functionReturn`
-     */
-    RETURN_REGISTER_CONTENT(rule {
-        val resRegister = value<Register>()
         match(
             CodeGenIR.Return(
                 RegisterRef(resRegister)
@@ -161,61 +196,63 @@ enum class ReplacementRules(val rule: Rule) {
         )
 
         replaceWith {
-            RegisterRef(resRegister.get()) to listOf(
-                Instruction.movq(
-                    resRegister.get(),
-                    edu.kit.compiler.backend.molkir.ReturnRegister(resRegister.get().width)
-                )
-                // TODO jmp to returnLabel
+            Replacement(
+                node = RegisterRef(resRegister.get()), // TODO: really the result register? maybe sth like Noop or whatever
+                instructions = instructionListOf(
+                    Instruction.movq(
+                        resRegister.get(),
+                        ReturnRegister(resRegister.get().width)
+                    )
+                    // TODO jmp to returnLabel
+                ),
+                cost = 1,
             )
         }
-    }),
+    },
+    rule("return constant: `movq \$a \$@result; jmp functionReturn`") {
+        val constValue = variable<CodeGenIR.Const.Value>()
 
-    /**
-     * `movq $a $@result; jmp functionReturn`
-     */
-    RETURN_CONSTANT(rule {
-        val constValue = value<String>()
-        val widthValue = value<Width>()
         match(
             CodeGenIR.Return(
-                CodeGenIR.Const(constValue, widthValue)
+                CodeGenIR.Const(constValue)
             )
         )
 
         replaceWith {
-            CodeGenIR.Const(constValue.get(), widthValue.get()) to listOf(
-                Instruction.movq(
-                    Constant(constValue.get(), widthValue.get()),
-                    edu.kit.compiler.backend.molkir.ReturnRegister(widthValue.get())
-                )
+            Replacement(
+                node = CodeGenIR.Const(TODO("some noop")),
+                instructions = instructionListOf(
+                    Instruction.movq(
+                        constValue.get().toMolki(),
+                        ReturnRegister(constValue.get().mode)
+                    )
+                ),
+                cost = 1,
             )
         }
-    }),
-
-    /**
-     * `movq 0($R_i) -> R_j`
-     */
-    LOAD_FROM_ADDRESS_IN_REGISTER(rule {
-        val registerValue = value<Register>()
+    },
+    rule("load from address in register: `movq 0(\$R_i) -> R_j`") {
+        val registerValue = variable<Register>()
         match(
             CodeGenIR.Indirection(RegisterRef(registerValue))
         )
         replaceWith {
             val valueRegister = newRegister(registerValue.get().width)
-            RegisterRef(valueRegister) to
-                listOf(
+            Replacement(
+                node = RegisterRef(valueRegister),
+                instructions = instructionListOf(
                     Instruction.movq(
                         Memory.of(const = "0", base = registerValue.get(), width = registerValue.get().width),
                         valueRegister
                     )
-                )
+                ),
+                cost = 1,
+            )
         }
-    }),
-
-    ASSIGN_REG_FROM_MEM_ADDR_IN_REG(rule {
-        val registerWithAddress = value<Register>()
-        val registerToWriteTo = value<Register>()
+    },
+    rule("assign reg from mem addr in reg") {
+        val registerWithAddress = variable<Register>()
+        val registerToWriteTo = variable<Register>()
 
         match(
             CodeGenIR.Assign(
@@ -224,8 +261,9 @@ enum class ReplacementRules(val rule: Rule) {
             )
         )
         replaceWith {
-            RegisterRef(registerToWriteTo) to
-                listOf(
+            Replacement(
+                node = RegisterRef(registerToWriteTo),
+                instructions = instructionListOf(
                     Instruction.movq(
                         Memory.of(
                             const = "0",
@@ -234,24 +272,29 @@ enum class ReplacementRules(val rule: Rule) {
                         ),
                         registerToWriteTo.get()
                     )
-                )
+                ),
+                cost = 1,
+            )
         }
-    }),
-
-    ASSIGN_REGISTER_REGISTER(rule {
-        val registerWithValue = value<Register>()
-        val registerToWriteTo = value<Register>()
+    },
+    rule("assign register register") {
+        val registerWithValue = variable<Register>()
+        val registerToWriteTo = variable<Register>()
 
         match(
-            CodeGenIR.Assign(                RegisterRef(registerToWriteTo),
+            CodeGenIR.Assign(
+                RegisterRef(registerToWriteTo),
                 RegisterRef(registerWithValue)
             )
         )
         replaceWith {
-            RegisterRef(registerToWriteTo) to
-                listOf(Instruction.movq(registerWithValue.get(), registerToWriteTo.get()))
+            Replacement(
+                node = RegisterRef(registerToWriteTo),
+                instructions = instructionListOf(
+                    Instruction.movq(registerWithValue.get(), registerToWriteTo.get())
+                ),
+                cost = 1,
+            )
         }
-    })
-    ;
-
-}
+    }
+)

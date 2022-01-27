@@ -21,6 +21,7 @@ class Constant(val value: String, override val width: Width) : Target.Input {
 @JvmInline
 value class RegisterId(val value: Int) : MolkIR {
     override fun toMolki(): String = value.toString()
+    override fun toString(): String = value.toString()
 }
 
 enum class Width(val inBytes: Int, val suffix: String) {
