@@ -52,7 +52,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
 
     // value map
     var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
-    var currentTree: CodeGenIR? = null
+    var currentTree: CodeGenIR = CodeGenIR.Const("0", Width.BYTE)
     var currentBlock: Node? = null
     var nextBlock = false
 
@@ -79,6 +79,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         } else if (currentBlock != node.block) {
             blockMap[currentBlock as Block] = currentTree!!
             currentBlock = node.block
+            currentTree = CodeGenIR.Const("0", Width.BYTE)
         }
     }
 
@@ -95,7 +96,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
 
         updateCurrentBlock(node)
         val tree = CodeGenIR.BinOP(left = nodeMap[node.left]!!, right = nodeMap[node.right]!!, operation = op)
-        updateCurrentTree(tree, node)
+        nodeMap[node] = tree
     }
 
     override fun visit(node: Start) {
@@ -125,13 +126,13 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
             .filter { it !is Address }
             .map { nodeMap[it]!! }
         val addr = node.getPred(1) as Address
-        val seqPred = nodeMap[node.getPred(0)]!!
+        val seqPred = currentTree!!
         println("visit CALL " + node.block.toString())
         //val mode = (node.type as MethodType).getResType(0).mode
 
         val call = CodeGenIR.Seq(value = CodeGenIR.Call(addr, arguments), exec = seqPred)
         // R_i = call("foo", 2)
-        nodeMap[node] = call
+        updateCurrentTree(call, node)
         println(call.toString())
 
     }
@@ -142,7 +143,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         val left = nodeMap[node.left]!!
         val right = nodeMap[node.right]!!
         val cmp = CodeGenIR.Compare(node.relation, right, left)
-        updateCurrentTree(cmp, node)
+        nodeMap[node] = cmp
         println("visit CMP " + node.block.toString())
     }
 
@@ -158,18 +159,19 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
         println("is already there ${blockMap[trueBlock]}")
         println("visit COND " + node.block.toString())
-        nodeMap[node] = CodeGenIR.Cond(
+        val cond = CodeGenIR.Seq(currentTree!!, CodeGenIR.Cond(
             cond = nodeMap[node.getPred(0)]!!,
             ifTrue = CodeGenIR.Jmp(trueBlock),
             ifFalse = CodeGenIR.Jmp(falseBlock)
-        )
+        ))
+        updateCurrentTree(cond, node)
     }
 
     override fun visit(node: Const) {
         super.visit(node)
         updateCurrentBlock(node)
         val tree = CodeGenIR.Const(node.tarval.toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
-        updateCurrentTree(tree, node)
+        nodeMap[node] = tree
         println("visit CONST " + node.block.toString())
         println(node.tarval.toString())
     }
@@ -182,7 +184,6 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         val opTree = nodeMap[node.op]!!
         val conv = CodeGenIR.Conv(from, to, opTree)
         nodeMap[node] = conv
-        updateCurrentTree(conv, node)
         println("visit CONV " + node.block.toString())
     }
 
@@ -191,7 +192,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         super.visit(node)
         updateCurrentBlock(node)
         val div = CodeGenIR.Div(nodeMap[node.left]!!, nodeMap[node.right]!!)
-        updateCurrentTree(div, node)
+        nodeMap[node] = div
         println("visit DIV " + node.block.toString())
     }
 
@@ -205,6 +206,8 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
     override fun visit(node: Jmp) {
         super.visit(node)
         updateCurrentBlock(node)
+        val jmp = CodeGenIR.Seq(currentTree!!,CodeGenIR.Jmp(BackEdges.getOuts(node).first().node!! as Block))
+        updateCurrentTree(jmp, node)
         println("visit JMP " + node.block.toString())
     }
 
@@ -214,7 +217,7 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         updateCurrentTree(
             CodeGenIR.Seq(
                 value = CodeGenIR.Indirection(nodeMap[node.getPred(1)]!!),
-                exec = nodeMap[node.getPred(0)]!!
+                exec = currentTree!!
             ), node
         )
         println("visit LOAD " + node.block.toString())
@@ -382,13 +385,13 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         node.preds.forEach { println("predstree ${nodeMap[it].toString()}") }
         val nodePreds = node.preds.toList()
 
-        val controlFlow = nodePreds[0]
+        val controlFlow = currentTree
         val value = nodePreds.getOrNull(1)
 
         val res = if (value == null) {
-            CodeGenIR.Return(nodeMap[controlFlow]!!)
+            CodeGenIR.Return(currentTree)
         } else {
-            CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = nodeMap[controlFlow]!!))
+            CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = currentTree))
         }
 
         updateCurrentTree(res, node)

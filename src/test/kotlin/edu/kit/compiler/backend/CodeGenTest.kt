@@ -192,11 +192,15 @@ class CodeGenTest {
                     public static void main(String[] args) {
                         Test tester = new Test();
                         tester.i = tester.test();
-                        System.out.println(tester.i);
+                        while (true) {
+                                                    System.out.println(tester.i);
+                        }
+
                     }
 
                     public int test() {
                         if (3 == 2) {
+                            System.out.println(1);
                             return 2;
                         } else {
                             return 3;
