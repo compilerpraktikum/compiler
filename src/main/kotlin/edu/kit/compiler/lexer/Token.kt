@@ -1,7 +1,5 @@
-package edu.kit.compiler
+package edu.kit.compiler.lexer
 
-import edu.kit.compiler.lexer.StringTable
-import edu.kit.compiler.lexer.Symbol
 import edu.kit.compiler.source.SourcePosition
 import edu.kit.compiler.source.SourceRange
 import edu.kit.compiler.source.extend

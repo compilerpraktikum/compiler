@@ -1,14 +1,14 @@
 package edu.kit.compiler.transform
 
 import edu.kit.compiler.lexer.Symbol
-import edu.kit.compiler.prependIfNotNull
 import edu.kit.compiler.semantic.InternalFunction
 import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.baseType
 import edu.kit.compiler.semantic.dimension
 import edu.kit.compiler.semantic.display
-import edu.kit.compiler.toArray
+import edu.kit.compiler.utils.prependIfNotNull
+import edu.kit.compiler.utils.toArray
 import firm.ClassType
 import firm.CompoundType
 import firm.Entity

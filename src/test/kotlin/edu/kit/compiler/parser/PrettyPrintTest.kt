@@ -1,8 +1,8 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.normalizeLineEndings
 import edu.kit.compiler.utils.assertIdempotence
 import edu.kit.compiler.utils.createSemanticAST
+import edu.kit.compiler.utils.normalizeLineEndings
 import edu.kit.compiler.utils.prettyPrint
 import kotlin.test.Test
 import kotlin.test.assertEquals

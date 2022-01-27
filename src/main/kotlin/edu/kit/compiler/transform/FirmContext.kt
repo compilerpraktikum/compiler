@@ -1,12 +1,12 @@
 package edu.kit.compiler.transform
 
-import edu.kit.compiler.Logger
 import edu.kit.compiler.ast.AST
 import edu.kit.compiler.semantic.SemanticAST
 import edu.kit.compiler.semantic.SemanticType
 import edu.kit.compiler.semantic.VariableNode
 import edu.kit.compiler.semantic.visitor.AbstractVisitor
 import edu.kit.compiler.semantic.visitor.accept
+import edu.kit.compiler.utils.Logger
 import firm.Construction
 import firm.Entity
 import firm.Firm

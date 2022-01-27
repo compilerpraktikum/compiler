@@ -1,7 +1,7 @@
 package edu.kit.compiler.source
 
 import edu.kit.compiler.error.AnnotationFormatter
-import edu.kit.compiler.normalizeLineEndings
+import edu.kit.compiler.utils.normalizeLineEndings
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path

@@ -1,6 +1,6 @@
 package edu.kit.compiler.parser
 
-import edu.kit.compiler.Token
+import edu.kit.compiler.lexer.Token
 
 object FirstFollowUtils {
 

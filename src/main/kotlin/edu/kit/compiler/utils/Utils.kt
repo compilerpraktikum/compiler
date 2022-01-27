@@ -1,4 +1,4 @@
-package edu.kit.compiler
+package edu.kit.compiler.utils
 
 fun <T> Sequence<T>.prependIfNotNull(element: T?) = if (element != null) {
     sequenceOf(element) + this

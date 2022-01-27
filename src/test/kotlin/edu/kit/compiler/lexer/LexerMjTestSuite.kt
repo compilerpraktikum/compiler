@@ -1,9 +1,7 @@
 package edu.kit.compiler.lexer
 
-import edu.kit.compiler.Token
-import edu.kit.compiler.initializeKeywords
-import edu.kit.compiler.lexTestRepr
 import edu.kit.compiler.utils.MjTestSuite
+import edu.kit.compiler.utils.createLexer
 import kotlin.io.path.readLines
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -11,8 +9,7 @@ import kotlin.test.assertTrue
 internal class LexerMjTestSuite : MjTestSuite("lexer") {
 
     override fun TestContext.execute() {
-        val stringTable = StringTable(StringTable::initializeKeywords)
-        val lexer = Lexer(source, stringTable)
+        val (lexer) = createLexer(source)
 
         val tokens: List<Token> = lexer.tokens().toList()
         checkResult(successful = !source.hasError)
