@@ -390,7 +390,7 @@ class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: 
     }
 }
 
-private class GraphVizBuilder {
+class GraphVizBuilder {
     private var nextId = 0
     fun freshId() = nextId++
 
@@ -400,44 +400,53 @@ private class GraphVizBuilder {
         stringBuilder.appendLine(line)
     }
 
-    fun build() = stringBuilder.toString()
+    fun build(): String {
+        return stringBuilder.toString().also {
+            stringBuilder.clear()
+        }
+    }
 }
 
-fun CodeGenIR.toGraphViz(): String {
-    val builder = GraphVizBuilder()
-    toGraphViz(0, builder)
+fun CodeGenIR.toGraphViz(rootId: Int = 0, builder: GraphVizBuilder = GraphVizBuilder()): String {
+    internalToGraphViz(0, builder)
     return builder.build()
 }
 
-private fun CodeGenIR.toGraphViz(parent: Int, builder: GraphVizBuilder) {
+private fun CodeGenIR.internalToGraphViz(parent: Int, builder: GraphVizBuilder) {
     val id = builder.freshId()
     when (this) {
         is CodeGenIR.Assign -> {
             builder.appendLine("$id[label=\"Assign\"];")
             builder.appendLine("$parent -> $id;")
-            lhs.toGraphViz(id, builder)
-            rhs.toGraphViz(id, builder)
+            lhs.internalToGraphViz(id, builder)
+            rhs.internalToGraphViz(id, builder)
         }
         is CodeGenIR.BinOP -> {
             builder.appendLine("$id[label=\"BinOP $operation\"];")
             builder.appendLine("$parent -> $id;")
-            left.toGraphViz(id, builder)
-            right.toGraphViz(id, builder)
+            left.internalToGraphViz(id, builder)
+            right.internalToGraphViz(id, builder)
         }
         is CodeGenIR.Call -> {
             builder.appendLine("$id[label=\"Call &${address.entity}\"];")
             builder.appendLine("$parent -> $id;")
             arguments.forEach {
-                it.toGraphViz(id, builder)
+                it.internalToGraphViz(id, builder)
             }
         }
         is CodeGenIR.Compare -> {
             builder.appendLine("$id[label=\"Relation $relation\"];")
             builder.appendLine("$parent -> $id;")
-            left.toGraphViz(id, builder)
-            right.toGraphViz(id, builder)
+            left.internalToGraphViz(id, builder)
+            right.internalToGraphViz(id, builder)
         }
-        is CodeGenIR.Cond -> TODO()
+        is CodeGenIR.Cond -> buildString {
+            builder.appendLine("$id[label=Cond];")
+            builder.appendLine("$parent -> $id;")
+            cond.internalToGraphViz(id, builder)
+            ifTrue.internalToGraphViz(id, builder)
+            ifFalse.internalToGraphViz(id, builder)
+        }
         is CodeGenIR.Const -> {
             builder.appendLine("$id[label=\"Const ${value.value} (${value.mode.name})\"];")
             builder.appendLine("$parent -> $id;")
@@ -445,12 +454,12 @@ private fun CodeGenIR.toGraphViz(parent: Int, builder: GraphVizBuilder) {
         is CodeGenIR.Conv -> {
             builder.appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
             builder.appendLine("$parent -> $id;")
-            opTree.toGraphViz(id, builder)
+            opTree.internalToGraphViz(id, builder)
         }
         is CodeGenIR.Indirection -> {
             builder.appendLine("$id[label=\"Indirection\"];")
             builder.appendLine("$parent -> $id;")
-            address.toGraphViz(id, builder)
+            address.internalToGraphViz(id, builder)
         }
         is CodeGenIR.MemoryAddress -> {
             builder.appendLine("$id[label=\"MemoryAddress $memory\"];")
@@ -469,16 +478,22 @@ private fun CodeGenIR.toGraphViz(parent: Int, builder: GraphVizBuilder) {
         is CodeGenIR.Return -> {
             builder.appendLine("$id[label=\"Return\"];")
             builder.appendLine("$parent -> $id;")
-            returnValue.toGraphViz(id, builder)
+            returnValue.internalToGraphViz(id, builder)
         }
         is CodeGenIR.Seq ->
             {
                 builder.appendLine("$id[label=\"Seq\"];")
                 builder.appendLine("$parent -> $id;")
-                value.toGraphViz(id, builder)
-                exec.toGraphViz(id, builder)
+                value.internalToGraphViz(id, builder)
+                exec.internalToGraphViz(id, builder)
             }
-        else -> TODO("Not yet implemented")
+        is CodeGenIR.Div -> TODO()
+        is CodeGenIR.Jmp -> buildString {
+            appendLine("$id[label=\"JMP\"];")
+            appendLine("$parent -> $id;");
+        }
+        is CodeGenIR.Mod -> TODO()
+        is CodeGenIR.UnaryOP -> TODO()
     }
 }
 

@@ -5,6 +5,7 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
+import edu.kit.compiler.backend.codegen.GraphVizBuilder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
 import edu.kit.compiler.backend.codegen.toGraphViz
 import edu.kit.compiler.backend.codegen.transform
@@ -36,22 +37,37 @@ class CodeGenTest {
         Program.getGraphs().forEach { Dump.dumpGraph(it, phase) }
     }
 
-    private fun renderCodeGenIrToFile(filePrefix: String, tree: CodeGenIR?) {
+    private fun renderDotFile(filePrefix: String, dot: String) {
         val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
-        file.writeText(
-            "digraph {${tree?.toGraphViz()}}"
-        )
+        file.writeText(dot)
         println("Dot-File: $file")
         try {
             val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
             val svgText = dotProcess.inputStream.bufferedReader().readText()
             val output = File("./graph-$filePrefix.svg")
             output.writeText(svgText)
-            println("write graph-file to ${output.absolutePath}")
+            println("write graph-file to file://${output.absolutePath}")
+            println("                    http://vps.csicar.de:8000/${output.name}")
         } catch (ex: IOException) {
             println("rendering graph with dot failed: $ex")
         }
     }
+
+    private fun renderCodeGenIrsToFile(filePrefix: String, tree: Map<String, CodeGenIR?>) {
+        val graphPrinter = GraphVizBuilder()
+        val dot = tree.entries.joinToString("\n") {
+            val blockEntryId = graphPrinter.freshId()
+            val graph = it.value?.toGraphViz(blockEntryId, graphPrinter)
+            "subgraph ${graphPrinter.freshId()} { label=\"${it.key}\"; $blockEntryId[label=\"Block ${it.key}\"]; $graph }"
+        }
+        renderDotFile(filePrefix, "digraph {\n $dot \n}")
+    }
+
+    private fun renderCodeGenIrToFile(filePrefix: String, tree: CodeGenIR?) {
+        renderDotFile(filePrefix, "digraph {${tree?.toGraphViz()}}")
+
+    }
+
 
     private fun setupGraph(
         code: String,
@@ -72,7 +88,21 @@ class CodeGenTest {
         return Program.getGraphs().associate {
             val generator = FirmToCodeGenTranslator(it, registerTable)
             val blocks = generator.buildTrees()
-            blocks.values.forEach { block -> renderCodeGenIrToFile(it.entity.toString(), block) }
+//            blocks.entries.forEach { (firmBlock, codegenIR) ->
+//                val blockName = firmBlock.toString()
+//                        .replace("Block BB[", "")
+//                    .replace(" ", "")
+//                    .replace("]", "")
+//                    .replace(":", "-")
+//                renderCodeGenIrToFile("${it.entity}-$blockName", codegenIR)
+//            }
+            renderCodeGenIrsToFile(it.entity.toString(), blocks.mapKeys {
+                it.key.toString()
+                    .replace("Block BB[", "")
+                    .replace(" ", "")
+                    .replace("]", "")
+                    .replace(":", "-")
+            })
             it.entity to blocks.values.toList()
         }
     }
@@ -192,7 +222,6 @@ class CodeGenTest {
                         while (true) {
                                                     System.out.println(tester.i);
                         }
-
                     }
 
                     public int test() {
