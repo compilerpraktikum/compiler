@@ -25,38 +25,12 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     /**
      * Sequential Execution of two nodes, representing the value of <pre>second</pre>
      */
-    class Seq
-    private constructor(private val valueHolder: ValueHolder<CodeGenIR>, private val execHolder: ValueHolder<CodeGenIR>) : CodeGenIR() {
-        constructor(value: CodeGenIR, exec: CodeGenIR) : this(
-            ValueHolder.Constant(value),
-            ValueHolder.Constant(exec),
-        )
-        constructor(value: ValueHolder.Variable<CodeGenIR>, exec: ValueHolder.Variable<CodeGenIR>) : this(
-            value as ValueHolder<CodeGenIR>,
-            exec as ValueHolder<CodeGenIR>,
-        )
-
-        val value
-            get() = valueHolder.get().also {
-                check(valueHolder is ValueHolder.Constant)
-            }
-        val exec
-            get() = execHolder.get().also {
-                check(execHolder is ValueHolder.Constant)
-            }
-
+    class Seq(val value: CodeGenIR, val exec: CodeGenIR) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Seq)
                 return false
 
-            // TODO replace check below:
-            check(valueHolder is ValueHolder.Variable)
-            check(execHolder is ValueHolder.Variable)
-
-            valueHolder.set(target.value)
-            execHolder.set(target.exec)
-
-            return true
+            return value.matches(target.value) && exec.matches(target.exec)
         }
     }
 
@@ -94,7 +68,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class Const(private val valueHolder: ValueHolder<Value>) : CodeGenIR() {
+    data class Const(private val valueHolder: ValueHolder<Value> = ValueHolder.Variable()) : CodeGenIR() {
         data class Value(
             val value: String,
             val mode: Width,
@@ -303,23 +277,6 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    fun <T> accept(visitor: CodeGenIRVisitor<T>): T =
-        when (this) {
-            is Assign -> visitor.visit(this)
-            is BinOP -> visitor.visit(this)
-            is Call -> visitor.visit(this)
-            is Cond -> visitor.visit(this)
-            is Const -> visitor.visit(this)
-            is Indirection -> visitor.visit(this)
-            is MemoryAddress -> visitor.visit(this)
-            is RegisterRef -> visitor.visit(this)
-            is Compare -> visitor.visit(this)
-            is Conv -> visitor.visit(this)
-            is Return -> visitor.visit(this)
-            is Seq -> visitor.visit(this)
-            else -> TODO("Not yet implemented")
-        }
-
     fun walkDepthFirst(walker: (CodeGenIR) -> Unit) {
         when (this) {
             is Assign -> {
@@ -365,21 +322,39 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
             is Mod -> TODO()
             is UnaryOP -> TODO()
 
-            // utility matching nodes should not occur in the real graph
             is Noop,
-            is SaveNodeTo -> error("invalid CodeGenIR graph")
+            is AnyNode,
+            is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
 
         walker(this)
     }
 }
 
+// Below are utility nodes for matching that MUST NOT be used in the real CodeGenIR tree
+
+/**
+ * Can be used as replacement for a node that does not have a result (e.g. Assign)
+ */
 class Noop : CodeGenIR() {
     override fun matches(target: CodeGenIR): Boolean {
-        TODO("") // try match node & try match replacement
+        // target cannot be Noop (because Noop is only a utility node)
+        return target.replacement.let { it != null && it.node is Noop }
     }
 }
 
+/**
+ * Matches any node.
+ */
+object AnyNode : CodeGenIR() {
+    override fun matches(target: CodeGenIR): Boolean {
+        return true
+    }
+}
+
+/**
+ * Matches a node based on the pattern returned by [childFn] and stores a reference to that node in [storage].
+ */
 class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: () -> CodeGenIR) : CodeGenIR() {
     private val child by lazy { childFn() }
 
@@ -388,6 +363,9 @@ class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: 
         return child.matches(target)
     }
 }
+
+@Suppress("FunctionName")
+fun SaveAnyNodeTo(storage: ValueHolder.Variable<CodeGenIR>) = SaveNodeTo(storage) { AnyNode }
 
 class GraphVizBuilder {
     private var nextId = 0
@@ -458,8 +436,7 @@ class GraphVizBuilder {
                 appendLine("$id[label=\"Return\"];")
                 returnValue.internalToGraphViz().edge("returnValue")
             }
-            is CodeGenIR.Seq ->
-            {
+            is CodeGenIR.Seq -> {
                 appendLine("$id[label=\"Seq\"];")
                 exec.internalToGraphViz().edge("exec")
                 value.internalToGraphViz().edge("value")
@@ -494,83 +471,4 @@ enum class BinOpENUM(val isCommutative: Boolean) {
 
 enum class UnaryOpENUM {
     MINUS, NOT
-}
-
-interface CodeGenIRVisitor<T> {
-    fun visit(node: CodeGenIR.BinOP): T {
-        val left: T = node.left.accept(this)
-        val right: T = node.right.accept(this)
-        return transform(node, left, right)
-    }
-
-    fun transform(node: CodeGenIR.BinOP, left: T, right: T): T
-
-    fun visit(node: CodeGenIR.Indirection): T {
-        val addr = node.address.accept(this)
-        return transform(node, addr)
-    }
-
-    fun transform(node: CodeGenIR.Indirection, addr: T): T
-
-    fun visit(node: CodeGenIR.MemoryAddress): T = transform(node)
-    fun transform(node: CodeGenIR.MemoryAddress): T
-
-    fun visit(node: CodeGenIR.Cond): T {
-        val cond = node.cond.accept(this)
-        val ifTrue = node.ifTrue.accept(this)
-        val ifFalse = node.ifFalse.accept(this)
-        return transform(node, cond, ifTrue, ifFalse)
-    }
-
-    fun transform(node: CodeGenIR.Cond, cond: T, ifTrue: T, ifFalse: T): T
-
-    fun visit(node: CodeGenIR.Assign): T {
-        val lhs = node.lhs.accept(this)
-        val rhs = node.rhs.accept(this)
-        return transform(node, lhs, rhs)
-    }
-
-    fun transform(node: CodeGenIR.Assign, lhs: T, rhs: T): T
-
-    fun visit(node: CodeGenIR.RegisterRef): T = transform(node)
-    fun transform(node: CodeGenIR.RegisterRef): T
-
-    fun visit(node: CodeGenIR.Const): T = transform(node)
-    fun transform(node: CodeGenIR.Const): T
-
-    fun visit(node: CodeGenIR.Call): T {
-        val arguments = node.arguments.map { it.accept(this) }
-        return transform(node, arguments)
-    }
-
-    fun transform(node: CodeGenIR.Call, arguments: List<T>): T
-
-    fun visit(node: CodeGenIR.Compare): T {
-        val left = node.left.accept(this)
-        val right = node.right.accept(this)
-        return transform(node, left, right)
-    }
-
-    fun transform(node: CodeGenIR.Compare, left: T, right: T): T
-
-    fun visit(node: CodeGenIR.Conv): T {
-        val opTree = node.opTree.accept(this)
-        return transform(node, opTree)
-    }
-
-    fun transform(node: CodeGenIR.Conv, opTree: T): T
-
-    fun visit(node: CodeGenIR.Return): T {
-        val returnValue = node.returnValue.accept(this)
-        return transform(node, returnValue)
-    }
-
-    fun transform(node: CodeGenIR.Return, returnValue: T): T
-    fun visit(node: CodeGenIR.Seq): T {
-        val second = node.exec.accept(this)
-        val first = node.value.accept(this)
-        return transform(node, first, second)
-    }
-
-    fun transform(node: CodeGenIR.Seq, value: T, exec: T): T
 }

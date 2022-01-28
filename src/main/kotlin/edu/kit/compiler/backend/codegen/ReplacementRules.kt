@@ -12,15 +12,15 @@ import edu.kit.compiler.utils.rule
 fun Replacement?.assertExists() = this ?: error("no replacement found")
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
-    rule("seq") {
+    rule("seq with register") {
         val value = variable<Register>()
         val valueReplacement = variable<Replacement>()
         val exec = variable<CodeGenIR>()
 
         match(
             CodeGenIR.Seq(
-                RegisterRef(value), // TODO add a similar rule for Const
-                exec
+                RegisterRef(value, valueReplacement),
+                SaveAnyNodeTo(exec)
             )
         )
 
@@ -33,11 +33,36 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             // replacement = REG(1)   | instruction = instr(exec) + instr(value)
             val execReplacement = exec.get().replacement!!
             Replacement(
-                node = value.get(),
-                instructions = execReplacement.instructions.apply {
-                    append(valueReplacement.get().instructions)
-                },
+                node = valueReplacement.get().node,
+                instructions = execReplacement.instructions
+                    .append(valueReplacement.get().instructions),
                 cost = execReplacement.cost + valueReplacement.get().cost
+            )
+        }
+    },
+    rule("seq with constant") {
+        val const = variable<CodeGenIR>()
+        val exec = variable<CodeGenIR>()
+
+        match(
+            CodeGenIR.Seq(
+                SaveNodeTo(const) { CodeGenIR.Const() },
+                SaveAnyNodeTo(exec)
+            )
+        )
+
+        condition {
+            exec.get().replacement != null
+        }
+
+        replaceWith {
+            // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
+            // replacement = REG(1)   | instruction = instr(exec) + instr(value)
+            val execReplacement = exec.get().replacement!!
+            Replacement(
+                node = const.get(),
+                instructions = execReplacement.instructions,
+                cost = execReplacement.cost
             )
         }
     },
