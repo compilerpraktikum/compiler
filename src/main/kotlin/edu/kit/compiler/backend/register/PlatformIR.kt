@@ -165,7 +165,7 @@ sealed class PlatformInstruction : PlatformIR {
         }
 
         fun push(operand: PlatformTarget) =
-            unOp("push", operand)
+            unOp("pushq", operand)
 
         fun pop(operand: PlatformTarget, width: Width) = when (width) {
             Width.BYTE -> unOp("popb", operand)

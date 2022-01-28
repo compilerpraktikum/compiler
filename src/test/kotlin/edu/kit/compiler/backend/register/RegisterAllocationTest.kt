@@ -144,9 +144,9 @@ internal class RegisterAllocationTest {
                 movl ${'$'}2, %ebx
                 movl %ebx, -8(%rbp)
                 movl -8(%rbp), %ebx
-                push %ebx
+                pushq %ebx
                 movl 0(%rbp), %ebx
-                push %ebx
+                pushq %ebx
                 call foo
                 movl %eax, -16(%rbp)
                 addq %rsp, ${'$'}16
