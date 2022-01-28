@@ -34,6 +34,13 @@ interface CallingConvention {
     fun getReturnValueTarget(width: Width): PlatformTarget
 
     /**
+     * Get the [PlatformTarget] where a parameter is located
+     *
+     * @param virtualRegisterId virtual register id of the parameter (i.e. 0 for the first parameter)
+     */
+    fun getParameterLocation(virtualRegisterId: Int): PlatformTarget
+
+    /**
      * Mark a register as used by the function, so it can be saved if required by the calling convention
      *
      * @param register that is being used by the function

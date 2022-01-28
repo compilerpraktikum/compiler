@@ -3,7 +3,6 @@ package edu.kit.compiler.backend.register.trivial
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.EnumRegister
-import edu.kit.compiler.backend.register.FunctionSignature
 import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
@@ -22,11 +21,11 @@ import edu.kit.compiler.backend.register.PlatformTarget.Register as PlatformRegi
  * pushes result back on stack.
  *
  * @param callingConvention the calling convention this function is called with
- * @param signature the function signature
+ * @param parameters number of function parameters
  */
 class TrivialFunctionTransformer(
     private val callingConvention: CallingConvention,
-    private val signature: FunctionSignature
+    private val parameters: Int
 ) : FunctionTransformer {
 
     companion object {
@@ -91,9 +90,9 @@ class TrivialFunctionTransformer(
      * actual register or a known memory location)
      */
     private fun generateLoadVirtualRegisterValue(virtualRegister: MolkiRegister, target: PlatformTarget) {
-        val instruction = if (virtualRegister.id.value < this.signature.parameterCount) {
+        val instruction = if (virtualRegister.id.value < this.parameters) {
             // generate an offset to RSP to load the value from
-            val memoryLocation = this.signature.generateStackOffset(virtualRegister.id.value)
+            val memoryLocation = callingConvention.getParameterLocation(virtualRegister.id.value)
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         } else {
             // check the register has been assigned before

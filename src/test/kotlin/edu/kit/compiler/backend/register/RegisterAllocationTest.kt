@@ -144,12 +144,12 @@ internal class RegisterAllocationTest {
                 movl ${'$'}2, %ebx
                 movl %ebx, -8(%rbp)
                 movl -8(%rbp), %ebx
-                pushl %ebx
+                push %ebx
                 movl 0(%rbp), %ebx
-                pushl %ebx
+                push %ebx
                 call foo
                 movl %eax, -16(%rbp)
-                addq %rsp, ${'$'}8
+                addq %rsp, ${'$'}16
                 leave
                 ret
             """.trimIndent(),
@@ -202,7 +202,7 @@ internal class RegisterAllocationTest {
         )
 
         val platformCode =
-            transformCode(code, FunctionSignature(Width.DOUBLE, Width.DOUBLE)).joinToString("\n") { it.toAssembler() }
+            transformCode(code, 2).joinToString("\n") { it.toAssembler() }
         println(platformCode)
 
         assertEquals(
@@ -211,7 +211,7 @@ internal class RegisterAllocationTest {
                 movq %rsp, %rbp
                 subq %rsp, ${'$'}8
                 movl 16(%rbp), %ebx
-                movl 20(%rbp), %esi
+                movl 24(%rbp), %esi
                 addl %ebx, %esi
                 movl %esi, 0(%rbp)
                 movl 0(%rbp), %eax
@@ -230,9 +230,9 @@ internal class RegisterAllocationTest {
      */
     private fun transformCode(
         code: List<MolkiInstruction>,
-        signature: FunctionSignature = FunctionSignature()
+        parameters: Int = 0
     ): List<PlatformInstruction> {
-        val allocator = TrivialFunctionTransformer(SimpleCallingConvention, signature)
+        val allocator = TrivialFunctionTransformer(SimpleCallingConvention, parameters)
         allocator.transformCode(code)
         return allocator.getPlatformCode()
     }

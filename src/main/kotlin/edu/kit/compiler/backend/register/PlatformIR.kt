@@ -164,12 +164,8 @@ sealed class PlatformInstruction : PlatformIR {
             Width.QUAD -> binOp("xorq", left, right)
         }
 
-        fun push(operand: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> unOp("pushb", operand)
-            Width.WORD -> unOp("pushw", operand)
-            Width.DOUBLE -> unOp("pushl", operand)
-            Width.QUAD -> unOp("pushq", operand)
-        }
+        fun push(operand: PlatformTarget) =
+            unOp("push", operand)
 
         fun pop(operand: PlatformTarget, width: Width) = when (width) {
             Width.BYTE -> unOp("popb", operand)

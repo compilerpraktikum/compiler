@@ -53,8 +53,7 @@ object X64ABICallingConvention : CallingConvention {
             if (taintedRegisters.contains(nonVolatileRegister)) {
                 prologue.add(
                     PlatformInstruction.push(
-                        PlatformTarget.Register(nonVolatileRegister, Width.QUAD),
-                        Width.QUAD
+                        PlatformTarget.Register(nonVolatileRegister, Width.QUAD)
                     )
                 )
             }
@@ -100,6 +99,10 @@ object X64ABICallingConvention : CallingConvention {
 
     override fun getReturnValueTarget(width: Width): PlatformTarget {
         return PlatformTarget.Register(EnumRegister.RAX).width(width)
+    }
+
+    override fun getParameterLocation(virtualRegisterId: Int): PlatformTarget {
+        TODO("not implemented")
     }
 
     override fun taintRegister(register: PlatformTarget.Register) {

@@ -55,6 +55,16 @@ object SimpleCallingConvention : CallingConvention {
         return PlatformTarget.Register(EnumRegister.RAX).width(width)
     }
 
+    override fun getParameterLocation(virtualRegisterId: Int): PlatformTarget {
+        val parameterStackLocation = (virtualRegisterId + 2) * 8 // skip 2 quadwords (pushed EBP and RIP)
+        return PlatformTarget.Memory.of(
+            parameterStackLocation.toString(),
+            PlatformTarget.Register(EnumRegister.RBP),
+            null,
+            null
+        )
+    }
+
     override fun taintRegister(register: PlatformTarget.Register) {
         // do nothing, because we needn't save registers
     }
@@ -77,8 +87,8 @@ object SimpleCallingConvention : CallingConvention {
             width: Width,
             instructionAppender: (PlatformInstruction) -> Unit
         ) {
-            parameterZoneWidth += width.inBytes
-            instructionAppender(PlatformInstruction.push(source, width))
+            parameterZoneWidth += Width.QUAD.inBytes
+            instructionAppender(PlatformInstruction.push(source))
         }
 
         override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
