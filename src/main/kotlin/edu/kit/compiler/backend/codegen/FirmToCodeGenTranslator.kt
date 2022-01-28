@@ -48,49 +48,64 @@ import firm.nodes.Unknown
  */
 class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: VirtualRegisterTable = VirtualRegisterTable()) : FirmNodeVisitorAdapter() {
 
-    val blockMap: MutableMap<Block, CodeGenIR?> = mutableMapOf()
-    // value map
-    var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
-    var currentTree: CodeGenIR = CodeGenIR.Const("0", Width.BYTE)
-    var currentBlock: Node? = null
-    var nextBlock = false
+    class GenerationState(
+        val blockMap: MutableMap<Block, CodeGenIR> = mutableMapOf(),
+        var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
+    ) {
+        val finalizedBlocks: MutableSet<Block> = mutableSetOf()
 
-    fun buildTrees(): Map<Block, CodeGenIR?> {
-        println(graph.entity.ldName)
-        breakCriticalEdges(graph)
-        val phiVisitor = PhiAssignRegisterVisitor(registerTable)
-        BackEdges.enable(graph)
-        graph.walkTopological(phiVisitor)
-        println("Phi visitor result: ${phiVisitor.registerTable.map.size} new registers")
-        nodeMap = phiVisitor.map
-        graph.walkTopological(this)
-        // last visited block needs to be entered
-        blockMap[currentBlock as Block] = currentTree
-        println(blockMap)
-        blockMap.pp()
-        BackEdges.disable(graph)
-        return blockMap
+        fun getCurrentIrForBlock(block: Block): CodeGenIR? {
+            return blockMap[block]
+        }
+
+        fun updateCodeForBlock(block: Block, codeGenIR: CodeGenIR) {
+            blockMap[block] = codeGenIR
+        }
+
+        fun setFinalCodeGenIrForBlock(block: Block, codeGenIR: CodeGenIR) {
+            updateCodeForBlock(block, codeGenIR)
+            finalizedBlocks.add(block)
+        }
+
+        fun setCodeGenIrForNode(node: Node, codeGenIR: CodeGenIR) {
+            nodeMap[node] = codeGenIR
+        }
+
+        fun isFinalized() = blockMap.entries.all { finalizedBlocks.contains(it.key) }
+
+        fun getCodeGenIRs(): MutableMap<Block, CodeGenIR> {
+//            check(isFinalized()) { "inconsistent state of blockMap $blockMap" }
+            return blockMap
+        }
+
+        fun getCodeGenFor(node: Node) = nodeMap[node]
     }
 
-    private fun updateCurrentBlock(node: Node) {
-        println("current block is $currentBlock new block: ${node.block} $currentTree ")
-        if (currentBlock == null) {
-            currentBlock = node.block
-        } else if (currentBlock != node.block) {
-            if (!blockMap.contains(currentBlock as Block)) {
-                println("update blockMap for $currentBlock to $currentTree")
-                blockMap[currentBlock as Block] = currentTree!!
-                }
-
-            currentBlock = node.block
-            currentTree = CodeGenIR.Const("9999", Width.BYTE)
+    companion object {
+        fun buildTrees(graph: Graph, registerTable: VirtualRegisterTable): Map<Block, CodeGenIR?> {
+            println(graph.entity.ldName)
+            breakCriticalEdges(graph)
+            val phiVisitor = PhiAssignRegisterVisitor(registerTable)
+            BackEdges.enable(graph)
+            graph.walkTopological(phiVisitor)
+            println("Phi visitor result: ${phiVisitor.registerTable.map.size} new registers")
+            val generationState = GenerationState(nodeMap = phiVisitor.map)
+            graph.walkTopological(FirmToCodeGenTranslator(graph, registerTable, generationState))
+            // last visited block needs to be entered
+            BackEdges.disable(graph)
+            return generationState.getCodeGenIRs()
         }
     }
 
-    private fun updateCurrentTree(tree: CodeGenIR, node: Node) {
-        nodeMap[node] = tree
-        currentTree = tree
-        println("updateCurrentTree: ${tree}")
+    private fun getCodeFor(node: Node): CodeGenIR =
+        generationState.getCodeGenFor(node)!!
+
+    private inline fun setCodeFor(node: Node, buildCodeGen: () -> CodeGenIR): CodeGenIR =
+        buildCodeGen().also { generationState.setCodeGenIrForNode(node, it) }
+
+    private fun updateCurrentTree(tree: CodeGenIR, block: Block) {
+        generationState.updateCodeForBlock(block, tree)
+        println("setCodeGenIrForNode: ${tree}")
     }
 
     private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
@@ -105,8 +120,9 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
 
     override fun visit(node: Start) {
         super.visit(node)
-        nodeMap[node] = currentTree!!
-        //updateCurrentTree(CodeGenIR.Const("0", Width.BYTE), node)
+        setCodeFor(node) {
+            noop()
+        }
     }
 
     override fun visit(node: Add) {
@@ -122,7 +138,6 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
     }
 
     override fun visit(node: Call) {
-        println("visit CALL " + node.block.toString())
         super.visit(node)
         updateCurrentBlock(node)
         node.preds.forEach { println("Preds are: ${it.toString()}") }
@@ -168,8 +183,16 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
             cond = nodeMap[node.getPred(0)]!!,
             ifTrue = CodeGenIR.Jmp(trueBlock),
             ifFalse = CodeGenIR.Jmp(falseBlock)
-        ))
-        updateCurrentTree(cond, node)
+        )
+//        val cond = CodeGenIR.Seq(
+//            exec = currentTree!!, value = CodeGenIR.Cond(
+//                cond = nodeMap[node.getPred(0)]!!,
+//                ifTrue = CodeGenIR.Jmp(trueBlock),
+//                ifFalse = CodeGenIR.Jmp(falseBlock)
+//            )
+//        )
+        updateCurrentTree(cond, node.parentBlock)
+        println("visit COND ${node.block}")
     }
 
     override fun visit(node: Const) {
@@ -398,14 +421,8 @@ class FirmToCodeGenTranslator(private val graph: Graph, val registerTable: Virtu
         } else {
             CodeGenIR.Return(CodeGenIR.Seq(value = nodeMap[value]!!, exec = currentTree))
         }
-
-        updateCurrentTree(res, node)
-        println("---")
-        node.preds.forEach { println("preds ${it.toString()}") }
-        println("---")
-        println("---")
-
-        println("---")
+        println("res $res")
+        updateCurrentTree(res, node.parentBlock)
         println("visit RETURN " + node.block.toString())
     }
 

@@ -225,6 +225,8 @@ class CodeGenTest {
                     }
 
                     public int test() {
+                        System.out.println(1);
+                        System.out.println(2);
                         if (3 == 2) {
                             System.out.println(1);
                             return 2;
