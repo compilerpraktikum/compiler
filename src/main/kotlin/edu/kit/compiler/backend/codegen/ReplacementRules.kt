@@ -13,22 +13,31 @@ fun Replacement?.assertExists() = this ?: error("no replacement found")
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("seq") {
-        val value = variable<CodeGenIR>()
+        val value = variable<Register>()
+        val valueReplacement = variable<Replacement>()
         val exec = variable<CodeGenIR>()
 
         match(
-            CodeGenIR.Seq(value, exec)
+            CodeGenIR.Seq(
+                RegisterRef(value), // TODO add a similar rule for Const
+                exec
+            )
         )
 
+        condition {
+            exec.get().replacement != null
+        }
+
         replaceWith {
-            val execReplacement = exec.get().replacement.assertExists() // TODO does is need to exist?
-            val valueReplacement = value.get().replacement
+            // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
+            // replacement = REG(1)   | instruction = instr(exec) + instr(value)
+            val execReplacement = exec.get().replacement!!
             Replacement(
                 node = value.get(),
                 instructions = execReplacement.instructions.apply {
-                    valueReplacement?.let { append(it.instructions) }
+                    append(valueReplacement.get().instructions)
                 },
-                cost = execReplacement.cost + (valueReplacement?.cost ?: 0)
+                cost = execReplacement.cost + valueReplacement.get().cost
             )
         }
     },
@@ -42,7 +51,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         replaceWith {
             val newRegister = newRegister(const.get().mode)
             Replacement(
-                node = RegisterRef(newRegister),
+                node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
                     Instruction.movq(const.get().toMolki(), newRegister)
                 ),
@@ -94,16 +103,19 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("assign addr in register value in register: `movq R_j, (R_i)`") {
+    rule("assign addr in register value in register: `movq (R_j), (R_i)`") {
         val registerWithAddr = variable<Register>()
         val registerWithValue = variable<Register>()
+
+        val replacementForAddr = variable<Replacement>()
+        val replacementForValue = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
                 CodeGenIR.Indirection(
-                    RegisterRef(registerWithAddr)
+                    RegisterRef(registerWithAddr, replacementForAddr)
                 ),
-                RegisterRef(registerWithValue)
+                RegisterRef(registerWithValue, replacementForValue)
             )
         )
 
@@ -111,12 +123,14 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             val memoryAddress = Memory.of(registerWithAddr.get(), width = registerWithValue.get().width)
             Replacement(
                 node = CodeGenIR.MemoryAddress(memoryAddress),
-                instructions = instructionListOf(
-                    Instruction.movq(
-                        Memory.of(registerWithValue.get(), width = registerWithValue.get().width),
-                        Memory.of("0", registerWithAddr.get(), width = registerWithAddr.get().width)
-                    )
-                ),
+                instructions = replacementForAddr.get().instructions
+                    .append(replacementForValue.get().instructions)
+                    .append(
+                        Instruction.movq(
+                            Memory.of(base = registerWithValue.get(), width = registerWithValue.get().width),
+                            Memory.of(base = registerWithAddr.get(), width = registerWithAddr.get().width)
+                        )
+                    ),
                 cost = 1,
             )
         }
@@ -139,6 +153,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 
         condition {
             // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
+            // hab mal hier als beispiel das condition zeug eingebaut. der aufruf kann weg, falls nicht gebraucht wird
             true
         }
 

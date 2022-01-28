@@ -2,8 +2,10 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.ReplacementBuilderScope
+import firm.nodes.Node
 
 data class Replacement(
     val node: CodeGenIR,

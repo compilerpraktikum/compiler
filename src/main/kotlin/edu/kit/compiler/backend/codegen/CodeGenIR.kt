@@ -49,6 +49,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
             if (target !is Seq)
                 return false
 
+            // TODO replace check below:
             check(valueHolder is ValueHolder.Variable)
             check(execHolder is ValueHolder.Variable)
 
@@ -87,10 +88,9 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                     replacementHolder?.set(replacement)
                     registerHolder.set(replacement.node.register)
                     return true
-                } else {
-                    return false
                 }
             }
+            return false
         }
     }
 
@@ -357,9 +357,8 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 returnValue.walkDepthFirst(walker)
             }
             is Seq -> {
-                // TODO is this the correct order?
-                value.walkDepthFirst(walker)
                 exec.walkDepthFirst(walker)
+                value.walkDepthFirst(walker)
             }
             is Div -> TODO()
             is Jmp -> TODO()
@@ -377,7 +376,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
 
 class Noop : CodeGenIR() {
     override fun matches(target: CodeGenIR): Boolean {
-        error("not a valid match pattern")
+        TODO("") // try match node & try match replacement
     }
 }
 
@@ -400,10 +399,79 @@ class GraphVizBuilder {
         stringBuilder.appendLine(line)
     }
 
-    fun build(): String {
-        return stringBuilder.toString().also {
-            stringBuilder.clear()
+    fun build(): String = stringBuilder.toString()
+
+    /**
+     * @return the nodes graph viz id.
+     */
+    fun CodeGenIR.internalToGraphViz(): Int {
+        val id = freshId()
+
+        fun Int.edge(label: String) = appendLine("$id -> $this [label=\"$label\"];")
+
+        when (this@internalToGraphViz) {
+            is CodeGenIR.Assign -> {
+                appendLine("$id [label=\"Assign\"];")
+                lhs.internalToGraphViz().edge("lhs")
+                rhs.internalToGraphViz().edge("rhs")
+            }
+            is CodeGenIR.BinOP -> {
+                appendLine("$id[label=\"BinOP $operation\"];")
+                left.internalToGraphViz().edge("left")
+                right.internalToGraphViz().edge("right")
+            }
+            is CodeGenIR.Call -> {
+                appendLine("$id[label=\"Call\n&${address.entity}\"];")
+                arguments.forEachIndexed { index, it ->
+                    it.internalToGraphViz().edge(index.toString())
+                }
+            }
+            is CodeGenIR.Compare -> {
+                appendLine("$id[label=\"Relation $relation\"];")
+                left.internalToGraphViz().edge("left")
+                right.internalToGraphViz().edge("right")
+            }
+            is CodeGenIR.Cond -> buildString {
+                appendLine("$id[label=Cond];")
+                cond.internalToGraphViz().edge("cond")
+                ifTrue.internalToGraphViz().edge("true")
+                ifFalse.internalToGraphViz().edge("false")
+            }
+            is CodeGenIR.Const -> {
+                appendLine("$id[label=\"Const ${value.value}\n${value.mode.name}\"];")
+            }
+            is CodeGenIR.Conv -> {
+                appendLine("$id[label=\"Conv $fromMode => $toMode\"];")
+                opTree.internalToGraphViz().edge("opTree")
+            }
+            is CodeGenIR.Indirection -> {
+                appendLine("$id[label=\"Indirection\"];")
+                address.internalToGraphViz().edge("address")
+            }
+            is CodeGenIR.MemoryAddress -> {
+                appendLine("$id[label=\"MemoryAddress $memory\"];")
+            }
+            is CodeGenIR.RegisterRef -> {
+                appendLine("$id[label=\"Ref @${register.id}\n${register.width}\"];")
+            }
+            is CodeGenIR.Return -> {
+                appendLine("$id[label=\"Return\"];")
+                returnValue.internalToGraphViz().edge("returnValue")
+            }
+            is CodeGenIR.Seq ->
+            {
+                appendLine("$id[label=\"Seq\"];")
+                exec.internalToGraphViz().edge("exec")
+                value.internalToGraphViz().edge("value")
+            }
+            is CodeGenIR.Div -> TODO()
+            is CodeGenIR.Jmp -> buildString {
+                appendLine("$id[label=\"JMP\"];")
+            }
+            is CodeGenIR.Mod -> TODO()
+            is CodeGenIR.UnaryOP -> TODO()
         }
+        return id
     }
 }
 
@@ -499,8 +567,8 @@ interface CodeGenIRVisitor<T> {
 
     fun transform(node: CodeGenIR.Return, returnValue: T): T
     fun visit(node: CodeGenIR.Seq): T {
-        val first = node.value.accept(this)
         val second = node.exec.accept(this)
+        val first = node.value.accept(this)
         return transform(node, first, second)
     }
 

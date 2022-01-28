@@ -55,19 +55,20 @@ class CodeGenTest {
 
     private fun renderCodeGenIrsToFile(filePrefix: String, tree: Map<String, CodeGenIR?>) {
         val graphPrinter = GraphVizBuilder()
-        val dot = tree.entries.joinToString("\n") {
+        graphPrinter.appendLine("digraph {")
+        tree.entries.forEach {
+            graphPrinter.appendLine("subgraph ${graphPrinter.freshId()} {")
+            graphPrinter.appendLine("label=\"${it.key}\";")
             val blockEntryId = graphPrinter.freshId()
-            val graph = it.value?.toGraphViz(blockEntryId, graphPrinter)
-            "subgraph ${graphPrinter.freshId()} { label=\"${it.key}\"; $blockEntryId[label=\"Block ${it.key}\"]; $graph }"
+            graphPrinter.appendLine("$blockEntryId[label=\"Block ${it.key}\"];")
+            val id = it.value?.toGraphViz(graphPrinter)
+            graphPrinter.appendLine("$blockEntryId -> $id;")
+            graphPrinter.appendLine("}")
         }
-        renderDotFile(filePrefix, "digraph {\n $dot \n}")
+        graphPrinter.appendLine("}")
+        val dot = graphPrinter.build()
+        renderDotFile(filePrefix, dot)
     }
-
-    private fun renderCodeGenIrToFile(filePrefix: String, tree: CodeGenIR?) {
-        renderDotFile(filePrefix, "digraph {${tree?.toGraphViz()}}")
-
-    }
-
 
     private fun setupGraph(
         code: String,
@@ -86,8 +87,7 @@ class CodeGenTest {
         Util.lowerSels()
         dumpGraphs("after-lowering")
         return Program.getGraphs().associate {
-            val generator = FirmToCodeGenTranslator(it, registerTable)
-            val blocks = generator.buildTrees()
+            val blocks = FirmToCodeGenTranslator.buildTrees(it, registerTable)
 //            blocks.entries.forEach { (firmBlock, codegenIR) ->
 //                val blockName = firmBlock.toString()
 //                        .replace("Block BB[", "")
