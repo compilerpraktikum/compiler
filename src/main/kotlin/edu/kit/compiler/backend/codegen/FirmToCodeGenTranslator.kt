@@ -1,6 +1,5 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
@@ -177,10 +176,13 @@ class FirmToCodeGenTranslator(
         val trueBlock = BackEdges.getOuts(trueProj).iterator().next().node!! as Block
         val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
 
-        val cond = CodeGenIR.Cond(
-            cond = CodeGenIR.Seq(exec = getCodeFor(node.getPred(0)), value = getCodeFor(node.getPred(1))),
-            ifTrue = CodeGenIR.Jmp(trueBlock),
-            ifFalse = CodeGenIR.Jmp(falseBlock)
+        val cond = CodeGenIR.Seq(
+            exec = getCodeFor(node.getPred(0)),
+            value = CodeGenIR.Cond(
+                cond = getCodeFor(node.getPred(1)),
+                ifTrue = CodeGenIR.Jmp(trueBlock),
+                ifFalse = CodeGenIR.Jmp(falseBlock)
+            )
         )
 //        val cond = CodeGenIR.Seq(
 //            exec = currentTree!!, value = CodeGenIR.Cond(
@@ -429,9 +431,12 @@ class FirmToCodeGenTranslator(
         val value = nodePreds.getOrNull(1)
 
         val res = if (value == null) {
-            CodeGenIR.Return(controlFlow)
+            controlFlow
         } else {
-            CodeGenIR.Return(CodeGenIR.Seq(value = getCodeFor(value), exec = controlFlow))
+            CodeGenIR.Seq(
+                value = CodeGenIR.Return(getCodeFor(value)),
+                exec = controlFlow
+            )
         }
         println("res $res")
         updateCurrentTree(res, node.parentBlock)

@@ -12,57 +12,31 @@ import edu.kit.compiler.utils.rule
 fun Replacement?.assertExists() = this ?: error("no replacement found")
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
-    rule("seq with register") {
-        val value = variable<Register>()
-        val valueReplacement = variable<Replacement>()
+    rule("seq") {
+        val value = variable<CodeGenIR>()
         val exec = variable<CodeGenIR>()
 
         match(
             CodeGenIR.Seq(
-                RegisterRef(value, valueReplacement),
-                SaveAnyNodeTo(exec)
+                value = SaveAnyNodeTo(value),
+                exec = SaveAnyNodeTo(exec)
             )
         )
 
         condition {
-            exec.get().replacement != null
+            value.get().replacement != null && exec.get().replacement != null
         }
 
         replaceWith {
             // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
             // replacement = REG(1)   | instruction = instr(exec) + instr(value)
+            val valueReplacement = value.get().replacement!!
             val execReplacement = exec.get().replacement!!
             Replacement(
-                node = valueReplacement.get().node,
+                node = Noop(),
                 instructions = execReplacement.instructions
-                    .append(valueReplacement.get().instructions),
-                cost = execReplacement.cost + valueReplacement.get().cost
-            )
-        }
-    },
-    rule("seq with constant") {
-        val const = variable<CodeGenIR>()
-        val exec = variable<CodeGenIR>()
-
-        match(
-            CodeGenIR.Seq(
-                SaveNodeTo(const) { CodeGenIR.Const() },
-                SaveAnyNodeTo(exec)
-            )
-        )
-
-        condition {
-            exec.get().replacement != null
-        }
-
-        replaceWith {
-            // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
-            // replacement = REG(1)   | instruction = instr(exec) + instr(value)
-            val execReplacement = exec.get().replacement!!
-            Replacement(
-                node = const.get(),
-                instructions = execReplacement.instructions,
-                cost = execReplacement.cost
+                    .append(valueReplacement.instructions),
+                cost = execReplacement.cost + valueReplacement.cost
             )
         }
     },
@@ -78,7 +52,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    Instruction.movq(const.get().toMolki(), newRegister)
+                    Instruction.movq(const.get().toMolkIR(), newRegister)
                 ),
                 cost = 1,
             )
@@ -226,7 +200,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("return register content: `movq R_i \$@result; jmp functionReturn`") {
+    rule("return register content: `movq R_i \$@result`") {
         val resRegister = variable<Register>()
         val replacement = variable<Replacement>()
 
@@ -245,13 +219,12 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
                         )
-                        // TODO jmp to returnLabel
                     ),
                 cost = replacement.get().cost + 1,
             )
         }
     },
-    rule("return constant: `movq \$a \$@result; jmp functionReturn`") {
+    rule("return constant: `movq \$a \$@result`") {
         val constValue = variable<CodeGenIR.Const.Value>()
 
         match(
@@ -265,10 +238,9 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = Noop(),
                 instructions = instructionListOf(
                     Instruction.movq(
-                        constValue.get().toMolki(),
+                        constValue.get().toMolkIR(),
                         ReturnRegister(constValue.get().mode)
                     )
-                    // TODO jmp to return label
                 ),
                 cost = 1,
             )

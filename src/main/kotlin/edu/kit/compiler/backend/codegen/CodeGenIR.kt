@@ -19,6 +19,11 @@ fun defaultReplacement(node: CodeGenIR) = Replacement(
 
 sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     var replacement: Replacement? = null
+    val alternatives: Sequence<Replacement>
+        get() = sequence {
+            yield(defaultReplacement(this@CodeGenIR))
+            replacement?.let { yield(it) }
+        }
 
     abstract override fun matches(target: CodeGenIR): Boolean
 
@@ -52,19 +57,14 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
 
         override fun matches(target: CodeGenIR): Boolean {
             check(registerHolder is ValueHolder.Variable)
-            if (target is RegisterRef) {
-                replacementHolder?.set(defaultReplacement(target))
-                registerHolder.set(target.register)
-                return true
-            } else {
-                val replacement = target.replacement
-                if (replacement != null && replacement.node is RegisterRef) {
-                    replacementHolder?.set(replacement)
-                    registerHolder.set(replacement.node.register)
-                    return true
+            return target.alternatives.any {
+                if (it.node is RegisterRef) {
+                    replacementHolder?.set(it)
+                    registerHolder.set(it.node.register)
+                    return@any true
                 }
+                return@any false
             }
-            return false
         }
     }
 
@@ -73,7 +73,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
             val value: String,
             val mode: Width,
         ) {
-            fun toMolki() = Constant(value, mode)
+            fun toMolkIR() = Constant(value, mode)
         }
 
         constructor(const: String, mode: Width) : this(ValueHolder.Constant(Value(const, mode)))

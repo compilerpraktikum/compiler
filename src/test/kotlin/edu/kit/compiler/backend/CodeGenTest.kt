@@ -340,17 +340,47 @@ class CodeGenTest {
     @Test
     fun testReplacementReturnReg() {
         val res = transformToMolki {
-            CodeGenIR.Return(
-                CodeGenIR.Seq(
-                    value = CodeGenIR.RegisterRef(it.newRegister(Width.QUAD)),
-                    exec = CodeGenIR.Const("0", Width.WORD)
-                )
+            CodeGenIR.Seq(
+                value = CodeGenIR.Return(CodeGenIR.RegisterRef(it.newRegister(Width.QUAD))),
+                exec = CodeGenIR.Const("0", Width.WORD)
             )
         }
         assertMolkiEquals(
             res, listOf(
                 "movq %@0, %@r0",
                 // "jmp functionReturn" //TODO test this
+            )
+        )
+    }
+
+    @Test
+    fun testReplacementReturnConst() {
+        val res = transformToMolki {
+            CodeGenIR.Return(CodeGenIR.Const("0", Width.WORD))
+        }
+        assertMolkiEquals(
+            res, listOf(
+                "movq $0, %@r0w",
+            )
+        )
+    }
+
+    @Test
+    fun testReplacementReturnSum() {
+        val res = transformToMolki {
+            CodeGenIR.Return(
+                CodeGenIR.BinOP(
+                    BinOpENUM.ADD,
+                    left = CodeGenIR.Const("7", Width.WORD),
+                    right = CodeGenIR.RegisterRef(it.newRegister(Width.WORD))
+                )
+            )
+        }
+        assertMolkiEquals(
+            res, listOf(
+                "movq $7, %@1w",
+                "addq [ %@1w | %@0w ] -> %@2w",
+                "movq %@2w, %@r0w"
             )
         )
     }
