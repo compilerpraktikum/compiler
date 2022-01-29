@@ -228,24 +228,26 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     },
     rule("return register content: `movq R_i \$@result; jmp functionReturn`") {
         val resRegister = variable<Register>()
+        val replacement = variable<Replacement>()
 
         match(
             CodeGenIR.Return(
-                RegisterRef(resRegister)
+                RegisterRef(resRegister, replacement)
             )
         )
 
         replaceWith {
             Replacement(
-                node = RegisterRef(resRegister.get()), // TODO: really the result register? maybe sth like Noop or whatever
-                instructions = instructionListOf(
-                    Instruction.movq(
-                        resRegister.get(),
-                        ReturnRegister(resRegister.get().width)
-                    )
-                    // TODO jmp to returnLabel
-                ),
-                cost = 1,
+                node = Noop(),
+                instructions = replacement.get().instructions
+                    .append(
+                        Instruction.movq(
+                            resRegister.get(),
+                            ReturnRegister(resRegister.get().width)
+                        )
+                        // TODO jmp to returnLabel
+                    ),
+                cost = replacement.get().cost + 1,
             )
         }
     },
@@ -260,12 +262,13 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 
         replaceWith {
             Replacement(
-                node = CodeGenIR.Const(TODO("some noop")),
+                node = Noop(),
                 instructions = instructionListOf(
                     Instruction.movq(
                         constValue.get().toMolki(),
                         ReturnRegister(constValue.get().mode)
                     )
+                    // TODO jmp to return label
                 ),
                 cost = 1,
             )
