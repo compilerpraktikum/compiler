@@ -88,14 +88,7 @@ class CodeGenTest {
         dumpGraphs("after-lowering")
         return Program.getGraphs().associate {
             val blocks = FirmToCodeGenTranslator.buildTrees(it, registerTable)
-//            blocks.entries.forEach { (firmBlock, codegenIR) ->
-//                val blockName = firmBlock.toString()
-//                        .replace("Block BB[", "")
-//                    .replace(" ", "")
-//                    .replace("]", "")
-//                    .replace(":", "-")
-//                renderCodeGenIrToFile("${it.entity}-$blockName", codegenIR)
-//            }
+
             renderCodeGenIrsToFile(it.entity.toString(), blocks.mapKeys {
                 it.key.toString()
                     .replace("Block BB[", "")
@@ -105,11 +98,6 @@ class CodeGenTest {
             })
             it.entity to blocks.values.toList()
         }
-    }
-
-    @Test
-    fun testClausesNPE() {
-        setupGraph("class clazz { public static void main(String[] args) {test();} public int test() {return 23+3; } }")
     }
 
     @Test
@@ -159,10 +147,9 @@ class CodeGenTest {
                 public static void main(String[] args) {
                     Test test = new Test();
                     test.i =   System.in.read() +  System.in.read();
-                    /*int a = System.in.read();
+                    int a = System.in.read();
                     System.out.println(a);
-                    System.out.println(a); */
-
+                    System.out.println(a);
                 }
 
 
@@ -218,13 +205,13 @@ class CodeGenTest {
                     public int i;
                     public static void main(String[] args) {
                         Test tester = new Test();
-                        tester.i = tester.test();
+                        /*tester.i = tester.test();*/
                         while (true) {
-                                                    System.out.println(tester.i);
+                            System.out.println(tester.i);
                         }
                     }
 
-                    public int test() {
+                    /*public int test() {
                         System.out.println(1);
                         System.out.println(2);
                         if (3 == 2) {
@@ -233,7 +220,7 @@ class CodeGenTest {
                         } else {
                             return 3;
                         }
-                    }
+                    }*/
                 }
             """.trimIndent()
         )
@@ -276,7 +263,13 @@ class CodeGenTest {
                 transformToMolki(registerTable) { codeGenBlock!! }
             }
         }
-        println(converted)
+        converted.forEach {
+            println("## ${it.key}:\n")
+            it.value.forEach {
+                it.forEach { println(it.toMolki()) }
+                println("")
+            }
+        }
     }
 
     @Test

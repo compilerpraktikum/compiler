@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
@@ -37,7 +38,7 @@ import firm.nodes.Store
 import firm.nodes.Sub
 import firm.nodes.Unknown
 
-private val Node.parentBlock: Block
+private val Node.enclosingBlock: Block
     get() = this.block as Block
 
 /**
@@ -55,21 +56,21 @@ class FirmToCodeGenTranslator(
 ) : FirmNodeVisitorAdapter() {
 
     class GenerationState(
-        val blockMap: MutableMap<Block, CodeGenIR> = mutableMapOf(),
+        val controlflowDependencies: MutableMap<Block, MutableList<CodeGenIR>> = mutableMapOf(),
         var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     ) {
         val finalizedBlocks: MutableSet<Block> = mutableSetOf()
 
-        fun getCurrentIrForBlock(block: Block): CodeGenIR? {
-            return blockMap[block]
+        fun getCurrentIrForBlock(block: Block): MutableList<CodeGenIR> {
+            return controlflowDependencies.getOrPut(block) { mutableListOf() }
         }
 
-        fun updateCodeForBlock(block: Block, codeGenIR: CodeGenIR) {
-            blockMap[block] = codeGenIR
+        fun emitControlFlowDependencyFor(block: Block, codeGenIR: CodeGenIR) {
+            controlflowDependencies.getOrPut(block) { mutableListOf() }.add(codeGenIR)
         }
 
         fun setFinalCodeGenIrForBlock(block: Block, codeGenIR: CodeGenIR) {
-            updateCodeForBlock(block, codeGenIR)
+            emitControlFlowDependencyFor(block, codeGenIR)
             finalizedBlocks.add(block)
         }
 
@@ -77,18 +78,18 @@ class FirmToCodeGenTranslator(
             nodeMap[node] = codeGenIR
         }
 
-        fun isFinalized() = blockMap.entries.all { finalizedBlocks.contains(it.key) }
+        fun isFinalized() = controlflowDependencies.entries.all { finalizedBlocks.contains(it.key) }
 
-        fun getCodeGenIRs(): MutableMap<Block, CodeGenIR> {
+        fun getCodeGenIRs(): Map<Block, List<CodeGenIR>> {
 //            check(isFinalized()) { "inconsistent state of blockMap $blockMap" }
-            return blockMap
+            return controlflowDependencies
         }
 
         fun getCodeGenFor(node: Node) = nodeMap[node]
     }
 
     companion object {
-        fun buildTrees(graph: Graph, registerTable: VirtualRegisterTable): Map<Block, CodeGenIR?> {
+        fun buildTrees(graph: Graph, registerTable: VirtualRegisterTable): Map<Block, CodeGenIR> {
             println(graph.entity.ldName)
             breakCriticalEdges(graph)
             val phiVisitor = PhiAssignRegisterVisitor(registerTable)
@@ -99,18 +100,20 @@ class FirmToCodeGenTranslator(
             graph.walkTopological(FirmToCodeGenTranslator(graph, registerTable, generationState))
             // last visited block needs to be entered
             BackEdges.disable(graph)
-            return generationState.getCodeGenIRs()
+            return generationState.getCodeGenIRs().mapValues {
+                it.value.toSeqChain()
+            }
         }
     }
 
     private fun getCodeFor(node: Node): CodeGenIR =
-        generationState.getCodeGenFor(node)!!
+        checkNotNull(generationState.getCodeGenFor(node)) { "Node $node has no associated CodeGenIR" }
 
     private inline fun setCodeFor(node: Node, buildCodeGen: () -> CodeGenIR): CodeGenIR =
         buildCodeGen().also { generationState.setCodeGenIrForNode(node, it) }
 
     private fun updateCurrentTree(tree: CodeGenIR, block: Block) {
-        generationState.updateCodeForBlock(block, tree)
+        generationState.emitControlFlowDependencyFor(block, tree)
         println("setCodeGenIrForNode: ${tree}")
     }
 
@@ -144,17 +147,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Call) {
         super.visit(node)
-        val arguments = node.preds
-            .filter { it.mode != Mode.getM() }
-            .filter { it !is Address }
-            .map { getCodeFor(it) }
-        val addr = node.getPred(1) as Address
 
-        //val mode = (node.type as MethodType).getResType(0).mode
-        val seqPred = generationState.getCurrentIrForBlock(node.block as Block) ?: noop()
-        val call = CodeGenIR.Seq(value = CodeGenIR.Call(addr, arguments), exec = seqPred)
-        setCodeFor(node) { call }
-        updateCurrentTree(call, node.parentBlock)
         println("visit CALL " + node.block.toString())
     }
 
@@ -176,22 +169,14 @@ class FirmToCodeGenTranslator(
         val trueBlock = BackEdges.getOuts(trueProj).iterator().next().node!! as Block
         val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
 
-        val cond = CodeGenIR.Seq(
-            exec = getCodeFor(node.getPred(0)),
-            value = CodeGenIR.Cond(
-                cond = getCodeFor(node.getPred(1)),
-                ifTrue = CodeGenIR.Jmp(trueBlock),
-                ifFalse = CodeGenIR.Jmp(falseBlock)
-            )
+
+        val cond = CodeGenIR.Cond(
+            cond = getCodeFor(node.getPred(0)),
+            ifTrue = CodeGenIR.Jmp(trueBlock),
+            ifFalse = CodeGenIR.Jmp(falseBlock)
         )
-//        val cond = CodeGenIR.Seq(
-//            exec = currentTree!!, value = CodeGenIR.Cond(
-//                cond = nodeMap[node.getPred(0)]!!,
-//                ifTrue = CodeGenIR.Jmp(trueBlock),
-//                ifFalse = CodeGenIR.Jmp(falseBlock)
-//            )
-//        )
-        updateCurrentTree(cond, node.parentBlock)
+        generationState.emitControlFlowDependencyFor(node.enclosingBlock, cond)
+
         println("visit COND ${node.block}")
     }
 
@@ -234,25 +219,18 @@ class FirmToCodeGenTranslator(
     //TODO
     override fun visit(node: Jmp) {
         super.visit(node)
-        val controlFlowDependencies = generationState.getCurrentIrForBlock(node.block as Block) ?: noop()
-        val jmp = setCodeFor(node) {
-            CodeGenIR.Seq(
-                exec = controlFlowDependencies,
-                value = CodeGenIR.Jmp(BackEdges.getOuts(node).first().node!! as Block)
-            )
-        }
-        updateCurrentTree(jmp, node.parentBlock)
+
+        generationState.emitControlFlowDependencyFor(
+            node.enclosingBlock,
+            CodeGenIR.Jmp(BackEdges.getOuts(node).first().node!! as Block)
+        )
+
         println("visit JMP " + node.block.toString())
     }
 
     override fun visit(node: Load) {
         super.visit(node)
-        updateCurrentTree(
-            CodeGenIR.Seq(
-                value = CodeGenIR.Indirection(getCodeFor(node.getPred(1))),
-                exec = getCodeFor(node.block as Block)
-            ), node.parentBlock
-        )
+
         println("visit LOAD " + node.block.toString())
     }
 
@@ -316,29 +294,27 @@ class FirmToCodeGenTranslator(
                 //   it ->
                 //}
                 if (node.mode == Mode.getM()) {
+                    // pred = Load | node = ProJ M
                     println("node: $node")
 
-                    // does the call have a result value?
+                    // is the load value used?
                     val resultProjection =
                         BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getIs() }
                     if (resultProjection != null) {
                         val reg = registerTable.getOrCreateRegisterFor(resultProjection)
 
-                        val codegenExecute = when (val loadIR = getCodeFor(pred)) {
-                            is CodeGenIR.Seq -> CodeGenIR.Seq(
-                                value = CodeGenIR.Assign(
-                                    CodeGenIR.RegisterRef(reg),
-                                    loadIR.value
-                                ), exec = loadIR.exec
-                            )
-                            else -> error("invalid state")
-                        }
-                        val codegenRef = CodeGenIR.RegisterRef(reg)
+                        val resultRegister = CodeGenIR.RegisterRef(reg)
 
-                        setCodeFor(resultProjection) { codegenRef }
-                        setCodeFor(node) { codegenExecute }
+                        generationState.emitControlFlowDependencyFor(
+                            node.enclosingBlock, CodeGenIR.Assign(
+                                resultRegister,
+                                CodeGenIR.Indirection(getCodeFor(pred.getPred(1)))
+                            )
+                        )
+
+                        setCodeFor(resultProjection) { resultRegister }
                     } else {
-                        setCodeFor(node) { getCodeFor(pred) }
+                        error("result of load $pred in unused")
                     }
 
 
@@ -346,14 +322,31 @@ class FirmToCodeGenTranslator(
                     // can be skipped. The value projection is handled by the control flow projection
                 }
             }
-            is Store -> setCodeFor(node) { getCodeFor(pred) }
+            is Store -> {
+                // pred = Store | node = Proj M
+                if (node.mode == Mode.getM()) {
+                    val value = getCodeFor(pred.value)
+                    val address = getCodeFor(pred.getPred(1))
+
+                    generationState.emitControlFlowDependencyFor(node.enclosingBlock, CodeGenIR.Assign(lhs = CodeGenIR.Indirection(address), rhs = value))
+                    setCodeFor(node) { noop() }
+                } else {
+                    error("unexpected node: $node")
+                }
+            }
             is Start -> setCodeFor(node) { getCodeFor(pred) }
             is Call -> {
-                //BackEdges.getOuts(pred).forEach{
-                //   it ->
-                //}
                 if (node.mode == Mode.getM()) {
                     println("node: $node")
+                    // pred = CALL | node = Proj M
+
+                    val arguments = pred.preds
+                        .filter { it.mode != Mode.getM() }
+                        .filter { it !is Address }
+                        .map { getCodeFor(it) }
+                    val addr = pred.getPred(1) as Address
+
+                    //val mode = (node.type as MethodType).getResType(0).mode
 
                     // does the call have a result value?
                     val resultProjection =
@@ -362,28 +355,25 @@ class FirmToCodeGenTranslator(
                         val valueProjection = BackEdges.getOuts(resultProjection).first().node
                         val reg = registerTable.getOrCreateRegisterFor(valueProjection)
 
-                        val codegenExecute = when (val callIR = getCodeFor(pred)) {
-                            is CodeGenIR.Seq -> CodeGenIR.Seq(
-                                value = CodeGenIR.Assign(
-                                    CodeGenIR.RegisterRef(reg),
-                                    callIR.value
-                                ), exec = callIR.exec
-                            )
-                            else -> error("invalid state")
-                        }
                         val codegenRef = CodeGenIR.RegisterRef(reg)
 
                         setCodeFor(valueProjection) {
                             codegenRef
                         }
-                        setCodeFor(node) {
-                            codegenExecute
-                        }
-                        updateCurrentTree(codegenExecute, node.parentBlock)
+                        generationState.emitControlFlowDependencyFor(
+                            node.enclosingBlock,
+                            CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
+                        )
+
                     } else {
                         setCodeFor(node) {
-                            getCodeFor(pred)
+                            noop()
                         }
+                        generationState.emitControlFlowDependencyFor(
+                            node.enclosingBlock,
+                            CodeGenIR.Call(addr, arguments)
+                        )
+
                     }
 
 
@@ -424,33 +414,22 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Return) {
         super.visit(node)
         println("visit RETURN $node ${node.preds}")
-        node.preds.forEach { println("predstree ${getCodeFor(it).toString()}") }
-        val nodePreds = node.preds.toList()
 
-        val controlFlow = generationState.getCurrentIrForBlock(node.block as Block) ?: noop()
+        val nodePreds = node.preds.toList()
         val value = nodePreds.getOrNull(1)
 
-        val res = if (value == null) {
-            controlFlow
+        val code = if (value == null) {
+            CodeGenIR.Return(noop())
         } else {
-            CodeGenIR.Seq(
-                value = CodeGenIR.Return(getCodeFor(value)),
-                exec = controlFlow
-            )
+            CodeGenIR.Return(getCodeFor(value))
         }
-        println("res $res")
-        updateCurrentTree(res, node.parentBlock)
+        generationState.emitControlFlowDependencyFor(node.enclosingBlock,code)
         println("visit RETURN " + node.block.toString())
     }
 
     override fun visit(node: Store) {
-        node.preds.forEach { println("Store preds are: ${it.mode.toString()}, ${getCodeFor(it)}") }
         super.visit(node)
-        val value = getCodeFor(node.value)
-        val address = getCodeFor(node.getPred(1))
-        val tree =
-            CodeGenIR.Seq(value = CodeGenIR.Assign(lhs = address, rhs = value), exec = getCodeFor(node.getPred(0)))
-        updateCurrentTree(tree, node.parentBlock)
+
         println("visit STORE " + node.block.toString())
     }
 

@@ -409,7 +409,7 @@ class GraphVizBuilder {
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
             }
-            is CodeGenIR.Cond -> buildString {
+            is CodeGenIR.Cond -> {
                 appendLine("$id[label=Cond];")
                 cond.internalToGraphViz().edge("cond")
                 ifTrue.internalToGraphViz().edge("true")
@@ -442,11 +442,15 @@ class GraphVizBuilder {
                 value.internalToGraphViz().edge("value")
             }
             is CodeGenIR.Div -> TODO()
-            is CodeGenIR.Jmp -> buildString {
-                appendLine("$id[label=\"JMP\"];")
+            is CodeGenIR.Jmp -> {
+                val blockName = block.toString().replace("Block BB[", "").replace("]", "")
+                appendLine("$id[label=\"JMP\n$blockName\"];")
             }
             is CodeGenIR.Mod -> TODO()
             is CodeGenIR.UnaryOP -> TODO()
+            AnyNode -> TODO()
+            is Noop -> TODO()
+            is SaveNodeTo -> TODO()
         }
         return id
     }
@@ -455,6 +459,8 @@ class GraphVizBuilder {
 fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = with(builder) {
     internalToGraphViz()
 }
+
+fun List<CodeGenIR>.toSeqChain() = this.reduceRight { left, right -> CodeGenIR.Seq(left, right) }
 
 enum class BinOpENUM(val isCommutative: Boolean) {
     ADD(true),
