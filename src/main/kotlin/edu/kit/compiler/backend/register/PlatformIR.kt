@@ -2,8 +2,6 @@ package edu.kit.compiler.backend.register
 
 import edu.kit.compiler.backend.molkir.Width
 
-// NOTE: This file is a copy-paste result of MolkIR.kt, and thus not complete
-
 /**
  * Intermediate representation after register allocation.
  */
