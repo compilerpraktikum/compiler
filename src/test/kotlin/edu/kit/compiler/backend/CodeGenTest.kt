@@ -269,8 +269,8 @@ class CodeGenTest {
 
                     public int inc() { return i=i+1; }
             }
-        """.trimIndent()
-        , registerTable)
+        """.trimIndent(), registerTable
+        )
         val converted = instructions.mapValues { (name, codeGenBlocks) ->
             codeGenBlocks.map { codeGenBlock ->
                 transformToMolki(registerTable) { codeGenBlock!! }
@@ -317,6 +317,58 @@ class CodeGenTest {
                 "movq $44, %@2",
                 "addq [ %@1 | %@2 ] -> %@3",
                 "addq [ %@0 | %@3 ] -> %@4",
+            )
+        )
+    }
+
+    @Test
+    fun testSeq() {
+        val res = transformToMolki {
+            CodeGenIR.Seq(
+                value = CodeGenIR.Const("0", Width.DOUBLE),
+                exec = CodeGenIR.Const("0", Width.WORD)
+            )
+        }
+        assertMolkiEquals(
+            res, listOf(
+                "movq $0, %@0w",
+                // "jmp functionReturn" //TODO test this
+            )
+        )
+    }
+
+    @Test
+    fun testReplacementReturnReg() {
+        val res = transformToMolki {
+            CodeGenIR.Return(
+                CodeGenIR.Seq(
+                    value = CodeGenIR.RegisterRef(it.newRegister(Width.QUAD)),
+                    exec = CodeGenIR.Const("0", Width.WORD)
+                )
+            )
+        }
+        assertMolkiEquals(
+            res, listOf(
+                "movq %@0, %@r0",
+                // "jmp functionReturn" //TODO test this
+            )
+        )
+    }
+
+    @Test
+    fun testReplacementReturnNoop() {
+        val res = transformToMolki {
+            CodeGenIR.Return(
+                CodeGenIR.Seq(
+                    value = CodeGenIR.Const("0", Width.DOUBLE),
+                    exec = CodeGenIR.Const("0", Width.WORD)
+                )
+            )
+        }
+        assertMolkiEquals(
+            res, listOf(
+                "movq $0 %@r0",
+                "jmp functionReturn"
             )
         )
     }
