@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.molkir
 
+import edu.kit.compiler.backend.register.getAtntSuffix
 import java.io.PrintStream
 
 interface MolkIR {
@@ -224,7 +225,7 @@ sealed class Instruction : MolkIR {
         // move
         fun mov(from: Target.Input, to: Target.Output) : UnaryOperationWithResult {
             check(from.width == to.width) { "widths of from and to mismatch: $from vs $to" }
-            return UnaryOperationWithResult("mov${from.width.suffix}", from, to)
+            return UnaryOperationWithResult("mov${from.width.getAtntSuffix()}", from, to)
         }
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
         fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
