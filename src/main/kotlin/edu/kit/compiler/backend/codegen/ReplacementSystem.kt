@@ -2,10 +2,8 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Register
-import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.ReplacementBuilderScope
-import firm.nodes.Node
 
 data class Replacement(
     val node: CodeGenIR,
@@ -58,6 +56,11 @@ fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
     val scope = ReplacementScope(registerTable)
     walkDepthFirst { node ->
         println("VISIT: ${node.javaClass}")
+        /*
+         * The code below assumes that all rules matching the node have the same result type (most likely register).
+         * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
+         * Otherwise, we would need to store the best replacement for each possible result type.
+         */
         node.replacement = replacementRules.map { rule ->
             with(scope) {
                 rule.match(node)

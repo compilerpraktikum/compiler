@@ -7,6 +7,7 @@ import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
+import edu.kit.compiler.utils.ValueHolder
 import edu.kit.compiler.utils.rule
 import firm.nodes.Address
 
@@ -323,17 +324,42 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 lhs = CodeGenIR.RegisterRef(valueRegister),
                 rhs = CodeGenIR.Call(address, arguments)
             )
-
         )
 
+        val argRegisters = mutableListOf<Register>()
+        val argReplacements = mutableListOf<Replacement>()
+        condition {
+            val register = ValueHolder.Variable<Register>()
+            val replacement = ValueHolder.Variable<Replacement>()
+            val pattern = CodeGenIR.RegisterRef(register, replacement)
+
+            argRegisters.clear()
+            argReplacements.clear()
+
+            arguments.get().forEach { arg ->
+                if (!pattern.matches(arg))
+                    return@condition false
+
+                argRegisters.add(register.get())
+                argReplacements.add(replacement.get())
+            }
+            return@condition true
+        }
+
         replaceWith {
-            val argReplacements = arguments.get().map {it.replacement}
             Replacement(
-                node = RegisterRef(valueRegister.get()),
-                instructions = instructionListOf(
-                    Instruction.call(address.toString(), TODO("argReplacements"), valueRegister.get(), false)
-                ),
-                cost = argReplacements.sumOf { it!!.cost } + 1
+                node = Noop(),
+                instructions = argReplacements
+                    .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
+                    .append(
+                        Instruction.call(
+                            address.get().entity.ldName,
+                            argRegisters,
+                            valueRegister.get(),
+                            false
+                        )
+                    ),
+                cost = argReplacements.sumOf { it.cost } + 1
             )
         }
     }
