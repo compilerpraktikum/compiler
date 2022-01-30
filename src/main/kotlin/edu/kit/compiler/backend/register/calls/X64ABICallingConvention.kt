@@ -32,7 +32,7 @@ object X64ABICallingConvention : CallingConvention {
     override fun generateFunctionPrologue(reservedSpace: Int): List<PlatformInstruction> {
         val prologue = mutableListOf<PlatformInstruction>()
 
-        prologue.add(PlatformInstruction.push(PlatformTarget.Register(EnumRegister.RBP)))
+        prologue.add(PlatformInstruction.unOp("push", PlatformTarget.Register(EnumRegister.RBP)))
         prologue.add(
             PlatformInstruction.mov(
                 PlatformTarget.Register(EnumRegister.RSP),

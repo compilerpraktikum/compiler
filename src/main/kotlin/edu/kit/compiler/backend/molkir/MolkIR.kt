@@ -28,7 +28,7 @@ enum class Width(val inBytes: Int, val suffix: String) {
     BYTE(1, "l"),
     WORD(2, "w"),
     DOUBLE(4, "d"),
-    QUAD(8, "q");
+    QUAD(8, "");
 
     companion object {
         fun fromByteSize(size: Int): Width? = when (size) {

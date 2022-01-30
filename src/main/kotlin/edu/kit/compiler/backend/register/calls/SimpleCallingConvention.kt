@@ -14,18 +14,16 @@ object SimpleCallingConvention : CallingConvention {
 
     override fun generateFunctionPrologue(reservedSpace: Int): List<PlatformInstruction> {
         return listOf(
-            PlatformInstruction.unOp("push", PlatformTarget.Register(EnumRegister.RBP), Width.QUAD),
+            PlatformInstruction.unOp("push", PlatformTarget.Register(EnumRegister.RBP)),
             PlatformInstruction.binOp(
                 "movq",
                 PlatformTarget.Register(EnumRegister.RSP),
-                PlatformTarget.Register(EnumRegister.RBP),
-                Width.QUAD
+                PlatformTarget.Register(EnumRegister.RBP)
             ),
             PlatformInstruction.binOp(
                 "subq",
                 PlatformTarget.Constant(reservedSpace.toString()),
-                PlatformTarget.Register(EnumRegister.RSP),
-                Width.QUAD
+                PlatformTarget.Register(EnumRegister.RSP)
             ),
         )
     }

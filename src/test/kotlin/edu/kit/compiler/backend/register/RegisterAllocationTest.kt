@@ -43,7 +43,7 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
                 subq ${'$'}16, %rsp
                 movl ${'$'}1, %ebx
@@ -88,7 +88,7 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
                 subq ${'$'}16, %rsp
                 movl ${'$'}1, %ebx
@@ -136,7 +136,7 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
                 subq ${'$'}24, %rsp
                 movl ${'$'}1, %ebx
@@ -173,7 +173,7 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
                 subq ${'$'}16, %rsp
                 xorq %rdx, %rdx
@@ -207,7 +207,7 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
                 subq ${'$'}8, %rsp
                 movl 16(%rbp), %ebx
