@@ -24,7 +24,6 @@ class AssemblyGenerator(output: Path) : AutoCloseable {
             }
         }
 
-
     init {
         // enter text mode initially
         appendLine(currentSegment.switch)
