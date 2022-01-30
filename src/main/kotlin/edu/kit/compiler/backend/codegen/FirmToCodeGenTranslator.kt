@@ -17,6 +17,7 @@ import firm.nodes.Cond
 import firm.nodes.Const
 import firm.nodes.Conv
 import firm.nodes.Div
+import firm.nodes.End
 import firm.nodes.Eor
 import firm.nodes.Jmp
 import firm.nodes.Load
@@ -86,6 +87,11 @@ class FirmToCodeGenTranslator(
         }
 
         fun getCodeGenFor(node: Node) = nodeMap[node]
+    }
+
+    override fun visit(node: End) {
+        super.visit(node)
+        generationState.emitControlFlowDependencyFor(node.enclosingBlock, noop())
     }
 
     companion object {
@@ -402,13 +408,8 @@ class FirmToCodeGenTranslator(
     }
 
     private fun allocateArguments(node: Proj) {
-        val reg = registerTable.getOrCreateRegisterFor(node)
-
-        val registerRef = CodeGenIR.RegisterRef(reg)
-        setCodeFor(node) {
-            registerRef
-        }
-        println("setting nodeMap for $node to $registerRef")
+        // is handled by FunctionArgumentVisitor
+        // -> nothing to do
     }
 
     override fun visit(node: Return) {

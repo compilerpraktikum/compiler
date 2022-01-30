@@ -1,6 +1,10 @@
 package edu.kit.compiler.backend
 
+import edu.kit.compiler.backend.codegen.CodeGenFacade
+import edu.kit.compiler.backend.codegen.CodeGenIR
+import firm.Program
 import java.nio.file.Path
+import kotlin.io.path.writeText
 
 class CompilerBackend(
     private val compilationUnit: String,
@@ -9,7 +13,13 @@ class CompilerBackend(
     private val useMolki: Boolean,
 ) : Backend {
     override fun generate() {
-        TODO("code generation")
+        val graphs = Program.getGraphs()
+        val functions = CodeGenFacade(graphs).generate()
+        val assembly =
+            functions.values.joinToString("\n\n") { functionBody ->
+                functionBody.joinToString("\n") { it.toAssembler() }
+            }
+        assemblyFile.writeText(assembly)
         Linker().link(assemblyFile, executableFile)
     }
 }
