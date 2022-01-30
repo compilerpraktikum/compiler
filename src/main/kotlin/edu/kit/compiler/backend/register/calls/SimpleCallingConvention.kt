@@ -71,51 +71,65 @@ object SimpleCallingConvention : CallingConvention {
 
     override fun generateFunctionCall(
         allocator: RegisterAllocator,
+        arguments: Int,
+        instructionAppender: (PlatformInstruction) -> Unit,
         init: CallingConvention.FunctionCallBuilder.() -> Unit
     ) {
-        SimpleFunctionCallBuilder(allocator).apply(init)
+        SimpleFunctionCallBuilder(allocator, arguments, instructionAppender).apply(init)
     }
 
     /**
      * A very simple call builder that just pushes all arguments onto the stack
      */
-    class SimpleFunctionCallBuilder(allocator: RegisterAllocator) : CallingConvention.FunctionCallBuilder(allocator) {
-        private var parameterZoneWidth = 0
-
+    class SimpleFunctionCallBuilder(
+        allocator: RegisterAllocator,
+        arguments: Int,
+        instructionAppenderCallback: (PlatformInstruction) -> Unit
+    ) : CallingConvention.FunctionCallBuilder(allocator, arguments, instructionAppenderCallback) {
         override fun prepareArgument(
             source: PlatformTarget,
-            width: Width,
-            instructionAppender: (PlatformInstruction) -> Unit
+            width: Width
         ) {
             when (width) {
                 Width.BYTE, Width.WORD -> {
                     val intermediate = allocator.allocateRegister()
-                    instructionAppender(PlatformInstruction.movzx(source, intermediate.quadWidth(), width, Width.QUAD))
-                    instructionAppender(PlatformInstruction.push(intermediate.quadWidth()))
+                    instructionAppenderCallback(
+                        PlatformInstruction.movzx(
+                            source,
+                            intermediate.quadWidth(),
+                            width,
+                            Width.QUAD
+                        )
+                    )
+                    instructionAppenderCallback(PlatformInstruction.push(intermediate.quadWidth()))
                     allocator.freeRegister(intermediate)
                 }
                 Width.DOUBLE -> {
                     val intermediate = allocator.allocateRegister()
-                    instructionAppender(PlatformInstruction.mov(source, intermediate.doubleWidth(), Width.DOUBLE))
-                    instructionAppender(PlatformInstruction.push(intermediate.quadWidth()))
+                    instructionAppenderCallback(
+                        PlatformInstruction.mov(
+                            source,
+                            intermediate.doubleWidth(),
+                            Width.DOUBLE
+                        )
+                    )
+                    instructionAppenderCallback(PlatformInstruction.push(intermediate.quadWidth()))
                     allocator.freeRegister(intermediate)
                 }
                 Width.QUAD -> {
-                    instructionAppender(PlatformInstruction.push(source))
+                    instructionAppenderCallback(PlatformInstruction.push(source))
                 }
             }
-
-            parameterZoneWidth += Width.QUAD.inBytes
         }
 
-        override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
-            instructionAppender(PlatformInstruction.Call(name))
+        override fun generateCall(name: String) {
+            instructionAppenderCallback(PlatformInstruction.Call(name))
         }
 
-        override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
-            instructionAppender(
+        override fun cleanupStack() {
+            instructionAppenderCallback(
                 PlatformInstruction.add(
-                    PlatformTarget.Constant(parameterZoneWidth.toString()),
+                    PlatformTarget.Constant((arguments * 8).toString()),
                     PlatformTarget.Register(EnumRegister.RSP),
                     Width.QUAD
                 )

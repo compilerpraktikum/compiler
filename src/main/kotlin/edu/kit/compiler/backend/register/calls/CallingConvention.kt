@@ -51,43 +51,57 @@ interface CallingConvention {
      * Prepare a function call by creating a [FunctionCallBuilder] and adding all parameters to the call, preparing
      * the stack, generating the call, and generating the call epilgoue.
      *
+     * @param allocator the [RegisterAllocator] utilized by the [edu.kit.compiler.backend.register.FunctionTransformer]
+     * @param arguments how many argument the called function takes
+     * @param instructionAppender a callback that allows appending instructions to the generated code
      * @param init client function that is called to generate the function call prologue. The caller can provide the
      * function call arguments here.
      */
-    fun generateFunctionCall(allocator: RegisterAllocator, init: FunctionCallBuilder.() -> Unit)
+    fun generateFunctionCall(
+        allocator: RegisterAllocator,
+        arguments: Int,
+        instructionAppender: (PlatformInstruction) -> Unit,
+        init: FunctionCallBuilder.() -> Unit
+    )
 
     /**
      * A receiver class for function call DSL that is used for stateful construction of function calls (specifically
-     * argument organization)
+     * argument organization). Arguments are passed to [prepareArgument] in reversed order. Afterwards, a call to
+     * [generateCall] will append the call instruction. Lastly, [cleanupStack] restores the stack frame to the correct
+     * state after the generated function call.
+     *
+     * @param allocator the register allocator used during transformation
+     * @param arguments the number of arguments the call takes
+     * @param instructionAppenderCallback a callback that allows appending instructions to the generated code
      */
-    abstract class FunctionCallBuilder protected constructor(val allocator: RegisterAllocator) {
+    abstract class FunctionCallBuilder protected constructor(
+        val allocator: RegisterAllocator,
+        val arguments: Int,
+        val instructionAppenderCallback: (PlatformInstruction) -> Unit
+    ) {
 
         /**
-         * Prepare an argument according to the respective calling convention
+         * Prepare an argument according to the respective calling convention. The arguments must be passed to this
+         * function in reverse order
          *
          * @param source where to find the argument value
          * @param width the argument bit width
-         * @param instructionAppender a callback that allows appending instructions to the generated code
          */
         abstract fun prepareArgument(
             source: PlatformTarget,
-            width: Width,
-            instructionAppender: (PlatformInstruction) -> Unit
+            width: Width
         )
 
         /**
          * Generate the actual function call
          *
          * @param name function name
-         * @param instructionAppender a callback that allows appending instructions to the generated code
          */
-        abstract fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit)
+        abstract fun generateCall(name: String)
 
         /**
          * Cleanup stack frame after the call
-         *
-         * @param instructionAppender a callback that allows appending instructions to the generated code
          */
-        abstract fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit)
+        abstract fun cleanupStack()
     }
 }

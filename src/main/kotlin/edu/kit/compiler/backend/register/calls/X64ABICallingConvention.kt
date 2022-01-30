@@ -29,6 +29,15 @@ object X64ABICallingConvention : CallingConvention {
         EnumRegister.R15,
     )
 
+    private val parameterRegisters = mapOf(
+        0 to EnumRegister.RDI,
+        1 to EnumRegister.RSI,
+        2 to EnumRegister.RDX,
+        3 to EnumRegister.RCX,
+        4 to EnumRegister.R8,
+        5 to EnumRegister.R9,
+    )
+
     override fun generateFunctionPrologue(reservedSpace: Int): List<PlatformInstruction> {
         val prologue = mutableListOf<PlatformInstruction>()
 
@@ -102,7 +111,18 @@ object X64ABICallingConvention : CallingConvention {
     }
 
     override fun getParameterLocation(virtualRegisterId: Int): PlatformTarget {
-        TODO("not implemented")
+        return when (virtualRegisterId) {
+            in 0..5 -> PlatformTarget.Register(parameterRegisters[virtualRegisterId]!!, Width.QUAD)
+            else -> {
+                val parameterStackLocation = (virtualRegisterId - 6 + 2) * 8 // skip 2 quadwords (pushed EBP and RIP)
+                PlatformTarget.Memory.of(
+                    parameterStackLocation.toString(),
+                    PlatformTarget.Register(EnumRegister.RBP),
+                    null,
+                    null
+                )
+            }
+        }
     }
 
     override fun taintRegister(register: PlatformTarget.Register) {
@@ -111,25 +131,41 @@ object X64ABICallingConvention : CallingConvention {
 
     override fun generateFunctionCall(
         allocator: RegisterAllocator,
+        arguments: Int,
+        instructionAppender: (PlatformInstruction) -> Unit,
         init: CallingConvention.FunctionCallBuilder.() -> Unit
     ) {
-        X64FunctionCallBuilder(allocator).apply(init)
+        X64FunctionCallBuilder(allocator, arguments, instructionAppender).apply(init)
     }
 
-    class X64FunctionCallBuilder(allocator: RegisterAllocator) : CallingConvention.FunctionCallBuilder(allocator) {
+    class X64FunctionCallBuilder(
+        allocator: RegisterAllocator,
+        arguments: Int,
+        instructionAppenderCallback: (PlatformInstruction) -> Unit
+    ) :
+        CallingConvention.FunctionCallBuilder(allocator, arguments, instructionAppenderCallback) {
+        var argumentNumber = 0
+
+        init {
+            // WARNING: we can reliably force-allocate the necessary registers here as long as we use a trivial register
+            // allocation. If we use something more sophisticated, we might need to generate spill code here.
+        }
+
         override fun prepareArgument(
             source: PlatformTarget,
-            width: Width,
-            instructionAppender: (PlatformInstruction) -> Unit
+            width: Width
         ) {
+            when (val n = argumentNumber++) {
+                in 0..5 -> allocator.forceAllocate(parameterRegisters[n]!!)
+                else -> TODO()
+            }
+        }
+
+        override fun generateCall(name: String) {
             TODO("not implemented")
         }
 
-        override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
-            TODO("not implemented")
-        }
-
-        override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
+        override fun cleanupStack() {
             TODO("not implemented")
         }
     }
