@@ -153,6 +153,62 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Call) {
         super.visit(node)
+        val outNodes = BackEdges.getOuts(node).map { it.node }
+        val controlFlowProjection = outNodes.firstNotNullOf {
+            if (it is Proj && it.mode == Mode.getM()) {
+                it
+            } else {
+                null
+            }
+        }
+
+        val resultProjection = outNodes.firstNotNullOfOrNull {
+            if (it is Proj && it.mode == Mode.getT()) {
+                it
+            } else {
+                null
+            }
+        }
+
+
+        val arguments = node.preds
+            .filter { it.mode != Mode.getM() }
+            .filter { it !is Address }
+            .map { getCodeFor(it) }
+
+        val addr = node.preds.firstNotNullOf {
+            if (it is Address) {
+                it
+            } else {
+                null
+            }
+        }
+
+        if (resultProjection != null) {
+            println("resultproject $resultProjection")
+            val valueProjection = BackEdges.getOuts(resultProjection).first().node
+            val reg = registerTable.getOrCreateRegisterFor(valueProjection)
+
+            val codegenRef = CodeGenIR.RegisterRef(reg)
+
+            setCodeFor(valueProjection) {
+                codegenRef
+            }
+            generationState.emitControlFlowDependencyFor(
+                node.enclosingBlock,
+                CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
+            )
+
+        } else {
+            setCodeFor(controlFlowProjection) {
+                noop()
+            }
+            generationState.emitControlFlowDependencyFor(
+                node.enclosingBlock,
+                CodeGenIR.Call(addr, arguments)
+            )
+
+        }
 
         println("visit CALL " + node.block.toString())
     }
@@ -334,7 +390,10 @@ class FirmToCodeGenTranslator(
                     val value = getCodeFor(pred.value)
                     val address = getCodeFor(pred.getPred(1))
 
-                    generationState.emitControlFlowDependencyFor(node.enclosingBlock, CodeGenIR.Assign(lhs = CodeGenIR.Indirection(address), rhs = value))
+                    generationState.emitControlFlowDependencyFor(
+                        node.enclosingBlock,
+                        CodeGenIR.Assign(lhs = CodeGenIR.Indirection(address), rhs = value)
+                    )
                     setCodeFor(node) { noop() }
                 } else {
                     error("unexpected node: $node")
@@ -342,62 +401,10 @@ class FirmToCodeGenTranslator(
             }
             is Start -> setCodeFor(node) { getCodeFor(pred) }
             is Call -> {
-                if (node.mode == Mode.getM()) {
-                    println("node: $node")
-                    // pred = CALL | node = Proj M
-
-                    val arguments = pred.preds
-                        .filter { it.mode != Mode.getM() }
-                        .filter { it !is Address }
-                        .map { getCodeFor(it) }
-                    val addr = pred.getPred(1) as Address
-
-                    //val mode = (node.type as MethodType).getResType(0).mode
-
-                    // does the call have a result value?
-                    val resultProjection =
-                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getT() }
-                    if (resultProjection != null) {
-                        val valueProjection = BackEdges.getOuts(resultProjection).first().node
-                        val reg = registerTable.getOrCreateRegisterFor(valueProjection)
-
-                        val codegenRef = CodeGenIR.RegisterRef(reg)
-
-                        setCodeFor(valueProjection) {
-                            codegenRef
-                        }
-                        generationState.emitControlFlowDependencyFor(
-                            node.enclosingBlock,
-                            CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
-                        )
-
-                    } else {
-                        setCodeFor(node) {
-                            noop()
-                        }
-                        generationState.emitControlFlowDependencyFor(
-                            node.enclosingBlock,
-                            CodeGenIR.Call(addr, arguments)
-                        )
-
-                    }
-
-
-                } else {
-                    // can be skipped. The value projection is handled by the control flow projection
-                }
-            } // skip -> this is handled by succeeding proj
+                // handled by call
+            }
             is Proj -> {
-                when (val origin = pred.pred) {
-                    is Start -> {
-                        println("node: $node, pred: $pred, predpred: $origin")
-                        allocateArguments(node)
-                    }
-                    is Call -> {
-//                        nodeMap[node] = nodeMap[pred]!!
-                        // handled by call outer call case
-                    }
-                }
+                // skip -> this is handled by next proj
             }
             is Cond -> {
                 println(pred.toString())
@@ -405,11 +412,6 @@ class FirmToCodeGenTranslator(
             else -> TODO("missing handling for case $pred")
         }
         println("visit PROJ ${node.toString()} " + node.block.toString())
-    }
-
-    private fun allocateArguments(node: Proj) {
-        // is handled by FunctionArgumentVisitor
-        // -> nothing to do
     }
 
     override fun visit(node: Return) {
@@ -424,7 +426,7 @@ class FirmToCodeGenTranslator(
         } else {
             CodeGenIR.Return(getCodeFor(value))
         }
-        generationState.emitControlFlowDependencyFor(node.enclosingBlock,code)
+        generationState.emitControlFlowDependencyFor(node.enclosingBlock, code)
         println("visit RETURN " + node.block.toString())
     }
 
