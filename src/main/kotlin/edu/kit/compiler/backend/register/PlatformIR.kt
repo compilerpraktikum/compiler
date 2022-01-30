@@ -134,43 +134,23 @@ sealed class PlatformInstruction : PlatformIR {
     }
 
     companion object {
-        fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("movb", from, to)
-            Width.WORD -> binOp("movw", from, to)
-            Width.DOUBLE -> binOp("movl", from, to)
-            Width.QUAD -> binOp("movq", from, to)
-        }
+        fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) =
+            binOp("mov${width.getAtntSuffix()}", from, to)
 
-        fun add(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("addb", from, value)
-            Width.WORD -> binOp("addw", from, value)
-            Width.DOUBLE -> binOp("addl", from, value)
-            Width.QUAD -> binOp("addq", from, value)
-        }
+        fun add(from: PlatformTarget, value: PlatformTarget, width: Width) =
+            binOp("add${width.getAtntSuffix()}", from, value)
 
-        fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("subb", from, value)
-            Width.WORD -> binOp("subw", from, value)
-            Width.DOUBLE -> binOp("subl", from, value)
-            Width.QUAD -> binOp("subq", from, value)
-        }
+        fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) =
+            binOp("sub${width.getAtntSuffix()}", from, value)
 
-        fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("xorb", left, right)
-            Width.WORD -> binOp("xorw", left, right)
-            Width.DOUBLE -> binOp("xorl", left, right)
-            Width.QUAD -> binOp("xorq", left, right)
-        }
+        fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) =
+            binOp("xor${width.getAtntSuffix()}", left, right)
 
         fun push(operand: PlatformTarget) =
             unOp("pushq", operand)
 
-        fun pop(operand: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> unOp("popb", operand)
-            Width.WORD -> unOp("popw", operand)
-            Width.DOUBLE -> unOp("popl", operand)
-            Width.QUAD -> unOp("popq", operand)
-        }
+        fun pop(operand: PlatformTarget, width: Width) =
+            unOp("pop${width.getAtntSuffix()}", operand)
 
         /**
          * Generate an operand-less operation
@@ -204,4 +184,11 @@ sealed class PlatformInstruction : PlatformIR {
         override fun toAssembler(): String =
             "$name [ ${left.toAssembler()} | ${right.toAssembler()} ] -> [ ${resultLeft.toAssembler()} | ${resultRight.toAssembler()} ]"
     }
+}
+
+fun Width.getAtntSuffix(): String = when (this) {
+    Width.BYTE -> "b"
+    Width.WORD -> "w"
+    Width.DOUBLE -> "l"
+    Width.QUAD -> "q"
 }
