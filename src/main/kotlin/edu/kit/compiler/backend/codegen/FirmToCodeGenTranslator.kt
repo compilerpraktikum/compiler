@@ -1,6 +1,5 @@
 package edu.kit.compiler.backend.codegen
 
-import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.optimization.FirmNodeVisitorAdapter
 import firm.BackEdges
@@ -58,16 +57,30 @@ class FirmToCodeGenTranslator(
 
     class GenerationState(
         val controlflowDependencies: MutableMap<Block, MutableList<CodeGenIR>> = mutableMapOf(),
+        val exitNodes: MutableMap<Block, CodeGenIR> = mutableMapOf(),
         var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     ) {
         val finalizedBlocks: MutableSet<Block> = mutableSetOf()
 
+        private fun getOrCreateControlFlowDependencyFor(block: Block) =
+            controlflowDependencies.getOrPut(block) { mutableListOf() }
+
+
         fun getCurrentIrForBlock(block: Block): MutableList<CodeGenIR> {
-            return controlflowDependencies.getOrPut(block) { mutableListOf() }
+            return getOrCreateControlFlowDependencyFor(block)
         }
 
+
         fun emitControlFlowDependencyFor(block: Block, codeGenIR: CodeGenIR) {
-            controlflowDependencies.getOrPut(block) { mutableListOf() }.add(codeGenIR)
+            getOrCreateControlFlowDependencyFor(block).also {
+                println("deps: $it")
+            }.add(codeGenIR)
+        }
+
+        fun setExitNode(block: Block, codeGenIR: CodeGenIR) {
+            check(exitNodes[block] == null) { "setting exit node for $block, which already has an exit node" }
+            getOrCreateControlFlowDependencyFor(block)
+            exitNodes[block] = codeGenIR
         }
 
         fun setFinalCodeGenIrForBlock(block: Block, codeGenIR: CodeGenIR) {
@@ -83,7 +96,10 @@ class FirmToCodeGenTranslator(
 
         fun getCodeGenIRs(): Map<Block, List<CodeGenIR>> {
 //            check(isFinalized()) { "inconsistent state of blockMap $blockMap" }
-            return controlflowDependencies
+            return controlflowDependencies.mapValues { (block, irs) ->
+                val exitNode = exitNodes[block] ?: error("no exit node for block $block")
+                irs + exitNode
+            }
         }
 
         fun getCodeGenFor(node: Node) = nodeMap[node]
@@ -91,7 +107,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: End) {
         super.visit(node)
-        emitControlDependency(node, noop())
+        setExitNodeFor(node, CodeGenIR.Jmp(NameMangling.mangleFunctionName(node.graph)))
     }
 
     companion object {
@@ -118,8 +134,13 @@ class FirmToCodeGenTranslator(
     private inline fun setCodeFor(node: Node, buildCodeGen: () -> CodeGenIR): CodeGenIR =
         buildCodeGen().also { generationState.setCodeGenIrForNode(node, it.withOrigin(node)) }
 
-    private inline fun emitControlDependency(node: Node, codeGenIR: CodeGenIR) {
+    private fun emitControlDependency(node: Node, codeGenIR: CodeGenIR) {
+        println("set control dependency for ${node.enclosingBlock} to $codeGenIR ($node)")
         generationState.emitControlFlowDependencyFor(node.enclosingBlock, codeGenIR.withOrigin(node))
+    }
+
+    private fun setExitNodeFor(node: Node, codeGenIR: CodeGenIR) {
+        generationState.setExitNode(node.enclosingBlock, codeGenIR.withOrigin(node))
     }
 
     private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
@@ -236,7 +257,7 @@ class FirmToCodeGenTranslator(
             trueLabel = NameMangling.mangleBlockName(trueBlock),
             falseLabel = NameMangling.mangleBlockName(falseBlock)
         )
-        emitControlDependency(node, cond)
+        setExitNodeFor(node, cond)
 
         println("visit COND ${node.block}")
     }
@@ -281,7 +302,7 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Jmp) {
         super.visit(node)
         val jumpTarget = BackEdges.getOuts(node).first().node!! as Block
-        emitControlDependency(
+        setExitNodeFor(
             node,
             CodeGenIR.Jmp(NameMangling.mangleBlockName(jumpTarget))
         )
@@ -446,7 +467,9 @@ class FirmToCodeGenTranslator(
         } else {
             CodeGenIR.Return(getCodeFor(value))
         }
-        emitControlDependency(node, code)
+        val endBlock = BackEdges.getOuts(node).first().node!! as Block
+
+        setExitNodeFor(node, CodeGenIR.Seq(code, CodeGenIR.Jmp(NameMangling.mangleBlockName(endBlock))))
         println("visit RETURN " + node.block.toString())
     }
 

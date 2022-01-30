@@ -108,7 +108,8 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         BlockWalker {
         override fun visitBlock(block: Block?) {
             instructions.add(Instruction.Label(NameMangling.mangleBlockName(block!!)))
-            instructions.addAll(blockInstructions[block]!!)
+            val currentInstructions = blockInstructions[block] ?: error("not instructions for block $block")
+            instructions.addAll(currentInstructions)
         }
 
         fun finalize(graph: Graph) {

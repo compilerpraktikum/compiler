@@ -224,7 +224,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
                         )
-                    ),
+                    )
+                ,
                 cost = replacement.get().cost + 1,
             )
         }
