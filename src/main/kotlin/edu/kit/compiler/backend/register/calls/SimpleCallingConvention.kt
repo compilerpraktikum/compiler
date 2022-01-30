@@ -22,8 +22,8 @@ object SimpleCallingConvention : CallingConvention {
             ),
             PlatformInstruction.binOp(
                 "subq",
-                PlatformTarget.Register(EnumRegister.RSP),
-                PlatformTarget.Constant(reservedSpace.toString())
+                PlatformTarget.Constant(reservedSpace.toString()),
+                PlatformTarget.Register(EnumRegister.RSP)
             ),
         )
     }
@@ -98,8 +98,8 @@ object SimpleCallingConvention : CallingConvention {
         override fun cleanupStack(instructionAppender: (PlatformInstruction) -> Unit) {
             instructionAppender(
                 PlatformInstruction.add(
-                    PlatformTarget.Register(EnumRegister.RSP),
                     PlatformTarget.Constant(parameterZoneWidth.toString()),
+                    PlatformTarget.Register(EnumRegister.RSP),
                     Width.QUAD
                 )
             )

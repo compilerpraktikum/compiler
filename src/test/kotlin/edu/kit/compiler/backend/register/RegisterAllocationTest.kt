@@ -45,7 +45,7 @@ internal class RegisterAllocationTest {
             """
                 push %rbp
                 movq %rsp, %rbp
-                subq %rsp, ${'$'}16
+                subq ${'$'}16, %rsp
                 movl ${'$'}1, %ebx
                 movl %ebx, 0(%rbp)
                 movl ${'$'}2, %ebx
@@ -90,7 +90,7 @@ internal class RegisterAllocationTest {
             """
                 push %rbp
                 movq %rsp, %rbp
-                subq %rsp, ${'$'}16
+                subq ${'$'}16, %rsp
                 movl ${'$'}1, %ebx
                 movl %ebx, 0(%rbp)
                 movl ${'$'}2, %ebx
@@ -138,7 +138,7 @@ internal class RegisterAllocationTest {
             """
                 push %rbp
                 movq %rsp, %rbp
-                subq %rsp, ${'$'}24
+                subq ${'$'}24, %rsp
                 movl ${'$'}1, %ebx
                 movl %ebx, 0(%rbp)
                 movl ${'$'}2, %ebx
@@ -149,7 +149,7 @@ internal class RegisterAllocationTest {
                 pushq %ebx
                 call foo
                 movl %eax, -16(%rbp)
-                addq %rsp, ${'$'}16
+                addq ${'$'}16, %rsp
                 leave
                 ret
             """.trimIndent(),
@@ -175,7 +175,7 @@ internal class RegisterAllocationTest {
             """
                 push %rbp
                 movq %rsp, %rbp
-                subq %rsp, ${'$'}16
+                subq ${'$'}16, %rsp
                 xorq %rdx, %rdx
                 movq ${'$'}8, %rax
                 movq ${'$'}2, %rbx
@@ -209,7 +209,7 @@ internal class RegisterAllocationTest {
             """
                 push %rbp
                 movq %rsp, %rbp
-                subq %rsp, ${'$'}8
+                subq ${'$'}8, %rsp
                 movl 16(%rbp), %ebx
                 movl 24(%rbp), %esi
                 addl %ebx, %esi
