@@ -52,7 +52,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    Instruction.movq(const.get().toMolkIR(), newRegister)
+                    Instruction.mov(const.get().toMolkIR(), newRegister)
                 ),
                 cost = 1,
             )
@@ -70,7 +70,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    Instruction.movq(addrValue.get(), newRegister)
+                    Instruction.mov(addrValue.get(), newRegister)
                 ),
                 cost = 1,
             )
@@ -93,7 +93,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.MemoryAddress(addrValue),
                 instructions = instructionListOf(
-                    Instruction.movq(
+                    Instruction.mov(
                         Memory.of(registerId.get(), width = addrValue.get().width),
                         addrValue.get()
                     )
@@ -125,7 +125,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions = replacementForAddr.get().instructions
                     .append(replacementForValue.get().instructions)
                     .append(
-                        Instruction.movq(
+                        Instruction.mov(
                             Memory.of(base = registerWithValue.get(), width = registerWithValue.get().width),
                             Memory.of(base = registerWithAddr.get(), width = registerWithAddr.get().width)
                         )
@@ -161,7 +161,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    Instruction.movq(
+                    Instruction.mov(
                         Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
                         resRegister.get()
                     )
@@ -215,7 +215,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = Noop(),
                 instructions = replacement.get().instructions
                     .append(
-                        Instruction.movq(
+                        Instruction.mov(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
                         )
@@ -237,7 +237,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = Noop(),
                 instructions = instructionListOf(
-                    Instruction.movq(
+                    Instruction.mov(
                         constValue.get().toMolkIR(),
                         ReturnRegister(constValue.get().mode)
                     )
@@ -256,7 +256,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = RegisterRef(valueRegister),
                 instructions = instructionListOf(
-                    Instruction.movq(
+                    Instruction.mov(
                         Memory.of(const = "0", base = registerValue.get(), width = registerValue.get().width),
                         valueRegister
                     )
@@ -279,7 +279,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = RegisterRef(registerToWriteTo),
                 instructions = instructionListOf(
-                    Instruction.movq(
+                    Instruction.mov(
                         Memory.of(
                             const = "0",
                             base = registerWithAddress.get(),
@@ -306,7 +306,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = RegisterRef(registerToWriteTo),
                 instructions = instructionListOf(
-                    Instruction.movq(registerWithValue.get(), registerToWriteTo.get())
+                    Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
                 ),
                 cost = 1,
             )

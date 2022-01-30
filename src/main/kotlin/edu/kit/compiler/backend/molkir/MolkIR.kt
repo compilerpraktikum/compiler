@@ -222,8 +222,9 @@ sealed class Instruction : MolkIR {
          * Unary operations with result
          ****************************************/
         // move
+
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
-        fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
+        fun mov(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("mov", from, to)
 
         // increment / decrement
         fun incl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("incl", operand, result)
