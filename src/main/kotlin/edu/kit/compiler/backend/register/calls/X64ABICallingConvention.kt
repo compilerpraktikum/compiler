@@ -1,3 +1,5 @@
+@file:Suppress("DuplicatedCode")
+
 package edu.kit.compiler.backend.register.calls
 
 import edu.kit.compiler.backend.molkir.Width
@@ -144,29 +146,125 @@ object X64ABICallingConvention : CallingConvention {
         instructionAppenderCallback: (PlatformInstruction) -> Unit
     ) :
         CallingConvention.FunctionCallBuilder(allocator, arguments, instructionAppenderCallback) {
-        var argumentNumber = 0
+        var argumentNumber = arguments
+
+        private val allocatedRegisters = mutableMapOf<Int, PlatformTarget.Register>()
 
         init {
             // WARNING: we can reliably force-allocate the necessary registers here as long as we use a trivial register
             // allocation. If we use something more sophisticated, we might need to generate spill code here.
+
+            // forcibly allocate all required registers for parameters
+            (0 until arguments.coerceAtMost(5)).forEach { index ->
+                allocatedRegisters[index] = allocator.forceAllocate(parameterRegisters[index]!!)
+            }
+
+            // align RSP:
+            instructionAppenderCallback(
+                PlatformInstruction.push(PlatformTarget.Register(EnumRegister.RSP))
+            )
+            instructionAppenderCallback(
+                PlatformInstruction.push(PlatformTarget.Memory.of(base = PlatformTarget.Register(EnumRegister.RSP)))
+            )
+            instructionAppenderCallback(
+                PlatformInstruction.binOp(
+                    "andq",
+                    PlatformTarget.Constant("-0x10"),
+                    PlatformTarget.Register(EnumRegister.RSP)
+                )
+            )
+
+            // prepare stack layout: push dummy argument iff RSP wouldn't be 16-byte-aligned after pushing arguments
+            val stackArguments = (arguments - 6).coerceAtLeast(0)
+            if (stackArguments % 2 != 0) {
+                instructionAppenderCallback(
+                    PlatformInstruction.push(PlatformTarget.Constant("0"))
+                )
+            }
         }
 
         override fun prepareArgument(
             source: PlatformTarget,
             width: Width
         ) {
-            when (val n = argumentNumber++) {
-                in 0..5 -> allocator.forceAllocate(parameterRegisters[n]!!)
-                else -> TODO()
+            when (val index = --argumentNumber) {
+                in 0..5 -> {
+                    // move source to the correct register
+                    instructionAppenderCallback(
+                        PlatformInstruction.mov(
+                            source,
+                            allocatedRegisters[index]!!.width(width),
+                            width
+                        )
+                    )
+                }
+                else -> {
+                    // generate push instruction with correct size and extend memory with zeros, if necessary
+                    when (width) {
+                        Width.BYTE, Width.WORD -> {
+                            val intermediate = allocator.allocateRegister()
+                            instructionAppenderCallback(
+                                PlatformInstruction.movzx(
+                                    source,
+                                    intermediate.quadWidth(),
+                                    width,
+                                    Width.QUAD
+                                )
+                            )
+                            instructionAppenderCallback(PlatformInstruction.push(intermediate.quadWidth()))
+                            allocator.freeRegister(intermediate)
+                        }
+                        Width.DOUBLE -> {
+                            val intermediate = allocator.allocateRegister()
+                            instructionAppenderCallback(
+                                PlatformInstruction.mov(
+                                    source,
+                                    intermediate.doubleWidth(),
+                                    Width.DOUBLE
+                                )
+                            )
+                            instructionAppenderCallback(PlatformInstruction.push(intermediate.quadWidth()))
+                            allocator.freeRegister(intermediate)
+                        }
+                        Width.QUAD -> {
+                            instructionAppenderCallback(PlatformInstruction.push(source))
+                        }
+                    }
+                }
             }
         }
 
         override fun generateCall(name: String) {
-            TODO("not implemented")
+            instructionAppenderCallback(PlatformInstruction.Call(name))
         }
 
         override fun cleanupStack() {
-            TODO("not implemented")
+            // calculate how many arguments are pushed onto the stack
+            var stackArguments = (arguments - 6).coerceAtLeast(0)
+            if (stackArguments % 2 != 0) {
+                stackArguments += 1
+            }
+
+            // free stack space allocated for arguments
+            instructionAppenderCallback(
+                PlatformInstruction.add(
+                    PlatformTarget.Constant((stackArguments * 8).toString()),
+                    PlatformTarget.Register(EnumRegister.RSP),
+                    Width.QUAD
+                )
+            )
+
+            // restore unaligned stack pointer
+            instructionAppenderCallback(
+                PlatformInstruction.mov(
+                    PlatformTarget.Memory.of(
+                        const = "8",
+                        base = PlatformTarget.Register(EnumRegister.RSP)
+                    ),
+                    PlatformTarget.Register(EnumRegister.RSP),
+                    Width.QUAD
+                )
+            )
         }
     }
 }

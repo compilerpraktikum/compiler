@@ -295,7 +295,7 @@ class TrivialFunctionTransformer(
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
-        PlatformTransformation.getInternalCallingConvention()
+        PlatformTransformation.getExternalCallingConvention()
             .generateFunctionCall(allocator, instr.arguments.size, generatedCode::add) {
                 for (i in (0 until instr.arguments.size).reversed()) {
                     val argumentSource = transformOperand(instr.arguments[i])
