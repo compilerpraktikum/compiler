@@ -83,17 +83,19 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         }
     }
 
-    private fun generatePlatformCode() {
+    internal fun generatePlatformCode() {
         platformCode = blocksWithLayout.mapValues { (graph, function) ->
-
-
+            val callingConvention = if (graph.entity.ldName == "main") {
+                PlatformTransformation.getExternalCallingConvention()
+            } else {
+                PlatformTransformation.getInternalCallingConvention()
+            }
             PlatformTransformation.transformFunction(
                 function,
                 numberOfArguments[graph]!!,
                 // TODO: use externalCallingConvention for main
-                PlatformTransformation.getInternalCallingConvention()
+                callingConvention
             )
-
         }
     }
 

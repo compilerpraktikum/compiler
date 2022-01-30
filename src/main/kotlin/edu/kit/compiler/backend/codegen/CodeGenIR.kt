@@ -563,7 +563,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
 }
 
 fun List<CodeGenIR>.toSeqChain() =
-    this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(right.firmNode!!) }
+    this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
 enum class BinOpENUM(val isCommutative: Boolean) {
     ADD(true),
