@@ -26,6 +26,7 @@ import firm.Entity
 import firm.Graph
 import firm.Program
 import firm.Util
+import firm.nodes.Block
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.io.IOException
@@ -93,19 +94,20 @@ class CodeGenTest {
     private fun setupGraph(
         code: String,
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
-    ): Map<Entity, List<CodeGenIR?>> {
-        return generateGraph(code, registerTable).associate {
-            val blocks = FirmToCodeGenTranslator.buildTrees(it, registerTable)
-
-            renderCodeGenIrsToFile(it.entity.toString(), blocks.mapKeys {
+    ): Map<Graph, Map<Block, CodeGenIR>> {
+        val graphs = generateGraph(code, registerTable)
+        val codegen = CodeGenFacade(graphs)
+        codegen.generateCodeGenIR()
+        codegen.codeGenIRs.forEach { (graph, blockMap) ->
+            renderCodeGenIrsToFile(graph.entity.ldName, blockMap.mapKeys {
                 it.key.toString()
                     .replace("Block BB[", "")
                     .replace(" ", "")
                     .replace("]", "")
                     .replace(":", "-")
             })
-            it.entity to blocks.values.toList()
         }
+        return codegen.codeGenIRs
     }
 
     @Test
@@ -118,6 +120,26 @@ class CodeGenTest {
 
                 public int test() { return System.in.read() +1 ;}
             }
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testPhi() {
+        setupGraph(
+            """
+                class Test {
+                    public static void main(String [] args) {
+                        int i = System.in.read();
+                        int j = 0;
+                        if (i > 1337) {
+                            j = 3;
+                        } else {
+                            j = 5;
+                        }
+                        System.out.println(j);
+                    }
+                }
             """.trimIndent()
         )
     }
@@ -213,13 +235,13 @@ class CodeGenTest {
                     public int i;
                     public static void main(String[] args) {
                         Test tester = new Test();
-                        /*tester.i = tester.test();*/
+                        tester.i = tester.test();
                         while (true) {
                             System.out.println(tester.i);
                         }
                     }
 
-                    /*public int test() {
+                    public int test() {
                         System.out.println(1);
                         System.out.println(2);
                         if (3 == 2) {
@@ -228,7 +250,7 @@ class CodeGenTest {
                         } else {
                             return 3;
                         }
-                    }*/
+                    }
                 }
             """.trimIndent()
         )
@@ -263,21 +285,32 @@ class CodeGenTest {
                     public static void main(String[] args) {}
 
                     public int inc() { return i=i+1; }
+
+                     public int test() {
+                        System.out.println(1);
+                        System.out.println(2);
+                        if (3 == 2) {
+                            System.out.println(1);
+                            return 2;
+                        } else {
+                            return 3;
+                        }
+                    }
             }
         """.trimIndent(), registerTable
         )
-        val converted = instructions.mapValues { (name, codeGenBlocks) ->
-            codeGenBlocks.map { codeGenBlock ->
-                transformToMolki(registerTable) { codeGenBlock!! }
-            }
-        }
-        converted.forEach {
-            println("## ${it.key}:\n")
-            it.value.forEach {
-                it.forEach { println(it.toMolki()) }
-                println("")
-            }
-        }
+//        val converted = instructions.mapValues { (name, codeGenBlocks) ->
+//            codeGenBlocks.map { codeGenBlock ->
+//                transformToMolki(registerTable) {  }
+//            }
+//        }
+//        converted.forEach {
+//            println("## ${it.key}:\n")
+//            it.value.forEach {
+//                it.forEach { println(it.toMolki()) }
+//                println("")
+//            }
+//        }
     }
 
     @Test

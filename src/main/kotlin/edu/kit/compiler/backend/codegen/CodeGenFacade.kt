@@ -13,7 +13,7 @@ import java.nio.file.Path
 
 class CodeGenFacade(val graphs: Iterable<Graph>) {
     lateinit var blocksWithLayout: Map<Graph, List<Instruction>>
-    lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
+    internal lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
     lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
     lateinit var platformCode: Map<Graph, List<PlatformInstruction>>
     var registerTables: MutableMap<Graph, VirtualRegisterTable> = mutableMapOf()
@@ -36,15 +36,17 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         }
     }
 
-    private fun generateCodeGenIR() {
+    internal fun generateCodeGenIR() {
         codeGenIRs = graphs.associateWith { graph ->
             println(graph.entity.ldName)
 
             val registerTable: VirtualRegisterTable = VirtualRegisterTable()
             registerTables[graph] = registerTable
 
-            val nodeMapping = FunctionArgumentVisitor(registerTable).argumentMapping
-
+            val functionVisitor = FunctionArgumentVisitor(registerTable)
+            graph.walkTopological(functionVisitor)
+            val nodeMapping = functionVisitor.argumentMapping
+            println("nodeMapping $nodeMapping")
             numberOfArguments[graph] = nodeMapping.size
 
             breakCriticalEdges(graph)
