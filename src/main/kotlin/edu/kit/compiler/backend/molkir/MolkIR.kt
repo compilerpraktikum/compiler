@@ -222,9 +222,12 @@ sealed class Instruction : MolkIR {
          * Unary operations with result
          ****************************************/
         // move
-
+        fun mov(from: Target.Input, to: Target.Output) : UnaryOperationWithResult {
+            check(from.width == to.width) { "widths of from and to mismatch: $from vs $to" }
+            return UnaryOperationWithResult("mov${from.width}", from, to)
+        }
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
-        fun mov(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("mov", from, to)
+        fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
 
         // increment / decrement
         fun incl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("incl", operand, result)
