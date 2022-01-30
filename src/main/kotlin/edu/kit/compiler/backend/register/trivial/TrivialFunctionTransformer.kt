@@ -103,7 +103,7 @@ class TrivialFunctionTransformer(
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         }
 
-        generatedCode.add(instruction)
+        appendInstruction(instruction)
     }
 
     /**
@@ -131,7 +131,7 @@ class TrivialFunctionTransformer(
             registerWidth
         )
 
-        generatedCode.add(instruction)
+        appendInstruction(instruction)
     }
 
     /**
@@ -243,8 +243,8 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
             is MolkiInstruction.DivisionOperation -> transformDivision(instr)
             is MolkiInstruction.Call -> transformFunctionCall(instr)
-            is MolkiInstruction.Jump -> PlatformInstruction.Jump(instr.name, instr.label)
-            is MolkiInstruction.Label -> PlatformInstruction.Label(instr.name)
+            is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
+            is MolkiInstruction.Label -> appendInstruction(PlatformInstruction.Label(instr.name))
             is MolkiInstruction.UnaryOperationWithResult -> transformUnaryOperationWithResult(instr)
         }
     }
@@ -256,7 +256,7 @@ class TrivialFunctionTransformer(
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
-        generatedCode.add(transformedInstr)
+        appendInstruction(transformedInstr)
     }
 
     /**
@@ -271,7 +271,7 @@ class TrivialFunctionTransformer(
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
-        generatedCode.add(transformedInstr)
+        appendInstruction(transformedInstr)
 
         // generate spill code
         spillResultIfNecessary(instr.result, right)
@@ -288,7 +288,7 @@ class TrivialFunctionTransformer(
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, operand, result)
-        generatedCode.add(transformedInstr)
+        appendInstruction(transformedInstr)
 
         // generate spill code
         spillResultIfNecessary(instr.result, result)
@@ -350,16 +350,16 @@ class TrivialFunctionTransformer(
         val resultRight = transformResult(instr.resultRight)
 
         // expand 32 bit numbers to 64 bit
-        generatedCode.add(PlatformInstruction.xor(rdx, rdx, Width.QUAD))
+        appendInstruction(PlatformInstruction.xor(rdx, rdx, Width.QUAD))
         signedExtend(source, rax)
         signedExtend(divisorSource, divisorRegister)
 
         // perform division
-        generatedCode.add(PlatformInstruction.unOp("idivq", divisorRegister))
+        appendInstruction(PlatformInstruction.unOp("idivq", divisorRegister))
 
         // move result to correct target
-        generatedCode.add(PlatformInstruction.mov(rdx.doubleWidth(), resultLeft, Width.DOUBLE))
-        generatedCode.add(PlatformInstruction.mov(rax.doubleWidth(), resultRight, Width.DOUBLE))
+        appendInstruction(PlatformInstruction.mov(rdx.doubleWidth(), resultLeft, Width.DOUBLE))
+        appendInstruction(PlatformInstruction.mov(rax.doubleWidth(), resultRight, Width.DOUBLE))
 
         // generate spill code
         spillResultIfNecessary(instr.resultLeft, resultLeft)
@@ -371,9 +371,9 @@ class TrivialFunctionTransformer(
      */
     private fun signedExtend(source: PlatformTarget, target: PlatformTarget.Register) {
         when (source) {
-            is PlatformTarget.Constant -> generatedCode.add(PlatformInstruction.mov(source, target, Width.QUAD))
+            is PlatformTarget.Constant -> appendInstruction(PlatformInstruction.mov(source, target, Width.QUAD))
             is PlatformTarget.Memory,
-            is PlatformTarget.Register -> generatedCode.add(PlatformInstruction.binOp("movslq", source, target))
+            is PlatformTarget.Register -> appendInstruction(PlatformInstruction.binOp("movslq", source, target))
         }
     }
 
@@ -393,5 +393,12 @@ class TrivialFunctionTransformer(
                 // target an operand to an operation
             }
         }
+    }
+
+    /**
+     * Append an instruction to the current instruction list
+     */
+    private fun appendInstruction(instr: PlatformInstruction) {
+        generatedCode.add(instr)
     }
 }
