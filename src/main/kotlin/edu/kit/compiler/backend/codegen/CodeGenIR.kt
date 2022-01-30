@@ -9,13 +9,27 @@ import edu.kit.compiler.utils.ValueHolder
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
-import firm.nodes.Block
+import firm.nodes.Node
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
-fun defaultReplacement(node: CodeGenIR) = Replacement(
+private fun defaultReplacement(node: CodeGenIR) = Replacement(
     node = node,
     instructions = instructionListOf(),
     cost = 0,
 )
+
+private fun <T> ValueHolder<T>.getAndAssertConstant() = get().also {
+    check(this is ValueHolder.Constant) { "only allowed on real CodeGenIR (forbidden for patterns)" }
+}
+
+@OptIn(ExperimentalContracts::class)
+private fun <T> ValueHolder<T>.assertVariable() {
+    contract {
+        returns() implies (this@assertVariable is ValueHolder.Variable)
+    }
+    check(this is ValueHolder.Variable) { "only allowed on pattern CodeGenIR (forbidden for real tree)" }
+}
 
 sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     var replacement: Replacement? = null
@@ -25,17 +39,26 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
             replacement?.let { yield(it) }
         }
 
+    var firmNode : Node? = null
+
+    fun withOrigin(firmNode: Node): CodeGenIR {
+        this.firmNode = firmNode
+        return this
+    }
+
+    fun display() = "${this::class.simpleName} [${firmNode?.nr ?: "anonymous"}]"
+
     abstract override fun matches(target: CodeGenIR): Boolean
 
     /**
      * Sequential Execution of two nodes, representing the value of <pre>second</pre>
      */
-    class Seq(val value: CodeGenIR, val exec: CodeGenIR) : CodeGenIR() {
+    class Seq(val first: CodeGenIR, val second: CodeGenIR) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Seq)
                 return false
 
-            return value.matches(target.value) && exec.matches(target.exec)
+            return first.matches(target.first) && second.matches(target.second)
         }
     }
 
@@ -168,31 +191,60 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class Cond(val cond: CodeGenIR, val ifTrue: CodeGenIR, val ifFalse: CodeGenIR) : CodeGenIR() {
+    class Cond
+    private constructor(
+        val conditionHolder: ValueHolder<CodeGenIR>,
+        val trueLabelHolder: ValueHolder<String>,
+        val falseLabelHolder: ValueHolder<String>
+    ) : CodeGenIR() {
+        constructor(condition: CodeGenIR, trueLabel: String, falseLabel: String) : this(
+            ValueHolder.Constant(condition),
+            ValueHolder.Constant(trueLabel),
+            ValueHolder.Constant(falseLabel)
+        )
+        constructor(
+            condition: ValueHolder.Variable<CodeGenIR>,
+            trueLabel: ValueHolder.Variable<String>,
+            falseLabel: ValueHolder.Variable<String>
+        ) : this(condition as ValueHolder<CodeGenIR>, trueLabel, falseLabel)
+
+        val condition: CodeGenIR
+            get() = conditionHolder.getAndAssertConstant()
+        val trueLabel: String
+            get() = trueLabelHolder.getAndAssertConstant()
+        val falseLabel: String
+            get() = falseLabelHolder.getAndAssertConstant()
+
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Cond)
                 return false
 
-            return cond.matches(target.cond) && ifTrue.matches(target.ifTrue) && ifFalse.matches(target.ifFalse)
+            conditionHolder.assertVariable()
+            trueLabelHolder.assertVariable()
+            falseLabelHolder.assertVariable()
+
+            conditionHolder.set(target.condition)
+            trueLabelHolder.set(target.trueLabel)
+            falseLabelHolder.set(target.falseLabel)
+
+            return true
         }
     }
 
     class Jmp
-    private constructor(private val blockHolder: ValueHolder<Block>) : CodeGenIR() {
-        constructor(block: Block) : this(ValueHolder.Constant(block))
-        constructor(value: ValueHolder.Variable<Block>) : this(value as ValueHolder<Block>)
+    private constructor(private val labelHolder: ValueHolder<String>) : CodeGenIR() {
+        constructor(label: String) : this(ValueHolder.Constant(label))
+        constructor(label: ValueHolder.Variable<String>) : this(label as ValueHolder<String>)
 
-        val block: Block
-            get() = blockHolder.get().also {
-                check(blockHolder is ValueHolder.Constant)
-            }
+        val label: String
+            get() = labelHolder.getAndAssertConstant()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Jmp)
                 return false
 
-            check(blockHolder is ValueHolder.Variable)
-            blockHolder.set(target.block)
+            labelHolder.assertVariable()
+            labelHolder.set(target.label)
             return true
         }
     }
@@ -293,9 +345,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 }
             }
             is Cond -> {
-                cond.walkDepthFirst(walker)
-                ifTrue.walkDepthFirst(walker)
-                ifFalse.walkDepthFirst(walker)
+                condition.walkDepthFirst(walker)
             }
             is Const -> {}
             is Indirection -> {
@@ -314,11 +364,11 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 returnValue.walkDepthFirst(walker)
             }
             is Seq -> {
-                exec.walkDepthFirst(walker)
-                value.walkDepthFirst(walker)
+                second.walkDepthFirst(walker)
+                first.walkDepthFirst(walker)
             }
             is Div -> TODO()
-            is Jmp -> TODO()
+            is Jmp -> {}
             is Mod -> TODO()
             is UnaryOP -> TODO()
 
@@ -385,7 +435,8 @@ class GraphVizBuilder {
     fun CodeGenIR.internalToGraphViz(): Int {
         val id = freshId()
 
-        fun Int.edge(label: String) = appendLine("$id -> $this [label=\"$label\"];")
+        fun edgeBetween(from: Int, to: Int, label: String) = appendLine("$from -> $to [label=\"$label\"];")
+        fun Int.edge(label: String) = edgeBetween(id, this, label)
 
         when (this@internalToGraphViz) {
             is CodeGenIR.Assign -> {
@@ -405,15 +456,19 @@ class GraphVizBuilder {
                 }
             }
             is CodeGenIR.Compare -> {
-                appendLine("$id[label=\"Relation $relation\"];")
+                appendLine("$id[label=\"Compare $relation\"];")
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
             }
             is CodeGenIR.Cond -> {
                 appendLine("$id[label=Cond];")
-                cond.internalToGraphViz().edge("cond")
-                ifTrue.internalToGraphViz().edge("true")
-                ifFalse.internalToGraphViz().edge("false")
+                condition.internalToGraphViz().edge("cond")
+                val trueNode = freshId()
+                appendLine("$trueNode[label=BB $trueLabel];")
+                val falseNode = freshId()
+                appendLine("$falseNode[label=BB $falseLabel];")
+                edgeBetween(id, trueNode, "true")
+                edgeBetween(id, falseNode, "false")
             }
             is CodeGenIR.Const -> {
                 appendLine("$id[label=\"Const ${value.value}\n${value.mode.name}\"];")
@@ -438,13 +493,12 @@ class GraphVizBuilder {
             }
             is CodeGenIR.Seq -> {
                 appendLine("$id[label=\"Seq\"];")
-                exec.internalToGraphViz().edge("2. exec")
-                value.internalToGraphViz().edge("1. value")
+                first.internalToGraphViz().edge("1st")
+                second.internalToGraphViz().edge("2nd")
             }
             is CodeGenIR.Div -> TODO()
             is CodeGenIR.Jmp -> {
-                val blockName = block.toString().replace("Block BB[", "").replace("]", "")
-                appendLine("$id[label=\"JMP\n$blockName\"];")
+                appendLine("$id[label=\"JMP\n$label\"];")
             }
             is CodeGenIR.Mod -> TODO()
             is CodeGenIR.UnaryOP -> TODO()
@@ -460,7 +514,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
     internalToGraphViz()
 }
 
-fun List<CodeGenIR>.toSeqChain() = this.reduceRight { left, right -> CodeGenIR.Seq(left, right) }
+fun List<CodeGenIR>.toSeqChain() = this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(right.firmNode!!) }
 
 enum class BinOpENUM(val isCommutative: Boolean) {
     ADD(true),

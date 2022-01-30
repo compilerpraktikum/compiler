@@ -91,7 +91,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: End) {
         super.visit(node)
-        generationState.emitControlFlowDependencyFor(node.enclosingBlock, noop())
+        emitControlDependency(node, noop())
     }
 
     companion object {
@@ -116,11 +116,10 @@ class FirmToCodeGenTranslator(
         checkNotNull(generationState.getCodeGenFor(node)) { "Node $node has no associated CodeGenIR" }
 
     private inline fun setCodeFor(node: Node, buildCodeGen: () -> CodeGenIR): CodeGenIR =
-        buildCodeGen().also { generationState.setCodeGenIrForNode(node, it) }
+        buildCodeGen().also { generationState.setCodeGenIrForNode(node, it.withOrigin(node)) }
 
-    private fun updateCurrentTree(tree: CodeGenIR, block: Block) {
-        generationState.emitControlFlowDependencyFor(block, tree)
-        println("setCodeGenIrForNode: ${tree}")
+    private inline fun emitControlDependency(node: Node, codeGenIR: CodeGenIR) {
+        generationState.emitControlFlowDependencyFor(node.enclosingBlock, codeGenIR.withOrigin(node))
     }
 
     private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
@@ -194,8 +193,8 @@ class FirmToCodeGenTranslator(
             setCodeFor(valueProjection) {
                 codegenRef
             }
-            generationState.emitControlFlowDependencyFor(
-                node.enclosingBlock,
+            emitControlDependency(
+                node,
                 CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
             )
 
@@ -203,8 +202,8 @@ class FirmToCodeGenTranslator(
             setCodeFor(controlFlowProjection) {
                 noop()
             }
-            generationState.emitControlFlowDependencyFor(
-                node.enclosingBlock,
+            emitControlDependency(
+                node,
                 CodeGenIR.Call(addr, arguments)
             )
 
@@ -233,11 +232,11 @@ class FirmToCodeGenTranslator(
 
 
         val cond = CodeGenIR.Cond(
-            cond = getCodeFor(node.getPred(0)),
-            ifTrue = CodeGenIR.Jmp(trueBlock),
-            ifFalse = CodeGenIR.Jmp(falseBlock)
+            condition = getCodeFor(node.getPred(0)),
+            trueLabel = NameMangling.mangleBlockName(trueBlock),
+            falseLabel = NameMangling.mangleBlockName(falseBlock)
         )
-        generationState.emitControlFlowDependencyFor(node.enclosingBlock, cond)
+        emitControlDependency(node, cond)
 
         println("visit COND ${node.block}")
     }
@@ -281,10 +280,10 @@ class FirmToCodeGenTranslator(
     //TODO
     override fun visit(node: Jmp) {
         super.visit(node)
-
-        generationState.emitControlFlowDependencyFor(
-            node.enclosingBlock,
-            CodeGenIR.Jmp(BackEdges.getOuts(node).first().node!! as Block)
+        val jumpTarget = BackEdges.getOuts(node).first().node!! as Block
+        emitControlDependency(
+            node,
+            CodeGenIR.Jmp(NameMangling.mangleBlockName(jumpTarget))
         )
 
         println("visit JMP " + node.block.toString())
@@ -317,8 +316,8 @@ class FirmToCodeGenTranslator(
 
             val resultRegister = CodeGenIR.RegisterRef(reg)
 
-            generationState.emitControlFlowDependencyFor(
-                node.enclosingBlock, CodeGenIR.Assign(
+            emitControlDependency(
+                node, CodeGenIR.Assign(
                     resultRegister,
                     CodeGenIR.Indirection(getCodeFor(node.getPred(1)))
                 )
@@ -387,7 +386,7 @@ class FirmToCodeGenTranslator(
         precedingBlocks
             .zip(node.preds)
             .forEach { (precBlock, precNode) ->
-                generationState.emitControlFlowDependencyFor(
+                emitControlDependency(
                     precBlock,
                     CodeGenIR.Assign(phiRegisterRef, getCodeFor(precNode))
                 )
@@ -411,8 +410,8 @@ class FirmToCodeGenTranslator(
                     val value = getCodeFor(pred.value)
                     val address = getCodeFor(pred.getPred(1))
 
-                    generationState.emitControlFlowDependencyFor(
-                        node.enclosingBlock,
+                    emitControlDependency(
+                        node,
                         CodeGenIR.Assign(lhs = CodeGenIR.Indirection(address), rhs = value)
                     )
                     setCodeFor(node) { noop() }
@@ -447,7 +446,7 @@ class FirmToCodeGenTranslator(
         } else {
             CodeGenIR.Return(getCodeFor(value))
         }
-        generationState.emitControlFlowDependencyFor(node.enclosingBlock, code)
+        emitControlDependency(node, code)
         println("visit RETURN " + node.block.toString())
     }
 

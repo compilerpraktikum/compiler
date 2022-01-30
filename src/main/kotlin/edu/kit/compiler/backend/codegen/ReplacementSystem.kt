@@ -55,7 +55,7 @@ fun instructionListOf(vararg instructions: Instruction) = LazyInstructionList().
 fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
     val scope = ReplacementScope(registerTable)
     walkDepthFirst { node ->
-        println("VISIT: ${node.javaClass}")
+        println("VISIT: ${node.display()}")
         /*
          * The code below assumes that all rules matching the node have the same result type (most likely register).
          * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
@@ -66,7 +66,7 @@ fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
                 rule.match(node)
             }
         }.filterNotNull().minByOrNull { it.cost }
-        println("VISIT: ${node.javaClass} REPLACEMENT: ${node.replacement}")
+        println("-> REPLACEMENT: ${node.replacement}")
     }
-    return replacement ?: error("no matching replacement found for root node")
+    return replacement ?: error("no matching replacement found for root node ${this.display()}")
 }

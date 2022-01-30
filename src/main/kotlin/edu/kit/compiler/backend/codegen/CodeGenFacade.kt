@@ -78,7 +78,7 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         blocksWithLayout = molkiIr.mapValues { (graph, functionGraph) ->
             val blockLayouter = LayoutBlocks(mutableListOf(), functionGraph)
             graph.walkBlocksPostorder(blockLayouter)
-            blockLayouter.finalize(graph.entity)
+            blockLayouter.finalize(graph)
             blockLayouter.instructions
         }
     }
@@ -107,12 +107,12 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
     ) :
         BlockWalker {
         override fun visitBlock(block: Block?) {
-            instructions.add(Instruction.Label("block_${block!!.nr}"))
+            instructions.add(Instruction.Label(NameMangling.mangleBlockName(block!!)))
             instructions.addAll(blockInstructions[block]!!)
         }
 
-        fun finalize(entity: Entity) {
-            instructions.add(Instruction.Label("function_return_${entity.ldName}"))
+        fun finalize(graph: Graph) {
+            instructions.add(Instruction.Label(NameMangling.mangleFunctionName(graph)))
         }
     }
 }

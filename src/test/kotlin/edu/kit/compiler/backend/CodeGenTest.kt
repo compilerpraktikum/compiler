@@ -5,7 +5,6 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.backend.codegen.CodeGenIR
-import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
 import edu.kit.compiler.backend.codegen.GraphVizBuilder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
 import edu.kit.compiler.backend.codegen.toGraphViz
@@ -22,11 +21,9 @@ import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.transform.Transformation
 import firm.Dump
-import firm.Entity
 import firm.Graph
 import firm.Program
 import firm.Util
-import firm.nodes.Block
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.io.IOException
@@ -303,9 +300,9 @@ class CodeGenTest {
                     public static void main(String[] args) {}
 
                     public int t() { return i; }
-                    /*public int inc() { return i=i+1; }
+                    public int inc() { return t()+1; }
 
-                     public int test() {
+                    /* public int test() {
                         System.out.println(1);
                         System.out.println(2);
                         if (3 == 2) {
@@ -368,8 +365,8 @@ class CodeGenTest {
     fun testSeq() {
         val res = transformToMolki {
             CodeGenIR.Seq(
-                value = CodeGenIR.Const("0", Width.DOUBLE),
-                exec = CodeGenIR.Const("0", Width.WORD)
+                first = CodeGenIR.Const("0", Width.DOUBLE),
+                second = CodeGenIR.Const("0", Width.WORD)
             )
         }
         assertMolkiEquals(
@@ -384,8 +381,8 @@ class CodeGenTest {
     fun testReplacementReturnReg() {
         val res = transformToMolki {
             CodeGenIR.Seq(
-                value = CodeGenIR.Return(CodeGenIR.RegisterRef(it.newRegister(Width.QUAD))),
-                exec = CodeGenIR.Const("0", Width.WORD)
+                first = CodeGenIR.Return(CodeGenIR.RegisterRef(it.newRegister(Width.QUAD))),
+                second = CodeGenIR.Const("0", Width.WORD)
             )
         }
         assertMolkiEquals(
@@ -433,8 +430,8 @@ class CodeGenTest {
         val res = transformToMolki {
             CodeGenIR.Return(
                 CodeGenIR.Seq(
-                    value = CodeGenIR.Const("0", Width.DOUBLE),
-                    exec = CodeGenIR.Const("0", Width.WORD)
+                    first = CodeGenIR.Const("0", Width.DOUBLE),
+                    second = CodeGenIR.Const("0", Width.WORD)
                 )
             )
         }

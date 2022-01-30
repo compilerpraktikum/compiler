@@ -15,30 +15,30 @@ fun Replacement?.assertExists() = this ?: error("no replacement found")
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("seq") {
-        val value = variable<CodeGenIR>()
-        val exec = variable<CodeGenIR>()
+        val first = variable<CodeGenIR>()
+        val second = variable<CodeGenIR>()
 
         match(
             CodeGenIR.Seq(
-                value = SaveAnyNodeTo(value),
-                exec = SaveAnyNodeTo(exec)
+                first = SaveAnyNodeTo(first),
+                second = SaveAnyNodeTo(second)
             )
         )
 
         condition {
-            value.get().replacement != null && exec.get().replacement != null
+            first.get().replacement != null && second.get().replacement != null
         }
 
         replaceWith {
             // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
             // replacement = REG(1)   | instruction = instr(exec) + instr(value)
-            val valueReplacement = value.get().replacement!!
-            val execReplacement = exec.get().replacement!!
+            val firstReplacement = first.get().replacement!!
+            val secondReplacement = second.get().replacement!!
             Replacement(
                 node = Noop(),
-                instructions = execReplacement.instructions
-                    .append(valueReplacement.instructions),
-                cost = execReplacement.cost + valueReplacement.cost
+                instructions = firstReplacement.instructions
+                    .append(secondReplacement.instructions),
+                cost = firstReplacement.cost + secondReplacement.cost
             )
         }
     },
@@ -259,7 +259,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = RegisterRef(valueRegister),
                 instructions = instructionListOf(
                     Instruction.mov(
-                        Memory.of(const = "0", base = registerValue.get(), width = registerValue.get().width),
+                        Memory.of(base = registerValue.get(), width = registerValue.get().width),
                         valueRegister
                     )
                 ),
@@ -278,15 +278,15 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         )
         replaceWith {
+            println("replacements ${registerWithAddress.get()} ${registerToWriteTo.get()}")
             Replacement(
                 node = RegisterRef(registerToWriteTo),
                 instructions = instructionListOf(
                     Instruction.mov(
                         Memory.of(
-                            const = "0",
                             base = registerWithAddress.get(),
-                            width = registerWithAddress.get().width
-                        ),
+                            width = registerToWriteTo.get().width
+                        ).also { println("mem ${it.width}") },
                         registerToWriteTo.get()
                     )
                 ),
@@ -305,6 +305,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         )
         replaceWith {
+            println("from $registerWithValue to $registerToWriteTo")
             Replacement(
                 node = RegisterRef(registerToWriteTo),
                 instructions = instructionListOf(
@@ -362,5 +363,98 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 cost = argReplacements.sumOf { it.cost } + 1
             )
         }
-    }
+    },
+    rule("call function and discard result") {
+        val address = variable<Address>()
+        val arguments = variable<List<CodeGenIR>>()
+
+        match(
+            CodeGenIR.Call(address, arguments)
+        )
+
+        val argRegisters = mutableListOf<Register>()
+        val argReplacements = mutableListOf<Replacement>()
+        condition {
+            val register = ValueHolder.Variable<Register>()
+            val replacement = ValueHolder.Variable<Replacement>()
+            val pattern = CodeGenIR.RegisterRef(register, replacement)
+
+            argRegisters.clear()
+            argReplacements.clear()
+
+            arguments.get().forEach { arg ->
+                if (!pattern.matches(arg))
+                    return@condition false
+
+                argRegisters.add(register.get())
+                argReplacements.add(replacement.get())
+            }
+            return@condition true
+        }
+
+        replaceWith {
+            Replacement(
+                node = Noop(),
+                instructions = argReplacements
+                    .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
+                    .append(
+                        Instruction.call(
+                            address.get().entity.ldName,
+                            argRegisters,
+                            null,
+                            false
+                        )
+                    ),
+                cost = argReplacements.sumOf { it.cost } + 1
+            )
+        }
+    },
+    rule("jump") {
+        val target = variable<String>()
+
+        match(
+            CodeGenIR.Jmp(target)
+        )
+
+        replaceWith {
+            Replacement(
+                node= Noop(),
+                instructions = instructionListOf(
+                    Instruction.jmp(target.get())
+                ),
+                cost = 1
+            )
+        }
+    },
+//    rule("cond") {
+//        val relation = variable<>()
+//        val trueLabel = variable<String>()
+//        val falseLabel = variable<String>()
+//
+//        match(
+//            CodeGenIR.Cond(
+//                CodeGenIR.Compare(
+//                    relation,
+//                    left,
+//                    right
+//                ),
+//                trueLabel,
+//                falseLabel
+//            )
+//        )
+//
+//        condition {
+//            cond.get().replacement != null
+//        }
+//
+//        replaceWith {
+//            Replacement(
+//                node = Noop(),
+//                instructions = cond.get().replacement!!.instructions
+//                    .append(
+//                        Instruction.jge()
+//                    )
+//            )
+//        }
+//    }
 )
