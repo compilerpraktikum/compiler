@@ -3,6 +3,7 @@ package edu.kit.compiler.backend
 import com.tylerthrailkill.helpers.prettyprint.pp
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
+import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.FirmToCodeGenTranslator
 import edu.kit.compiler.backend.codegen.GraphVizBuilder
@@ -22,6 +23,7 @@ import edu.kit.compiler.source.SourceFile
 import edu.kit.compiler.transform.Transformation
 import firm.Dump
 import firm.Entity
+import firm.Graph
 import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
@@ -70,10 +72,9 @@ class CodeGenTest {
         renderDotFile(filePrefix, dot)
     }
 
-    private fun setupGraph(
-        code: String,
-        registerTable: VirtualRegisterTable = VirtualRegisterTable()
-    ): Map<Entity, List<CodeGenIR?>> {
+    private fun generateGraph(code: String,
+                              registerTable: VirtualRegisterTable = VirtualRegisterTable()
+    ): List<Graph> {
         val sourceFile = SourceFile.from("/path/to/file", code)
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(sourceFile, stringTable)
@@ -86,7 +87,14 @@ class CodeGenTest {
         dumpGraphs("after-construction")
         Util.lowerSels()
         dumpGraphs("after-lowering")
-        return Program.getGraphs().associate {
+        return Program.getGraphs()!!.toList()
+    }
+
+    private fun setupGraph(
+        code: String,
+        registerTable: VirtualRegisterTable = VirtualRegisterTable()
+    ): Map<Entity, List<CodeGenIR?>> {
+        return generateGraph(code, registerTable).associate {
             val blocks = FirmToCodeGenTranslator.buildTrees(it, registerTable)
 
             renderCodeGenIrsToFile(it.entity.toString(), blocks.mapKeys {
@@ -273,13 +281,6 @@ class CodeGenTest {
     }
 
     @Test
-    fun testReplacementSystemConst() {
-        val instructions = transformToMolki() {
-            CodeGenIR.Const("2", Width.QUAD)
-        }
-    }
-
-    @Test
     fun testReplacementSystemAdd() {
         val res = transformToMolki() {
             CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
@@ -412,10 +413,22 @@ class CodeGenTest {
         }
         assertMolkiEquals(
             res, listOf(
-                "movq 2(), %@1",
+                "movq $2, %@1",
                 "addq [ %@1 | %@0 ] -> %@2",
             )
         )
+    }
+
+    @Test
+    fun testWithPlatform() {
+        val graph = generateGraph("class Test { public static void main(String[] args) {} }")
+        val codeGenFacade = CodeGenFacade(graph)
+        val platformCodes = codeGenFacade.generate()
+        platformCodes.forEach {  (graph, instructions) ->
+            println("graph: ${graph.entity.ldName}")
+            codeGenFacade.codeGenIRs[graph].pp()
+            println(instructions.joinToString("\n   ") { it.toAssembler() })
+        }
     }
 
 
