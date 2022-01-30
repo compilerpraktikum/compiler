@@ -96,7 +96,7 @@ sealed class PlatformTarget : PlatformIR {
 
 sealed class PlatformInstruction : PlatformIR {
     class Label(val name: String) : PlatformInstruction() {
-        override fun toAssembler(): String = "$name:"
+        override fun toAssembler(): String = "L$name:"
     }
 
     class Call(val name: String) : PlatformInstruction() {

@@ -426,7 +426,7 @@ class CodeGenTest {
         val platformCodes = codeGenFacade.generate()
         platformCodes.forEach {  (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")
-            codeGenFacade.codeGenIRs[graph].pp()
+            codeGenFacade.blocksWithLayout[graph]!!.map { it.toMolki() }.pp()
             println(instructions.joinToString("\n   ") { it.toAssembler() })
         }
     }

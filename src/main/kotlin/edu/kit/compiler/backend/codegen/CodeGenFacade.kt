@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.backend.assembly.AssemblyGenerator
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
@@ -8,21 +9,31 @@ import firm.BlockWalker
 import firm.Entity
 import firm.Graph
 import firm.nodes.Block
+import java.nio.file.Path
 
 class CodeGenFacade(val graphs: Iterable<Graph>) {
     lateinit var blocksWithLayout: Map<Graph, List<Instruction>>
     lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
     lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
     lateinit var platformCode: Map<Graph, List<PlatformInstruction>>
-    var registerTables : MutableMap<Graph, VirtualRegisterTable> = mutableMapOf()
-    var numberOfArguments : MutableMap<Graph, Int> = mutableMapOf()
+    var registerTables: MutableMap<Graph, VirtualRegisterTable> = mutableMapOf()
+    var numberOfArguments: MutableMap<Graph, Int> = mutableMapOf()
 
-    fun generate() : Map<Graph, List<PlatformInstruction>> {
+    fun generate(): Map<Graph, List<PlatformInstruction>> {
         generateCodeGenIR()
         generateMolkiIr()
         generateBlockLayout()
         generatePlatformCode()
+
         return platformCode
+    }
+
+    fun generateAssemblyFile(assemblyFile: Path) {
+        AssemblyGenerator(assemblyFile).use { assemblyGenerator ->
+            platformCode.forEach { (graph, instructions) ->
+                assemblyGenerator.generateFunction(graph.entity.ldName, instructions)
+            }
+        }
     }
 
     private fun generateCodeGenIR() {
@@ -46,7 +57,7 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
 
             BackEdges.disable(graph)
 
-            generationState.getCodeGenIRs().also { println("codegenir: ${it.keys}") }.mapValues {
+            generationState.getCodeGenIRs().mapValues {
                 it.value.toSeqChain()
             }
         }
@@ -75,7 +86,6 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         platformCode = blocksWithLayout.mapValues { (graph, function) ->
 
 
-
             PlatformTransformation.transformFunction(
                 function,
                 numberOfArguments[graph]!!,
@@ -90,15 +100,18 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
      * Lays out basic blocks of one function.
      * Usually called with walkPostorder
      */
-    class LayoutBlocks(val instructions: MutableList<Instruction>, val blockInstructions: Map<Block, List<Instruction>>) :
+    class LayoutBlocks(
+        val instructions: MutableList<Instruction>,
+        val blockInstructions: Map<Block, List<Instruction>>
+    ) :
         BlockWalker {
         override fun visitBlock(block: Block?) {
-            instructions.add(Instruction.Label("block-${block!!.nr}"))
+            instructions.add(Instruction.Label("block_${block!!.nr}"))
             instructions.addAll(blockInstructions[block]!!)
         }
 
         fun finalize(entity: Entity) {
-            instructions.add(Instruction.Label("function-${entity.ldName}"))
+            instructions.add(Instruction.Label("function_return_${entity.ldName}"))
         }
     }
 }

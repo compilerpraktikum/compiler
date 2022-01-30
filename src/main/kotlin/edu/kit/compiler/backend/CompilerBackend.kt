@@ -14,12 +14,15 @@ class CompilerBackend(
 ) : Backend {
     override fun generate() {
         val graphs = Program.getGraphs()
-        val functions = CodeGenFacade(graphs).generate()
-        val assembly =
-            functions.values.joinToString("\n\n") { functionBody ->
-                functionBody.joinToString("\n") { it.toAssembler() }
-            }
-        assemblyFile.writeText(assembly)
+        val codeGenFacade = CodeGenFacade(graphs)
+        val functions = codeGenFacade.generate()
+        println(assemblyFile)
+        val assembly = codeGenFacade.generateAssemblyFile(assemblyFile)
+//        val assembly =
+//            functions.values.joinToString("\n\n") { functionBody ->
+//                functionBody.joinToString("\n") { it.toAssembler() }
+//            }
+//        assemblyFile.writeText(assembly)
         Linker().link(assemblyFile, executableFile)
     }
 }
