@@ -224,7 +224,7 @@ sealed class Instruction : MolkIR {
         // move
         fun mov(from: Target.Input, to: Target.Output) : UnaryOperationWithResult {
             check(from.width == to.width) { "widths of from and to mismatch: $from vs $to" }
-            return UnaryOperationWithResult("mov${from.width}", from, to)
+            return UnaryOperationWithResult("mov${from.width.suffix}", from, to)
         }
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
         fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
