@@ -8,6 +8,7 @@ import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.rule
+import firm.nodes.Address
 
 fun Replacement?.assertExists() = this ?: error("no replacement found")
 
@@ -309,6 +310,30 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
                 ),
                 cost = 1,
+            )
+        }
+    },
+    rule("call function and store to register") {
+        val address = variable<Address>()
+        val valueRegister = variable<Register>()
+        val arguments = variable<List<CodeGenIR>>()
+
+        match(
+            CodeGenIR.Assign(
+                lhs = CodeGenIR.RegisterRef(valueRegister),
+                rhs = CodeGenIR.Call(address, arguments)
+            )
+
+        )
+
+        replaceWith {
+            val argReplacements = arguments.get().map {it.replacement}
+            Replacement(
+                node = RegisterRef(valueRegister.get()),
+                instructions = instructionListOf(
+                    Instruction.call(address.toString(), TODO("argReplacements"), valueRegister.get(), false)
+                ),
+                cost = argReplacements.sumOf { it!!.cost } + 1
             )
         }
     }
