@@ -173,17 +173,6 @@ sealed class PlatformInstruction : PlatformIR {
             right: PlatformTarget
         ) = BinaryOperation(name, left, right)
     }
-
-    class BinaryOperationWithTwoPartResult(
-        val name: String,
-        val left: PlatformTarget,
-        val right: PlatformTarget,
-        val resultLeft: PlatformTarget,
-        val resultRight: PlatformTarget
-    ) : PlatformInstruction() {
-        override fun toAssembler(): String =
-            "$name [ ${left.toAssembler()} | ${right.toAssembler()} ] -> [ ${resultLeft.toAssembler()} | ${resultRight.toAssembler()} ]"
-    }
 }
 
 fun Width.getAtntSuffix(): String = when (this) {
