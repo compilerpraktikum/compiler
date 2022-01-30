@@ -60,7 +60,7 @@ interface CallingConvention {
      * A receiver class for function call DSL that is used for stateful construction of function calls (specifically
      * argument organization)
      */
-    abstract class FunctionCallBuilder protected constructor(allocator: RegisterAllocator) {
+    abstract class FunctionCallBuilder protected constructor(val allocator: RegisterAllocator) {
 
         /**
          * Prepare an argument according to the respective calling convention

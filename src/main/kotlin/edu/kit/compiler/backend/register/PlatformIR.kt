@@ -137,6 +137,16 @@ sealed class PlatformInstruction : PlatformIR {
         fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) =
             binOp("mov${width.getAtntSuffix()}", from, to)
 
+        fun movzx(
+            from: PlatformTarget,
+            to: PlatformTarget,
+            sourceWidth: Width,
+            targetWidth: Width
+        ): PlatformInstruction {
+            require(sourceWidth.inBytes < 4) { "cannot zero-extend double-word or quad-word operands" }
+            return binOp("movz${sourceWidth.getAtntSuffix()}${targetWidth.getAtntSuffix()}", from, to)
+        }
+
         fun add(from: PlatformTarget, value: PlatformTarget, width: Width) =
             binOp("add${width.getAtntSuffix()}", from, value)
 
@@ -147,7 +157,7 @@ sealed class PlatformInstruction : PlatformIR {
             binOp("xor${width.getAtntSuffix()}", left, right)
 
         fun push(operand: PlatformTarget) =
-            unOp("pushq", operand)
+            unOp("push", operand)
 
         fun pop(operand: PlatformTarget, width: Width) =
             unOp("pop${width.getAtntSuffix()}", operand)

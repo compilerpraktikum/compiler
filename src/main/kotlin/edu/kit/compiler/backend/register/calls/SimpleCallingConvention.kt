@@ -87,8 +87,25 @@ object SimpleCallingConvention : CallingConvention {
             width: Width,
             instructionAppender: (PlatformInstruction) -> Unit
         ) {
+            when (width) {
+                Width.BYTE, Width.WORD -> {
+                    val intermediate = allocator.allocateRegister()
+                    instructionAppender(PlatformInstruction.movzx(source, intermediate.quadWidth(), width, Width.QUAD))
+                    instructionAppender(PlatformInstruction.push(intermediate.quadWidth()))
+                    allocator.freeRegister(intermediate)
+                }
+                Width.DOUBLE -> {
+                    val intermediate = allocator.allocateRegister()
+                    instructionAppender(PlatformInstruction.mov(source, intermediate.doubleWidth(), Width.DOUBLE))
+                    instructionAppender(PlatformInstruction.push(intermediate.quadWidth()))
+                    allocator.freeRegister(intermediate)
+                }
+                Width.QUAD -> {
+                    instructionAppender(PlatformInstruction.push(source))
+                }
+            }
+
             parameterZoneWidth += Width.QUAD.inBytes
-            instructionAppender(PlatformInstruction.push(source))
         }
 
         override fun generateCall(name: String, instructionAppender: (PlatformInstruction) -> Unit) {
