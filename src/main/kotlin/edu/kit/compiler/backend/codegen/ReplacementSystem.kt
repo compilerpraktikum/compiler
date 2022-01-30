@@ -50,6 +50,8 @@ private constructor(private val instructions: () -> MutableList<Instruction>) {
     fun build(): List<Instruction> = buildList()
 }
 
+operator fun LazyInstructionList.plus(other: LazyInstructionList) = append(other)
+
 fun instructionListOf(vararg instructions: Instruction) = LazyInstructionList().append(instructions)
 
 fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
