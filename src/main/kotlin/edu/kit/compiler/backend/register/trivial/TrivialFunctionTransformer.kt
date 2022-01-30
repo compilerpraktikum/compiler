@@ -249,13 +249,15 @@ class TrivialFunctionTransformer(
         }
     }
 
-    private fun transformBinaryOperation(instr: edu.kit.compiler.backend.molkir.Instruction.BinaryOperation) {
+    private fun transformBinaryOperation(instr: MolkiInstruction.BinaryOperation) {
+        require(instr.left.width == instr.right.width) { "operand widths does not match: ${instr.toMolki()}" }
+
         // transform operands
         val left = transformOperand(instr.left)
         val right = transformOperand(instr.right)
 
         // transform instruction
-        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
+        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right, instr.left.width)
         appendInstruction(transformedInstr)
     }
 
@@ -265,12 +267,14 @@ class TrivialFunctionTransformer(
      * Allocates the required registers and spills the result onto the stack.
      */
     private fun transformBinaryOperationWithResult(instr: MolkiInstruction.BinaryOperationWithResult) {
+        require(instr.left.width == instr.right.width) { "operand widths does not match: ${instr.toMolki()}" }
+
         // transform operands
         val left = transformOperand(instr.left)
         val right = transformOperand(instr.right)
 
         // transform instruction
-        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
+        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right, instr.left.width)
         appendInstruction(transformedInstr)
 
         // generate spill code
@@ -282,12 +286,14 @@ class TrivialFunctionTransformer(
      * Allocates the required registers and spills the result onto the stack.
      */
     private fun transformUnaryOperationWithResult(instr: MolkiInstruction.UnaryOperationWithResult) {
+        require(instr.operand.width == instr.result.width) { "operand widths does not match: ${instr.toMolki()}" }
+
         // transform operands
         val operand = transformOperand(instr.operand)
         val result = transformResult(instr.result)
 
         // transform instruction
-        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, operand, result)
+        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, operand, result, instr.operand.width)
         appendInstruction(transformedInstr)
 
         // generate spill code
@@ -337,6 +343,8 @@ class TrivialFunctionTransformer(
     }
 
     private fun transformDivision(instr: MolkiInstruction.DivisionOperation) {
+        require(instr.left.width == instr.right.width) { "operand widths does not match: ${instr.toMolki()}" }
+
         // we assume that we can always forcibly allocate those registers, because at the beginning of this instruction,
         // no registers should be allocated (using the trivial function transformation)
         val rdx = forceAllocateRegister(EnumRegister.RDX, Width.QUAD)
@@ -355,7 +363,7 @@ class TrivialFunctionTransformer(
         signedExtend(divisorSource, divisorRegister)
 
         // perform division
-        appendInstruction(PlatformInstruction.unOp("idivq", divisorRegister))
+        appendInstruction(PlatformInstruction.unOp("idivq", divisorRegister, instr.left.width))
 
         // move result to correct target
         appendInstruction(PlatformInstruction.mov(rdx.doubleWidth(), resultLeft, Width.DOUBLE))
@@ -373,7 +381,14 @@ class TrivialFunctionTransformer(
         when (source) {
             is PlatformTarget.Constant -> appendInstruction(PlatformInstruction.mov(source, target, Width.QUAD))
             is PlatformTarget.Memory,
-            is PlatformTarget.Register -> appendInstruction(PlatformInstruction.binOp("movslq", source, target))
+            is PlatformTarget.Register -> appendInstruction(
+                PlatformInstruction.binOp(
+                    "movsl",
+                    source,
+                    target,
+                    Width.QUAD
+                )
+            )
         }
     }
 

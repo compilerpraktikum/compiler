@@ -121,56 +121,40 @@ sealed class PlatformInstruction : PlatformIR {
     /**
      * Operation with one operand
      */
-    class UnaryOperation(val name: String, val operand: PlatformTarget) : PlatformInstruction() {
+    class UnaryOperation(name: String, val operand: PlatformTarget, width: Width) : PlatformInstruction() {
+        val name = name + width.suffix
+
         override fun toAssembler(): String = "$name ${operand.toAssembler()}"
     }
 
     /**
      * Operation with two operands, the second usually being the result target (if any).
      */
-    class BinaryOperation(val name: String, val left: PlatformTarget, val right: PlatformTarget) :
+    class BinaryOperation(name: String, val left: PlatformTarget, val right: PlatformTarget, width: Width) :
         PlatformInstruction() {
+        val name = name + width.suffix
+
         override fun toAssembler(): String = "$name ${left.toAssembler()}, ${right.toAssembler()}"
     }
 
     companion object {
-        fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("movb", from, to)
-            Width.WORD -> binOp("movw", from, to)
-            Width.DOUBLE -> binOp("movl", from, to)
-            Width.QUAD -> binOp("movq", from, to)
-        }
+        fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) =
+            binOp("mov", from, to, width)
 
-        fun add(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("addb", from, value)
-            Width.WORD -> binOp("addw", from, value)
-            Width.DOUBLE -> binOp("addl", from, value)
-            Width.QUAD -> binOp("addq", from, value)
-        }
+        fun add(from: PlatformTarget, value: PlatformTarget, width: Width) =
+            binOp("add", from, value, width)
 
-        fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("subb", from, value)
-            Width.WORD -> binOp("subw", from, value)
-            Width.DOUBLE -> binOp("subl", from, value)
-            Width.QUAD -> binOp("subq", from, value)
-        }
+        fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) =
+            binOp("sub", from, value, width)
 
-        fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> binOp("xorb", left, right)
-            Width.WORD -> binOp("xorw", left, right)
-            Width.DOUBLE -> binOp("xorl", left, right)
-            Width.QUAD -> binOp("xorq", left, right)
-        }
+        fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) =
+            binOp("xor", left, right, width)
 
         fun push(operand: PlatformTarget) =
-            unOp("pushq", operand)
+            unOp("push", operand, Width.QUAD)
 
-        fun pop(operand: PlatformTarget, width: Width) = when (width) {
-            Width.BYTE -> unOp("popb", operand)
-            Width.WORD -> unOp("popw", operand)
-            Width.DOUBLE -> unOp("popl", operand)
-            Width.QUAD -> unOp("popq", operand)
-        }
+        fun pop(operand: PlatformTarget, width: Width) =
+            unOp("pop", operand, width)
 
         /**
          * Generate an operand-less operation
@@ -181,8 +165,8 @@ sealed class PlatformInstruction : PlatformIR {
         /**
          * Generate a unary operation
          */
-        fun unOp(name: String, operand: PlatformTarget) =
-            UnaryOperation(name, operand)
+        fun unOp(name: String, operand: PlatformTarget, width: Width) =
+            UnaryOperation(name, operand, width)
 
         /**
          * Generate a binary operation
@@ -190,17 +174,21 @@ sealed class PlatformInstruction : PlatformIR {
         fun binOp(
             name: String,
             left: PlatformTarget,
-            right: PlatformTarget
-        ) = BinaryOperation(name, left, right)
+            right: PlatformTarget,
+            width: Width
+        ) = BinaryOperation(name, left, right, width)
     }
 
     class BinaryOperationWithTwoPartResult(
-        val name: String,
+        name: String,
         val left: PlatformTarget,
         val right: PlatformTarget,
         val resultLeft: PlatformTarget,
-        val resultRight: PlatformTarget
+        val resultRight: PlatformTarget,
+        width: Width
     ) : PlatformInstruction() {
+        val name = name + width.suffix
+
         override fun toAssembler(): String =
             "$name [ ${left.toAssembler()} | ${right.toAssembler()} ] -> [ ${resultLeft.toAssembler()} | ${resultRight.toAssembler()} ]"
     }
