@@ -293,6 +293,43 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Load) {
         super.visit(node)
 
+        println("node: $node")
+
+        val outNodes = BackEdges.getOuts(node).map { it.node }
+        val controlFlowProjection = outNodes.firstNotNullOf {
+            if (it is Proj && it.mode == Mode.getM()) {
+                it
+            } else {
+                null
+            }
+        }
+
+        val resultProjection = outNodes.firstNotNullOfOrNull {
+            if (it is Proj && it.mode == Mode.getIs()) {
+                it
+            } else {
+                null
+            }
+        }
+        // is the load value used?
+        if (resultProjection != null) {
+            val reg = registerTable.getOrCreateRegisterFor(resultProjection)
+
+            val resultRegister = CodeGenIR.RegisterRef(reg)
+
+            generationState.emitControlFlowDependencyFor(
+                node.enclosingBlock, CodeGenIR.Assign(
+                    resultRegister,
+                    CodeGenIR.Indirection(getCodeFor(node.getPred(1)))
+                )
+            )
+
+            setCodeFor(resultProjection) { resultRegister }
+        } else {
+            error("result of load $node in unused")
+        }
+
+
         println("visit LOAD " + node.block.toString())
     }
 
@@ -340,7 +377,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Phi) {
         super.visit(node)
-        if(node.mode == Mode.getM()) {
+        if (node.mode == Mode.getM()) {
             // control dependencies, that span block boundaries don't need to be handled explicitly
             return
         }
@@ -366,38 +403,7 @@ class FirmToCodeGenTranslator(
             is Mod -> setCodeFor(node) { getCodeFor(pred) }
             //TODO
             is Load -> {
-
-                //BackEdges.getOuts(pred).forEach{
-                //   it ->
-                //}
-                if (node.mode == Mode.getM()) {
-                    // pred = Load | node = ProJ M
-                    println("node: $node")
-
-                    // is the load value used?
-                    val resultProjection =
-                        BackEdges.getOuts(pred).map { it.node }.find { it is Proj && it.mode == Mode.getIs() }
-                    if (resultProjection != null) {
-                        val reg = registerTable.getOrCreateRegisterFor(resultProjection)
-
-                        val resultRegister = CodeGenIR.RegisterRef(reg)
-
-                        generationState.emitControlFlowDependencyFor(
-                            node.enclosingBlock, CodeGenIR.Assign(
-                                resultRegister,
-                                CodeGenIR.Indirection(getCodeFor(pred.getPred(1)))
-                            )
-                        )
-
-                        setCodeFor(resultProjection) { resultRegister }
-                    } else {
-                        error("result of load $pred in unused")
-                    }
-
-
-                } else {
-                    // can be skipped. The value projection is handled by the control flow projection
-                }
+                // handled by load itself
             }
             is Store -> {
                 // pred = Store | node = Proj M

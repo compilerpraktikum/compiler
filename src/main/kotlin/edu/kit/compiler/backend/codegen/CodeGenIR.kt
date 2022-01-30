@@ -438,8 +438,8 @@ class GraphVizBuilder {
             }
             is CodeGenIR.Seq -> {
                 appendLine("$id[label=\"Seq\"];")
-                exec.internalToGraphViz().edge("exec")
-                value.internalToGraphViz().edge("value")
+                exec.internalToGraphViz().edge("2. exec")
+                value.internalToGraphViz().edge("1. value")
             }
             is CodeGenIR.Div -> TODO()
             is CodeGenIR.Jmp -> {

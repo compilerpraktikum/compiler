@@ -172,7 +172,7 @@ class CodeGenTest {
                 public static void main(String[] args) {
                     int a = System.in.read();
                     System.out.println(a);
-                    System.out.println(a);
+                    System.out.println(8);
                 }
 
                 public void inc() {

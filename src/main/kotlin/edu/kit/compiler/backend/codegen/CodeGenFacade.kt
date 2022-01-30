@@ -46,7 +46,6 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
             val functionVisitor = FunctionArgumentVisitor(registerTable)
             graph.walkTopological(functionVisitor)
             val nodeMapping = functionVisitor.argumentMapping
-            println("nodeMapping $nodeMapping")
             numberOfArguments[graph] = nodeMapping.size
 
             breakCriticalEdges(graph)
