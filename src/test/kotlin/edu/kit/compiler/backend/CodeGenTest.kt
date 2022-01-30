@@ -132,13 +132,31 @@ class CodeGenTest {
                     public static void main(String [] args) {
                         int i = System.in.read();
                         int j = 0;
-                        if (i > 1337) {
-                            j = 3;
-                        } else {
-                            j = 5;
+                        while(j < 10) {
+                            j = j + i;
                         }
                         System.out.println(j);
                     }
+                }
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun testStore() {
+        setupGraph(
+            """
+                class Test {
+                    public int field;
+                    public void test() {
+                        int j = 9;
+                        if(field > 2) {
+                            j = 2;
+                        } else {
+                            j = 5;
+                        }
+                    }
+                    public static void main(String [] args) {}
                 }
             """.trimIndent()
         )
