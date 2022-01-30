@@ -296,22 +296,22 @@ class CodeGenTest {
         val fascade = setupGraph(
             """
             class Test {
-                    public int i;
-                    public static void main(String[] args) {}
+                public int i;
+                public static void main(String[] args) {}
 
-                    public int t() { return i; }
-                    public int inc() { return t()+1; }
+                public int t() { return i; }
+                public int inc() { return t()+1; }
 
-                    /* public int test() {
+                public int test() {
+                    System.out.println(1);
+                    System.out.println(2);
+                    if (3 == 2) {
                         System.out.println(1);
-                        System.out.println(2);
-                        if (3 == 2) {
-                            System.out.println(1);
-                            return 2;
-                        } else {
-                            return 3;
-                        }
-                    }*/
+                        return 2;
+                    } else {
+                        return 3;
+                    }
+                }
             }
         """.trimIndent(), registerTable
         )

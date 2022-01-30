@@ -2,6 +2,8 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
 import edu.kit.compiler.backend.molkir.Instruction
+import edu.kit.compiler.backend.molkir.Instruction.Companion.je
+import edu.kit.compiler.backend.molkir.Instruction.Companion.jmp
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.ReturnRegister
@@ -9,6 +11,7 @@ import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.ValueHolder
 import edu.kit.compiler.utils.rule
+import firm.Relation
 import firm.nodes.Address
 
 fun Replacement?.assertExists() = this ?: error("no replacement found")
@@ -221,7 +224,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
                         )
-                    ),
+                    )
+                ,
                 cost = replacement.get().cost + 1,
             )
         }
@@ -426,35 +430,50 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-//    rule("cond") {
-//        val relation = variable<>()
-//        val trueLabel = variable<String>()
-//        val falseLabel = variable<String>()
-//
-//        match(
-//            CodeGenIR.Cond(
-//                CodeGenIR.Compare(
-//                    relation,
-//                    left,
-//                    right
-//                ),
-//                trueLabel,
-//                falseLabel
-//            )
-//        )
-//
-//        condition {
-//            cond.get().replacement != null
-//        }
-//
-//        replaceWith {
-//            Replacement(
-//                node = Noop(),
-//                instructions = cond.get().replacement!!.instructions
-//                    .append(
-//                        Instruction.jge()
-//                    )
-//            )
-//        }
-//    }
+    rule("cond") {
+        val relation = variable<Relation>()
+        val left = variable<Register>()
+        val leftReplacement = variable<Replacement>()
+        val right = variable<Register>()
+        val rightReplacement = variable<Replacement>()
+        val trueLabel = variable<String>()
+        val falseLabel = variable<String>()
+
+        match(
+            CodeGenIR.Cond(
+                CodeGenIR.Compare(
+                    relation,
+                    RegisterRef(left, leftReplacement),
+                    RegisterRef(right, rightReplacement)
+                ),
+                trueLabel,
+                falseLabel
+            )
+        )
+
+        replaceWith {
+            val ifTrue = trueLabel.get()
+            val ifFalse = falseLabel.get()
+            val jmpConstructor = when(relation.get()) {
+                Relation.False -> Instruction.Companion::jmp
+                Relation.Equal -> Instruction.Companion::je
+                Relation.Less -> Instruction.Companion::jl
+                Relation.Greater -> Instruction.Companion::jg
+                Relation.LessGreater -> Instruction.Companion::jne
+                else -> error("invalid relation $relation")
+            }
+
+            Replacement(
+                node = Noop(),
+                instructions = leftReplacement.get().instructions
+                    .append(rightReplacement.get().instructions)
+                    .append {
+                        +Instruction.cmpl(left.get(), right.get())
+                        +jmpConstructor(ifTrue)
+                        +Instruction.jmp(ifFalse)
+                    },
+                cost = leftReplacement.get().cost + rightReplacement.get().cost + 3
+            )
+        }
+    }
 )
