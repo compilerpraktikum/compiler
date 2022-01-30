@@ -94,7 +94,7 @@ class CodeGenTest {
     private fun setupGraph(
         code: String,
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
-    ): Map<Graph, Map<Block, CodeGenIR>> {
+    ): CodeGenFacade {
         val graphs = generateGraph(code, registerTable)
         val codegen = CodeGenFacade(graphs)
         codegen.generateCodeGenIR()
@@ -107,7 +107,7 @@ class CodeGenTest {
                     .replace(":", "-")
             })
         }
-        return codegen.codeGenIRs
+        return codegen
     }
 
     @Test
@@ -296,13 +296,14 @@ class CodeGenTest {
     @Test
     fun testBothRead() {
         val registerTable = VirtualRegisterTable()
-        val instructions = setupGraph(
+        val fascade = setupGraph(
             """
             class Test {
                     public int i;
                     public static void main(String[] args) {}
 
-                    public int inc() { return i=i+1; }
+                    public int t() { return i; }
+                    /*public int inc() { return i=i+1; }
 
                      public int test() {
                         System.out.println(1);
@@ -313,22 +314,19 @@ class CodeGenTest {
                         } else {
                             return 3;
                         }
-                    }
+                    }*/
             }
         """.trimIndent(), registerTable
         )
-//        val converted = instructions.mapValues { (name, codeGenBlocks) ->
-//            codeGenBlocks.map { codeGenBlock ->
-//                transformToMolki(registerTable) {  }
-//            }
-//        }
-//        converted.forEach {
-//            println("## ${it.key}:\n")
-//            it.value.forEach {
-//                it.forEach { println(it.toMolki()) }
-//                println("")
-//            }
-//        }
+
+        fascade.generateMolkiIr()
+        fascade.generateBlockLayout()
+        fascade.blocksWithLayout.forEach { (graph, block) ->
+            println("## ${graph.entity.ldName}")
+            block.forEach { println("   ${it.toMolki()}")
+            }
+        }
+
     }
 
     @Test

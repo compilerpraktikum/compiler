@@ -64,7 +64,7 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         }
     }
 
-    private fun generateMolkiIr() {
+    internal fun generateMolkiIr() {
         molkiIr = codeGenIRs.mapValues { (graph, functionGraph) ->
             val registerTable = registerTables[graph]!!
 
@@ -74,7 +74,7 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         }
     }
 
-    private fun generateBlockLayout() {
+    internal fun generateBlockLayout() {
         blocksWithLayout = molkiIr.mapValues { (graph, functionGraph) ->
             val blockLayouter = LayoutBlocks(mutableListOf(), functionGraph)
             graph.walkBlocksPostorder(blockLayouter)
