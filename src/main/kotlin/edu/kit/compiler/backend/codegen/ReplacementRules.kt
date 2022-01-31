@@ -191,7 +191,9 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         )
 
         replaceWith {
-            check(leftRegister.get().width == rightRegister.get().width) { "Widths of `l` and `r` need to be the same in `BinOp(ADD, l, r)`" }
+            check(leftRegister.get().width == rightRegister.get().width) {
+                "Widths of `l` and `r` need to be the same in `BinOp(${binOp.get()}, ${leftRegister.get().width}, ${rightRegister.get().width})`"
+            }
             println("binop $binOp")
             val resRegister = newRegister(leftRegister.get().width)
             Replacement(
@@ -502,10 +504,20 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             val to = toMode.get()
             val repl = operandReplacement.get()
             when {
-                from == to -> {
+                from.sizeBytes == to.sizeBytes -> {
                     Replacement(
                         node = repl.node,
                         instructions = repl.instructions,
+                        cost = repl.cost
+                    )
+                }
+                from.sizeBytes == 1 && to.sizeBytes == 8 -> {
+                    val result = newRegister(Width.QUAD)
+
+                    Replacement(
+                        node = RegisterRef(result),
+                        instructions = repl.instructions
+                            .append(Instruction.movl(register.get(), result)),
                         cost = repl.cost
                     )
                 }
@@ -519,7 +531,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     )
                 }
                 from.sizeBytes == 4 && to.sizeBytes == 8 -> {
-                    val result = newRegister(Width.DOUBLE)
+                    val result = newRegister(Width.QUAD)
                     Replacement(
                         node = RegisterRef(result),
                         instructions = repl.instructions
@@ -527,7 +539,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                         cost = repl.cost + 1
                     )
                 }
-                else -> error("unknown conversion from $from to $to")
+                else -> error("unknown conversion from $from (${from.sizeBytes} Byte) to $to (${to.sizeBytes} Byte)")
             }
         }
     }

@@ -83,7 +83,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     /**
      * Sequential Execution of two nodes, representing the value of <pre>second</pre>
      */
-    class Seq(val first: CodeGenIR, val second: CodeGenIR) : CodeGenIR() {
+    data class Seq(val first: CodeGenIR, val second: CodeGenIR) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Seq)
                 return false
@@ -92,7 +92,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    class RegisterRef
+    data class RegisterRef
     private constructor(
         private val registerHolder: ValueHolder<Register>,
         private val replacementHolder: ValueHolder.Variable<Replacement>?,
@@ -168,6 +168,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 return true
 
             return if (operation.get().isCommutative) {
+                println("comm $operation ${operation.get().isCommutative}")
                 operation.matchValue(target.operation) && left.matches(target.right) && right.matches(target.left)
             } else {
                 false
@@ -548,7 +549,7 @@ class GraphVizBuilder {
                 rhs.internalToGraphViz().edge("rhs")
             }
             is CodeGenIR.BinOP -> {
-                node("BinOP $operation")
+                node("BinOP ${operation.get()}")
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
             }
@@ -577,7 +578,7 @@ class GraphVizBuilder {
                 node("Const ${value.value}\n${value.mode.name}")
             }
             is CodeGenIR.Conv -> {
-                node("Conv $fromMode => $toMode")
+                node("Conv $fromMode (${fromMode.sizeBytes}) => $toMode (${toMode.sizeBytes})")
                 opTree.internalToGraphViz().edge("opTree")
             }
             is CodeGenIR.Indirection -> {

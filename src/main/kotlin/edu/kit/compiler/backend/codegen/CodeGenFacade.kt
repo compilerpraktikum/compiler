@@ -152,7 +152,7 @@ class CodeGenFacade(
                 graphPrinter.appendLine("subgraph ${graphPrinter.freshId()} {")
                 graphPrinter.appendLine("label=\"${it.key}\";")
                 val blockEntryId = graphPrinter.freshId()
-                graphPrinter.appendLine("$blockEntryId[label=\"Block ${it.key}\"];")
+                graphPrinter.appendLine("$blockEntryId[label=\"${it.key}\"];")
                 val id = it.value?.toGraphViz(graphPrinter)
                 graphPrinter.appendLine("$blockEntryId -> $id;")
                 graphPrinter.appendLine("}")
@@ -168,7 +168,7 @@ class CodeGenFacade(
             return
 
         codeGenIRs.forEach { (graph, blocks) ->
-            GraphvizPrinter.renderCodeGenIrsToFile("graph-${graph.entity.ldName}", blocks.mapKeys { "BB ${it.key.nr}" })
+            GraphvizPrinter.renderCodeGenIrsToFile("graph-${graph.entity.ldName}", blocks.mapKeys { NameMangling.mangleBlockName(it.key) })
         }
     }
 
