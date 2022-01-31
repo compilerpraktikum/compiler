@@ -299,7 +299,10 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class Div(val left: CodeGenIR, val right: CodeGenIR) : CodeGenIR() {
+    data class Div(
+        val left: CodeGenIR,
+        val right: CodeGenIR
+    ) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
             TODO("Not yet implemented")
         }
@@ -373,7 +376,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 return false
 
             return op.matchValue(target.op) &&
-                value.
+                value.matchIR(target.value)
         }
     }
 
