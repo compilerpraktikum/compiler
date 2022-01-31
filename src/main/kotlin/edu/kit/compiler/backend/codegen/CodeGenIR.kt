@@ -300,17 +300,27 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     }
 
     data class Div(
-        val left: CodeGenIR,
-        val right: CodeGenIR
+        val left: ValueHolder<CodeGenIR>,
+        val right: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
+        constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
+
         override fun matches(target: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
+            if(target !is Div) {
+                return false
+            }
+            return left.matchIR(target.left) && right.matchIR(target.right)
         }
     }
 
-    data class Mod(val right: CodeGenIR, val left: CodeGenIR) : CodeGenIR() {
+    data class Mod(val right: ValueHolder<CodeGenIR>, val left: ValueHolder<CodeGenIR>) : CodeGenIR() {
+        constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
+
         override fun matches(target: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
+            if(target !is Mod) {
+                return false
+            }
+            return left.matchIR(target.left) && right.matchIR(target.right)
         }
     }
 
@@ -330,9 +340,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         )
 
         val address: Address
-            get() = addressHolder.get().also {
-                check(addressHolder is ValueHolder.Constant)
-            }
+            get() = addressHolder.getAndAssertConstant()
         val arguments: List<CodeGenIR>
             get() = argumentsHolder.get().also {
                 check(argumentsHolder is ValueHolder.Constant)
