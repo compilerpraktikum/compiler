@@ -357,7 +357,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     .append(
                         Instruction.call(
                             address.get().entity.ldName,
-                            argRegisters,
+                            argRegisters.toList(), // copy list as it is reused
                             valueRegister.get(),
                             false
                         )
@@ -403,7 +403,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     .append(
                         Instruction.call(
                             functionName,
-                            argRegisters,
+                            argRegisters.toList(), // copy list as it is reused
                             null,
                             NameMangling.isExternalFunction(functionName)
                         )
