@@ -41,7 +41,8 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * Stores the current offset where a new [StackSlot] is placed on the stack
+     * Stores the current offset where a new [StackSlot] is placed on the stack. It is initialized at `8`, to skip the
+     * pushed RBP value, which is located at `0(%rbp)`
      */
     private var currentSlotOffset = 8
 
