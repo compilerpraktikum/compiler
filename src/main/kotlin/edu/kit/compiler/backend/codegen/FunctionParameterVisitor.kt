@@ -17,15 +17,19 @@ class FunctionParameterVisitor(
     val argumentMapping: MutableMap<Node, CodeGenIR> = mutableMapOf(),
 ) : FirmNodeVisitorAdapter() {
     val parameters: MutableMap<Int, Proj> = mutableMapOf()
-    var numberOfArguments: Int = 0
+    var  numberOfArguments: Int = 0
 
 
     override fun visit(node: End) {
-        numberOfArguments = (node.graph.entity.type as MethodType).nParams
-        for (i in 0..numberOfArguments) {
+        val methodType = node.graph.entity.type as MethodType
+        numberOfArguments = methodType.nParams
+
+        for (i in 0 until numberOfArguments) {
+            val argType = methodType.getParamType(i)
             val matchingNode = parameters[i]
             if (matchingNode == null) {
-                registerTable.newRegister(Width.QUAD) //TODO where can you get the parameter width?
+                val width = Width.fromByteSize(argType.mode.sizeBytes)!!
+                registerTable.newRegister(width)
             } else {
                 allocateParameter(matchingNode)
             }

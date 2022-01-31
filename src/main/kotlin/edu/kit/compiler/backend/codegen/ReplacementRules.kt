@@ -313,7 +313,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             println("from $registerWithValue to $registerToWriteTo")
             Replacement(
                 node = RegisterRef(registerToWriteTo),
-                instructions = instructionListOf(
+                instructions =
+                replacement.get().instructions.append(
                     Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
                 ),
                 cost = 1,
