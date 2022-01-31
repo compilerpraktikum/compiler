@@ -8,6 +8,9 @@ import firm.BackEdges
 import firm.BlockWalker
 import firm.Graph
 import firm.nodes.Block
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.Path
 
 class CodeGenFacade(
@@ -24,9 +27,7 @@ class CodeGenFacade(
 
     fun generate(): Map<Graph, List<PlatformInstruction>> {
         generateCodeGenIR()
-        dumpCodeGenIRIfEnabled()
         generateMolkiIr()
-        dumpMolkIRIfEnabled()
         generateBlockLayout()
         generatePlatformCode()
 
@@ -67,6 +68,7 @@ class CodeGenFacade(
                 it.value.toSeqChain()
             }
         }
+        dumpCodeGenIRIfEnabled()
     }
 
     internal fun generateMolkiIr() {
@@ -86,6 +88,7 @@ class CodeGenFacade(
             blockLayouter.finalize(graph)
             blockLayouter.instructions
         }
+        dumpMolkIRIfEnabled()
     }
 
     internal fun generatePlatformCode() {
@@ -124,17 +127,69 @@ class CodeGenFacade(
         }
     }
 
+    object GraphvizPrinter {
+
+        private fun renderDotFile(filePrefix: String, dot: String) {
+            val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
+            file.writeText(dot)
+            println("Dot-File: $file")
+            try {
+                val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
+                val svgText = dotProcess.inputStream.bufferedReader().readText()
+                val output = File("./graph-$filePrefix.svg")
+                output.writeText(svgText)
+                println("write graph-file to file://${output.absolutePath}")
+                println("                    http://vps.csicar.de:8000/${output.name}")
+            } catch (ex: IOException) {
+                println("rendering graph with dot failed: $ex")
+            }
+        }
+
+        fun renderCodeGenIrsToFile(filePrefix: String, tree: Map<String, CodeGenIR?>) {
+            val graphPrinter = GraphVizBuilder()
+            graphPrinter.appendLine("digraph {")
+            tree.entries.forEach {
+                graphPrinter.appendLine("subgraph ${graphPrinter.freshId()} {")
+                graphPrinter.appendLine("label=\"${it.key}\";")
+                val blockEntryId = graphPrinter.freshId()
+                graphPrinter.appendLine("$blockEntryId[label=\"Block ${it.key}\"];")
+                val id = it.value?.toGraphViz(graphPrinter)
+                graphPrinter.appendLine("$blockEntryId -> $id;")
+                graphPrinter.appendLine("}")
+            }
+            graphPrinter.appendLine("}")
+            val dot = graphPrinter.build()
+            renderDotFile(filePrefix, dot)
+        }
+    }
+
     fun dumpCodeGenIRIfEnabled() {
         if (!dumpCodeGenIR)
             return
 
-        TODO()
+        codeGenIRs.forEach { (graph, blocks) ->
+            GraphvizPrinter.renderCodeGenIrsToFile("graph-${graph.entity.ldName}", blocks.mapKeys { "BB ${it.key.nr}" })
+        }
     }
 
     fun dumpMolkIRIfEnabled() {
         if (!dumpMolkIR)
             return
 
-        TODO()
+        val molkiDumpFile = File("./out.molki")
+        molkiDumpFile.printWriter().use { printer ->
+            blocksWithLayout.forEach { (graph, block) ->
+                println("## ${graph.entity.ldName}")
+                printer.println(".function ${graph.entity.ldName} ${numberOfArguments[graph]!!} 1")
+                block.forEach {
+                    printer.print("    ${it.toMolki()}")
+                    if(it is Instruction.Call) {
+                        printer.print("   ; external ${it.external}")
+                    }
+                    printer.println()
+                }
+                printer.println(".endfunction")
+            }
+        }
     }
 }
