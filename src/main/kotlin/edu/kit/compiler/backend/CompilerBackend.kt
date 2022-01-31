@@ -23,15 +23,3 @@ class CompilerBackend(
         Linker().link(assemblyFile, executableFile)
     }
 }
-
-fun createCompilerBackend(
-    compilationUnit: String,
-    assemblyFile: Path,
-    executableFile: Path,
-) = CompilerBackend(compilationUnit, assemblyFile, executableFile, useMolki = false)
-
-fun createCompilerBackendWithMolki(
-    compilationUnit: String,
-    assemblyFile: Path,
-    executableFile: Path,
-) = CompilerBackend(compilationUnit, assemblyFile, executableFile, useMolki = true)
