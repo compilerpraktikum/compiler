@@ -1,7 +1,6 @@
 package edu.kit.compiler.backend.molkir
 
 import edu.kit.compiler.backend.register.getAtntSuffix
-import java.io.PrintStream
 
 interface MolkIR {
     fun toMolki(): String
@@ -177,6 +176,15 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
     }
 
+    class SubtractionOperationWithResult(
+        val name: String,
+        val left: Target.Input,
+        val right: Target.Input,
+        val result: Target.Output,
+    ) : Instruction() {
+        override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
+    }
+
     class DivisionOperation(
         val name: String,
         val left: Target.Input,
@@ -223,7 +231,7 @@ sealed class Instruction : MolkIR {
          * Unary operations with result
          ****************************************/
         // move
-        fun mov(from: Target.Input, to: Target.Output) : UnaryOperationWithResult {
+        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult {
 //            check(from.width.inBytes <= to.width.inBytes) { "widths of from and to mismatch: mov from ${from.width} to ${to.width}" }
             return UnaryOperationWithResult("mov${from.width.getAtntSuffix()}", from, to)
         }
@@ -259,10 +267,10 @@ sealed class Instruction : MolkIR {
         fun addq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addq",  left, right, result)
 
         fun sub(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("sub${left.width.getAtntSuffix()}", left, right, result)
+            SubtractionOperationWithResult("sub${left.width.getAtntSuffix()}", left, right, result)
 
-        fun subl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("subl",  left, right, result)
-        fun subq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("subq",  left, right, result)
+        fun subl(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subl",  left, right, result)
+        fun subq(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subq",  left, right, result)
 
         fun imul(left: Target.Input, right: Target.Input, result: Target.Output) =
             BinaryOperationWithResult("imul${left.width.getAtntSuffix()}", left, right, result)

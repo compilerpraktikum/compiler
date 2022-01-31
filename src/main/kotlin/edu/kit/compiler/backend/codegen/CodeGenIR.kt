@@ -8,7 +8,6 @@ import edu.kit.compiler.backend.molkir.Target
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.MatchPattern
 import edu.kit.compiler.utils.ValueHolder
-import edu.kit.compiler.backend.molkir.Instruction.Companion as Instructions
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
@@ -16,7 +15,7 @@ import firm.nodes.Const
 import firm.nodes.Node
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import kotlin.reflect.KFunction3
+import edu.kit.compiler.backend.molkir.Instruction.Companion as Instructions
 
 private fun defaultReplacement(node: CodeGenIR) = Replacement(
     node = node,
@@ -182,8 +181,8 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         private val leftHolder: ValueHolder<CodeGenIR>,
         private val rightHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(relation: Relation, left: CodeGenIR, right: CodeGenIR)
-            : this(ValueHolder.Constant(relation), ValueHolder.Constant(left), ValueHolder.Constant(right))
+        constructor(relation: Relation, left: CodeGenIR, right: CodeGenIR) :
+            this(ValueHolder.Constant(relation), ValueHolder.Constant(left), ValueHolder.Constant(right))
         constructor(
             relationHolder: ValueHolder<Relation>,
             left: CodeGenIR,
@@ -312,7 +311,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
 
         override fun matches(target: CodeGenIR): Boolean {
-            if(target !is Div) {
+            if (target !is Div) {
                 return false
             }
             return left.matchIR(target.left) && right.matchIR(target.right)
@@ -323,7 +322,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
 
         override fun matches(target: CodeGenIR): Boolean {
-            if(target !is Mod) {
+            if (target !is Mod) {
                 return false
             }
             return left.matchIR(target.left) && right.matchIR(target.right)
@@ -533,9 +532,9 @@ class GraphVizBuilder {
     fun CodeGenIR.internalToGraphViz(): Int {
         val id = freshId()
 
-        fun node(label: String)  {
+        fun node(label: String) {
             val node = this.firmNode
-            val firmLabel = if(node == null) { "" } else {
+            val firmLabel = if (node == null) { "" } else {
                 "${node.nr}\n"
             }
             appendLine("$id [label=\"$firmLabel$label\", tooltip=\"$firmLabel\"];")
@@ -622,7 +621,10 @@ fun List<CodeGenIR>.toSeqChain() =
     this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
 // TODO rename
-enum class BinOpENUM(val isCommutative: Boolean, val molkiOp: KFunction3<Target.Input, Target.Input, Target.Output, Instruction.BinaryOperationWithResult>) {
+enum class BinOpENUM(
+    val isCommutative: Boolean,
+    val molkiOp: (Target.Input, Target.Input, Target.Output) -> Instruction
+) {
     ADD(true, Instructions::add),
     AND(true, Instructions::and),
     EOR(true, Instructions::xor),

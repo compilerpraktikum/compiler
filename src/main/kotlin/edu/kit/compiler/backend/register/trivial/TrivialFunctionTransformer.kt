@@ -242,6 +242,7 @@ class TrivialFunctionTransformer(
         when (instr) {
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
             is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
+            is MolkiInstruction.SubtractionOperationWithResult -> transformSubtraction(instr)
             is MolkiInstruction.DivisionOperation -> transformDivision(instr)
             is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
@@ -250,7 +251,7 @@ class TrivialFunctionTransformer(
         }
     }
 
-    private fun transformBinaryOperation(instr: edu.kit.compiler.backend.molkir.Instruction.BinaryOperation) {
+    private fun transformBinaryOperation(instr: MolkiInstruction.BinaryOperation) {
         // transform operands
         val left = transformOperand(instr.left)
         val right = transformOperand(instr.right)
@@ -269,6 +270,22 @@ class TrivialFunctionTransformer(
         // transform operands
         val left = transformOperand(instr.left)
         val right = transformOperand(instr.right)
+
+        // transform instruction
+        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
+        appendInstruction(transformedInstr)
+
+        // generate spill code
+        spillResultIfNecessary(instr.result, right)
+    }
+
+    /**
+     * Transform a subtraction (which has inverse operand order because AT&T syntax is an unspeakable abomination.
+     */
+    private fun transformSubtraction(instr: MolkiInstruction.SubtractionOperationWithResult) {
+        // transform operands
+        val left = transformOperand(instr.right)
+        val right = transformOperand(instr.left)
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
