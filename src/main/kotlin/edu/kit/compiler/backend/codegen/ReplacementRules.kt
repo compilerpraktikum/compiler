@@ -459,7 +459,9 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 Relation.Equal -> Instruction.Companion::je
                 Relation.Less -> Instruction.Companion::jl
                 Relation.Greater -> Instruction.Companion::jg
+                Relation.GreaterEqual -> Instruction.Companion::jge
                 Relation.LessGreater -> Instruction.Companion::jne
+                Relation.LessEqual -> Instruction.Companion::jle
                 else -> error("invalid relation $relation")
             }
 
