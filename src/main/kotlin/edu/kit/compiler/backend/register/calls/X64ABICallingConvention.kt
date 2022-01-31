@@ -249,14 +249,16 @@ object X64ABICallingConvention : CallingConvention {
                 stackArguments += 1
             }
 
-            // free stack space allocated for arguments
-            instructionAppenderCallback(
-                PlatformInstruction.add(
-                    PlatformTarget.Constant((stackArguments * 8).toString()),
-                    PlatformTarget.Register(EnumRegister.RSP),
-                    Width.QUAD
+            if (stackArguments > 0) {
+                // free stack space allocated for arguments
+                instructionAppenderCallback(
+                    PlatformInstruction.add(
+                        PlatformTarget.Constant((stackArguments * 8).toString()),
+                        PlatformTarget.Register(EnumRegister.RSP),
+                        Width.QUAD
+                    )
                 )
-            )
+            }
 
             // restore unaligned stack pointer
             instructionAppenderCallback(
