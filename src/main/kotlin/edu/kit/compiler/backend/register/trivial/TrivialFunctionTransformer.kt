@@ -295,46 +295,50 @@ class TrivialFunctionTransformer(
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
-        PlatformTransformation.getExternalCallingConvention()
-            .generateFunctionCall(allocator, instr.arguments.size, generatedCode::add) {
-                for (i in (0 until instr.arguments.size).reversed()) {
-                    val argumentSource = transformOperand(instr.arguments[i])
-                    prepareArgument(argumentSource, instr.arguments[i].width)
+        val callingConvention = if (instr.external)
+            PlatformTransformation.getExternalCallingConvention()
+        else
+            PlatformTransformation.getInternalCallingConvention()
 
-                    // immediately free this temporary source, because we already stored the parameter where we need it
-                    if (argumentSource is PlatformTarget.Register) {
-                        allocator.freeRegister(argumentSource)
-                    }
+        callingConvention.generateFunctionCall(allocator, instr.arguments.size, generatedCode::add) {
+            for (i in (0 until instr.arguments.size).reversed()) {
+                val argumentSource = transformOperand(instr.arguments[i])
+                prepareArgument(argumentSource, instr.arguments[i].width)
+
+                // immediately free this temporary source, because we already stored the parameter where we need it
+                if (argumentSource is PlatformTarget.Register) {
+                    allocator.freeRegister(argumentSource)
                 }
-
-                // generate actual call instruction
-                generateCall(instr.name)
-
-                // save return value
-                if (instr.result != null) {
-                    val platformRegister =
-                        PlatformTransformation.getInternalCallingConvention().getReturnValueTarget(instr.result.width)
-
-                    when (instr.result) {
-                        is MolkiRegister -> generateSpillCode(
-                            instr.result.id,
-                            instr.result.width,
-                            platformRegister
-                        )
-                        is MolkiReturnRegister -> generateSpillCode(
-                            RegisterId(RETURN_VALUE_SLOT),
-                            instr.result.width,
-                            platformRegister
-                        )
-                        else -> {
-                            throw IllegalStateException("unexpected: instruction result target is not a register")
-                        }
-                    }
-                }
-
-                // cleanup stack
-                cleanupStack()
             }
+
+            // generate actual call instruction
+            generateCall(instr.name)
+
+            // save return value
+            if (instr.result != null) {
+                val platformRegister =
+                    PlatformTransformation.getInternalCallingConvention().getReturnValueTarget(instr.result.width)
+
+                when (instr.result) {
+                    is MolkiRegister -> generateSpillCode(
+                        instr.result.id,
+                        instr.result.width,
+                        platformRegister
+                    )
+                    is MolkiReturnRegister -> generateSpillCode(
+                        RegisterId(RETURN_VALUE_SLOT),
+                        instr.result.width,
+                        platformRegister
+                    )
+                    else -> {
+                        throw IllegalStateException("unexpected: instruction result target is not a register")
+                    }
+                }
+            }
+
+            // cleanup stack
+            cleanupStack()
+        }
     }
 
     private fun transformDivision(instr: MolkiInstruction.DivisionOperation) {
