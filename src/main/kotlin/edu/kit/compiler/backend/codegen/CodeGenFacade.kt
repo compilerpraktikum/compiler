@@ -49,10 +49,10 @@ class CodeGenFacade(
             val registerTable: VirtualRegisterTable = VirtualRegisterTable()
             registerTables[graph] = registerTable
 
-            val functionVisitor = FunctionArgumentVisitor(registerTable)
+            val functionVisitor = FunctionParameterVisitor(registerTable)
             graph.walkTopological(functionVisitor)
             val nodeMapping = functionVisitor.argumentMapping
-            numberOfArguments[graph] = nodeMapping.size
+            numberOfArguments[graph] = functionVisitor.numberOfArguments
 
             breakCriticalEdges(graph)
             val phiVisitor = PhiAssignRegisterVisitor(registerTable, nodeMapping)
@@ -179,7 +179,6 @@ class CodeGenFacade(
         val molkiDumpFile = File("./out.molki")
         molkiDumpFile.printWriter().use { printer ->
             blocksWithLayout.forEach { (graph, block) ->
-                println("## ${graph.entity.ldName}")
                 printer.println(".function ${graph.entity.ldName} ${numberOfArguments[graph]!!} 1")
                 block.forEach {
                     printer.print("    ${it.toMolki()}")
