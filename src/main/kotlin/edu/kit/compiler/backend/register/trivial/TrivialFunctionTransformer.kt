@@ -43,7 +43,7 @@ class TrivialFunctionTransformer(
     /**
      * Stores the current offset where a new [StackSlot] is placed on the stack
      */
-    private var currentSlotOffset = 0
+    private var currentSlotOffset = 8
 
     /**
      * Current stack layout of virtual registers
