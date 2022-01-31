@@ -37,39 +37,6 @@ class CodeGenTest {
         Program.getGraphs().forEach { Dump.dumpGraph(it, phase) }
     }
 
-    private fun renderDotFile(filePrefix: String, dot: String) {
-        val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
-        file.writeText(dot)
-        println("Dot-File: $file")
-        try {
-            val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
-            val svgText = dotProcess.inputStream.bufferedReader().readText()
-            val output = File("./graph-$filePrefix.svg")
-            output.writeText(svgText)
-            println("write graph-file to file://${output.absolutePath}")
-            println("                    http://vps.csicar.de:8000/${output.name}")
-        } catch (ex: IOException) {
-            println("rendering graph with dot failed: $ex")
-        }
-    }
-
-    private fun renderCodeGenIrsToFile(filePrefix: String, tree: Map<String, CodeGenIR?>) {
-        val graphPrinter = GraphVizBuilder()
-        graphPrinter.appendLine("digraph {")
-        tree.entries.forEach {
-            graphPrinter.appendLine("subgraph ${graphPrinter.freshId()} {")
-            graphPrinter.appendLine("label=\"${it.key}\";")
-            val blockEntryId = graphPrinter.freshId()
-            graphPrinter.appendLine("$blockEntryId[label=\"Block ${it.key}\"];")
-            val id = it.value?.toGraphViz(graphPrinter)
-            graphPrinter.appendLine("$blockEntryId -> $id;")
-            graphPrinter.appendLine("}")
-        }
-        graphPrinter.appendLine("}")
-        val dot = graphPrinter.build()
-        renderDotFile(filePrefix, dot)
-    }
-
     private fun generateGraph(code: String,
                               registerTable: VirtualRegisterTable = VirtualRegisterTable()
     ): List<Graph> {
@@ -93,17 +60,8 @@ class CodeGenTest {
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
     ): CodeGenFacade {
         val graphs = generateGraph(code, registerTable)
-        val codegen = CodeGenFacade(graphs)
+        val codegen = CodeGenFacade(graphs, dumpCodeGenIR = true, dumpMolkIR = true)
         codegen.generateCodeGenIR()
-        codegen.codeGenIRs.forEach { (graph, blockMap) ->
-            renderCodeGenIrsToFile(graph.entity.ldName, blockMap.mapKeys {
-                it.key.toString()
-                    .replace("Block BB[", "")
-                    .replace(" ", "")
-                    .replace("]", "")
-                    .replace(":", "-")
-            })
-        }
         return codegen
     }
 
@@ -310,18 +268,8 @@ class CodeGenTest {
             }
         """.trimIndent()
         )
-
         facade.generateMolkiIr()
         facade.generateBlockLayout()
-        facade.blocksWithLayout.forEach { (graph, block) ->
-            println("## ${graph.entity.ldName}")
-            block.forEach { print("   ${it.toMolki()}")
-                if(it is Instruction.Call) {
-                    print("   ; external ${it.external}")
-                }
-                println()
-            }
-        }
     }
 
     @Test
@@ -522,7 +470,7 @@ class CodeGenTest {
     @Test
     fun testWithPlatform() {
         val graph = generateGraph("class Test { public static void main(String[] args) {} }")
-        val codeGenFacade = CodeGenFacade(graph)
+        val codeGenFacade = CodeGenFacade(graph, dumpCodeGenIR = true, dumpMolkIR = true)
         val platformCodes = codeGenFacade.generate()
         platformCodes.forEach {  (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")
