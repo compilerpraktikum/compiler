@@ -359,15 +359,54 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class UnaryOP(val op: UnaryOpENUM, val value: CodeGenIR) : CodeGenIR() {
+    data class UnaryOP(
+        val op: ValueHolder<UnaryOpENUM>,
+        val value: ValueHolder<CodeGenIR>
+    ) : CodeGenIR() {
+        constructor(op: UnaryOpENUM, value: CodeGenIR) : this(
+            ValueHolder.Constant(op),
+            ValueHolder.Constant(value)
+        )
+
         override fun matches(target: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
+            if (target !is UnaryOP)
+                return false
+
+            return op.matchValue(target.op) &&
+                value.
         }
     }
 
-    data class Conv(val fromMode: Mode, val toMode: Mode, val opTree: CodeGenIR) : CodeGenIR() {
+    data class Conv(
+        private val fromModeHolder: ValueHolder<Mode>,
+        private val toModeHolder: ValueHolder<Mode>,
+        private val opTreeHolder: ValueHolder<CodeGenIR>
+    ) : CodeGenIR() {
+        constructor(fromMode: Mode, toMode: Mode, opTree: CodeGenIR) : this(
+            ValueHolder.Constant(fromMode),
+            ValueHolder.Constant(toMode),
+            ValueHolder.Constant(opTree)
+        )
+        constructor(fromMode: ValueHolder<Mode>, toMode: ValueHolder<Mode>, opTree: CodeGenIR) : this(
+            fromMode,
+            toMode,
+            ValueHolder.Constant(opTree)
+        )
+
+        val fromMode
+            get() = fromModeHolder.getAndAssertConstant()
+        val toMode
+            get() = toModeHolder.getAndAssertConstant()
+        val opTree
+            get() = opTreeHolder.getAndAssertConstant()
+
         override fun matches(target: CodeGenIR): Boolean {
-            TODO("Not yet implemented")
+            if (target !is Conv)
+                return false
+
+            return fromModeHolder.matchValue(target.fromModeHolder) &&
+                toModeHolder.matchValue(target.toModeHolder) &&
+                opTreeHolder.matchIR(target.opTreeHolder)
         }
     }
 
@@ -565,6 +604,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
 fun List<CodeGenIR>.toSeqChain() =
     this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
+// TODO rename
 enum class BinOpENUM(val isCommutative: Boolean) {
     ADD(true),
     AND(true),
@@ -578,6 +618,7 @@ enum class BinOpENUM(val isCommutative: Boolean) {
     SHRS(false),
 }
 
+// TODO rename
 enum class UnaryOpENUM {
     MINUS, NOT
 }

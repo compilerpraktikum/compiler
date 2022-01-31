@@ -229,6 +229,7 @@ sealed class Instruction : MolkIR {
         }
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
         fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
+        fun movsxlq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movsxlq", from, to)
 
         // increment / decrement
         fun incl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("incl", operand, result)
@@ -281,32 +282,4 @@ sealed class Instruction : MolkIR {
         /* @formatter:on */
         /* ktlint-enable no-multi-spaces */
     }
-}
-
-/**
- * Builder to construct the assembler code for a function.
- */
-class FunctionBuilder(val name: String, val numArgs: Int, val numResults: Int) {
-    init {
-        check(numArgs >= 0)
-        check(numResults in 0..1) { "multi return not supported" }
-    }
-
-    private val instructions = mutableListOf<Instruction>()
-
-    fun build(out: PrintStream) {
-        out.appendLine(".function $name $numArgs $numResults")
-        instructions.forEach {
-            val indent = if (it.hasIndent) 4 else 0
-            out.append(" ".repeat(indent))
-            out.appendLine(it.toMolki())
-        }
-        out.appendLine(".endfunction")
-    }
-
-    private fun add(instruction: Instruction) {
-        instructions.add(instruction)
-    }
-
-    operator fun Instruction.unaryPlus() = add(this)
 }

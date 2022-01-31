@@ -474,5 +474,54 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 cost = leftReplacement.get().cost + rightReplacement.get().cost + 3
             )
         }
+    },
+    rule("conversions") {
+        val fromMode = variable<Mode>()
+        val toMode = variable<Mode>()
+
+        val register = variable<Register>()
+        val operandReplacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.Conv(
+                fromMode,
+                toMode,
+                RegisterRef(register, operandReplacement)
+            )
+        )
+
+        replaceWith {
+            val from = fromMode.get()
+            val to = toMode.get()
+            val repl = operandReplacement.get()
+            when {
+                from == to -> {
+                    Replacement(
+                        node = repl.node,
+                        instructions = repl.instructions,
+                        cost = repl.cost
+                    )
+                }
+                from.sizeBytes == 8 && to.sizeBytes == 4 -> {
+                    val result = newRegister(Width.QUAD)
+                    Replacement(
+                        node = RegisterRef(result),
+                        instructions = repl.instructions
+                            .append(Instruction.movl(register.get(), result)),
+                        cost = repl.cost + 1
+                    )
+                }
+                from.sizeBytes == 4 && to.sizeBytes == 8 -> {
+                    val result = newRegister(Width.DOUBLE)
+                    Replacement(
+                        node = RegisterRef(result),
+                        instructions = repl.instructions
+                            .append(Instruction.movsxlq(register.get(), result)),
+                        cost = repl.cost + 1
+                    )
+                }
+                else -> error("unknown conversion from $from to $to")
+            }
+        }
     }
 )
