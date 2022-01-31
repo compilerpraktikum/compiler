@@ -2,9 +2,8 @@ package edu.kit.compiler
 
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.Backend
+import edu.kit.compiler.backend.CompilerBackend
 import edu.kit.compiler.backend.FirmBackend
-import edu.kit.compiler.backend.createCompilerBackend
-import edu.kit.compiler.backend.createCompilerBackendWithMolki
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lexer.Lexer
@@ -145,11 +144,22 @@ class Compiler(private val config: Config) {
                         doOptimization(config.optimizationLevel)
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
+                        fun createBackendFactory(useMolki: Boolean) = { compilationUnit: String, assemblyFile: Path, executableFile: Path ->
+                            CompilerBackend(
+                                compilationUnit,
+                                assemblyFile,
+                                executableFile,
+                                useMolki = useMolki,
+                                dumpMolki = config.dump.contains(Dump.Molki),
+                                dumpCodeGenIR = config.dump.contains(Dump.CodeGenIR)
+                            )
+                        }
+
                         runBackEnd(
                             when (mode) {
                                 Mode.CompileFirm -> ::FirmBackend
-                                Mode.CompileMolki -> ::createCompilerBackendWithMolki
-                                Mode.Compile -> ::createCompilerBackend
+                                Mode.CompileMolki -> createBackendFactory(true)
+                                Mode.Compile -> createBackendFactory(false)
                                 else -> { throw IllegalStateException("unknown mode") }
                             }
                         )
@@ -248,10 +258,12 @@ class Compiler(private val config: Config) {
     }
 
     enum class Dump(val cliFlag: String) {
-        AssemblyFile("asm"),
         MethodGraphsAfterConstruction("graph:construction"),
         MethodGraphsAfterLowering("graph:lowering"),
-        MethodGraphsAfterOptimization("graph:optimization");
+        MethodGraphsAfterOptimization("graph:optimization"),
+        AssemblyFile("asm"),
+        Molki("molki"),
+        CodeGenIR("codegen");
 
         override fun toString(): String = cliFlag
     }

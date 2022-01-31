@@ -11,6 +11,8 @@ class CompilerBackend(
     private val assemblyFile: Path,
     private val executableFile: Path,
     private val useMolki: Boolean,
+    private val dumpMolki: Boolean = false,
+    private val dumpCodeGenIR: Boolean = false,
 ) : Backend {
     override fun generate() {
         val graphs = Program.getGraphs()
@@ -18,11 +20,6 @@ class CompilerBackend(
         val functions = codeGenFacade.generate()
         println(assemblyFile)
         val assembly = codeGenFacade.generateAssemblyFile(assemblyFile)
-//        val assembly =
-//            functions.values.joinToString("\n\n") { functionBody ->
-//                functionBody.joinToString("\n") { it.toAssembler() }
-//            }
-//        assemblyFile.writeText(assembly)
         Linker().link(assemblyFile, executableFile)
     }
 }

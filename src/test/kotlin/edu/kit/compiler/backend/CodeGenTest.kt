@@ -291,9 +291,54 @@ class CodeGenTest {
     }
 
     @Test
+    fun testFull() {
+        val facade = setupGraph(
+            """
+            class Test {
+                public static void main(String[] args) {}
+
+                public void test() {
+                    Test test = new Test();
+                    System.out.println(12);
+                    System.out.println(13);
+                }
+            }
+        """.trimIndent()
+        )
+
+        facade.generateMolkiIr()
+        facade.generateBlockLayout()
+        facade.blocksWithLayout.forEach { (graph, block) ->
+            println("## ${graph.entity.ldName}")
+            block.forEach { println("   ${it.toMolki()}")
+            }
+        }
+    }
+
+    @Test
+    fun testAlloc() {
+        val facade = setupGraph(
+            """
+            class Test {
+                public static void main(String[] args) {new Test();}
+
+
+            }
+        """.trimIndent()
+        )
+
+        facade.generateMolkiIr()
+        facade.generateBlockLayout()
+        facade.blocksWithLayout.forEach { (graph, block) ->
+            println("## ${graph.entity.ldName}")
+            block.forEach { println("   ${it.toMolki()}")
+            }
+        }
+    }
+    @Test
     fun testBothRead() {
         val registerTable = VirtualRegisterTable()
-        val fascade = setupGraph(
+        val facade = setupGraph(
             """
             class Test {
                 public int i;
@@ -316,9 +361,9 @@ class CodeGenTest {
         """.trimIndent(), registerTable
         )
 
-        fascade.generateMolkiIr()
-        fascade.generateBlockLayout()
-        fascade.blocksWithLayout.forEach { (graph, block) ->
+        facade.generateMolkiIr()
+        facade.generateBlockLayout()
+        facade.blocksWithLayout.forEach { (graph, block) ->
             println("## ${graph.entity.ldName}")
             block.forEach { println("   ${it.toMolki()}")
             }
