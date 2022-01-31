@@ -6,12 +6,15 @@ import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
 import firm.BackEdges
 import firm.BlockWalker
-import firm.Entity
 import firm.Graph
 import firm.nodes.Block
 import java.nio.file.Path
 
-class CodeGenFacade(val graphs: Iterable<Graph>) {
+class CodeGenFacade(
+    val graphs: Iterable<Graph>,
+    val dumpCodeGenIR: Boolean,
+    val dumpMolkIR: Boolean,
+) {
     lateinit var blocksWithLayout: Map<Graph, List<Instruction>>
     internal lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
     lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
@@ -21,7 +24,9 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
 
     fun generate(): Map<Graph, List<PlatformInstruction>> {
         generateCodeGenIR()
+        dumpCodeGenIRIfEnabled()
         generateMolkiIr()
+        dumpMolkIRIfEnabled()
         generateBlockLayout()
         generatePlatformCode()
 
@@ -117,5 +122,19 @@ class CodeGenFacade(val graphs: Iterable<Graph>) {
         fun finalize(graph: Graph) {
             instructions.add(Instruction.Label(NameMangling.mangleFunctionName(graph)))
         }
+    }
+
+    fun dumpCodeGenIRIfEnabled() {
+        if (!dumpCodeGenIR)
+            return
+
+        TODO()
+    }
+
+    fun dumpMolkIRIfEnabled() {
+        if (!dumpMolkIR)
+            return
+
+        TODO()
     }
 }
