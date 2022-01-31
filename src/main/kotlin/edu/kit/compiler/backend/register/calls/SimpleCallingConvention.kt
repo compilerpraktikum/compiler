@@ -127,13 +127,15 @@ object SimpleCallingConvention : CallingConvention {
         }
 
         override fun cleanupStack() {
-            instructionAppenderCallback(
-                PlatformInstruction.add(
-                    PlatformTarget.Constant((arguments * 8).toString()),
-                    PlatformTarget.Register(EnumRegister.RSP),
-                    Width.QUAD
+            if (arguments > 0) {
+                instructionAppenderCallback(
+                    PlatformInstruction.add(
+                        PlatformTarget.Constant((arguments * 8).toString()),
+                        PlatformTarget.Register(EnumRegister.RSP),
+                        Width.QUAD
+                    )
                 )
-            )
+            }
         }
     }
 }
