@@ -185,9 +185,4 @@ sealed class PlatformInstruction : PlatformIR {
     }
 }
 
-fun Width.getAtntSuffix(): String = when (this) {
-    Width.BYTE -> "b"
-    Width.WORD -> "w"
-    Width.DOUBLE -> "l"
-    Width.QUAD -> "q"
-}
+fun Width.getAtntSuffix(): String = instructionSuffix

@@ -24,11 +24,11 @@ value class RegisterId(val value: Int) : MolkIR {
     override fun toString(): String = value.toString()
 }
 
-enum class Width(val inBytes: Int, val suffix: String) {
-    BYTE(1, "l"),
-    WORD(2, "w"),
-    DOUBLE(4, "d"),
-    QUAD(8, "");
+enum class Width(val inBytes: Int, val registerSuffix: String, val instructionSuffix: String) {
+    BYTE(1, "b", "b"),
+    WORD(2, "w", "w"),
+    DOUBLE(4, "d", "l"),
+    QUAD(8, "", "q");
 
     companion object {
         fun fromByteSize(size: Int): Width? = when (size) {
@@ -42,7 +42,7 @@ enum class Width(val inBytes: Int, val suffix: String) {
 }
 
 data class Register(val id: RegisterId, override val width: Width) : Target.InputOutput {
-    override fun toMolki(): String = "%@" + id.toMolki() + width.suffix
+    override fun toMolki(): String = "%@" + id.toMolki() + width.registerSuffix
 
     companion object {
         fun byte(id: RegisterId) = Register(id, Width.BYTE)
@@ -53,7 +53,7 @@ data class Register(val id: RegisterId, override val width: Width) : Target.Inpu
 }
 
 class ReturnRegister(override val width: Width) : Target.Output {
-    override fun toMolki(): String = "%@r0" + width.suffix
+    override fun toMolki(): String = "%@r0" + width.registerSuffix
 
     companion object {
         fun byte() = ReturnRegister(Width.BYTE)

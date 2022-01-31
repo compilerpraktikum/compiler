@@ -896,7 +896,7 @@ object FirmContext {
 
         val loadNode = construction.newLoad(
             this.construction.currentMem,
-            construction.newConv(addressNode, Mode.getP()),
+            addressNode,
             arrayAccess.actualType.mode
         )
 
@@ -922,7 +922,7 @@ object FirmContext {
 
         val storeNode = construction.newStore(
             this.construction.currentMem,
-            construction.newConv(addressNode, Mode.getP()),
+            addressNode,
             value
         )
 
@@ -940,22 +940,16 @@ object FirmContext {
         indexNode: Node,
         targetNode: Node
     ): Node {
-        // multiply index by type size and add to base address. Use Ls as the type to fit all
-        return construction.newAdd(
-            construction.newConv(
-                targetNode,
-                Mode.getLs()
-            ),
-            construction.newMul(
-                construction.newConv(
-                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getBu()),
-                    Mode.getLs()
-                ),
-                construction.newConv(
-                    indexNode,
-                    Mode.getLs()
+        // FIRM does not allow calculations with pointers, so use Lu instead
+        return construction.newConv(
+            construction.newAdd(
+                construction.newConv(targetNode, Mode.getLu()),
+                construction.newMul(
+                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getLu()),
+                    construction.newConv(indexNode, Mode.getLu())
                 )
-            )
+            ),
+            Mode.getP()
         )
     }
 
@@ -1083,7 +1077,7 @@ object FirmContext {
     fun newObjectAllocation(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         val typeSizeNode =
             construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getLu())
-        allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
+        allocateMemory(typeSizeNode)
     }
 
     /**

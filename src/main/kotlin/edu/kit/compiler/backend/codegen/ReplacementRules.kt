@@ -485,35 +485,17 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                         cost = repl.cost
                     )
                 }
-                from.sizeBytes == 1 && to.sizeBytes == 8 -> {
+                from == Mode.getIs() && to == Mode.getLu() -> {
                     val result = newRegister(Width.QUAD)
 
                     Replacement(
                         node = RegisterRef(result),
                         instructions = repl.instructions
-                            .append(Instruction.movl(register.get(), result)),
+                            .append(Instruction.movl(register.get(), result.copy(width = Width.DOUBLE))),
                         cost = repl.cost
                     )
                 }
-                from.sizeBytes == 8 && to.sizeBytes == 4 -> {
-                    val result = newRegister(Width.QUAD)
-                    Replacement(
-                        node = RegisterRef(result),
-                        instructions = repl.instructions
-                            .append(Instruction.movl(register.get(), result)),
-                        cost = repl.cost + 1
-                    )
-                }
-                from.sizeBytes == 4 && to.sizeBytes == 8 -> {
-                    val result = newRegister(Width.QUAD)
-                    Replacement(
-                        node = RegisterRef(result),
-                        instructions = repl.instructions
-                            .append(Instruction.movsxlq(register.get(), result)),
-                        cost = repl.cost + 1
-                    )
-                }
-                else -> error("unknown conversion from $from (${from.sizeBytes} Byte) to $to (${to.sizeBytes} Byte)")
+                else -> error("unknown conversion from $from (${from.sizeBytes} Bytes) to $to (${to.sizeBytes} Bytes)")
             }
         }
     }
