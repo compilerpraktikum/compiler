@@ -1,11 +1,14 @@
 package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Constant
+import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
+import edu.kit.compiler.backend.molkir.Target
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.MatchPattern
 import edu.kit.compiler.utils.ValueHolder
+import edu.kit.compiler.backend.molkir.Instruction.Companion as Instructions
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
@@ -13,6 +16,7 @@ import firm.nodes.Const
 import firm.nodes.Node
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.reflect.KFunction3
 
 private fun defaultReplacement(node: CodeGenIR) = Replacement(
     node = node,
@@ -152,18 +156,20 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     }
 
     // TODO make binops
-    data class BinOP(val operation: BinOpENUM, val left: CodeGenIR, val right: CodeGenIR) :
+    data class BinOP(val operation: ValueHolder<BinOpENUM>, val left: CodeGenIR, val right: CodeGenIR) :
         CodeGenIR() {
+
+        constructor(operation: BinOpENUM, left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Constant(operation), left, right)
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is BinOP || target.operation != operation)
+            if (target !is BinOP)
                 return false
 
-            val matchesInOrder = left.matches(target.left) && right.matches(target.right)
+            val matchesInOrder = operation.matchValue(target.operation) && left.matches(target.left) && right.matches(target.right)
             if (matchesInOrder)
                 return true
 
-            return if (operation.isCommutative) {
-                left.matches(target.right) && right.matches(target.left)
+            return if (operation.get().isCommutative) {
+                operation.matchValue(target.operation) && left.matches(target.right) && right.matches(target.left)
             } else {
                 false
             }
@@ -616,17 +622,16 @@ fun List<CodeGenIR>.toSeqChain() =
     this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
 // TODO rename
-enum class BinOpENUM(val isCommutative: Boolean) {
-    ADD(true),
-    AND(true),
-    EOR(true),
-    MUL(true),
-    MULH(true),
-    OR(true),
-    SUB(false),
-    SHL(false),
-    SHR(false),
-    SHRS(false),
+enum class BinOpENUM(val isCommutative: Boolean, val molkiOp: KFunction3<Target.Input, Target.Input, Target.Output, Instruction.BinaryOperationWithResult>) {
+    ADD(true, Instructions::add),
+    AND(true, Instructions::and),
+    EOR(true, Instructions::xor),
+    MUL(true, Instructions::imul),
+    OR(true, Instructions::or),
+    SUB(false, Instructions::sub),
+    SHL(false, Instructions::shl),
+    SHR(false, Instructions::shr),
+    SHRS(false, Instructions::sar),
 }
 
 // TODO rename

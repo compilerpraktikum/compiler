@@ -178,12 +178,13 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val leftRegister = variable<Register>()
         val rightRegister = variable<Register>()
 
+        val binOp = variable<BinOpENUM>()
         val left = variable<Replacement>()
         val right = variable<Replacement>()
 
         match(
             CodeGenIR.BinOP(
-                BinOpENUM.ADD,
+                binOp,
                 RegisterRef(leftRegister, left),
                 RegisterRef(rightRegister, right)
             )
@@ -191,14 +192,14 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 
         replaceWith {
             check(leftRegister.get().width == rightRegister.get().width) { "Widths of `l` and `r` need to be the same in `BinOp(ADD, l, r)`" }
-
+            println("binop $binOp")
             val resRegister = newRegister(leftRegister.get().width)
             Replacement(
                 node = RegisterRef(resRegister),
                 instructions = left.get().instructions
                     .append(right.get().instructions)
                     .append(
-                        Instruction.addq(leftRegister.get(), rightRegister.get(), resRegister)
+                        binOp.get().molkiOp(leftRegister.get(), rightRegister.get(), resRegister)
                     ),
                 cost = left.get().cost + right.get().cost + 1,
             )
@@ -300,10 +301,12 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val registerWithValue = variable<Register>()
         val registerToWriteTo = variable<Register>()
 
+        val replacement = ValueHolder.Variable<Replacement>()
+
         match(
             CodeGenIR.Assign(
                 RegisterRef(registerToWriteTo),
-                RegisterRef(registerWithValue)
+                RegisterRef(registerWithValue, replacement)
             )
         )
         replaceWith {

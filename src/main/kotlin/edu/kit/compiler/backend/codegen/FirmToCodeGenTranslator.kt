@@ -377,8 +377,8 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Mulh) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.MULH)
         println("visit MULH " + node.block.toString())
+        error("mulh not implemented")
     }
 
     override fun visit(node: Not) {
