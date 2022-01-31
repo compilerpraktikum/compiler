@@ -44,6 +44,17 @@ class AssemblyGenerator(output: Path) : AutoCloseable {
 
         // calculate function size
         appendLine(".size $functionName, .-$functionName")
+
+        // two newlines so the file is easier to read
+        appendLine()
+        appendLine()
+    }
+
+    /**
+     * Append a newline to the assembly file
+     */
+    private fun appendLine() {
+        outputWriter.newLine()
     }
 
     /**
