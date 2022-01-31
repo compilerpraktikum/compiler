@@ -350,16 +350,17 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         }
 
         replaceWith {
+            val functionName = address.get().entity.ldName
             Replacement(
                 node = Noop(),
                 instructions = argReplacements
                     .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
                     .append(
                         Instruction.call(
-                            address.get().entity.ldName,
+                            functionName,
                             argRegisters.toList(), // copy list as it is reused
                             valueRegister.get(),
-                            false
+                            NameMangling.isExternalFunction(functionName)
                         )
                     ),
                 cost = argReplacements.sumOf { it.cost } + 1

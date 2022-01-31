@@ -299,6 +299,8 @@ class CodeGenTest {
 
                 public void test() {
                     Test test = new Test();
+                    int a = System.in.read();
+                    test.test();
                     System.out.println(12);
                     System.out.println(13);
                 }
@@ -310,7 +312,11 @@ class CodeGenTest {
         facade.generateBlockLayout()
         facade.blocksWithLayout.forEach { (graph, block) ->
             println("## ${graph.entity.ldName}")
-            block.forEach { println("   ${it.toMolki()}")
+            block.forEach { print("   ${it.toMolki()}")
+                if(it is Instruction.Call) {
+                    print("   ; external ${it.external}")
+                }
+                println()
             }
         }
     }
