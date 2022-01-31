@@ -106,38 +106,6 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("assign addr in register value in register: `movq (R_j), (R_i)`") {
-        val registerWithAddr = variable<Register>()
-        val registerWithValue = variable<Register>()
-
-        val replacementForAddr = variable<Replacement>()
-        val replacementForValue = variable<Replacement>()
-
-        match(
-            CodeGenIR.Assign(
-                CodeGenIR.Indirection(
-                    RegisterRef(registerWithAddr, replacementForAddr)
-                ),
-                RegisterRef(registerWithValue, replacementForValue)
-            )
-        )
-
-        replaceWith {
-            val memoryAddress = Memory.of(registerWithAddr.get(), width = registerWithValue.get().width)
-            Replacement(
-                node = CodeGenIR.MemoryAddress(memoryAddress),
-                instructions = replacementForAddr.get().instructions
-                    .append(replacementForValue.get().instructions)
-                    .append(
-                        Instruction.mov(
-                            Memory.of(base = registerWithValue.get(), width = registerWithValue.get().width),
-                            Memory.of(base = registerWithAddr.get(), width = registerWithAddr.get().width)
-                        )
-                    ),
-                cost = 1,
-            )
-        }
-    },
     rule("read mem at const offset of register: `movq a(R_j), R_i`") {
         val constValue = variable<CodeGenIR.Const.Value>()
         val register = variable<Register>()
