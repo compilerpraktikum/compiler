@@ -53,8 +53,8 @@ object X64ABICallingConvention : CallingConvention {
         )
         prologue.add(
             PlatformInstruction.sub(
-                PlatformTarget.Register(EnumRegister.RSP),
                 PlatformTarget.Constant(reservedSpace.toString()),
+                PlatformTarget.Register(EnumRegister.RSP),
                 Width.QUAD
             )
         )
