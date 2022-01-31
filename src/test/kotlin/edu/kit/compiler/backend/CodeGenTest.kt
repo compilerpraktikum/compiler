@@ -303,6 +303,9 @@ class CodeGenTest {
                     test.test();
                     System.out.println(12);
                     System.out.println(13);
+                    while(a < 10) {
+                        a=a+1;
+                    }
                 }
             }
         """.trimIndent()

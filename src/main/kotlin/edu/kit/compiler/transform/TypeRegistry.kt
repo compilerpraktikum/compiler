@@ -99,7 +99,9 @@ class TypeRegistry {
         }
 
         val methodType = MethodType(firmParamTypes, firmReturnType)
-        return Entity(parent, name, methodType)
+        return Entity(parent, name, methodType).apply {
+            setLdIdent("${parent.name}$$name")
+        }
     }
 
     fun createMethod(inClass: Symbol, name: Symbol, returnType: SemanticType, parameterTypes: List<SemanticType>, isStatic: Boolean): Entity {

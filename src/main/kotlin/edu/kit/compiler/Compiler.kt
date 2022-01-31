@@ -150,8 +150,8 @@ class Compiler(private val config: Config) {
                                 assemblyFile,
                                 executableFile,
                                 useMolki = useMolki,
+                                dumpCodeGenIR = config.dump.contains(Dump.CodeGenIR),
                                 dumpMolki = config.dump.contains(Dump.Molki),
-                                dumpCodeGenIR = config.dump.contains(Dump.CodeGenIR)
                             )
                         }
 
@@ -262,8 +262,8 @@ class Compiler(private val config: Config) {
         MethodGraphsAfterLowering("graph:lowering"),
         MethodGraphsAfterOptimization("graph:optimization"),
         AssemblyFile("asm"),
-        Molki("molki"),
-        CodeGenIR("codegen");
+        CodeGenIR("codegen"),
+        Molki("molki");
 
         override fun toString(): String = cliFlag
     }
