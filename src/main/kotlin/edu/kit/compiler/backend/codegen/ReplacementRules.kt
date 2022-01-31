@@ -255,14 +255,17 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     },
     rule("load from address in register: `movq 0(\$R_i) -> R_j`") {
         val registerValue = variable<Register>()
+        val replacement = variable<Replacement>()
+
         match(
-            CodeGenIR.Indirection(RegisterRef(registerValue))
+            CodeGenIR.Indirection(RegisterRef(registerValue, replacement))
         )
         replaceWith {
             val valueRegister = newRegister(registerValue.get().width)
             Replacement(
                 node = RegisterRef(valueRegister),
-                instructions = instructionListOf(
+                instructions =
+                    replacement.get().instructions.append(
                     Instruction.mov(
                         Memory.of(base = registerValue.get(), width = registerValue.get().width),
                         valueRegister
@@ -275,18 +278,21 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("assign reg from mem addr in reg") {
         val registerWithAddress = variable<Register>()
         val registerToWriteTo = variable<Register>()
+        val replacement = variable<Replacement>()
+
 
         match(
             CodeGenIR.Assign(
                 RegisterRef(registerToWriteTo),
-                CodeGenIR.Indirection(RegisterRef(registerWithAddress))
+                CodeGenIR.Indirection(RegisterRef(registerWithAddress, replacement))
             )
         )
         replaceWith {
             println("replacements ${registerWithAddress.get()} ${registerToWriteTo.get()}")
             Replacement(
                 node = RegisterRef(registerToWriteTo),
-                instructions = instructionListOf(
+                instructions =
+                replacement.get().instructions.append(
                     Instruction.mov(
                         Memory.of(
                             base = registerWithAddress.get(),
