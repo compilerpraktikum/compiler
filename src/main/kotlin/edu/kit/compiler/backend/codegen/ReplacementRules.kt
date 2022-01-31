@@ -2,8 +2,6 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
 import edu.kit.compiler.backend.molkir.Instruction
-import edu.kit.compiler.backend.molkir.Instruction.Companion.je
-import edu.kit.compiler.backend.molkir.Instruction.Companion.jmp
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.ReturnRegister
@@ -11,6 +9,7 @@ import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.ValueHolder
 import edu.kit.compiler.utils.rule
+import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 
@@ -224,8 +223,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
                         )
-                    )
-                ,
+                    ),
                 cost = replacement.get().cost + 1,
             )
         }
@@ -397,16 +395,17 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         }
 
         replaceWith {
+            val functionName = address.get().entity.ldName
             Replacement(
                 node = Noop(),
                 instructions = argReplacements
                     .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
                     .append(
                         Instruction.call(
-                            address.get().entity.ldName,
+                            functionName,
                             argRegisters,
                             null,
-                            false
+                            NameMangling.isExternalFunction(functionName)
                         )
                     ),
                 cost = argReplacements.sumOf { it.cost } + 1
@@ -422,7 +421,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 
         replaceWith {
             Replacement(
-                node= Noop(),
+                node = Noop(),
                 instructions = instructionListOf(
                     Instruction.jmp(target.get())
                 ),
@@ -454,7 +453,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         replaceWith {
             val ifTrue = trueLabel.get()
             val ifFalse = falseLabel.get()
-            val jmpConstructor = when(relation.get()) {
+            val jmpConstructor = when (relation.get()) {
                 Relation.False -> Instruction.Companion::jmp
                 Relation.Equal -> Instruction.Companion::je
                 Relation.Less -> Instruction.Companion::jl
