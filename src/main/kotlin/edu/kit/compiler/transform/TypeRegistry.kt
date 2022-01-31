@@ -99,9 +99,7 @@ class TypeRegistry {
         }
 
         val methodType = MethodType(firmParamTypes, firmReturnType)
-        return Entity(parent, name, methodType).apply {
-            setLdIdent("${parent.name}$$name")
-        }
+        return Entity(parent, name, methodType)
     }
 
     fun createMethod(inClass: Symbol, name: Symbol, returnType: SemanticType, parameterTypes: List<SemanticType>, isStatic: Boolean): Entity {
@@ -111,7 +109,7 @@ class TypeRegistry {
         val entity = createMethod(clazz.type, name.text, returnType, parameterTypes, thisParam).apply {
             // set mangled name (-> linker) for non-static methods (static methods don't need this, because by default: linker name == entity name (== "main"))
             if (!isStatic) {
-                setLdIdent("${inClass.text}.${name.text}")
+                setLdIdent("${inClass.text}$${name.text}")
             }
         }
 
