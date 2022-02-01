@@ -21,7 +21,7 @@ class StackRegisterTable {
      * Stores the current offset where a new [StackRegister] is placed on the stack. It is initialized at `8`, to skip the
      * pushed RBP value, which is located at `0(%rbp)`
      */
-    var registerTableSize = 8
+    var registerTableSize = 0
         private set
 
     /**
@@ -50,9 +50,9 @@ class StackRegisterTable {
      * @param width register width
      */
     fun createRegisterSlot(id: RegisterId, width: Width): StackRegister {
+        registerTableSize += Width.QUAD.inBytes
         val register = StackRegister(id, registerTableSize, width)
         stackLayout[id] = register
-        registerTableSize += Width.QUAD.inBytes
 
         return register
     }
