@@ -325,7 +325,7 @@ class FirmToCodeGenTranslator(
         }
 
         val resultProjection = outNodes.firstNotNullOfOrNull {
-            if (it is Proj && it.mode == Mode.getIs()) {
+            if (it is Proj && it.mode != Mode.getM()) {
                 it
             } else {
                 null
