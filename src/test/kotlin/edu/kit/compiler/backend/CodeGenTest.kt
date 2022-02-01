@@ -5,9 +5,7 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinOpENUM
 import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.backend.codegen.CodeGenIR
-import edu.kit.compiler.backend.codegen.GraphVizBuilder
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
-import edu.kit.compiler.backend.codegen.toGraphViz
 import edu.kit.compiler.backend.codegen.transform
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.MolkIR
@@ -26,9 +24,6 @@ import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import kotlin.io.path.readText
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -163,7 +158,7 @@ class CodeGenTest {
     }
 
     @Test
-    fun testCall() {
+    fun integrationTest() {
         val facade = setupGraph(
             """
 class Reader {
