@@ -8,6 +8,7 @@ import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
 import edu.kit.compiler.backend.register.PlatformTransformation
 import edu.kit.compiler.backend.register.calls.CallingConvention
+import edu.kit.compiler.backend.register.stack.StackRegisterTable
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 import edu.kit.compiler.backend.molkir.Memory as MolkiMemory
@@ -33,23 +34,9 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * All virtual registers are saved in a table on the stack
+     * A table of spill slots for virtual registers on stack
      */
-    private data class StackSlot(val virtualRegisterId: RegisterId, val offset: Int, val width: Width) {
-        fun generateMemoryAddress(): PlatformTarget.Memory =
-            PlatformTarget.Memory.of((-offset).toString(), PlatformRegister(EnumRegister.RBP), null, null)
-    }
-
-    /**
-     * Stores the current offset where a new [StackSlot] is placed on the stack. It is initialized at `8`, to skip the
-     * pushed RBP value, which is located at `0(%rbp)`
-     */
-    private var currentSlotOffset = 8
-
-    /**
-     * Current stack layout of virtual registers
-     */
-    private val stackLayout = mutableMapOf<RegisterId, StackSlot>()
+    private val stackRegisterTable = StackRegisterTable()
 
     /**
      * Generated code in [PlatformInstruction]s
@@ -69,11 +56,11 @@ class TrivialFunctionTransformer(
     }
 
     override fun getPlatformCode(): List<PlatformInstruction> {
-        val prologue = callingConvention.generateFunctionPrologue(this.currentSlotOffset)
+        val prologue = callingConvention.generateFunctionPrologue(stackRegisterTable.registerTableSize)
         generatedCode.addAll(0, prologue)
 
-        val epilogue = if (stackLayout.containsKey(RegisterId(RETURN_VALUE_SLOT))) {
-            val returnValueSlot = stackLayout[RegisterId(RETURN_VALUE_SLOT)]!!
+        val epilogue = if (stackRegisterTable.containsRegister(RegisterId(RETURN_VALUE_SLOT))) {
+            val returnValueSlot = stackRegisterTable.getRegisterSlot(RegisterId(RETURN_VALUE_SLOT))!!
             callingConvention.generateFunctionEpilogue(returnValueSlot.generateMemoryAddress(), returnValueSlot.width)
         } else {
             callingConvention.generateFunctionEpilogue(null, null)
@@ -95,10 +82,10 @@ class TrivialFunctionTransformer(
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         } else {
             // check the register has been assigned before
-            check(stackLayout.containsKey(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
+            check(stackRegisterTable.containsRegister(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
 
             // generate an offset to RSP to load the value from
-            val memoryLocation = stackLayout[virtualRegister.id]!!.generateMemoryAddress()
+            val memoryLocation = stackRegisterTable.getRegisterSlot(virtualRegister.id)!!.generateMemoryAddress()
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         }
 
@@ -117,16 +104,13 @@ class TrivialFunctionTransformer(
         registerWidth: Width,
         platformRegister: PlatformTarget
     ) {
-        if (!stackLayout.containsKey(virtualRegisterId)) {
-            stackLayout[virtualRegisterId] = StackSlot(virtualRegisterId, currentSlotOffset, registerWidth)
-
-            /* eight byte alignment for fast quad-word-access */
-            currentSlotOffset += Width.QUAD.inBytes
+        if (!stackRegisterTable.containsRegister(virtualRegisterId)) {
+            stackRegisterTable.createRegisterSlot(virtualRegisterId, registerWidth)
         }
 
         val instruction = PlatformInstruction.mov(
             platformRegister,
-            stackLayout[virtualRegisterId]!!.generateMemoryAddress(),
+            stackRegisterTable.getRegisterSlot(virtualRegisterId)!!.generateMemoryAddress(),
             registerWidth
         )
 
