@@ -28,6 +28,11 @@ interface RegisterAllocator {
     fun isAllocated(register: EnumRegister): Boolean
 
     /**
+     * Whether more registers are available
+     */
+    fun hasMoreRegisters(): Boolean
+
+    /**
      * Forcibly allocate a register by its definition. Throws an [IllegalArgumentException] if the requested register
      * is already allocated
      */

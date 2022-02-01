@@ -15,7 +15,7 @@ class TrivialAllocator : RegisterAllocator {
      * Sorted in a way to prefer allocating registers that are not required by the 64 bit ABI calling convention or are
      * reserved for division. This way, we hopefully need less spilling during function calls.
      */
-    private val freeRegisters = mutableMapOf<EnumRegister, Boolean>(
+    private val freeRegisters = mutableMapOf(
         EnumRegister.RBX to true,
         EnumRegister.RSI to true,
         EnumRegister.RDI to true,
@@ -47,6 +47,10 @@ class TrivialAllocator : RegisterAllocator {
     override fun allocateRegister(): PlatformTarget.Register {
         val selectedRegister = freeRegisters.entries.first { (_, free) -> free }.key
         return forceAllocate(selectedRegister)
+    }
+
+    override fun hasMoreRegisters(): Boolean {
+        return freeRegisters.any { (_, free) -> free }
     }
 
     /**
