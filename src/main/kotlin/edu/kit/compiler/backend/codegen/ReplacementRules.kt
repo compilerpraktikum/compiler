@@ -226,61 +226,57 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("load from address in register: `movq 0(\$R_i) -> R_j`") {
-        val registerValue = variable<Register>()
-        val resultValue = variable<Register>()
-        val replacement = variable<Replacement>()
-        val resultReplacement = variable<Replacement>()
+    rule("load from address in register: `movq (\$R_i) -> R_j`") {
+        val fromRegister = variable<Register>()
+        val toRegister = variable<Register>()
+        val fromReplacement = variable<Replacement>()
+        val toReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
-                lhs = CodeGenIR.Indirection(RegisterRef(registerValue, replacement)),
-                rhs = RegisterRef(resultValue, resultReplacement)
+                to = RegisterRef(toRegister, toReplacement),
+                from = CodeGenIR.Indirection(RegisterRef(fromRegister, fromReplacement))
             )
         )
         replaceWith {
             Replacement(
                 node = Noop(),
-                instructions =
-                replacement.get().instructions
-                    .append(resultReplacement.get().instructions).append(
+                instructions = fromReplacement.get().instructions
+                    .append(toReplacement.get().instructions).append(
                         debugComment(),
                         Instruction.mov(
-                            Memory.of(base = registerValue.get(), width = resultValue.get().width),
-                            resultValue.get()
-                        ).also { println("mov!! ${it.toMolki()} ${resultValue.get()}") },
+                            Memory.of(base = fromRegister.get(), width = toRegister.get().width),
+                            toRegister.get()
+                        ),
                     ),
-                cost = 1,
+                cost = fromReplacement.get().cost + toReplacement.get().cost + 1,
             )
         }
     },
-    rule("assign reg from mem addr in reg") {
-        val registerWithAddress = variable<Register>()
-        val registerToWriteTo = variable<Register>()
-        val replacement = variable<Replacement>()
+    rule("store to address in register: `movq R_j -> (\$R_i)`") {
+        val fromRegister = variable<Register>()
+        val toRegister = variable<Register>()
+        val fromReplacement = variable<Replacement>()
+        val toReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
-                RegisterRef(registerToWriteTo),
-                CodeGenIR.Indirection(RegisterRef(registerWithAddress, replacement))
+                to = CodeGenIR.Indirection(RegisterRef(toRegister, toReplacement)),
+                from = RegisterRef(fromRegister, fromReplacement),
             )
         )
         replaceWith {
-            println("replacements ${registerWithAddress.get()} ${registerToWriteTo.get()}")
             Replacement(
-                node = RegisterRef(registerToWriteTo),
-                instructions =
-                replacement.get().instructions.append(
-                    debugComment(),
-                    Instruction.mov(
-                        Memory.of(
-                            base = registerWithAddress.get(),
-                            width = registerToWriteTo.get().width
-                        ).also { println("mem ${it.width}") },
-                        registerToWriteTo.get()
+                node = Noop(),
+                instructions = fromReplacement.get().instructions
+                    .append(toReplacement.get().instructions).append(
+                        debugComment(),
+                        Instruction.mov(
+                            fromRegister.get(),
+                            Memory.of(base = toRegister.get(), width = fromRegister.get().width)
+                        ),
                     ),
-                ),
-                cost = 1,
+                cost = fromReplacement.get().cost + toReplacement.get().cost + 1,
             )
         }
     },
@@ -314,8 +310,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 
         match(
             CodeGenIR.Assign(
-                lhs = CodeGenIR.RegisterRef(valueRegister),
-                rhs = CodeGenIR.Call(address, arguments)
+                to = CodeGenIR.RegisterRef(valueRegister),
+                from = CodeGenIR.Call(address, arguments)
             )
         )
 
