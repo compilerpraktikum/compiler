@@ -79,31 +79,31 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("assign memory register: `movq R_i, x`") { // TODO needed?
-        val addrValue = variable<Memory>()
-        val registerId = variable<Register>()
-
-        match(
-            CodeGenIR.Assign(
-                to = CodeGenIR.MemoryAddress(addrValue),
-                from = RegisterRef(registerId)
-            )
-        )
-
-        replaceWith {
-            Replacement(
-                node = CodeGenIR.MemoryAddress(addrValue),
-                instructions = instructionListOf(
-                    debugComment(),
-                    Instruction.mov(
-                        registerId.get(),
-                        addrValue.get(),
-                    ),
-                ),
-                cost = 1,
-            )
-        }
-    },
+//    rule("assign memory register: `movq R_i, x`") { // TODO needed? also needs fixing (ignores replacement)
+//        val addrValue = variable<Memory>()
+//        val register = variable<Register>()
+//
+//        match(
+//            CodeGenIR.Assign(
+//                to = CodeGenIR.MemoryAddress(addrValue),
+//                from = RegisterRef(register)
+//            )
+//        )
+//
+//        replaceWith {
+//            Replacement(
+//                node = CodeGenIR.MemoryAddress(addrValue),
+//                instructions = instructionListOf(
+//                    debugComment(),
+//                    Instruction.mov(
+//                        register.get(),
+//                        addrValue.get(),
+//                    ),
+//                ),
+//                cost = 1,
+//            )
+//        }
+//    },
     rule("read mem at const offset of register: `movq a(R_j), R_i`") {
         val constValue = variable<CodeGenIR.Const.Value>()
         val register = variable<Register>()
