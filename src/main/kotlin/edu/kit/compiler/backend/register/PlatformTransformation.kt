@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.register
 
+import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.calls.CallingConvention
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.calls.X64ABICallingConvention
@@ -25,12 +26,16 @@ object PlatformTransformation {
      * @param callingConvention the calling convention this function must adhere to when called
      */
     fun transformFunction(
-        function: List<List<edu.kit.compiler.backend.molkir.Instruction>>,
+        function: List<List<Instruction>>,
         parameters: Int,
         callingConvention: CallingConvention
     ): List<PlatformInstruction> {
         val allocationStrategy = allocatorFactory.invoke(callingConvention, parameters)
-        allocationStrategy.transformCode(function.flatten())
+
+        for (block in function) {
+            allocationStrategy.transformCode(block)
+        }
+
         return allocationStrategy.getPlatformCode()
     }
 
