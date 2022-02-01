@@ -166,13 +166,13 @@ class CodeGenTest {
     fun testCall() {
         val facade = setupGraph(
             """
-                class Reader {
-                    public static void main(String[] args) {
-                        int[] numbers = new int[2];
-                        numbers[0] = 77;
-                        numbers[1] = numbers[0];
-                    }
-                }
+class Reader {
+    public static void main(String[] args) {
+        int[] numbers = new int[1];
+        numbers[0] = 2;
+        System.out.println(numbers[0]);
+    }
+}
             """.trimIndent()
         )
         facade.generateMolkiIr()
@@ -181,7 +181,7 @@ class CodeGenTest {
         val assemblyFile = File.createTempFile("out", ".asm").toPath()
         val executableFile = File.createTempFile("executable", ".out").toPath()
         facade.generateAssemblyFile(assemblyFile)
-        println(assemblyFile.readText())
+//        println(assemblyFile.readText())
         Linker().link(assemblyFile, executableFile)
 
     }

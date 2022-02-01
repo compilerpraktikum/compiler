@@ -128,6 +128,10 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String = "$name:"
     }
 
+    class Comment(val content: String) : Instruction() {
+        override fun toMolki(): String = "; $content"
+    }
+
     /**
      * @param name function name
      * @param arguments [Target.Input]s for arguments
@@ -204,6 +208,8 @@ sealed class Instruction : MolkIR {
      *   - q - quad (8 bytes)
      */
     companion object {
+
+        fun comment(content: String) = Comment(content)
 
         fun label(name: String) = Label(name)
 

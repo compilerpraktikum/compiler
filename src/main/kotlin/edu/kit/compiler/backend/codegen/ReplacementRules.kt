@@ -13,7 +13,8 @@ import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 
-fun Replacement?.assertExists() = this ?: error("no replacement found")
+private fun LazyInstructionList.commentForNode(node: CodeGenIR): LazyInstructionList =
+    append(Instruction.comment(node.display()))
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("seq") {
@@ -46,18 +47,21 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     },
     rule("read constant: `movq \$a, R_i`") {
         val const = variable<CodeGenIR.Const.Value>()
+        val node = variable<CodeGenIR>()
 
         match(
-            CodeGenIR.Const(const)
+            SaveNodeTo(node) { CodeGenIR.Const(const) }
         )
 
         replaceWith {
             val newRegister = newRegister(const.get().mode)
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
-                instructions = instructionListOf(
-                    Instruction.mov(const.get().toMolkIR(), newRegister)
-                ),
+                instructions = instructionListOf()
+                    .commentForNode(node.get())
+                    .append(
+                        Instruction.mov(const.get().toMolkIR(), newRegister).also { println("mov!! ${it.toMolki()}") }
+                    ),
                 cost = 1,
             )
         }
