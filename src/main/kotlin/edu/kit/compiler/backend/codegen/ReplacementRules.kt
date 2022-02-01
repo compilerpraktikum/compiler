@@ -104,43 +104,44 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 //            )
 //        }
 //    },
-    rule("read mem at const offset of register: `movq a(R_j), R_i`") {
-        val constValue = variable<CodeGenIR.Const.Value>()
-        val register = variable<Register>()
-        val resRegister = variable<Register>()
-        val widthValue = variable<Width>()
-
-        match(
-            CodeGenIR.Indirection(
-                CodeGenIR.BinOP(
-                    BinOpENUM.ADD,
-                    CodeGenIR.Const(constValue),
-                    RegisterRef(register),
-                )
-            )
-        )
-
-        condition {
-            // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
-            // hab mal hier als beispiel das condition zeug eingebaut. der aufruf kann weg, falls nicht gebraucht wird
-            true
-        }
-
-        replaceWith {
-            val newRegister = newRegister(widthValue.get())
-            Replacement(
-                node = RegisterRef(newRegister),
-                instructions = instructionListOf(
-                    debugComment(),
-                    Instruction.mov(
-                        Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
-                        resRegister.get()
-                    ),
-                ),
-                cost = 1,
-            )
-        }
-    },
+    // disabled, because it crashes (widthValue not initialized) and will not be used anyway, because all there is always an Assign as parent of the Indirection and the assign-rules include the indirection
+//    rule("read mem at const offset of register: `movq a(R_j), R_i`") {
+//        val constValue = variable<CodeGenIR.Const.Value>()
+//        val register = variable<Register>()
+//        val resRegister = variable<Register>()
+//        val widthValue = variable<Width>()
+//
+//        match(
+//            CodeGenIR.Indirection(
+//                CodeGenIR.BinOP(
+//                    BinOpENUM.ADD,
+//                    CodeGenIR.Const(constValue),
+//                    RegisterRef(register),
+//                )
+//            )
+//        )
+//
+//        condition {
+//            // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
+//            // hab mal hier als beispiel das condition zeug eingebaut. der aufruf kann weg, falls nicht gebraucht wird
+//            true
+//        }
+//
+//        replaceWith {
+//            val newRegister = newRegister(widthValue.get())
+//            Replacement(
+//                node = RegisterRef(newRegister),
+//                instructions = instructionListOf(
+//                    debugComment(),
+//                    Instruction.mov(
+//                        Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
+//                        resRegister.get()
+//                    ),
+//                ),
+//                cost = 1,
+//            )
+//        }
+//    },
     rule("binary operation (e.g. add): `addq [ R_i | R_j ] -> R_k`") {
         val binOp = variable<BinOpENUM>()
         val leftRegister = variable<Register>()
