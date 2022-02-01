@@ -70,11 +70,19 @@ fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
          * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
          * Otherwise, we would need to store the best replacement for each possible result type.
          */
-        node.replacement = replacementRules.mapNotNull { rule ->
+        val possibleReplacements = replacementRules.mapNotNull { rule ->
             with(ReplacementScope(registerTable, node, rule.name)) {
-                rule.match(node)
+                rule.match(node)?.let { it to rule.name }
             }
-        }.minByOrNull { it.cost }
+        }
+        if (possibleReplacements.isEmpty()) {
+            node.replacement = null
+        } else {
+            val minCost = possibleReplacements.minOf { it.first.cost }
+            val optimalReplacements = possibleReplacements.filter { it.first.cost == minCost }
+            check(optimalReplacements.size <= 1) { "more than one replacement possible for node ${node.display()}:\n${optimalReplacements.joinToString(separator = "\n") { "  - ${it.second}" }}" }
+            node.replacement = optimalReplacements.firstOrNull()?.first
+        }
         println("-> REPLACEMENT: ${node.replacement}")
     }
     return replacement ?: error("no matching replacement found for root node ${this.display()}")
