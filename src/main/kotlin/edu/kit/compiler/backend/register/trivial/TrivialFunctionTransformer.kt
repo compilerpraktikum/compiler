@@ -72,8 +72,6 @@ class TrivialFunctionTransformer(
         val prologue = callingConvention.generateFunctionPrologue(this.currentSlotOffset)
         generatedCode.addAll(0, prologue)
 
-        // TODO the epilogue might have to be inserted at multiple locations, if there are early returns.
-        //  create a special method then and call it
         val epilogue = if (stackLayout.containsKey(RegisterId(RETURN_VALUE_SLOT))) {
             val returnValueSlot = stackLayout[RegisterId(RETURN_VALUE_SLOT)]!!
             callingConvention.generateFunctionEpilogue(returnValueSlot.generateMemoryAddress(), returnValueSlot.width)
@@ -248,6 +246,7 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
             is MolkiInstruction.Label -> appendInstruction(PlatformInstruction.Label(instr.name))
             is MolkiInstruction.UnaryOperationWithResult -> transformUnaryOperationWithResult(instr)
+            is MolkiInstruction.Comment -> {}
         }
     }
 
