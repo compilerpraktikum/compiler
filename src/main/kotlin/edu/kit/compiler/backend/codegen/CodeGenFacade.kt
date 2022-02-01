@@ -147,6 +147,7 @@ class CodeGenFacade(
         fun renderCodeGenIrsToFile(filePrefix: String, tree: Map<String, CodeGenIR?>) {
             val graphPrinter = GraphVizBuilder()
             graphPrinter.appendLine("digraph {")
+            graphPrinter.appendLine("node [shape=box];")
             tree.entries.forEach {
                 graphPrinter.appendLine("subgraph ${graphPrinter.freshId()} {")
                 graphPrinter.appendLine("label=\"${it.key}\";")
