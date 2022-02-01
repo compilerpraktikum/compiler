@@ -324,7 +324,7 @@ class Reader {
         facade.generateBlockLayout()
         facade.blocksWithLayout.forEach { (graph, block) ->
             println("## ${graph.entity.ldName}")
-            block.forEach { println("   ${it.toMolki()}")
+            block.flatten().forEach { println("   ${it.toMolki()}")
             }
         }
 
@@ -476,7 +476,7 @@ class Reader {
         val platformCodes = codeGenFacade.generate()
         platformCodes.forEach {  (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")
-            codeGenFacade.blocksWithLayout[graph]!!.map { it.toMolki() }.pp()
+            codeGenFacade.blocksWithLayout[graph]!!.flatten().map { it.toMolki() }.pp()
             println(instructions.joinToString("\n   ") { it.toAssembler() })
         }
     }

@@ -18,7 +18,7 @@ class CodeGenFacade(
     val dumpCodeGenIR: Boolean,
     val dumpMolkIR: Boolean,
 ) {
-    lateinit var blocksWithLayout: Map<Graph, List<Instruction>>
+    lateinit var blocksWithLayout: Map<Graph, List<List<Instruction>>>
     internal lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
     lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
     lateinit var platformCode: Map<Graph, List<PlatformInstruction>>
@@ -112,18 +112,17 @@ class CodeGenFacade(
      * Usually called with walkPostorder
      */
     class LayoutBlocks(
-        val instructions: MutableList<Instruction>,
+        val instructions: MutableList<List<Instruction>>,
         val blockInstructions: Map<Block, List<Instruction>>
     ) :
         BlockWalker {
         override fun visitBlock(block: Block?) {
-            instructions.add(Instruction.Label(NameMangling.mangleBlockName(block!!)))
             val currentInstructions = blockInstructions[block] ?: error("not instructions for block $block")
-            instructions.addAll(currentInstructions)
+            instructions.add(listOf(Instruction.Label(NameMangling.mangleBlockName(block!!))) + currentInstructions)
         }
 
         fun finalize(graph: Graph) {
-            instructions.add(Instruction.Label(NameMangling.mangleFunctionName(graph)))
+            instructions.add(listOf(Instruction.Label(NameMangling.mangleFunctionName(graph))))
         }
     }
 
@@ -168,7 +167,9 @@ class CodeGenFacade(
             return
 
         codeGenIRs.forEach { (graph, blocks) ->
-            GraphvizPrinter.renderCodeGenIrsToFile("graph-${graph.entity.ldName}", blocks.mapKeys { NameMangling.mangleBlockName(it.key) })
+            GraphvizPrinter.renderCodeGenIrsToFile(
+                "graph-${graph.entity.ldName}",
+                blocks.mapKeys { NameMangling.mangleBlockName(it.key) })
         }
     }
 
@@ -180,9 +181,9 @@ class CodeGenFacade(
         molkiDumpFile.printWriter().use { printer ->
             blocksWithLayout.forEach { (graph, block) ->
                 printer.println(".function ${graph.entity.ldName} ${numberOfArguments[graph]!!} 1")
-                block.forEach {
+                block.flatten().forEach {
                     printer.print("    ${it.toMolki()}")
-                    if(it is Instruction.Call) {
+                    if (it is Instruction.Call) {
                         printer.print("   ; external ${it.external}")
                     }
                     printer.println()

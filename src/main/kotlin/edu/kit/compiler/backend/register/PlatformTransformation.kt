@@ -4,7 +4,6 @@ import edu.kit.compiler.backend.register.calls.CallingConvention
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.calls.X64ABICallingConvention
 import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
-import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 
 /**
  * Transform MolkIR intermediate code into x86 platform code. This allocates platform registers for the virtual
@@ -26,12 +25,12 @@ object PlatformTransformation {
      * @param callingConvention the calling convention this function must adhere to when called
      */
     fun transformFunction(
-        function: List<MolkiInstruction>,
+        function: List<List<edu.kit.compiler.backend.molkir.Instruction>>,
         parameters: Int,
         callingConvention: CallingConvention
     ): List<PlatformInstruction> {
         val allocationStrategy = allocatorFactory.invoke(callingConvention, parameters)
-        allocationStrategy.transformCode(function)
+        allocationStrategy.transformCode(function.flatten())
         return allocationStrategy.getPlatformCode()
     }
 
