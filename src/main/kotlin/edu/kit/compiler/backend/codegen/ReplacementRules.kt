@@ -5,6 +5,7 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.ReturnRegister
+import edu.kit.compiler.backend.molkir.Target
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.ValueHolder
@@ -78,70 +79,71 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("assign memory register: `movq R_i, x`") { // TODO needed?
-        val addrValue = variable<Memory>()
-        val registerId = variable<Register>()
-
-        match(
-            CodeGenIR.Assign(
-                to = CodeGenIR.MemoryAddress(addrValue),
-                from = RegisterRef(registerId)
-            )
-        )
-
-        replaceWith {
-            Replacement(
-                node = CodeGenIR.MemoryAddress(addrValue),
-                instructions = instructionListOf(
-                    debugComment(),
-                    Instruction.mov(
-                        registerId.get(),
-                        addrValue.get(),
-                    ),
-                ),
-                cost = 1,
-            )
-        }
-    },
-    rule("read mem at const offset of register: `movq a(R_j), R_i`") {
-        val constValue = variable<CodeGenIR.Const.Value>()
-        val register = variable<Register>()
-        val resRegister = variable<Register>()
-        val widthValue = variable<Width>()
-
-        match(
-            CodeGenIR.Indirection(
-                CodeGenIR.BinOP(
-                    BinOpENUM.ADD,
-                    CodeGenIR.Const(constValue),
-                    RegisterRef(register),
-                )
-            )
-        )
-
-        condition {
-            // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
-            // hab mal hier als beispiel das condition zeug eingebaut. der aufruf kann weg, falls nicht gebraucht wird
-            true
-        }
-
-        replaceWith {
-            val newRegister = newRegister(widthValue.get())
-            Replacement(
-                node = RegisterRef(newRegister),
-                instructions = instructionListOf(
-                    debugComment(),
-                    Instruction.mov(
-                        Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
-                        resRegister.get()
-                    ),
-                ),
-                cost = 1,
-            )
-        }
-    },
+//    rule("assign memory register: `movq R_i, x`") { // TODO needed? also needs fixing (ignores replacement)
+//        val addrValue = variable<Memory>()
+//        val register = variable<Register>()
+//
+//        match(
+//            CodeGenIR.Assign(
+//                to = CodeGenIR.MemoryAddress(addrValue),
+//                from = RegisterRef(register)
+//            )
+//        )
+//
+//        replaceWith {
+//            Replacement(
+//                node = CodeGenIR.MemoryAddress(addrValue),
+//                instructions = instructionListOf(
+//                    debugComment(),
+//                    Instruction.mov(
+//                        register.get(),
+//                        addrValue.get(),
+//                    ),
+//                ),
+//                cost = 1,
+//            )
+//        }
+//    },
+    // disabled, because it crashes (widthValue not initialized) and will not be used anyway, because all there is always an Assign as parent of the Indirection and the assign-rules include the indirection
+//    rule("read mem at const offset of register: `movq a(R_j), R_i`") {
+//        val constValue = variable<CodeGenIR.Const.Value>()
+//        val register = variable<Register>()
+//        val resRegister = variable<Register>()
+//        val widthValue = variable<Width>()
+//
+//        match(
+//            CodeGenIR.Indirection(
+//                CodeGenIR.BinOP(
+//                    BinOpENUM.ADD,
+//                    CodeGenIR.Const(constValue),
+//                    RegisterRef(register),
+//                )
+//            )
+//        )
+//
+//        condition {
+//            // TODO: This assumes, that widths of register, value and resRegister are the same. Maybe, we need to check this?
+//            // hab mal hier als beispiel das condition zeug eingebaut. der aufruf kann weg, falls nicht gebraucht wird
+//            true
+//        }
+//
+//        replaceWith {
+//            val newRegister = newRegister(widthValue.get())
+//            Replacement(
+//                node = RegisterRef(newRegister),
+//                instructions = instructionListOf(
+//                    debugComment(),
+//                    Instruction.mov(
+//                        Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
+//                        resRegister.get()
+//                    ),
+//                ),
+//                cost = 1,
+//            )
+//        }
+//    },
     rule("binary operation (e.g. add): `addq [ R_i | R_j ] -> R_k`") {
-        val binOp = variable<BinOpENUM>()
+        val binOp = variable<BinaryOpType>()
         val leftRegister = variable<Register>()
         val rightRegister = variable<Register>()
 
@@ -149,7 +151,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val right = variable<Replacement>()
 
         match(
-            CodeGenIR.BinOP(
+            CodeGenIR.BinaryOp(
                 binOp,
                 RegisterRef(leftRegister, left),
                 RegisterRef(rightRegister, right)
@@ -250,15 +252,15 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         }
     },
     rule("store to address in register: `movq R_j -> (\$R_i)`") {
-        val fromRegister = variable<Register>()
-        val toRegister = variable<Register>()
+        val from = variable<Target.Input>()
         val fromReplacement = variable<Replacement>()
+        val toRegister = variable<Register>()
         val toReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
                 to = CodeGenIR.Indirection(RegisterRef(toRegister, toReplacement)),
-                from = RegisterRef(fromRegister, fromReplacement),
+                from = ConstOrRegisterRef(from, fromReplacement),
             )
         )
         replaceWith {
@@ -268,8 +270,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     .append(toReplacement.get().instructions).append(
                         debugComment(),
                         Instruction.mov(
-                            fromRegister.get(),
-                            Memory.of(base = toRegister.get(), width = fromRegister.get().width)
+                            from.get(),
+                            Memory.of(base = toRegister.get(), width = from.get().width)
                         ),
                     ),
                 cost = fromReplacement.get().cost + toReplacement.get().cost + 1,

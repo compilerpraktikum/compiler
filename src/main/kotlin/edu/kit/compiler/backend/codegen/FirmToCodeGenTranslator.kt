@@ -143,9 +143,9 @@ class FirmToCodeGenTranslator(
         generationState.setExitNode(node.enclosingBlock, codeGenIR.withOrigin(node))
     }
 
-    private fun buildBinOpTree(node: Binop, op: BinOpENUM) {
+    private fun buildBinOpTree(node: Binop, op: BinaryOpType) {
         setCodeFor(node) {
-            CodeGenIR.BinOP(left = getCodeFor(node.left), right = getCodeFor(node.right), operation = op)
+            CodeGenIR.BinaryOp(left = getCodeFor(node.left), right = getCodeFor(node.right), operation = op)
         }
     }
 
@@ -161,13 +161,13 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Add) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.ADD)
+        buildBinOpTree(node, BinaryOpType.ADD)
         println("visit ADD " + node.block.toString())
     }
 
     override fun visit(node: And) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.AND)
+        buildBinOpTree(node, BinaryOpType.AND)
         println("visit AND " + node.block.toString())
     }
 
@@ -294,7 +294,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Eor) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.EOR)
+        buildBinOpTree(node, BinaryOpType.EOR)
         println("visit EOR " + node.block.toString())
     }
 
@@ -358,7 +358,7 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Minus) {
         super.visit(node)
         setCodeFor(node) {
-            CodeGenIR.UnaryOP(op = UnaryOpENUM.MINUS, value = getCodeFor(node.op))
+            CodeGenIR.UnaryOp(op = UnaryOpType.MINUS, value = getCodeFor(node.op))
         }
         println("visit MINUS " + node.block.toString())
     }
@@ -373,7 +373,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Mul) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.MUL)
+        buildBinOpTree(node, BinaryOpType.MUL)
         println("visit MUL " + node.block.toString())
     }
 
@@ -386,14 +386,14 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Not) {
         super.visit(node)
         setCodeFor(node) {
-            CodeGenIR.UnaryOP(op = UnaryOpENUM.NOT, value = getCodeFor(node.op))
+            CodeGenIR.UnaryOp(op = UnaryOpType.NOT, value = getCodeFor(node.op))
         }
         println("visit NOT " + node.block.toString())
     }
 
     override fun visit(node: Or) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.OR)
+        buildBinOpTree(node, BinaryOpType.OR)
         println("visit OR " + node.block.toString())
     }
 
@@ -483,7 +483,7 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Sub) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.SUB)
+        buildBinOpTree(node, BinaryOpType.SUB)
         println("visit SUB " + node.block.toString())
     }
 
@@ -495,19 +495,19 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Shl) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.SHL)
+        buildBinOpTree(node, BinaryOpType.SHL)
         println("visit SHL " + node.block.toString())
     }
 
     override fun visit(node: Shr) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.SHR)
+        buildBinOpTree(node, BinaryOpType.SHR)
         println("visit SHR " + node.block.toString())
     }
 
     override fun visit(node: Shrs) {
         super.visit(node)
-        buildBinOpTree(node, BinOpENUM.SHRS)
+        buildBinOpTree(node, BinaryOpType.SHRS)
         println("visit SHRS " + node.block.toString())
     }
 

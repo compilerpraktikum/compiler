@@ -19,10 +19,14 @@ sealed class ValueHolder<T> {
         fun reset() {
             value = null
         }
+
+        override fun toString(): String = "Variable($value)"
     }
 
-    data class Constant<T>(private var value: T? = null) : ValueHolder<T>() {
-        override fun get(): T = value ?: error("value not initialized")
+    data class Constant<T>(private var value: T) : ValueHolder<T>() {
+        override fun get(): T = value
+
+        override fun toString(): String = "Constant($value)"
     }
 }
 

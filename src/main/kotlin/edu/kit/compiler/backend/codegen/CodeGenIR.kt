@@ -1,3 +1,5 @@
+@file:Suppress("DataClassPrivateConstructor")
+
 package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.molkir.Constant
@@ -12,8 +14,7 @@ import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 import firm.nodes.Node
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
+import kotlin.reflect.KProperty
 import edu.kit.compiler.backend.molkir.Instruction.Companion as Instructions
 
 private fun defaultReplacement(node: CodeGenIR) = Replacement(
@@ -26,12 +27,16 @@ private fun <T> ValueHolder<T>.getAndAssertConstant() = get().also {
     check(this is ValueHolder.Constant) { "only allowed on real CodeGenIR (forbidden for patterns)" }
 }
 
-@OptIn(ExperimentalContracts::class)
-private fun <T> ValueHolder<T>.assertVariable() {
-    contract {
-        returns() implies (this@assertVariable is ValueHolder.Variable)
-    }
-    check(this is ValueHolder.Variable) { "only allowed on pattern CodeGenIR (forbidden for real tree)" }
+private fun <T> T.toConst() = ValueHolder.Constant(this)
+
+/**
+ * Helper to allow the following short syntax:
+ * ```kt
+ * val value by valueHolder.getter()
+ * ```
+ */
+private fun <T> ValueHolder<T>.getter() = object {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>) = getAndAssertConstant()
 }
 
 private fun <T> ValueHolder<T>.matchValue(target: ValueHolder<T>): Boolean {
@@ -61,13 +66,23 @@ private fun ValueHolder<CodeGenIR>.matchIR(target: ValueHolder<CodeGenIR>): Bool
 }
 
 sealed class CodeGenIR : MatchPattern<CodeGenIR> {
+    /**
+     * [Replacement] with the minimal cost that was found during pattern matching.
+     */
     var replacement: Replacement? = null
+
+    /**
+     * Sequence to cycle through the original node and a possible [Replacement].
+     */
     val alternatives: Sequence<Replacement>
         get() = sequence {
             yield(defaultReplacement(this@CodeGenIR))
             replacement?.let { yield(it) }
         }
 
+    /**
+     * The firm node that this [node][CodeGenIR] was constructed for.
+     */
     var firmNode: Node? = null
 
     fun withOrigin(firmNode: Node): CodeGenIR {
@@ -77,10 +92,13 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
 
     fun display() = "${this::class.simpleName} [${firmNode?.nr ?: "anonymous"}]"
 
+    /**
+     * Matches the [target node][target] against the pattern represented by `this`.
+     */
     abstract override fun matches(target: CodeGenIR): Boolean
 
     /**
-     * Sequential Execution of two nodes, representing the value of <pre>second</pre>
+     * Sequential Execution of two nodes.
      */
     data class Seq(val first: CodeGenIR, val second: CodeGenIR) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
@@ -96,16 +114,13 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         private val registerHolder: ValueHolder<Register>,
         private val replacementHolder: ValueHolder.Variable<Replacement>?,
     ) : CodeGenIR() {
-        constructor(reg: Register) : this(ValueHolder.Constant(reg), null)
+        constructor(reg: Register) : this(reg.toConst(), null)
         constructor(
             value: ValueHolder.Variable<Register>,
-            nodeHolder: ValueHolder.Variable<Replacement>? = null
-        ) : this(value as ValueHolder<Register>, nodeHolder)
+            replacementHolder: ValueHolder.Variable<Replacement>? = null
+        ) : this(value as ValueHolder<Register>, replacementHolder)
 
-        val register: Register
-            get() = registerHolder.get().also {
-                check(registerHolder is ValueHolder.Constant)
-            }
+        val register: Register by registerHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             check(registerHolder is ValueHolder.Variable)
@@ -121,54 +136,47 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     }
 
     data class Const(private val valueHolder: ValueHolder<Value> = ValueHolder.Variable()) : CodeGenIR() {
-        data class Value(
-            val value: String,
-            val mode: Width,
-        ) {
+        constructor(const: String, mode: Width) : this(Value(const, mode).toConst())
+
+        data class Value(val value: String, val mode: Width) {
             fun toMolkIR() = Constant(value, mode)
         }
 
-        constructor(const: String, mode: Width) : this(ValueHolder.Constant(Value(const, mode)))
-
-        val value: Value
-            get() = valueHolder.get().also {
-                check(valueHolder is ValueHolder.Constant)
-            }
+        val value: Value by valueHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Const)
                 return false
 
-            when (valueHolder) {
-                is ValueHolder.Constant -> {
-                    val expected = valueHolder.get()
-                    val actual = target.valueHolder.get()
-                    return expected.mode == actual.mode && expected.value == actual.value
-                }
-                is ValueHolder.Variable -> {
-                    valueHolder.set(target.value)
-                    return true
-                }
-            }
+            return valueHolder.matchValue(target.valueHolder)
         }
     }
 
-    // TODO make binops
-    data class BinOP(val operation: ValueHolder<BinOpENUM>, val left: CodeGenIR, val right: CodeGenIR) :
-        CodeGenIR() {
+    data class BinaryOp(
+        private val operationHolder: ValueHolder<BinaryOpType>,
+        private val leftHolder: ValueHolder<CodeGenIR>,
+        private val rightHolder: ValueHolder<CodeGenIR>
+    ) : CodeGenIR() {
+        constructor(operation: BinaryOpType, left: CodeGenIR, right: CodeGenIR) : this(operation.toConst(), left.toConst(), right.toConst())
+        constructor(operation: ValueHolder<BinaryOpType>, left: CodeGenIR, right: CodeGenIR) : this(operation, left.toConst(), right.toConst())
 
-        constructor(operation: BinOpENUM, left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Constant(operation), left, right)
+        val operation by operationHolder.getter()
+        val left by leftHolder.getter()
+        val right by rightHolder.getter()
+
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is BinOP)
+            if (target !is BinaryOp)
                 return false
 
-            val matchesInOrder = operation.matchValue(target.operation) && left.matches(target.left) && right.matches(target.right)
+            if (!operationHolder.matchValue(target.operationHolder))
+                return false
+
+            val matchesInOrder = leftHolder.matchIR(target.leftHolder) && rightHolder.matchIR(target.rightHolder)
             if (matchesInOrder)
                 return true
 
-            return if (operation.get().isCommutative) {
-                println("comm $operation ${operation.get().isCommutative}")
-                operation.matchValue(target.operation) && left.matches(target.right) && right.matches(target.left)
+            return if (target.operationHolder.get().isCommutative) {
+                leftHolder.matchIR(target.rightHolder) && rightHolder.matchIR(target.leftHolder)
             } else {
                 false
             }
@@ -176,25 +184,19 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     }
 
     // TODO maybe commutative? is this needed?
-    class Compare(
+    data class Compare(
         private val relationHolder: ValueHolder<Relation>,
         private val leftHolder: ValueHolder<CodeGenIR>,
         private val rightHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
         constructor(relation: Relation, left: CodeGenIR, right: CodeGenIR) :
-            this(ValueHolder.Constant(relation), ValueHolder.Constant(left), ValueHolder.Constant(right))
-        constructor(
-            relationHolder: ValueHolder<Relation>,
-            left: CodeGenIR,
-            right: CodeGenIR
-        ) : this(relationHolder, ValueHolder.Constant(left), ValueHolder.Constant(right))
+            this(relation.toConst(), left.toConst(), right.toConst())
+        constructor(relationHolder: ValueHolder<Relation>, left: CodeGenIR, right: CodeGenIR) :
+            this(relationHolder, left.toConst(), right.toConst())
 
-        val relation
-            get() = relationHolder.getAndAssertConstant()
-        val left
-            get() = leftHolder.getAndAssertConstant()
-        val right
-            get() = rightHolder.getAndAssertConstant()
+        val relation by relationHolder.getter()
+        val left by leftHolder.getter()
+        val right by rightHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Compare)
@@ -224,48 +226,34 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    class MemoryAddress
-    private constructor(private val memoryHolder: ValueHolder<Memory>) : CodeGenIR() {
-        constructor(mem: Memory) : this(ValueHolder.Constant(mem))
-        constructor(value: ValueHolder.Variable<Memory>) : this(value as ValueHolder<Memory>)
+    data class MemoryAddress(private val memoryHolder: ValueHolder<Memory>) : CodeGenIR() {
+        constructor(memory: Memory) : this(memory.toConst())
 
-        val memory: Memory
-            get() = memoryHolder.get().also {
-                check(memoryHolder is ValueHolder.Constant)
-            }
+        val memory: Memory by memoryHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is MemoryAddress)
-                return false
+            return target.alternatives.any {
+                if (target !is MemoryAddress)
+                    return@any false
 
-            check(memoryHolder is ValueHolder.Variable)
-            memoryHolder.set(target.memoryHolder.get())
-            return true
+                return@any memoryHolder.matchValue(target.memoryHolder)
+            }
         }
     }
 
-    class Cond(
-        val conditionHolder: ValueHolder<CodeGenIR>,
-        val trueLabelHolder: ValueHolder<String>,
-        val falseLabelHolder: ValueHolder<String>
+    data class Cond(
+        private val conditionHolder: ValueHolder<CodeGenIR>,
+        private val trueLabelHolder: ValueHolder<String>,
+        private val falseLabelHolder: ValueHolder<String>
     ) : CodeGenIR() {
-        constructor(condition: CodeGenIR, trueLabel: String, falseLabel: String) : this(
-            ValueHolder.Constant(condition),
-            ValueHolder.Constant(trueLabel),
-            ValueHolder.Constant(falseLabel)
-        )
-        constructor(
-            condition: CodeGenIR,
-            trueLabelHolder: ValueHolder<String>,
-            falseLabelHolder: ValueHolder<String>
-        ) : this(ValueHolder.Constant(condition), trueLabelHolder, falseLabelHolder)
+        constructor(condition: CodeGenIR, trueLabel: String, falseLabel: String) :
+            this(condition.toConst(), trueLabel.toConst(), falseLabel.toConst())
+        constructor(condition: CodeGenIR, trueLabelHolder: ValueHolder<String>, falseLabelHolder: ValueHolder<String>) :
+            this(condition.toConst(), trueLabelHolder, falseLabelHolder)
 
-        val condition: CodeGenIR
-            get() = conditionHolder.getAndAssertConstant()
-        val trueLabel: String
-            get() = trueLabelHolder.getAndAssertConstant()
-        val falseLabel: String
-            get() = falseLabelHolder.getAndAssertConstant()
+        val condition by conditionHolder.getter()
+        val trueLabel by trueLabelHolder.getter()
+        val falseLabel by falseLabelHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Cond)
@@ -277,21 +265,16 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    class Jmp
-    private constructor(private val labelHolder: ValueHolder<String>) : CodeGenIR() {
-        constructor(label: String) : this(ValueHolder.Constant(label))
-        constructor(label: ValueHolder.Variable<String>) : this(label as ValueHolder<String>)
+    data class Jmp(private val labelHolder: ValueHolder<String>) : CodeGenIR() {
+        constructor(label: String) : this(label.toConst())
 
-        val label: String
-            get() = labelHolder.getAndAssertConstant()
+        val label by labelHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Jmp)
                 return false
 
-            labelHolder.assertVariable()
-            labelHolder.set(target.label)
-            return true
+            return labelHolder.matchValue(target.labelHolder)
         }
     }
 
@@ -305,68 +288,60 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     }
 
     data class Div(
-        val left: ValueHolder<CodeGenIR>,
-        val right: ValueHolder<CodeGenIR>
+        private val leftHolder: ValueHolder<CodeGenIR>,
+        private val rightHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
+        constructor(left: CodeGenIR, right: CodeGenIR) : this(left.toConst(), right.toConst())
+
+        val left by leftHolder.getter()
+        val right by rightHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Div) {
                 return false
             }
-            return left.matchIR(target.left) && right.matchIR(target.right)
+            return leftHolder.matchIR(target.leftHolder) && rightHolder.matchIR(target.rightHolder)
         }
     }
 
-    data class Mod(val right: ValueHolder<CodeGenIR>, val left: ValueHolder<CodeGenIR>) : CodeGenIR() {
-        constructor(left: CodeGenIR, right: CodeGenIR) : this(ValueHolder.Variable(left), ValueHolder.Variable(right))
+    data class Mod(
+        private val leftHolder: ValueHolder<CodeGenIR>,
+        private val rightHolder: ValueHolder<CodeGenIR>,
+    ) : CodeGenIR() {
+        constructor(left: CodeGenIR, right: CodeGenIR) : this(left.toConst(), right.toConst())
+
+        val left by leftHolder.getter()
+        val right by rightHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Mod) {
                 return false
             }
-            return left.matchIR(target.left) && right.matchIR(target.right)
+            return leftHolder.matchIR(target.leftHolder) && rightHolder.matchIR(target.rightHolder)
         }
     }
 
-    class Call
+    data class Call
     private constructor(
         private val addressHolder: ValueHolder<Address>,
         private val argumentsHolder: ValueHolder<List<CodeGenIR>>,
     ) : CodeGenIR() {
         constructor(address: Address, arguments: List<CodeGenIR>) : this(
-            ValueHolder.Constant(address),
-            ValueHolder.Constant(arguments)
+            address.toConst(),
+            arguments.toConst(),
         )
+        constructor(address: ValueHolder<Address>, arguments: ValueHolder.Variable<List<CodeGenIR>>) :
+            this(address, arguments as ValueHolder<List<CodeGenIR>>)
 
-        constructor(address: ValueHolder<Address>, arguments: ValueHolder.Variable<List<CodeGenIR>>) : this(
-            address,
-            arguments as ValueHolder<List<CodeGenIR>>,
-        )
-
-        val address: Address
-            get() = addressHolder.getAndAssertConstant()
-        val arguments: List<CodeGenIR>
-            get() = argumentsHolder.get().also {
-                check(argumentsHolder is ValueHolder.Constant)
-            }
-
-        val linkerName: String
-            get() = address.entity.ldName!!
+        val address by addressHolder.getter()
+        val arguments by argumentsHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Call)
                 return false
 
-            when (addressHolder) {
-                is ValueHolder.Constant -> {
-                    if (addressHolder.get() != target.address)
-                        return false
-                }
-                is ValueHolder.Variable -> {
-                    addressHolder.set(target.address)
-                }
-            }
+            if (!addressHolder.matchValue(target.addressHolder))
+                return false
 
             check(argumentsHolder is ValueHolder.Variable)
             argumentsHolder.set(target.arguments)
@@ -375,21 +350,21 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class UnaryOP(
-        val op: ValueHolder<UnaryOpENUM>,
-        val value: ValueHolder<CodeGenIR>
+    data class UnaryOp(
+        private val operationHolder: ValueHolder<UnaryOpType>,
+        private val operandHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(op: UnaryOpENUM, value: CodeGenIR) : this(
-            ValueHolder.Constant(op),
-            ValueHolder.Constant(value)
-        )
+        constructor(op: UnaryOpType, value: CodeGenIR) : this(op.toConst(), value.toConst())
+
+        val operation by operationHolder.getter()
+        val operand by operandHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is UnaryOP)
+            if (target !is UnaryOp)
                 return false
 
-            return op.matchValue(target.op) &&
-                value.matchIR(target.value)
+            return operationHolder.matchValue(target.operationHolder) &&
+                operandHolder.matchIR(target.operandHolder)
         }
     }
 
@@ -398,23 +373,14 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         private val toModeHolder: ValueHolder<Mode>,
         private val opTreeHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(fromMode: Mode, toMode: Mode, opTree: CodeGenIR) : this(
-            ValueHolder.Constant(fromMode),
-            ValueHolder.Constant(toMode),
-            ValueHolder.Constant(opTree)
-        )
-        constructor(fromMode: ValueHolder<Mode>, toMode: ValueHolder<Mode>, opTree: CodeGenIR) : this(
-            fromMode,
-            toMode,
-            ValueHolder.Constant(opTree)
-        )
+        constructor(fromMode: Mode, toMode: Mode, opTree: CodeGenIR) :
+            this(fromMode.toConst(), toMode.toConst(), opTree.toConst())
+        constructor(fromMode: ValueHolder<Mode>, toMode: ValueHolder<Mode>, opTree: CodeGenIR) :
+            this(fromMode, toMode, opTree.toConst())
 
-        val fromMode
-            get() = fromModeHolder.getAndAssertConstant()
-        val toMode
-            get() = toModeHolder.getAndAssertConstant()
-        val opTree
-            get() = opTreeHolder.getAndAssertConstant()
+        val fromMode by fromModeHolder.getter()
+        val toMode by toModeHolder.getter()
+        val opTree by opTreeHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Conv)
@@ -432,7 +398,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 to.walkDepthFirst(walker)
                 from.walkDepthFirst(walker)
             }
-            is BinOP -> {
+            is BinaryOp -> {
                 left.walkDepthFirst(walker)
                 right.walkDepthFirst(walker)
             }
@@ -441,22 +407,31 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                     it.walkDepthFirst(walker)
                 }
             }
-            is Cond -> {
-                condition.walkDepthFirst(walker)
-            }
-            is Const -> {}
-            is Indirection -> {
-                address.walkDepthFirst(walker)
-            }
-            is MemoryAddress -> {}
-            is RegisterRef -> {}
             is Compare -> {
                 left.walkDepthFirst(walker)
                 right.walkDepthFirst(walker)
             }
+            is Cond -> {
+                condition.walkDepthFirst(walker)
+            }
+            is Const -> {}
             is Conv -> {
                 opTree.walkDepthFirst(walker)
             }
+            is Div -> {
+                left.walkDepthFirst(walker)
+                right.walkDepthFirst(walker)
+            }
+            is Indirection -> {
+                address.walkDepthFirst(walker)
+            }
+            is Jmp -> {}
+            is MemoryAddress -> {}
+            is Mod -> {
+                left.walkDepthFirst(walker)
+                right.walkDepthFirst(walker)
+            }
+            is RegisterRef -> {}
             is Return -> {
                 returnValue.walkDepthFirst(walker)
             }
@@ -464,13 +439,13 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 second.walkDepthFirst(walker)
                 first.walkDepthFirst(walker)
             }
-            is Div -> TODO()
-            is Jmp -> {}
-            is Mod -> TODO()
-            is UnaryOP -> TODO()
+            is UnaryOp -> {
+                operand.walkDepthFirst(walker)
+            }
 
+            AnyNode,
+            is ConstOrRegisterRef,
             is Noop,
-            is AnyNode,
             is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
 
@@ -511,6 +486,30 @@ class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: 
     }
 }
 
+class ConstOrRegisterRef(
+    private val targetHolder: ValueHolder.Variable<Target.Input>,
+    private val replacementHolder: ValueHolder.Variable<Replacement>,
+) : CodeGenIR() {
+    private val constHolder = ValueHolder.Variable<Const.Value>()
+    private val constPattern = Const(constHolder)
+    private val registerHolder = ValueHolder.Variable<Register>()
+    private val registerPattern = RegisterRef(registerHolder, replacementHolder)
+
+    override fun matches(target: CodeGenIR): Boolean {
+        return if (constPattern.matches(target)) {
+            targetHolder.set(constHolder.get().toMolkIR())
+            replacementHolder.set(defaultReplacement(target))
+            true
+        } else if (registerPattern.matches(target)) {
+            targetHolder.set(registerHolder.get())
+            // properly filling the replacementHolder is already handled within matches()
+            true
+        } else {
+            false
+        }
+    }
+}
+
 @Suppress("FunctionName")
 fun SaveAnyNodeTo(storage: ValueHolder.Variable<CodeGenIR>) = SaveNodeTo(storage) { AnyNode }
 
@@ -527,16 +526,13 @@ class GraphVizBuilder {
     fun build(): String = stringBuilder.toString()
 
     /**
-     * @return the nodes graph viz id.
+     * @return the node's graph viz id.
      */
     fun CodeGenIR.internalToGraphViz(): Int {
         val id = freshId()
 
         fun node(label: String) {
-            val node = this.firmNode
-            val firmLabel = if (node == null) { "" } else {
-                "${node.nr}\n"
-            }
+            val firmLabel = firmNode?.let { "${it.nr}\n" } ?: ""
             appendLine("$id [label=\"$firmLabel$label\", tooltip=\"$firmLabel\"];")
         }
         fun Int.edge(label: String) = appendLine("$id -> $this [label=\"$label\"];")
@@ -547,8 +543,8 @@ class GraphVizBuilder {
                 to.internalToGraphViz().edge("to")
                 from.internalToGraphViz().edge("from")
             }
-            is CodeGenIR.BinOP -> {
-                node("BinOP ${operation.get()}")
+            is CodeGenIR.BinaryOp -> {
+                node("BinOP $operation")
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
             }
@@ -580,12 +576,25 @@ class GraphVizBuilder {
                 node("Conv $fromMode (${fromMode.sizeBytes}) => $toMode (${toMode.sizeBytes})")
                 opTree.internalToGraphViz().edge("opTree")
             }
+            is CodeGenIR.Div -> {
+                node("Div")
+                left.internalToGraphViz().edge("left")
+                right.internalToGraphViz().edge("right")
+            }
             is CodeGenIR.Indirection -> {
                 node("Indirection")
                 address.internalToGraphViz().edge("address")
             }
+            is CodeGenIR.Jmp -> {
+                node("JMP\n$label")
+            }
             is CodeGenIR.MemoryAddress -> {
                 node("MemoryAddress $memory")
+            }
+            is CodeGenIR.Mod -> {
+                node("Mod")
+                left.internalToGraphViz().edge("left")
+                right.internalToGraphViz().edge("right")
             }
             is CodeGenIR.RegisterRef -> {
                 node("Ref @${register.id}\n${register.width}")
@@ -599,15 +608,15 @@ class GraphVizBuilder {
                 first.internalToGraphViz().edge("1st")
                 second.internalToGraphViz().edge("2nd")
             }
-            is CodeGenIR.Div -> TODO()
-            is CodeGenIR.Jmp -> {
-                node("JMP\n$label")
+            is CodeGenIR.UnaryOp -> {
+                node("UnaryOp $operation")
+                operand.internalToGraphViz().edge("operand")
             }
-            is CodeGenIR.Mod -> TODO()
-            is CodeGenIR.UnaryOP -> TODO()
-            AnyNode -> TODO()
-            is Noop -> TODO()
-            is SaveNodeTo -> TODO()
+
+            AnyNode,
+            is ConstOrRegisterRef,
+            is Noop,
+            is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
         return id
     }
@@ -620,8 +629,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
 fun List<CodeGenIR>.toSeqChain() =
     this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
-// TODO rename
-enum class BinOpENUM(
+enum class BinaryOpType(
     val isCommutative: Boolean,
     val molkiOp: (Target.Input, Target.Input, Target.Output) -> Instruction
 ) {
@@ -636,7 +644,6 @@ enum class BinOpENUM(
     SHRS(false, Instructions::sar),
 }
 
-// TODO rename
-enum class UnaryOpENUM {
+enum class UnaryOpType {
     MINUS, NOT
 }
