@@ -178,7 +178,6 @@ class Reader {
         facade.generateAssemblyFile(assemblyFile)
 //        println(assemblyFile.readText())
         Linker().link(assemblyFile, executableFile)
-
     }
 
     @Test

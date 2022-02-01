@@ -78,16 +78,14 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         }
     },
-    rule("assign memory register: `movq R_i, x`") {
+    rule("assign memory register: `movq R_i, x`") { // TODO needed?
         val addrValue = variable<Memory>()
         val registerId = variable<Register>()
 
         match(
             CodeGenIR.Assign(
-                CodeGenIR.MemoryAddress(
-                    addrValue
-                ),
-                RegisterRef(registerId)
+                to = CodeGenIR.MemoryAddress(addrValue),
+                from = RegisterRef(registerId)
             )
         )
 
@@ -97,8 +95,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions = instructionListOf(
                     debugComment(),
                     Instruction.mov(
-                        Memory.of(registerId.get(), width = addrValue.get().width),
-                        addrValue.get()
+                        registerId.get(),
+                        addrValue.get(),
                     ),
                 ),
                 cost = 1,
