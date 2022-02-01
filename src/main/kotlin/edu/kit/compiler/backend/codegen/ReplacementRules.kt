@@ -13,8 +13,11 @@ import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 
-private fun LazyInstructionList.commentForNode(node: CodeGenIR): LazyInstructionList =
-    append(Instruction.comment(node.display()))
+private fun commentFor(node: CodeGenIR, rule: String) =
+    Instruction.comment("${node.display()} (Rule: $rule)")
+
+private fun LazyInstructionList.appendCommentFor(node: CodeGenIR, rule: String) =
+    append(commentFor(node, rule))
 
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("seq") {
@@ -57,11 +60,10 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             val newRegister = newRegister(const.get().mode)
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
-                instructions = instructionListOf()
-                    .commentForNode(node.get())
-                    .append(
-                        Instruction.mov(const.get().toMolkIR(), newRegister).also { println("mov!! ${it.toMolki()}") }
-                    ),
+                instructions = instructionListOf(
+                    commentFor(node.get(), "read constant"),
+                    Instruction.mov(const.get().toMolkIR(), newRegister)
+                ),
                 cost = 1,
             )
         }
@@ -229,23 +231,25 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val registerValue = variable<Register>()
         val resultValue = variable<Register>()
         val replacement = variable<Replacement>()
+        val resultReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
                 lhs = CodeGenIR.Indirection(RegisterRef(registerValue, replacement)),
-                rhs = RegisterRef(resultValue)
+                rhs = RegisterRef(resultValue, resultReplacement)
             )
         )
         replaceWith {
             Replacement(
                 node = Noop(),
                 instructions =
-                    replacement.get().instructions.append(
-                    Instruction.mov(
-                        Memory.of(base = registerValue.get(), width = resultValue.get().width),
-                        resultValue.get()
-                    )
-                ),
+                replacement.get().instructions
+                    .append(resultReplacement.get().instructions).append(
+                        Instruction.mov(
+                            Memory.of(base = registerValue.get(), width = resultValue.get().width),
+                            resultValue.get()
+                        ).also { println("mov!! ${it.toMolki()} ${resultValue.get()}") }
+                    ),
                 cost = 1,
             )
         }
@@ -293,12 +297,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         )
         replaceWith {
-            println("from $registerWithValue to $registerToWriteTo")
             Replacement(
                 node = RegisterRef(registerToWriteTo),
                 instructions =
                 replacement.get().instructions.append(
-                        Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
+                    Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
                 ),
                 cost = 1,
             )
