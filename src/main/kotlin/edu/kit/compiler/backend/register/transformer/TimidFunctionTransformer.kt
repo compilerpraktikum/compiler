@@ -476,6 +476,7 @@ class TimidFunctionTransformer(
             // save return value
             if (instr.result != null) {
                 // this link remains valid after the call
+                // TODO if we forcibly link EAX here, we don't need an additional move
                 linkVirtualRegister(instr.result as MolkiRegister)
 
                 val platformRegister =
