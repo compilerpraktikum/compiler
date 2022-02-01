@@ -346,7 +346,9 @@ class FirmToCodeGenTranslator(
 
             setCodeFor(resultProjection) { resultRegister }
         } else {
-            error("result of load $node in unused")
+            // load is unused
+            // -> no need to generate control dependency
+            // -> no data dependency needs to be generated, because it is not needed
         }
 
 
