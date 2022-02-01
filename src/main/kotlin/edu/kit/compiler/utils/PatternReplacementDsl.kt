@@ -50,7 +50,7 @@ class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
             return null
         }
 
-        if (condition != null && !condition!!()) {
+        if (condition != null && !condition.invoke()) {
             return null
         }
 
@@ -87,7 +87,10 @@ class RuleBuilderScope<Target, Replacement, Scope : ReplacementBuilderScope>(pri
 
 interface ReplacementBuilderScope {
     fun <Target, Replacement, Scope : ReplacementBuilderScope> Rule<Target, Replacement, Scope>.match(node: Target) =
-        with(this@match) { match(node, this@ReplacementBuilderScope as Scope) }
+        with(this@match) {
+            @Suppress("UNCHECKED_CAST")
+            match(node, this@ReplacementBuilderScope as Scope)
+        }
 }
 
 fun <Target, Replacement, Scope : ReplacementBuilderScope> rule(name: String = "anonymous rule", block: RuleBuilderScope<Target, Replacement, Scope>.() -> Unit): Rule<Target, Replacement, Scope> =
