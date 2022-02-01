@@ -25,13 +25,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             )
         )
 
-        condition {
-            first.get().replacement != null && second.get().replacement != null
-        }
-
         replaceWith {
-            // i = read()   => SEQ(value= REG(1), exec = ASSIGN(REF(1), CALL("read")))
-            // replacement = REG(1)   | instruction = instr(exec) + instr(value)
+            // not a condition as there are no other rules for Seq and to fail early
+            check(first.get().replacement != null) { "no replacement found for ${first.get().display()}" }
+            check(second.get().replacement != null) { "no replacement found for ${second.get().display()}" }
+
             val firstReplacement = first.get().replacement!!
             val secondReplacement = second.get().replacement!!
             Replacement(
