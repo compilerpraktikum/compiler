@@ -271,6 +271,9 @@ object X64ABICallingConvention : CallingConvention {
                     Width.QUAD
                 )
             )
+
+            // free forcibly allocated registers
+            allocatedRegisters.forEach { (_, register) -> allocator.freeRegister(register) }
         }
     }
 }
