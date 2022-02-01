@@ -17,8 +17,6 @@ class TrivialAllocator : RegisterAllocator {
      */
     private val freeRegisters = mutableMapOf(
         EnumRegister.RBX to true,
-        EnumRegister.RSI to true,
-        EnumRegister.RDI to true,
         EnumRegister.R10 to true,
         EnumRegister.R11 to true,
         EnumRegister.R12 to true,
@@ -30,10 +28,12 @@ class TrivialAllocator : RegisterAllocator {
         EnumRegister.RAX to true,
 
         // reserved for x64 ABI
-        EnumRegister.R9 to true,
-        EnumRegister.R8 to true,
+        EnumRegister.RSI to true,
+        EnumRegister.RDI to true,
         EnumRegister.RDX to true,
         EnumRegister.RCX to true,
+        EnumRegister.R9 to true,
+        EnumRegister.R8 to true,
     )
 
     /**
