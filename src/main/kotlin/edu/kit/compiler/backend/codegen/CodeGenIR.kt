@@ -11,7 +11,6 @@ import edu.kit.compiler.utils.ValueHolder
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
-import firm.nodes.Const
 import firm.nodes.Node
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -296,12 +295,12 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class Assign(val lhs: CodeGenIR, val rhs: CodeGenIR) : CodeGenIR() {
+    data class Assign(val to: CodeGenIR, val from: CodeGenIR) : CodeGenIR() {
         override fun matches(target: CodeGenIR): Boolean {
             if (target !is Assign)
                 return false
 
-            return lhs.matches(target.lhs) && rhs.matches(target.rhs)
+            return to.matches(target.to) && from.matches(target.from)
         }
     }
 
@@ -430,8 +429,8 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
     fun walkDepthFirst(walker: (CodeGenIR) -> Unit) {
         when (this) {
             is Assign -> {
-                lhs.walkDepthFirst(walker)
-                rhs.walkDepthFirst(walker)
+                to.walkDepthFirst(walker)
+                from.walkDepthFirst(walker)
             }
             is BinOP -> {
                 left.walkDepthFirst(walker)
@@ -545,8 +544,8 @@ class GraphVizBuilder {
         when (this@internalToGraphViz) {
             is CodeGenIR.Assign -> {
                 node("Assign")
-                lhs.internalToGraphViz().edge("lhs")
-                rhs.internalToGraphViz().edge("rhs")
+                to.internalToGraphViz().edge("to")
+                from.internalToGraphViz().edge("from")
             }
             is CodeGenIR.BinOP -> {
                 node("BinOP ${operation.get()}")

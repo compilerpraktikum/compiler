@@ -435,7 +435,7 @@ class FirmToCodeGenTranslator(
 
                     emitControlDependency(
                         node,
-                        CodeGenIR.Assign(lhs = CodeGenIR.Indirection(address), rhs = value)
+                        CodeGenIR.Assign(to = CodeGenIR.Indirection(address), from = value)
                     )
                     setCodeFor(node) { noop() }
                 } else {
