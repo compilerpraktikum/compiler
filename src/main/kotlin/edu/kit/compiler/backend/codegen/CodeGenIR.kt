@@ -471,7 +471,8 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
 
             is Noop,
             is AnyNode,
-            is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
+            is SaveNodeTo,
+            is ConstOrRegisterRef-> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
 
         walker(this)
