@@ -152,20 +152,20 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class BinOP(
-        private val operationHolder: ValueHolder<BinOpENUM>,
+    data class BinaryOp(
+        private val operationHolder: ValueHolder<BinaryOpType>,
         private val leftHolder: ValueHolder<CodeGenIR>,
         private val rightHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(operation: BinOpENUM, left: CodeGenIR, right: CodeGenIR) : this(operation.toConst(), left.toConst(), right.toConst())
-        constructor(operation: ValueHolder<BinOpENUM>, left: CodeGenIR, right: CodeGenIR) : this(operation, left.toConst(), right.toConst())
+        constructor(operation: BinaryOpType, left: CodeGenIR, right: CodeGenIR) : this(operation.toConst(), left.toConst(), right.toConst())
+        constructor(operation: ValueHolder<BinaryOpType>, left: CodeGenIR, right: CodeGenIR) : this(operation, left.toConst(), right.toConst())
 
         val operation by operationHolder.getter()
         val left by leftHolder.getter()
         val right by rightHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is BinOP)
+            if (target !is BinaryOp)
                 return false
 
             if (!operationHolder.matchValue(target.operationHolder))
@@ -350,17 +350,17 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class UnaryOP(
-        private val operationHolder: ValueHolder<UnaryOpENUM>,
+    data class UnaryOp(
+        private val operationHolder: ValueHolder<UnaryOpType>,
         private val operandHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
-        constructor(op: UnaryOpENUM, value: CodeGenIR) : this(op.toConst(), value.toConst())
+        constructor(op: UnaryOpType, value: CodeGenIR) : this(op.toConst(), value.toConst())
 
         val operation by operationHolder.getter()
         val operand by operandHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
-            if (target !is UnaryOP)
+            if (target !is UnaryOp)
                 return false
 
             return operationHolder.matchValue(target.operationHolder) &&
@@ -398,7 +398,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 to.walkDepthFirst(walker)
                 from.walkDepthFirst(walker)
             }
-            is BinOP -> {
+            is BinaryOp -> {
                 left.walkDepthFirst(walker)
                 right.walkDepthFirst(walker)
             }
@@ -439,7 +439,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 second.walkDepthFirst(walker)
                 first.walkDepthFirst(walker)
             }
-            is UnaryOP -> {
+            is UnaryOp -> {
                 operand.walkDepthFirst(walker)
             }
 
@@ -543,7 +543,7 @@ class GraphVizBuilder {
                 to.internalToGraphViz().edge("to")
                 from.internalToGraphViz().edge("from")
             }
-            is CodeGenIR.BinOP -> {
+            is CodeGenIR.BinaryOp -> {
                 node("BinOP $operation")
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
@@ -608,7 +608,7 @@ class GraphVizBuilder {
                 first.internalToGraphViz().edge("1st")
                 second.internalToGraphViz().edge("2nd")
             }
-            is CodeGenIR.UnaryOP -> {
+            is CodeGenIR.UnaryOp -> {
                 node("UnaryOp $operation")
                 operand.internalToGraphViz().edge("operand")
             }
@@ -629,8 +629,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
 fun List<CodeGenIR>.toSeqChain() =
     this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
 
-// TODO rename
-enum class BinOpENUM(
+enum class BinaryOpType(
     val isCommutative: Boolean,
     val molkiOp: (Target.Input, Target.Input, Target.Output) -> Instruction
 ) {
@@ -645,7 +644,6 @@ enum class BinOpENUM(
     SHRS(false, Instructions::sar),
 }
 
-// TODO rename
-enum class UnaryOpENUM {
+enum class UnaryOpType {
     MINUS, NOT
 }

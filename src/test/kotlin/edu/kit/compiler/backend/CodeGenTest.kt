@@ -2,7 +2,7 @@ package edu.kit.compiler.backend
 
 import com.tylerthrailkill.helpers.prettyprint.pp
 import edu.kit.compiler.ast.validate
-import edu.kit.compiler.backend.codegen.BinOpENUM
+import edu.kit.compiler.backend.codegen.BinaryOpType
 import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.backend.codegen.CodeGenIR
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
@@ -332,7 +332,7 @@ class Reader {
     @Test
     fun testReplacementSystemAdd() {
         val res = transformToMolki() {
-            CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
+            CodeGenIR.BinaryOp(BinaryOpType.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
         }
         assertMolkiEquals(
             res, listOf(
@@ -347,10 +347,10 @@ class Reader {
     fun testNestedAdd() {
 
         val res = transformToMolki() {
-            CodeGenIR.BinOP(
-                BinOpENUM.ADD,
+            CodeGenIR.BinaryOp(
+                BinaryOpType.ADD,
                 CodeGenIR.Const("22", Width.QUAD),
-                CodeGenIR.BinOP(BinOpENUM.ADD, CodeGenIR.Const("33", Width.QUAD), CodeGenIR.Const("44", Width.QUAD))
+                CodeGenIR.BinaryOp(BinaryOpType.ADD, CodeGenIR.Const("33", Width.QUAD), CodeGenIR.Const("44", Width.QUAD))
             )
         }
         assertMolkiEquals(
@@ -412,8 +412,8 @@ class Reader {
     fun testReplacementReturnSum() {
         val res = transformToMolki {
             CodeGenIR.Return(
-                CodeGenIR.BinOP(
-                    BinOpENUM.ADD,
+                CodeGenIR.BinaryOp(
+                    BinaryOpType.ADD,
                     left = CodeGenIR.Const("7", Width.WORD),
                     right = CodeGenIR.RegisterRef(it.newRegister(Width.WORD))
                 )
@@ -449,8 +449,8 @@ class Reader {
     @Test
     fun testReplacementSystem() {
         val res = transformToMolki() {
-            CodeGenIR.BinOP(
-                BinOpENUM.ADD,
+            CodeGenIR.BinaryOp(
+                BinaryOpType.ADD,
                 CodeGenIR.Const("2", Width.QUAD),
                 CodeGenIR.RegisterRef(
                     Register(

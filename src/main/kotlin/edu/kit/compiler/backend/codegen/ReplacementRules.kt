@@ -143,7 +143,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
 //        }
 //    },
     rule("binary operation (e.g. add): `addq [ R_i | R_j ] -> R_k`") {
-        val binOp = variable<BinOpENUM>()
+        val binOp = variable<BinaryOpType>()
         val leftRegister = variable<Register>()
         val rightRegister = variable<Register>()
 
@@ -151,7 +151,7 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val right = variable<Replacement>()
 
         match(
-            CodeGenIR.BinOP(
+            CodeGenIR.BinaryOp(
                 binOp,
                 RegisterRef(leftRegister, left),
                 RegisterRef(rightRegister, right)
