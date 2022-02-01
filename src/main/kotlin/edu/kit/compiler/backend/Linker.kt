@@ -24,7 +24,7 @@ class Linker {
             val process = processBuilder.start()
             val exitCode = process.waitFor()
             if (exitCode != 0) {
-                throw CompilationException("c compiler returned non-zero exit code")
+                throw CompilationException("c compiler returned non-zero exit code ${process.errorStream.bufferedReader().readText()}")
             }
         } catch (e: IOException) {
             throw CompilationException("failed to generate executable: ${e.message}")
