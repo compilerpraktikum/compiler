@@ -5,6 +5,7 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.ReturnRegister
+import edu.kit.compiler.backend.molkir.Target
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.ValueHolder
@@ -250,15 +251,15 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         }
     },
     rule("store to address in register: `movq R_j -> (\$R_i)`") {
-        val fromRegister = variable<Register>()
-        val toRegister = variable<Register>()
+        val from = variable<Target.Input>()
         val fromReplacement = variable<Replacement>()
+        val toRegister = variable<Register>()
         val toReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Assign(
                 to = CodeGenIR.Indirection(RegisterRef(toRegister, toReplacement)),
-                from = RegisterRef(fromRegister, fromReplacement),
+                from = ConstOrRegisterRef(from, fromReplacement),
             )
         )
         replaceWith {
@@ -268,8 +269,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     .append(toReplacement.get().instructions).append(
                         debugComment(),
                         Instruction.mov(
-                            fromRegister.get(),
-                            Memory.of(base = toRegister.get(), width = fromRegister.get().width)
+                            from.get(),
+                            Memory.of(base = toRegister.get(), width = from.get().width)
                         ),
                     ),
                 cost = fromReplacement.get().cost + toReplacement.get().cost + 1,

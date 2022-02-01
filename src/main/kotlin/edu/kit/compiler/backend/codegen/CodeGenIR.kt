@@ -511,6 +511,30 @@ class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: 
     }
 }
 
+class ConstOrRegisterRef(
+    private val targetHolder: ValueHolder.Variable<Target.Input>,
+    private val replacementHolder: ValueHolder.Variable<Replacement>,
+) : CodeGenIR() {
+    private val constHolder = ValueHolder.Variable<Const.Value>()
+    private val constPattern = Const(constHolder)
+    private val registerHolder = ValueHolder.Variable<Register>()
+    private val registerPattern = RegisterRef(registerHolder, replacementHolder)
+
+    override fun matches(target: CodeGenIR): Boolean {
+        return if (constPattern.matches(target)) {
+            targetHolder.set(constHolder.get().toMolkIR())
+            replacementHolder.set(defaultReplacement(target))
+            true
+        } else if (registerPattern.matches(target)) {
+            targetHolder.set(registerHolder.get())
+            // properly filling the replacementHolder is already handled within matches()
+            true
+        } else {
+            false
+        }
+    }
+}
+
 @Suppress("FunctionName")
 fun SaveAnyNodeTo(storage: ValueHolder.Variable<CodeGenIR>) = SaveNodeTo(storage) { AnyNode }
 
