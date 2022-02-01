@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import kotlin.io.path.readText
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -163,15 +164,26 @@ class CodeGenTest {
 
     @Test
     fun testCall() {
-        setupGraph(
+        val facade = setupGraph(
             """
-                class Test {
-                    public static void main(String[] args) {}
-                    public int foo(int x) { return 2+x; }
-                    public int bar(int y, int z) { return foo(3+y)+2; }
+                class Reader {
+                    public static void main(String[] args) {
+                        int[] numbers = new int[2];
+                        numbers[0] = 77;
+                        numbers[1] = numbers[0];
+                    }
                 }
             """.trimIndent()
         )
+        facade.generateMolkiIr()
+        facade.generateBlockLayout()
+        facade.generatePlatformCode()
+        val assemblyFile = File.createTempFile("out", ".asm").toPath()
+        val executableFile = File.createTempFile("executable", ".out").toPath()
+        facade.generateAssemblyFile(assemblyFile)
+        println(assemblyFile.readText())
+        Linker().link(assemblyFile, executableFile)
+
     }
 
     @Test
@@ -252,18 +264,20 @@ class CodeGenTest {
     fun testFull() {
         val facade = setupGraph(
             """
-            class Test {
-                public static void main(String[] args) {}
+            class Bait {
 
-                public void test() {
-                    Test test = new Test();
-                    int a = System.in.read();
-                    test.test();
-                    System.out.println(12);
-                    System.out.println(13);
-                    while(a < 10) {
-                        a=a+1;
-                    }
+                public static void main(String[] args) {
+                }
+
+                public int[] base64;
+
+                public void init() {
+                    this.base64 = new int[64];
+                    base64[0] = 65;
+                    base64[1] = 66;
+                    base64[2] = 67;
+                    base64[3] = 68;
+                    base64[4] = 69;
                 }
             }
         """.trimIndent()
@@ -278,19 +292,12 @@ class CodeGenTest {
             """
             class Test {
                 public static void main(String[] args) {new Test();}
-
-
             }
         """.trimIndent()
         )
 
         facade.generateMolkiIr()
         facade.generateBlockLayout()
-        facade.blocksWithLayout.forEach { (graph, block) ->
-            println("## ${graph.entity.ldName}")
-            block.forEach { println("   ${it.toMolki()}")
-            }
-        }
     }
     @Test
     fun testBothRead() {
