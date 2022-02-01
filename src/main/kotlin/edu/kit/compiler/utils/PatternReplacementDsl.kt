@@ -31,7 +31,7 @@ interface MatchPattern<Target> {
 }
 
 class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
-    private val name: String,
+    val name: String,
     private val variables: List<ValueHolder.Variable<*>>,
     private val pattern: MatchPattern<Target>,
     private val condition: (() -> Boolean)?,

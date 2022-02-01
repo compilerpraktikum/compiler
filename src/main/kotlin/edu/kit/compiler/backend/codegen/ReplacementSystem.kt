@@ -12,9 +12,14 @@ data class Replacement(
 )
 
 class ReplacementScope(
-    private val registerTable: VirtualRegisterTable
+    private val registerTable: VirtualRegisterTable,
+    private val currentNode: CodeGenIR,
+    private val ruleName: String,
 ) : ReplacementBuilderScope {
     fun newRegister(width: Width): Register = registerTable.newRegister(width)
+
+    fun debugComment() =
+        Instruction.comment("${currentNode.display()} (Rule: $ruleName)")
 }
 
 class LazyInstructionList
@@ -32,6 +37,9 @@ private constructor(private val instructions: () -> MutableList<Instruction>) {
     fun append(instructions: List<Instruction>) = LazyInstructionList {
         instructions().apply { addAll(instructions) }
     }
+
+    @JvmName("appendAll")
+    fun append(vararg instructions: Instruction) = append(instructions)
 
     fun append(list: LazyInstructionList) = append(list.buildList())
 
@@ -55,7 +63,6 @@ operator fun LazyInstructionList.plus(other: LazyInstructionList) = append(other
 fun instructionListOf(vararg instructions: Instruction) = LazyInstructionList().append(instructions)
 
 fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
-    val scope = ReplacementScope(registerTable)
     walkDepthFirst { node ->
         println("VISIT: ${node.display()}")
         /*
@@ -63,11 +70,11 @@ fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
          * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
          * Otherwise, we would need to store the best replacement for each possible result type.
          */
-        node.replacement = replacementRules.map { rule ->
-            with(scope) {
+        node.replacement = replacementRules.mapNotNull { rule ->
+            with(ReplacementScope(registerTable, node, rule.name)) {
                 rule.match(node)
             }
-        }.filterNotNull().minByOrNull { it.cost }
+        }.minByOrNull { it.cost }
         println("-> REPLACEMENT: ${node.replacement}")
     }
     return replacement ?: error("no matching replacement found for root node ${this.display()}")

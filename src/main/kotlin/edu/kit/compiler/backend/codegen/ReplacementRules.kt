@@ -13,12 +13,6 @@ import firm.Mode
 import firm.Relation
 import firm.nodes.Address
 
-private fun commentFor(node: CodeGenIR, rule: String) =
-    Instruction.comment("${node.display()} (Rule: $rule)")
-
-private fun LazyInstructionList.appendCommentFor(node: CodeGenIR, rule: String) =
-    append(commentFor(node, rule))
-
 val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     rule("seq") {
         val first = variable<CodeGenIR>()
@@ -50,10 +44,9 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
     },
     rule("read constant: `movq \$a, R_i`") {
         val const = variable<CodeGenIR.Const.Value>()
-        val node = variable<CodeGenIR>()
 
         match(
-            SaveNodeTo(node) { CodeGenIR.Const(const) }
+            CodeGenIR.Const(const)
         )
 
         replaceWith {
@@ -61,8 +54,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    commentFor(node.get(), "read constant"),
-                    Instruction.mov(const.get().toMolkIR(), newRegister)
+                    debugComment(),
+                    Instruction.mov(const.get().toMolkIR(), newRegister),
                 ),
                 cost = 1,
             )
@@ -80,7 +73,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.RegisterRef(newRegister),
                 instructions = instructionListOf(
-                    Instruction.mov(addrValue.get(), newRegister)
+                    debugComment(),
+                    Instruction.mov(addrValue.get(), newRegister),
                 ),
                 cost = 1,
             )
@@ -103,10 +97,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = CodeGenIR.MemoryAddress(addrValue),
                 instructions = instructionListOf(
+                    debugComment(),
                     Instruction.mov(
                         Memory.of(registerId.get(), width = addrValue.get().width),
                         addrValue.get()
-                    )
+                    ),
                 ),
                 cost = 1,
             )
@@ -139,10 +134,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = RegisterRef(newRegister),
                 instructions = instructionListOf(
+                    debugComment(),
                     Instruction.mov(
                         Memory.of(const = constValue.get().value, base = register.get(), width = widthValue.get()),
                         resRegister.get()
-                    )
+                    ),
                 ),
                 cost = 1,
             )
@@ -175,7 +171,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions = left.get().instructions
                     .append(right.get().instructions)
                     .append(
-                        binOp.get().molkiOp(leftRegister.get(), rightRegister.get(), resRegister)
+                        debugComment(),
+                        binOp.get().molkiOp(leftRegister.get(), rightRegister.get(), resRegister),
                     ),
                 cost = left.get().cost + right.get().cost + 1,
             )
@@ -196,10 +193,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = Noop(),
                 instructions = replacement.get().instructions
                     .append(
+                        debugComment(),
                         Instruction.mov(
                             resRegister.get(),
                             ReturnRegister(resRegister.get().width)
-                        )
+                        ),
                     ),
                 cost = replacement.get().cost + 1,
             )
@@ -218,10 +216,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = Noop(),
                 instructions = instructionListOf(
+                    debugComment(),
                     Instruction.mov(
                         constValue.get().toMolkIR(),
                         ReturnRegister(constValue.get().mode)
-                    )
+                    ),
                 ),
                 cost = 1,
             )
@@ -245,10 +244,11 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions =
                 replacement.get().instructions
                     .append(resultReplacement.get().instructions).append(
+                        debugComment(),
                         Instruction.mov(
                             Memory.of(base = registerValue.get(), width = resultValue.get().width),
                             resultValue.get()
-                        ).also { println("mov!! ${it.toMolki()} ${resultValue.get()}") }
+                        ).also { println("mov!! ${it.toMolki()} ${resultValue.get()}") },
                     ),
                 cost = 1,
             )
@@ -258,7 +258,6 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         val registerWithAddress = variable<Register>()
         val registerToWriteTo = variable<Register>()
         val replacement = variable<Replacement>()
-
 
         match(
             CodeGenIR.Assign(
@@ -272,13 +271,14 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = RegisterRef(registerToWriteTo),
                 instructions =
                 replacement.get().instructions.append(
+                    debugComment(),
                     Instruction.mov(
                         Memory.of(
                             base = registerWithAddress.get(),
                             width = registerToWriteTo.get().width
                         ).also { println("mem ${it.width}") },
                         registerToWriteTo.get()
-                    )
+                    ),
                 ),
                 cost = 1,
             )
@@ -299,9 +299,9 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
         replaceWith {
             Replacement(
                 node = RegisterRef(registerToWriteTo),
-                instructions =
-                replacement.get().instructions.append(
-                    Instruction.mov(registerWithValue.get(), registerToWriteTo.get())
+                instructions = replacement.get().instructions.append(
+                    debugComment(),
+                    Instruction.mov(registerWithValue.get(), registerToWriteTo.get()),
                 ),
                 cost = 1,
             )
@@ -346,12 +346,13 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions = argReplacements
                     .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
                     .append(
+                        debugComment(),
                         Instruction.call(
                             functionName,
                             argRegisters.toList(), // copy list as it is reused
                             valueRegister.get(),
                             NameMangling.isExternalFunction(functionName)
-                        )
+                        ),
                     ),
                 cost = argReplacements.sumOf { it.cost } + 1
             )
@@ -392,12 +393,13 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 instructions = argReplacements
                     .fold(instructionListOf()) { acc, repl -> acc.append(repl.instructions) }
                     .append(
+                        debugComment(),
                         Instruction.call(
                             functionName,
                             argRegisters.toList(), // copy list as it is reused
                             null,
                             NameMangling.isExternalFunction(functionName)
-                        )
+                        ),
                     ),
                 cost = argReplacements.sumOf { it.cost } + 1
             )
@@ -414,7 +416,8 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
             Replacement(
                 node = Noop(),
                 instructions = instructionListOf(
-                    Instruction.jmp(target.get())
+                    debugComment(),
+                    Instruction.jmp(target.get()),
                 ),
                 cost = 1
             )
@@ -459,11 +462,12 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                 node = Noop(),
                 instructions = leftReplacement.get().instructions
                     .append(rightReplacement.get().instructions)
-                    .append {
-                        +Instruction.cmpl(left.get(), right.get())
-                        +jmpConstructor(ifTrue)
-                        +Instruction.jmp(ifFalse)
-                    },
+                    .append(
+                        debugComment(),
+                        Instruction.cmpl(left.get(), right.get()),
+                        jmpConstructor(ifTrue),
+                        Instruction.jmp(ifFalse),
+                    ),
                 cost = leftReplacement.get().cost + rightReplacement.get().cost + 3
             )
         }
@@ -501,7 +505,10 @@ val replacementRules = listOf<Rule<CodeGenIR, Replacement, ReplacementScope>>(
                     Replacement(
                         node = RegisterRef(result),
                         instructions = repl.instructions
-                            .append(Instruction.movl(register.get(), result.copy(width = Width.DOUBLE))),
+                            .append(
+                                debugComment(),
+                                Instruction.movl(register.get(), result.copy(width = Width.DOUBLE)),
+                            ),
                         cost = repl.cost
                     )
                 }
