@@ -4,7 +4,7 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.calls.CallingConvention
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.calls.X64ABICallingConvention
-import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
+import edu.kit.compiler.backend.register.transformer.TrivialFunctionTransformer
 
 /**
  * Transform MolkIR intermediate code into x86 platform code. This allocates platform registers for the virtual

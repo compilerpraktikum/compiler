@@ -7,7 +7,7 @@ import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.ReturnRegister
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
-import edu.kit.compiler.backend.register.trivial.TrivialFunctionTransformer
+import edu.kit.compiler.backend.register.transformer.TrivialFunctionTransformer
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction

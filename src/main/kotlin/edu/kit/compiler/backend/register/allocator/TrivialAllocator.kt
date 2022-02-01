@@ -1,4 +1,4 @@
-package edu.kit.compiler.backend.register.trivial
+package edu.kit.compiler.backend.register.allocator
 
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.EnumRegister

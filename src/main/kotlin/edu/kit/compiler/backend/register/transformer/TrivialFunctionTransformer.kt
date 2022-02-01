@@ -1,4 +1,4 @@
-package edu.kit.compiler.backend.register.trivial
+package edu.kit.compiler.backend.register.transformer
 
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
@@ -7,6 +7,7 @@ import edu.kit.compiler.backend.register.FunctionTransformer
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTarget
 import edu.kit.compiler.backend.register.PlatformTransformation
+import edu.kit.compiler.backend.register.allocator.TrivialAllocator
 import edu.kit.compiler.backend.register.calls.CallingConvention
 import edu.kit.compiler.backend.register.stack.StackRegisterTable
 import edu.kit.compiler.backend.molkir.Constant as MolkiConstant
