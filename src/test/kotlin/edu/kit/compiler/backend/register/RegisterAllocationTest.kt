@@ -43,17 +43,17 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
-                subq ${'$'}16, %rsp
+                subq ${'$'}24, %rsp
                 movl ${'$'}1, %ebx
-                movl %ebx, 0(%rbp)
-                movl ${'$'}2, %ebx
                 movl %ebx, -8(%rbp)
-                movl 0(%rbp), %ebx
-                movl -8(%rbp), %esi
+                movl ${'$'}2, %ebx
+                movl %ebx, -16(%rbp)
+                movl -8(%rbp), %ebx
+                movl -16(%rbp), %esi
                 addl %ebx, %esi
-                movl %esi, -8(%rbp)
+                movl %esi, -16(%rbp)
                 leave
                 ret
             """.trimIndent(),
@@ -88,19 +88,19 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
-                subq ${'$'}16, %rsp
+                subq ${'$'}24, %rsp
                 movl ${'$'}1, %ebx
-                movl %ebx, 0(%rbp)
-                movl ${'$'}2, %ebx
                 movl %ebx, -8(%rbp)
-                movl 0(%rbp), %ebx
-                movl -8(%rbp), %esi
-                addl %ebx, %esi
-                movl %esi, -8(%rbp)
+                movl ${'$'}2, %ebx
+                movl %ebx, -16(%rbp)
                 movl -8(%rbp), %ebx
-                movl -8(%rbp), %esi
+                movl -16(%rbp), %esi
+                addl %ebx, %esi
+                movl %esi, -16(%rbp)
+                movl -16(%rbp), %ebx
+                movl -16(%rbp), %esi
                 movl %ebx, 0xffff7f34(,%esi,4)
                 leave
                 ret
@@ -136,19 +136,21 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
-                subq ${'$'}24, %rsp
+                subq ${'$'}32, %rsp
                 movl ${'$'}1, %ebx
-                movl %ebx, 0(%rbp)
-                movl ${'$'}2, %ebx
                 movl %ebx, -8(%rbp)
+                movl ${'$'}2, %ebx
+                movl %ebx, -16(%rbp)
+                movl -16(%rbp), %ebx
+                movl %ebx, %esi
+                push %rsi
                 movl -8(%rbp), %ebx
-                pushq %ebx
-                movl 0(%rbp), %ebx
-                pushq %ebx
+                movl %ebx, %esi
+                push %rsi
                 call foo
-                movl %eax, -16(%rbp)
+                movl %eax, -24(%rbp)
                 addq ${'$'}16, %rsp
                 leave
                 ret
@@ -173,17 +175,17 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
-                subq ${'$'}16, %rsp
+                subq ${'$'}24, %rsp
                 xorq %rdx, %rdx
                 movq ${'$'}8, %rax
                 movq ${'$'}2, %rbx
                 idivq %rbx
                 movl %edx, %esi
                 movl %eax, %edi
-                movl %esi, 0(%rbp)
-                movl %edi, -8(%rbp)
+                movl %esi, -8(%rbp)
+                movl %edi, -16(%rbp)
                 leave
                 ret
             """.trimIndent(),
@@ -207,14 +209,14 @@ internal class RegisterAllocationTest {
 
         assertEquals(
             """
-                pushq %rbp
+                push %rbp
                 movq %rsp, %rbp
-                subq ${'$'}8, %rsp
+                subq ${'$'}16, %rsp
                 movl 16(%rbp), %ebx
                 movl 24(%rbp), %esi
                 addl %ebx, %esi
-                movl %esi, 0(%rbp)
-                movl 0(%rbp), %eax
+                movl %esi, -8(%rbp)
+                movl -8(%rbp), %eax
                 leave
                 ret
             """.trimIndent(),
