@@ -102,6 +102,8 @@ private constructor(
         }
     }
 
+    fun width(newWidth: Width) = Memory(const, base, index, scale, newWidth)
+
     override fun toMolki(): String {
         val constStr = const?.toString() ?: ""
         val baseStr = base?.toMolki() ?: ""

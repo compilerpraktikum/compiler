@@ -125,12 +125,12 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         override fun matches(target: CodeGenIR): Boolean {
             check(registerHolder is ValueHolder.Variable)
             return target.alternatives.any {
-                if (it.node is RegisterRef) {
-                    replacementHolder?.set(it)
-                    registerHolder.set(it.node.register)
-                    return@any true
-                }
-                return@any false
+                if (it.node !is RegisterRef)
+                    return@any false
+
+                replacementHolder?.set(it)
+                registerHolder.set(it.node.register)
+                return@any true
             }
         }
     }
@@ -226,17 +226,23 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    data class MemoryAddress(private val memoryHolder: ValueHolder<Memory>) : CodeGenIR() {
-        constructor(memory: Memory) : this(memory.toConst())
+    data class MemoryAddress(
+        private val memoryHolder: ValueHolder<Memory>,
+        private val replacementHolder: ValueHolder.Variable<Replacement>?
+    ) : CodeGenIR() {
+        constructor(memory: Memory) : this(memory.toConst(), null)
 
         val memory: Memory by memoryHolder.getter()
 
         override fun matches(target: CodeGenIR): Boolean {
+            check(memoryHolder is ValueHolder.Variable)
             return target.alternatives.any {
-                if (target !is MemoryAddress)
+                if (it.node !is MemoryAddress)
                     return@any false
 
-                return@any memoryHolder.matchValue(target.memoryHolder)
+                replacementHolder?.set(it)
+                memoryHolder.set(it.node.memory)
+                return@any true
             }
         }
     }
