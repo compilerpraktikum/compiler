@@ -259,10 +259,10 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Const) {
         super.visit(node)
         setCodeFor(node) {
-            CodeGenIR.Const(node.tarval.toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
+            CodeGenIR.Const(node.tarval.asLong().toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
         }
         println("visit CONST " + node.block.toString())
-        println(node.tarval.toString())
+        println(node.tarval.asLong().toString())
     }
 
     override fun visit(node: Conv) {
