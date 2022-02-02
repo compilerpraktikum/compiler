@@ -379,6 +379,45 @@ val replacementRules = run {
             )
         }
     }
+    fun divisionRule(name: String, resultIsFirst: Boolean, createMatcher: (CodeGenIR, CodeGenIR) -> CodeGenIR) = rule(name) {
+        val leftTarget = variable<Target.Input>()
+        val rightTarget = variable<Target.Input>()
+
+        val left = variable<Replacement>()
+        val right = variable<Replacement>()
+
+        match(
+            createMatcher(
+                ConstOrRegisterRef(leftTarget, left),
+                ConstOrRegisterRef(rightTarget, right)
+            )
+        )
+
+        replaceWith {
+            check(leftTarget.get().width == rightTarget.get().width) {
+                "Widths of `l` and `r` need to be the same in `Div(${leftTarget.get().width}, ${rightTarget.get().width})`"
+            }
+            println(name)
+            val resRegister = newRegister(leftTarget.get().width)
+            val (firstResult, secondResult) = when (resultIsFirst) {
+                true -> Pair(resRegister, newRegister(resRegister.width))
+                false -> Pair(newRegister(resRegister.width), resRegister)
+            }
+            Replacement(
+                node = RegisterRef(resRegister),
+                instructions = left.get().instructions
+                    .append(right.get().instructions)
+                    .append(
+                        debugComment()
+                    ).append(
+                        Instruction.idiv(leftTarget.get(), rightTarget.get(), firstResult, secondResult),
+                    ),
+                cost = left.get().cost + right.get().cost + (if (resRegister.width == Width.DOUBLE) 26 else 50),
+            )
+        }
+    }
+    divisionRule("div", true, CodeGenIR::Div)
+    divisionRule("mod", false, CodeGenIR::Mod)
 
     /*****************************
      ** Load / Store
