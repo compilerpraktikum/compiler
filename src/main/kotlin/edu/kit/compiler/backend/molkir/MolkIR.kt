@@ -267,39 +267,39 @@ sealed class Instruction : MolkIR {
 
         // basic arithmetic
         fun add(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("add${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("add" + left.width.getAtntSuffix(), left, right, result)
 
         fun addl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addl",  left, right, result)
         fun addq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addq",  left, right, result)
 
         fun sub(left: Target.Input, right: Target.Input, result: Target.Output) =
-            SubtractionOperationWithResult("sub${left.width.getAtntSuffix()}", left, right, result)
+            SubtractionOperationWithResult("sub" + left.width.getAtntSuffix(), left, right, result)
 
         fun subl(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subl",  left, right, result)
         fun subq(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subq",  left, right, result)
 
         fun imul(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("imul${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("imul" + left.width.getAtntSuffix(), left, right, result)
         fun imull(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imull", left, right, result)
         fun imulq(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imulq", left, right, result)
 
         // basic logic
         fun and(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("and${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("and" + left.width.getAtntSuffix(), left, right, result)
         fun andl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andl", left, right, result)
         fun andq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andq", left, right, result)
         fun or(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("or${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("or" + left.width.getAtntSuffix(), left, right, result)
         fun orl(left: Target.Input, right: Target.Input, result: Target.Output)   = BinaryOperationWithResult("orl",  left, right, result)
         fun orq(left: Target.Input, right: Target.Input, result: Target.Output)   = BinaryOperationWithResult("orq",  left, right, result)
         fun xor(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("xor${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("xor" + left.width.getAtntSuffix(), left, right, result)
         fun xorl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("xorl", left, right, result)
         fun xorq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("xorq", left, right, result)
 
         // bitwise shift (arithmetic = preserve sign)
         fun sar(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("sar${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("sar" + left.width.getAtntSuffix(), left, right, result)
         fun sall(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sall", left, right, result)
         fun salq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("salq", left, right, result)
         fun sarl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sarl", left, right, result)
@@ -307,11 +307,11 @@ sealed class Instruction : MolkIR {
 
         // bitwise shift (logical)
         fun shl(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("shl${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("shl" + left.width.getAtntSuffix(), left, right, result)
         fun shll(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shll", left, right, result)
         fun shlq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shlq", left, right, result)
         fun shr(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("shr${left.width.getAtntSuffix()}", left, right, result)
+            BinaryOperationWithResult("shr" + left.width.getAtntSuffix(), left, right, result)
         fun shrl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrl", left, right, result)
         fun shrq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrq", left, right, result)
 

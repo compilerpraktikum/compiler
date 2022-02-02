@@ -311,8 +311,8 @@ val replacementRules = run {
      *****************************/
     rule("binary operation (e.g. add): `addq [ R_i | R_j ] -> R_k`") {
         val binOp = variable<BinaryOpType>()
-        val leftRegister = variable<Register>()
-        val rightRegister = variable<Register>()
+        val leftTarget = variable<Target.Input>()
+        val rightTarget = variable<Target.Input>()
 
         val left = variable<Replacement>()
         val right = variable<Replacement>()
@@ -320,24 +320,24 @@ val replacementRules = run {
         match(
             CodeGenIR.BinaryOp(
                 binOp,
-                RegisterRef(leftRegister, left),
-                RegisterRef(rightRegister, right)
+                ConstOrRegisterRef(leftTarget, left),
+                ConstOrRegisterRef(rightTarget, right)
             )
         )
 
         replaceWith {
-            check(leftRegister.get().width == rightRegister.get().width) {
-                "Widths of `l` and `r` need to be the same in `BinOp(${binOp.get()}, ${leftRegister.get().width}, ${rightRegister.get().width})`"
+            check(leftTarget.get().width == rightTarget.get().width) {
+                "Widths of `l` and `r` need to be the same in `BinOp(${binOp.get()}, ${leftTarget.get().width}, ${rightTarget.get().width})`"
             }
             println("binop $binOp")
-            val resRegister = newRegister(leftRegister.get().width)
+            val resRegister = newRegister(leftTarget.get().width)
             Replacement(
                 node = RegisterRef(resRegister),
                 instructions = left.get().instructions
                     .append(right.get().instructions)
                     .append(
                         debugComment(),
-                        binOp.get().molkiOp(leftRegister.get(), rightRegister.get(), resRegister),
+                        binOp.get().molkiOp(leftTarget.get(), rightTarget.get(), resRegister),
                     ),
                 cost = left.get().cost + right.get().cost + 1,
             )
