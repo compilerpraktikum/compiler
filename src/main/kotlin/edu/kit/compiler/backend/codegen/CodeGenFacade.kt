@@ -163,7 +163,7 @@ class CodeGenFacade(
         }
     }
 
-    fun dumpCodeGenIRIfEnabled() {
+    private fun dumpCodeGenIRIfEnabled() {
         if (!dumpCodeGenIR)
             return
 
@@ -174,7 +174,7 @@ class CodeGenFacade(
         }
     }
 
-    fun dumpMolkIRIfEnabled() {
+    private fun dumpMolkIRIfEnabled() {
         if (!dumpMolkIR)
             return
 
