@@ -3,6 +3,7 @@ package edu.kit.compiler.optimization
 import edu.kit.compiler.Compiler
 import edu.kit.compiler.utils.Logger
 import firm.ClassType
+import firm.Dump
 import firm.Graph
 import firm.Program
 
@@ -28,26 +29,29 @@ private fun getOptimizationsForLevel(level: Compiler.OptimizationLevel): List<Op
     )
 }
 
-private fun runOptimizations(graph: Graph, optimizations: List<Optimization>) {
+private fun runOptimizations(graph: Graph, optimizations: List<Optimization>, dumpAfterEachOptimization: Boolean) {
     var iteration = 0
     do {
         Logger.trace { "    Iteration ${++iteration}" }
         var hasChangedAtLeastOnce = false
-        optimizations.forEach { opt ->
+        optimizations.forEachIndexed { index, opt ->
             Logger.trace { "      - Applying ${opt.name}" }
             val hasChanged = opt.apply(graph)
             hasChangedAtLeastOnce = hasChangedAtLeastOnce || hasChanged
             Logger.trace { "         -> Has Changed? ${ if (hasChanged) "yes" else "no" }" }
+            if (dumpAfterEachOptimization) {
+                Dump.dumpGraph(graph, "after-optimization-$iteration-${index + 1}-${opt.name.replace("\\s".toRegex(), "-")}")
+            }
         }
     } while (hasChangedAtLeastOnce)
 }
 
-fun doOptimization(level: Compiler.OptimizationLevel) {
+fun doOptimization(level: Compiler.OptimizationLevel, dumpAfterEachOptimization: Boolean) {
     Logger.debug { "Running optimizations (level: ${level.intValue}) ..." }
     val optimizations = getOptimizationsForLevel(level)
     Program.getGraphs().forEach {
         Logger.trace { "  Optimizing ${it.display()}" }
-        runOptimizations(it, optimizations)
+        runOptimizations(it, optimizations, dumpAfterEachOptimization)
     }
     Logger.trace { "Optimizations completed." }
 }

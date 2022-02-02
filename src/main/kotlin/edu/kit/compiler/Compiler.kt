@@ -142,7 +142,7 @@ class Compiler(private val config: Config) {
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
-                        doOptimization(config.optimizationLevel)
+                        doOptimization(config.optimizationLevel, config.dump.contains(Dump.MethodGraphsAfterEachOptimization))
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         runBackEnd(
@@ -251,7 +251,8 @@ class Compiler(private val config: Config) {
         AssemblyFile("asm"),
         MethodGraphsAfterConstruction("graph:construction"),
         MethodGraphsAfterLowering("graph:lowering"),
-        MethodGraphsAfterOptimization("graph:optimization");
+        MethodGraphsAfterOptimization("graph:optimization"),
+        MethodGraphsAfterEachOptimization("graph:each-optimization");
 
         override fun toString(): String = cliFlag
     }
