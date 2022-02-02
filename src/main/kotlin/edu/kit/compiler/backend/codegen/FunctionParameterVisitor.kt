@@ -17,8 +17,7 @@ class FunctionParameterVisitor(
     val argumentMapping: MutableMap<Node, CodeGenIR> = mutableMapOf(),
 ) : FirmNodeVisitorAdapter() {
     val parameters: MutableMap<Int, Proj> = mutableMapOf()
-    var  numberOfArguments: Int = 0
-
+    var numberOfArguments: Int = 0
 
     override fun visit(node: End) {
         val methodType = node.graph.entity.type as MethodType
@@ -50,7 +49,6 @@ class FunctionParameterVisitor(
             }
         }
     }
-
 
     private fun allocateParameter(node: Proj) {
         val reg = registerTable.getOrCreateRegisterFor(node)

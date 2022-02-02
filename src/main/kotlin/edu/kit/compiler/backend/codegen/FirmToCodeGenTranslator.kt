@@ -65,11 +65,9 @@ class FirmToCodeGenTranslator(
         private fun getOrCreateControlFlowDependencyFor(block: Block) =
             controlflowDependencies.getOrPut(block) { mutableListOf() }
 
-
         fun getCurrentIrForBlock(block: Block): MutableList<CodeGenIR> {
             return getOrCreateControlFlowDependencyFor(block)
         }
-
 
         fun emitControlFlowDependencyFor(block: Block, codeGenIR: CodeGenIR) {
             getOrCreateControlFlowDependencyFor(block).also {
@@ -190,7 +188,6 @@ class FirmToCodeGenTranslator(
             }
         }
 
-
         val arguments = node.preds
             .filter { it.mode != Mode.getM() }
             .filter { it !is Address }
@@ -218,7 +215,6 @@ class FirmToCodeGenTranslator(
                 node,
                 CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
             )
-
         } else {
             setCodeFor(controlFlowProjection) {
                 noop()
@@ -227,7 +223,6 @@ class FirmToCodeGenTranslator(
                 node,
                 CodeGenIR.Call(addr, arguments)
             )
-
         }
 
         println("visit CALL " + node.block.toString())
@@ -250,7 +245,6 @@ class FirmToCodeGenTranslator(
         val falseProj = projs.find { it.num == Cond.pnFalse }
         val trueBlock = BackEdges.getOuts(trueProj).iterator().next().node!! as Block
         val falseBlock = BackEdges.getOuts(falseProj).iterator().next().node!! as Block
-
 
         val cond = CodeGenIR.Cond(
             condition = getCodeFor(node.getPred(0)),
@@ -298,7 +292,7 @@ class FirmToCodeGenTranslator(
         println("visit EOR " + node.block.toString())
     }
 
-    //TODO
+    // TODO
     override fun visit(node: Jmp) {
         super.visit(node)
         val jumpTarget = BackEdges.getOuts(node).first().node!! as Block
@@ -338,7 +332,8 @@ class FirmToCodeGenTranslator(
             val resultRegister = CodeGenIR.RegisterRef(reg)
 
             emitControlDependency(
-                node, CodeGenIR.Assign(
+                node,
+                CodeGenIR.Assign(
                     resultRegister,
                     CodeGenIR.Indirection(getCodeFor(node.getPred(1)))
                 )
@@ -350,7 +345,6 @@ class FirmToCodeGenTranslator(
             // -> no need to generate control dependency
             // -> no data dependency needs to be generated, because it is not needed
         }
-
 
         println("visit LOAD " + node.block.toString())
     }
@@ -423,7 +417,7 @@ class FirmToCodeGenTranslator(
         when (val pred = node.pred) {
             is Div -> setCodeFor(node) { getCodeFor(pred) }
             is Mod -> setCodeFor(node) { getCodeFor(pred) }
-            //TODO
+            // TODO
             is Load -> {
                 // handled by load itself
             }
@@ -454,7 +448,7 @@ class FirmToCodeGenTranslator(
             }
             else -> TODO("missing handling for case $pred")
         }
-        println("visit PROJ ${node.toString()} " + node.block.toString())
+        println("visit PROJ $node " + node.block.toString())
     }
 
     override fun visit(node: Return) {
@@ -487,7 +481,7 @@ class FirmToCodeGenTranslator(
         println("visit SUB " + node.block.toString())
     }
 
-    //TODO
+    // TODO
     override fun visit(node: Unknown) {
         super.visitUnknown(node)
         println("visit NODE " + node.block.toString())
@@ -511,8 +505,7 @@ class FirmToCodeGenTranslator(
         println("visit SHRS " + node.block.toString())
     }
 
-
-//TODO Vorgehensweise:
+// TODO Vorgehensweise:
     /*
         * Grundblockweise. Verweise auf andere Grundblöcke müssen aufgelöst werden.
         * Phis?
@@ -528,5 +521,4 @@ class FirmToCodeGenTranslator(
         *
         *
      */
-
 }

@@ -1,4 +1,4 @@
-package edu.kit.compiler.backend.codegen;
+package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.semantic.InternalFunction
 import firm.Graph

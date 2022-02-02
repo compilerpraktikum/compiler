@@ -170,7 +170,8 @@ class CodeGenFacade(
         codeGenIRs.forEach { (graph, blocks) ->
             GraphvizPrinter.renderCodeGenIrsToFile(
                 "graph-${graph.entity.ldName}",
-                blocks.mapKeys { NameMangling.mangleBlockName(it.key) })
+                blocks.mapKeys { NameMangling.mangleBlockName(it.key) }
+            )
         }
     }
 

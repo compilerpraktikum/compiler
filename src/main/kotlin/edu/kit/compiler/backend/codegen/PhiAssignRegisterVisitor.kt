@@ -10,7 +10,6 @@ class PhiAssignRegisterVisitor(
     val map: MutableMap<Node, CodeGenIR> = mutableMapOf()
 ) : FirmNodeVisitorAdapter() {
 
-
     override fun visit(node: Phi) {
         println("phi test ${node.mode}")
         super.visit(node)

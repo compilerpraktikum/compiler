@@ -33,8 +33,9 @@ class CodeGenTest {
         Program.getGraphs().forEach { Dump.dumpGraph(it, phase) }
     }
 
-    private fun generateGraph(code: String,
-                              registerTable: VirtualRegisterTable = VirtualRegisterTable()
+    private fun generateGraph(
+        code: String,
+        registerTable: VirtualRegisterTable = VirtualRegisterTable()
     ): List<Graph> {
         val sourceFile = SourceFile.from("/path/to/file", code)
         val stringTable = StringTable(StringTable::initializeKeywords)
@@ -235,7 +236,6 @@ class Reader {
         )
     }
 
-
     private fun transformToMolki(
         registerTable: VirtualRegisterTable = VirtualRegisterTable(),
         block: (VirtualRegisterTable) -> CodeGenIR
@@ -274,7 +274,7 @@ class Reader {
                     base64[4] = 69;
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         )
         facade.generateMolkiIr()
         facade.generateBlockLayout()
@@ -287,7 +287,7 @@ class Reader {
             class Test {
                 public static void main(String[] args) {new Test();}
             }
-        """.trimIndent()
+            """.trimIndent()
         )
 
         facade.generateMolkiIr()
@@ -316,17 +316,18 @@ class Reader {
                     }
                 }
             }
-        """.trimIndent(), registerTable
+            """.trimIndent(),
+            registerTable
         )
 
         facade.generateMolkiIr()
         facade.generateBlockLayout()
         facade.blocksWithLayout.forEach { (graph, block) ->
             println("## ${graph.entity.ldName}")
-            block.flatten().forEach { println("   ${it.toMolki()}")
+            block.flatten().forEach {
+                println("   ${it.toMolki()}")
             }
         }
-
     }
 
     @Test
@@ -335,7 +336,8 @@ class Reader {
             CodeGenIR.BinaryOp(BinaryOpType.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $2, %@0",
                 "movq $3, %@1",
                 "addq [ %@0 | %@1 ] -> %@2"
@@ -354,7 +356,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $22, %@0",
                 "movq $33, %@1",
                 "movq $44, %@2",
@@ -373,7 +376,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $0, %@0w",
                 // "jmp functionReturn" //TODO test this
             )
@@ -389,7 +393,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq %@0, %@r0",
                 // "jmp functionReturn" //TODO test this
             )
@@ -402,7 +407,8 @@ class Reader {
             CodeGenIR.Return(CodeGenIR.Const("0", Width.WORD))
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $0, %@r0w",
             )
         )
@@ -420,7 +426,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $7, %@1w",
                 "addq [ %@1w | %@0w ] -> %@2w",
                 "movq %@2w, %@r0w"
@@ -439,7 +446,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $0 %@r0",
                 "jmp functionReturn"
             )
@@ -461,7 +469,8 @@ class Reader {
             )
         }
         assertMolkiEquals(
-            res, listOf(
+            res,
+            listOf(
                 "movq $2, %@1",
                 "addq [ %@1 | %@0 ] -> %@2",
             )
@@ -473,12 +482,10 @@ class Reader {
         val graph = generateGraph("class Test { public static void main(String[] args) {} }")
         val codeGenFacade = CodeGenFacade(graph, dumpCodeGenIR = true, dumpMolkIR = true)
         val platformCodes = codeGenFacade.generate()
-        platformCodes.forEach {  (graph, instructions) ->
+        platformCodes.forEach { (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")
             codeGenFacade.blocksWithLayout[graph]!!.flatten().map { it.toMolki() }.pp()
             println(instructions.joinToString("\n   ") { it.toAssembler() })
         }
     }
-
-
 }
