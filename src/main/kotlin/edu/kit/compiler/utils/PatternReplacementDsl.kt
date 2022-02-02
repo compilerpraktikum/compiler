@@ -75,14 +75,17 @@ class RuleBuilderScope<Target, Replacement, Scope : ReplacementBuilderScope>(pri
     fun <T> constant(value: T) = ValueHolder.Constant(value)
 
     fun match(pattern: MatchPattern<Target>) {
+        check(matchPattern == null) { "only 1 call to match() allowed" }
         matchPattern = pattern
     }
 
     fun condition(condition: () -> Boolean) {
+        check(matchPattern == null) { "only 1 call to condition() allowed" }
         conditionFn = condition
     }
 
     fun replaceWith(replacement: Scope.() -> Replacement) {
+        check(matchPattern == null) { "only 1 call to replaceWith() allowed" }
         replacementFactory = replacement
     }
 

@@ -4,6 +4,8 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.utils.ReplacementBuilderScope
+import edu.kit.compiler.utils.Rule
+import edu.kit.compiler.utils.RuleBuilderScope
 
 data class Replacement(
     val node: CodeGenIR,
@@ -21,6 +23,9 @@ class ReplacementScope(
     fun debugComment() =
         Instruction.comment("${currentNode.display()} (Rule: $ruleName)")
 }
+
+typealias ReplacementRule = Rule<CodeGenIR, Replacement, ReplacementScope>
+typealias ReplacementRuleBuilderScope = RuleBuilderScope<CodeGenIR, Replacement, ReplacementScope>
 
 class LazyInstructionList
 private constructor(private val instructions: () -> MutableList<Instruction>) {
