@@ -305,6 +305,31 @@ val replacementRules = run {
     /*****************************
      ** Unary operations
      *****************************/
+    rule("unary operation (e.g. minus): `negq R_i, R_k`") {
+        val unOp = variable<UnaryOpType>()
+        val operandTarget = variable<Target.Input>()
+        val operandReplacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.UnaryOp(
+                unOp,
+                ConstOrRegisterRef(operandTarget, operandReplacement),
+            )
+        )
+
+        replaceWith {
+            val resRegister = newRegister(operandTarget.get().width)
+            Replacement(
+                node = RegisterRef(resRegister),
+                instructions = operandReplacement.get().instructions
+                    .append(
+                        debugComment(),
+                        unOp.get().molkiOp(operandTarget.get(), resRegister),
+                    ),
+                cost = operandReplacement.get().cost + 1,
+            )
+        }
+    }
 
     /*****************************
      ** Binary operations

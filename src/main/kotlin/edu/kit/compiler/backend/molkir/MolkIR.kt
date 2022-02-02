@@ -254,10 +254,14 @@ sealed class Instruction : MolkIR {
         // negate (2 complement)
         fun negl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negl", operand, result)
         fun negq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negq", operand, result)
+        fun neg(operand: Target.Input, result: Target.Output) =
+            UnaryOperationWithResult("neg" + operand.width.getAtntSuffix(), operand, result)
 
         // logical not
         fun notl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notl", operand, result)
         fun notq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notq", operand, result)
+        fun not(operand: Target.Input, result: Target.Output) =
+            UnaryOperationWithResult("not" + operand.width.getAtntSuffix(), operand, result)
 
         /****************************************
          * Binary operations with result

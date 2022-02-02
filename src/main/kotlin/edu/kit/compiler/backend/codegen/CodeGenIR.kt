@@ -355,6 +355,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         private val operandHolder: ValueHolder<CodeGenIR>
     ) : CodeGenIR() {
         constructor(op: UnaryOpType, value: CodeGenIR) : this(op.toConst(), value.toConst())
+        constructor(op: ValueHolder<UnaryOpType>, value: CodeGenIR) : this(op, value.toConst())
 
         val operation by operationHolder.getter()
         val operand by operandHolder.getter()
@@ -644,6 +645,9 @@ enum class BinaryOpType(
     SHRS(false, Instructions::sar),
 }
 
-enum class UnaryOpType {
-    MINUS, NOT
+enum class UnaryOpType(
+    val molkiOp: (Target.Input, Target.Output) -> Instruction
+) {
+    MINUS(Instructions::neg),
+    NOT(Instructions::not),
 }
