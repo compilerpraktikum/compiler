@@ -481,12 +481,6 @@ class FirmToCodeGenTranslator(
         println("visit SUB " + node.block.toString())
     }
 
-    // TODO
-    override fun visit(node: Unknown) {
-        super.visitUnknown(node)
-        println("visit NODE " + node.block.toString())
-    }
-
     override fun visit(node: Shl) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHL)
@@ -503,6 +497,14 @@ class FirmToCodeGenTranslator(
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHRS)
         println("visit SHRS " + node.block.toString())
+    }
+
+    override fun visit(node: Unknown) {
+        super.visit(node)
+        setCodeFor(node) {
+            CodeGenIR.Const("0", Width.fromByteSize(node.mode.sizeBytes)!!)
+        }
+        println("visit NODE " + node.block.toString())
     }
 
 // TODO Vorgehensweise:
