@@ -178,7 +178,7 @@ val replacementRules = run {
                         instructions = repl.instructions
                             .append(
                                 debugComment(),
-                                Instruction.movl(register.get(), result.copy(width = Width.DOUBLE)),
+                                Instruction.mov(register.get(), result.copy(width = Width.DOUBLE)),
                             ),
                         cost = repl.cost
                     )
