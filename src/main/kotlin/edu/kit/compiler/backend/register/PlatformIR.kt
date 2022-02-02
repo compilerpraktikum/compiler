@@ -135,7 +135,7 @@ sealed class PlatformInstruction : PlatformIR {
 
     companion object {
         fun mov(from: PlatformTarget, to: PlatformTarget, width: Width) =
-            binOp("mov${width.getAtntSuffix()}", from, to)
+            binOp("mov${width.instructionSuffix}", from, to)
 
         fun movzx(
             from: PlatformTarget,
@@ -144,23 +144,23 @@ sealed class PlatformInstruction : PlatformIR {
             targetWidth: Width
         ): PlatformInstruction {
             require(sourceWidth.inBytes < 4) { "cannot zero-extend double-word or quad-word operands" }
-            return binOp("movz${sourceWidth.getAtntSuffix()}${targetWidth.getAtntSuffix()}", from, to)
+            return binOp("movz${sourceWidth.instructionSuffix}${targetWidth.instructionSuffix}", from, to)
         }
 
         fun add(from: PlatformTarget, value: PlatformTarget, width: Width) =
-            binOp("add${width.getAtntSuffix()}", from, value)
+            binOp("add${width.instructionSuffix}", from, value)
 
         fun sub(from: PlatformTarget, value: PlatformTarget, width: Width) =
-            binOp("sub${width.getAtntSuffix()}", from, value)
+            binOp("sub${width.instructionSuffix}", from, value)
 
         fun xor(left: PlatformTarget, right: PlatformTarget, width: Width) =
-            binOp("xor${width.getAtntSuffix()}", left, right)
+            binOp("xor${width.instructionSuffix}", left, right)
 
         fun push(operand: PlatformTarget) =
             unOp("push", operand)
 
         fun pop(operand: PlatformTarget, width: Width) =
-            unOp("pop${width.getAtntSuffix()}", operand)
+            unOp("pop${width.instructionSuffix}", operand)
 
         /**
          * Generate an operand-less operation
@@ -184,5 +184,3 @@ sealed class PlatformInstruction : PlatformIR {
         ) = BinaryOperation(name, left, right)
     }
 }
-
-fun Width.getAtntSuffix(): String = instructionSuffix

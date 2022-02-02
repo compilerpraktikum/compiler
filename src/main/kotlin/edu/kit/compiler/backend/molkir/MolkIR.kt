@@ -1,7 +1,5 @@
 package edu.kit.compiler.backend.molkir
 
-import edu.kit.compiler.backend.register.getAtntSuffix
-
 interface MolkIR {
     fun toMolki(): String
 }
@@ -211,6 +209,13 @@ sealed class Instruction : MolkIR {
      */
     companion object {
 
+        private fun inferSuffix(op: Target) = op.width.instructionSuffix
+
+        private fun inferSuffix(left: Target, right: Target): String {
+            check(left.width == right.width) { "incompatible operand types: ${left.width} <-> ${right.width}" }
+            return left.width.instructionSuffix
+        }
+
         fun comment(content: String) = Comment(content)
 
         fun label(name: String) = Label(name)
@@ -223,6 +228,8 @@ sealed class Instruction : MolkIR {
 
         fun cmpl(left: Target.Input, right: Target.Input) = BinaryOperation("cmpl", left, right)
         fun cmpq(left: Target.Input, right: Target.Input) = BinaryOperation("cmpq", left, right)
+        fun cmp(left: Target.Input, right: Target.Input) =
+            BinaryOperation("cmp" + inferSuffix(left, right), left, right)
 
         /****************************************
          * Jumps
@@ -239,10 +246,8 @@ sealed class Instruction : MolkIR {
          * Unary operations with result
          ****************************************/
         // move
-        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult {
-            check(from.width.inBytes == to.width.inBytes) { "widths of from and to mismatch: mov from ${from.width} to ${to.width}" }
-            return UnaryOperationWithResult("mov${from.width.getAtntSuffix()}", from, to)
-        }
+        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult =
+            UnaryOperationWithResult("mov" + inferSuffix(from, to), from, to)
         fun movl(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movl", from, to)
         fun movq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movq", from, to)
         fun movsxlq(from: Target.Input, to: Target.Output) = UnaryOperationWithResult("movsxlq", from, to)
@@ -257,13 +262,13 @@ sealed class Instruction : MolkIR {
         fun negl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negl", operand, result)
         fun negq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("negq", operand, result)
         fun neg(operand: Target.Input, result: Target.Output) =
-            UnaryOperationWithResult("neg" + operand.width.getAtntSuffix(), operand, result)
+            UnaryOperationWithResult("neg" + inferSuffix(operand), operand, result)
 
         // logical not
         fun notl(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notl", operand, result)
         fun notq(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("notq", operand, result)
         fun not(operand: Target.Input, result: Target.Output) =
-            UnaryOperationWithResult("not" + operand.width.getAtntSuffix(), operand, result)
+            UnaryOperationWithResult("not" + inferSuffix(operand), operand, result)
 
         /****************************************
          * Binary operations with result
@@ -273,39 +278,39 @@ sealed class Instruction : MolkIR {
 
         // basic arithmetic
         fun add(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("add" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("add" + inferSuffix(left, right), left, right, result)
 
         fun addl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addl",  left, right, result)
         fun addq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("addq",  left, right, result)
 
         fun sub(left: Target.Input, right: Target.Input, result: Target.Output) =
-            SubtractionOperationWithResult("sub" + left.width.getAtntSuffix(), left, right, result)
+            SubtractionOperationWithResult("sub" + inferSuffix(left, right), left, right, result)
 
         fun subl(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subl",  left, right, result)
         fun subq(left: Target.Input, right: Target.Input, result: Target.Output)  = SubtractionOperationWithResult("subq",  left, right, result)
 
         fun imul(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("imul" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("imul" + inferSuffix(left, right), left, right, result)
         fun imull(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imull", left, right, result)
         fun imulq(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imulq", left, right, result)
 
         // basic logic
         fun and(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("and" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("and" + inferSuffix(left, right), left, right, result)
         fun andl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andl", left, right, result)
         fun andq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("andq", left, right, result)
         fun or(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("or" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("or" + inferSuffix(left, right), left, right, result)
         fun orl(left: Target.Input, right: Target.Input, result: Target.Output)   = BinaryOperationWithResult("orl",  left, right, result)
         fun orq(left: Target.Input, right: Target.Input, result: Target.Output)   = BinaryOperationWithResult("orq",  left, right, result)
         fun xor(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("xor" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("xor" + inferSuffix(left, right), left, right, result)
         fun xorl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("xorl", left, right, result)
         fun xorq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("xorq", left, right, result)
 
         // bitwise shift (arithmetic = preserve sign)
         fun sar(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("sar" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("sar" + inferSuffix(left), left, right, result)
         fun sall(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sall", left, right, result)
         fun salq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("salq", left, right, result)
         fun sarl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sarl", left, right, result)
@@ -313,11 +318,11 @@ sealed class Instruction : MolkIR {
 
         // bitwise shift (logical)
         fun shl(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("shl" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("shl" + inferSuffix(left), left, right, result)
         fun shll(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shll", left, right, result)
         fun shlq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shlq", left, right, result)
         fun shr(left: Target.Input, right: Target.Input, result: Target.Output) =
-            BinaryOperationWithResult("shr" + left.width.getAtntSuffix(), left, right, result)
+            BinaryOperationWithResult("shr" + inferSuffix(left), left, right, result)
         fun shrl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrl", left, right, result)
         fun shrq(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shrq", left, right, result)
 

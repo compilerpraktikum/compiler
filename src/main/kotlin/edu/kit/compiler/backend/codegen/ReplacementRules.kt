@@ -135,7 +135,7 @@ val replacementRules = run {
                     .append(rightReplacement.get().instructions)
                     .append(
                         debugComment(),
-                        Instruction.cmpl(left.get(), right.get()),
+                        Instruction.cmp(left.get(), right.get()),
                         jmpConstructor(ifTrue),
                         Instruction.jmp(ifFalse),
                     ),
