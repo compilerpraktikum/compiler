@@ -153,10 +153,17 @@ class TrivialFunctionTransformer(
     /**
      * Transform a [MolkiTarget.Input] into a [PlatformTarget] by allocating required registers and loading their
      * respective values.
+     * @param[ensureTargetIsWritable] make sure that the generated [PlatformTarget] is writable (e.g. constants are not writable)
      */
-    private fun transformOperand(molkiTarget: MolkiTarget.Input): PlatformTarget {
+    private fun transformOperand(molkiTarget: MolkiTarget.Input, ensureTargetIsWritable: Boolean): PlatformTarget {
         return when (molkiTarget) {
-            is MolkiConstant -> PlatformTarget.Constant(molkiTarget.value)
+            is MolkiConstant -> if (ensureTargetIsWritable) {
+                val reg = allocateRegister(molkiTarget.width)
+                appendInstruction(PlatformInstruction.mov(PlatformTarget.Constant(molkiTarget.value), reg, molkiTarget.width))
+                reg
+            } else {
+                PlatformTarget.Constant(molkiTarget.value)
+            }
             is MolkiMemory -> generateTransformMemory(molkiTarget)
             is MolkiRegister -> {
                 val platformRegister = allocateRegister(molkiTarget.width)
@@ -248,8 +255,8 @@ class TrivialFunctionTransformer(
 
     private fun transformBinaryOperation(instr: MolkiInstruction.BinaryOperation) {
         // transform operands
-        val left = transformOperand(instr.left)
-        val right = transformOperand(instr.right)
+        val left = transformOperand(instr.left, false)
+        val right = transformOperand(instr.right, true)
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
@@ -263,8 +270,8 @@ class TrivialFunctionTransformer(
      */
     private fun transformBinaryOperationWithResult(instr: MolkiInstruction.BinaryOperationWithResult) {
         // transform operands
-        val left = transformOperand(instr.left)
-        val right = transformOperand(instr.right)
+        val left = transformOperand(instr.left, false)
+        val right = transformOperand(instr.right, true)
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
@@ -279,8 +286,8 @@ class TrivialFunctionTransformer(
      */
     private fun transformSubtraction(instr: MolkiInstruction.BinaryOperationWithResult) {
         // transform operands
-        val left = transformOperand(instr.right) // TODO add explanatory comment for left := right
-        val right = transformOperand(instr.left)
+        val left = transformOperand(instr.right, true) // TODO add explanatory comment for left := right
+        val right = transformOperand(instr.left, false)
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
@@ -296,7 +303,7 @@ class TrivialFunctionTransformer(
      */
     private fun transformMoveOperation(instr: MolkiInstruction.UnaryOperationWithResult) {
         // transform operands
-        val operand = transformOperand(instr.operand)
+        val operand = transformOperand(instr.operand, false)
         val result = transformResult(instr.result)
 
         // transform instruction
@@ -313,7 +320,7 @@ class TrivialFunctionTransformer(
      */
     private fun transformUnaryOperationWithResult(instr: MolkiInstruction.UnaryOperationWithResult) {
         // transform operands
-        val operand = transformOperand(instr.operand)
+        val operand = transformOperand(instr.operand, true)
         val result = transformResult(instr.result)
 
         // transform instruction
@@ -331,7 +338,7 @@ class TrivialFunctionTransformer(
 
         callingConvention.generateFunctionCall(allocator, instr.arguments.size, generatedCode::add) {
             for (i in (0 until instr.arguments.size).reversed()) {
-                val argumentSource = transformOperand(instr.arguments[i])
+                val argumentSource = transformOperand(instr.arguments[i], false)
                 prepareArgument(argumentSource, instr.arguments[i].width)
 
                 // immediately free this temporary source, because we already stored the parameter where we need it
@@ -377,8 +384,8 @@ class TrivialFunctionTransformer(
         val rax = forceAllocateRegister(EnumRegister.RAX, Width.QUAD)
         val divisorRegister = allocateRegister(Width.QUAD)
 
-        val source = transformOperand(instr.left)
-        val divisorSource = transformOperand(instr.right)
+        val source = transformOperand(instr.left, false)
+        val divisorSource = transformOperand(instr.right, false)
 
         val resultLeft = transformResult(instr.resultLeft)
         val resultRight = transformResult(instr.resultRight)

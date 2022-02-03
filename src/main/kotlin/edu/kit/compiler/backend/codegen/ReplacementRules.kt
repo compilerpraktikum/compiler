@@ -1,7 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
-import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
@@ -325,16 +324,6 @@ val replacementRules = run {
                 instructions = operandReplacement.get().instructions
                     .append(
                         debugComment(),
-                    ).run { // TODO temporary fix, because register allocation cannot properly handle `neg $1, %@1` at the moment. remove once this is fixed
-                        if (operandTarget.get() is Constant) {
-                            val operandValue = operandTarget.get()
-                            val tmpRegister = newRegister(operandValue.width)
-                            operandTarget.set(tmpRegister)
-                            append(Instruction.mov(operandValue, tmpRegister))
-                        } else {
-                            this
-                        }
-                    }.append(
                         unOp.get().molkiOp(operandTarget.get(), resRegister),
                     ),
                 cost = operandReplacement.get().cost + 1,
@@ -372,17 +361,7 @@ val replacementRules = run {
                 instructions = left.get().instructions
                     .append(right.get().instructions)
                     .append(
-                        debugComment()
-                    ).run { // TODO temporary fix, because register allocation cannot properly handle `add [ %@0 | $1 ] -> %@1` at the moment. remove once this is fixed
-                        if (rightTarget.get() is Constant) {
-                            val rightValue = rightTarget.get()
-                            val tmpRegister = newRegister(rightValue.width)
-                            rightTarget.set(tmpRegister)
-                            append(Instruction.mov(rightValue, tmpRegister))
-                        } else {
-                            this
-                        }
-                    }.append(
+                        debugComment(),
                         binOp.get().molkiOp(leftTarget.get(), rightTarget.get(), resRegister),
                     ),
                 cost = left.get().cost + right.get().cost + 1,
