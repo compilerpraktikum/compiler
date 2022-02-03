@@ -82,11 +82,8 @@ class TrivialFunctionTransformer(
             val memoryLocation = callingConvention.getParameterLocation(virtualRegister.id.value)
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         } else {
-            // check the register has been assigned before
-            check(stackRegisterTable.containsRegister(virtualRegister.id)) { "unallocated register referenced: ${virtualRegister.toMolki()}" }
-
             // generate an offset to RSP to load the value from
-            val memoryLocation = stackRegisterTable.getRegisterSlot(virtualRegister.id)!!.generateMemoryAddress()
+            val memoryLocation = stackRegisterTable.getOrCreateRegisterSlot(virtualRegister.id, virtualRegister.width).generateMemoryAddress()
             PlatformInstruction.mov(memoryLocation, target, virtualRegister.width)
         }
 
@@ -105,13 +102,9 @@ class TrivialFunctionTransformer(
         registerWidth: Width,
         platformRegister: PlatformTarget
     ) {
-        if (!stackRegisterTable.containsRegister(virtualRegisterId)) {
-            stackRegisterTable.createRegisterSlot(virtualRegisterId, registerWidth)
-        }
-
         val instruction = PlatformInstruction.mov(
             platformRegister,
-            stackRegisterTable.getRegisterSlot(virtualRegisterId)!!.generateMemoryAddress(),
+            stackRegisterTable.getOrCreateRegisterSlot(virtualRegisterId, registerWidth).generateMemoryAddress(),
             registerWidth
         )
 
