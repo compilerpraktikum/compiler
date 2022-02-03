@@ -325,6 +325,16 @@ val replacementRules = run {
                 instructions = operandReplacement.get().instructions
                     .append(
                         debugComment(),
+                    ).run { // TODO temporary fix, because register allocation cannot properly handle `neg $1, %@1` at the moment. remove once this is fixed
+                        if (operandTarget.get() is Constant) {
+                            val operandValue = operandTarget.get()
+                            val tmpRegister = newRegister(operandValue.width)
+                            operandTarget.set(tmpRegister)
+                            append(Instruction.mov(operandValue, tmpRegister))
+                        } else {
+                            this
+                        }
+                    }.append(
                         unOp.get().molkiOp(operandTarget.get(), resRegister),
                     ),
                 cost = operandReplacement.get().cost + 1,

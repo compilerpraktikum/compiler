@@ -230,7 +230,13 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
             is MolkiInstruction.Label -> appendInstruction(PlatformInstruction.Label(instr.name))
-            is MolkiInstruction.UnaryOperationWithResult -> transformUnaryOperationWithResult(instr)
+            is MolkiInstruction.UnaryOperationWithResult -> {
+                if (instr.name.startsWith("mov")) {
+                    transformMoveOperation(instr)
+                } else {
+                    transformUnaryOperationWithResult(instr)
+                }
+            }
             is MolkiInstruction.Comment -> {}
         }
     }
@@ -268,7 +274,7 @@ class TrivialFunctionTransformer(
      */
     private fun transformSubtraction(instr: MolkiInstruction.SubtractionOperationWithResult) {
         // transform operands
-        val left = transformOperand(instr.right)
+        val left = transformOperand(instr.right) // TODO add explanatory comment for left := right
         val right = transformOperand(instr.left)
 
         // transform instruction
@@ -280,7 +286,24 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * Transform an operation with one input and with a result into a binary operation.
+     * Transform a move operation with one input and with a result into a binary operation.
+     * Allocates the required registers and spills the result onto the stack.
+     */
+    private fun transformMoveOperation(instr: MolkiInstruction.UnaryOperationWithResult) {
+        // transform operands
+        val operand = transformOperand(instr.operand)
+        val result = transformResult(instr.result)
+
+        // transform instruction
+        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, operand, result)
+        appendInstruction(transformedInstr)
+
+        // generate spill code
+        spillResultIfNecessary(instr.result, result)
+    }
+
+    /**
+     * Transform an operation with one input and with a result into a unary operation.
      * Allocates the required registers and spills the result onto the stack.
      */
     private fun transformUnaryOperationWithResult(instr: MolkiInstruction.UnaryOperationWithResult) {
@@ -289,8 +312,7 @@ class TrivialFunctionTransformer(
         val result = transformResult(instr.result)
 
         // transform instruction
-        val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, operand, result)
-        appendInstruction(transformedInstr)
+        appendInstruction(PlatformInstruction.UnaryOperation(instr.name, operand))
 
         // generate spill code
         spillResultIfNecessary(instr.result, result)
