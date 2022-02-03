@@ -388,13 +388,13 @@ private val rules = listOf(
 
     // Move constants as far out as possible to allow constant folding to combine them if in a chain of operations.
     moveConstantOutwardsRule<Add>("(any + const) + nonConst -> (any + nonConst) + const", Graph::newAdd),
-    groupConstantsRule<Add>("(any + innerConst) + outerConst -> any + (innerConst + outerConst)", Graph::newAdd),
+    groupConstantsRule<Add>("(any + innerConst) + outerConst -> any + (innerConst + outerConst)", Graph::newAdd, Graph::newAdd),
 
     moveConstantOutwardsRule<Mul>("(any * const) * nonConst -> (any * nonConst) * const", Graph::newMul),
-    groupConstantsRule<Mul>("(any * innerConst) * outerConst -> any * (innerConst * outerConst)", Graph::newMul),
+    groupConstantsRule<Mul>("(any * innerConst) * outerConst -> any * (innerConst * outerConst)", Graph::newMul, Graph::newMul),
 
     moveConstantOutwardsRule<Sub>("(any - const) - nonConst -> (any - nonConst) - const", Graph::newSub),
-    groupConstantsRule<Sub>("(any - innerConst) - outerConst -> any - (innerConst + outerConst)", Graph::newSub),
+    groupConstantsRule<Sub>("(any - innerConst) - outerConst -> any - (innerConst + outerConst)", Graph::newSub, Graph::newAdd),
 
     // distributive
     distributiveRule<Add>("(any * left) + (any * right) -> any * (left + right)", Graph::newAdd),
@@ -434,7 +434,8 @@ private inline fun <reified NodeType : FirmNode> moveConstantOutwardsRule(
 // (any + innerConst) + outerConst -> any + (innerConst + outerConst)
 private inline fun <reified NodeType : FirmNode> groupConstantsRule(
     name: String,
-    crossinline newNode: Graph.(FirmNode, FirmNode, FirmNode) -> FirmNode,
+    crossinline newOuterNode: Graph.(FirmNode, FirmNode, FirmNode) -> FirmNode,
+    crossinline newInnerNode: Graph.(FirmNode, FirmNode, FirmNode) -> FirmNode,
 ) = rule<FirmNode, Replacement, ReplacementScope>(name) {
     val any = variable<FirmNode>()
     val innerConst = variable<FirmNode>()
@@ -452,10 +453,10 @@ private inline fun <reified NodeType : FirmNode> groupConstantsRule(
 
     replaceWith {
         node(
-            graph.newNode(
+            graph.newOuterNode(
                 block,
                 any.get(),
-                graph.newNode(block, innerConst.get(), outerConst.get())
+                graph.newInnerNode(block, innerConst.get(), outerConst.get())
             )
         )
     }

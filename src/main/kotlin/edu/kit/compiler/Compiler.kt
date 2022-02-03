@@ -141,7 +141,7 @@ class Compiler(private val config: Config) {
                         Util.lowerSels()
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterLowering, "after-lowering")
 
-                        doOptimization(config.optimizationLevel)
+                        doOptimization(config.optimizationLevel, config.dump.contains(Dump.MethodGraphsAfterEachOptimization))
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
                         fun createBackendFactory(useMolki: Boolean) = { compilationUnit: String, assemblyFile: Path, executableFile: Path ->
@@ -261,6 +261,7 @@ class Compiler(private val config: Config) {
         MethodGraphsAfterConstruction("graph:construction"),
         MethodGraphsAfterLowering("graph:lowering"),
         MethodGraphsAfterOptimization("graph:optimization"),
+        MethodGraphsAfterEachOptimization("graph:each-optimization");
         AssemblyFile("asm"),
         CodeGenIR("codegen"),
         Molki("molki");
