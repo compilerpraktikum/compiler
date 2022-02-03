@@ -634,7 +634,7 @@ fun CodeGenIR.toGraphViz(builder: GraphVizBuilder = GraphVizBuilder()): Int = wi
 }
 
 fun List<CodeGenIR>.toSeqChain() =
-    this.reduceRight { left, right -> CodeGenIR.Seq(left, right).withOrigin(left.firmNode!!) }
+    this.reduceRight { left, right -> CodeGenIR.Seq(left, right) }
 
 enum class BinaryOpType(
     val isCommutative: Boolean,
