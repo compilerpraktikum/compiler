@@ -1062,7 +1062,7 @@ object FirmContext {
      * @param newArrayExpression the new-array expression
      */
     fun newArrayAllocation(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
-        val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getLu())
+        val typeSizeNode = construction.newConst(newArrayExpression.type.elementType.mode.sizeBytes, Mode.getLu())
         val arrayLengthNode = construction.newConv(expressionStack.pop(), Mode.getLu())
         val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
         allocateMemory(construction.newConv(arraySizeNode, Mode.getLu()))
