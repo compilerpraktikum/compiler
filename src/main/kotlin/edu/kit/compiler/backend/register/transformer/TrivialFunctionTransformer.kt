@@ -224,8 +224,13 @@ class TrivialFunctionTransformer(
     private fun transformInstruction(instr: MolkiInstruction) {
         when (instr) {
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
-            is MolkiInstruction.BinaryOperationWithResult -> transformBinaryOperationWithResult(instr)
-            is MolkiInstruction.SubtractionOperationWithResult -> transformSubtraction(instr)
+            is MolkiInstruction.BinaryOperationWithResult -> {
+                if (instr.type == MolkiInstruction.BinaryOperationWithResult.Type.SUB) {
+                    transformSubtraction(instr)
+                } else {
+                    transformBinaryOperationWithResult(instr)
+                }
+            }
             is MolkiInstruction.DivisionOperation -> transformDivision(instr)
             is MolkiInstruction.Call -> transformFunctionCall(instr)
             is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
@@ -272,7 +277,7 @@ class TrivialFunctionTransformer(
     /**
      * Transform a subtraction (which has inverse operand order because AT&T syntax is an unspeakable abomination.
      */
-    private fun transformSubtraction(instr: MolkiInstruction.SubtractionOperationWithResult) {
+    private fun transformSubtraction(instr: MolkiInstruction.BinaryOperationWithResult) {
         // transform operands
         val left = transformOperand(instr.right) // TODO add explanatory comment for left := right
         val right = transformOperand(instr.left)

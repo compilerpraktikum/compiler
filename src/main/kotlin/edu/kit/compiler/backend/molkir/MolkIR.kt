@@ -103,7 +103,7 @@ private constructor(
     fun width(newWidth: Width) = Memory(const, base, index, scale, newWidth)
 
     override fun toMolki(): String {
-        val constStr = const?.toString() ?: ""
+        val constStr = const ?: ""
         val baseStr = base?.toMolki() ?: ""
         val extStr = if (index != null) {
             val indexStr = index.toMolki()
@@ -119,11 +119,11 @@ private constructor(
     }
 }
 
-private fun inferSuffix(operand: Target, vararg others: Target): String {
+private fun inferWidth(operand: Target, vararg others: Target): Width {
     others.forEachIndexed { i, other ->
         check(operand.width == other.width) { "incompatible types ($i): ${operand.width} <-> ${other.width}" }
     }
-    return operand.width.instructionSuffix
+    return operand.width
 }
 
 sealed class Instruction : MolkIR {
@@ -163,55 +163,74 @@ sealed class Instruction : MolkIR {
     }
 
     class UnaryOperationWithResult(
-        name: String,
+        val type: Type,
         val operand: Target.Input,
         val result: Target.Output,
     ) : Instruction() {
-        val name = name + inferSuffix(operand, result)
+        val width: Width = inferWidth(operand, result)
+        val name
+            get() = type.instruction + width.instructionSuffix
 
         override fun toMolki(): String = "$name ${operand.toMolki()}, ${result.toMolki()}"
+
+        enum class Type(val instruction: String) {
+            MOV("mov"),
+            INC("inc"),
+            DEC("dec"),
+            NEG("neg"),
+            NOT("not");
+        }
     }
 
     class BinaryOperation(
-        name: String,
+        val type: Type,
         val left: Target.Input,
         val right: Target.Input,
     ) : Instruction() {
-        val name = name + inferSuffix(left, right)
+        val width: Width = inferWidth(left, right)
+        val name
+            get() = type.instruction + width.instructionSuffix
 
         override fun toMolki(): String = "$name ${left.toMolki()}, ${right.toMolki()}"
+
+        enum class Type(val instruction: String) {
+            CMP("cmp");
+        }
     }
 
     class BinaryOperationWithResult(
-        name: String,
+        val type: Type,
         val left: Target.Input,
         val right: Target.Input,
         val result: Target.Output,
     ) : Instruction() {
-        val name = name + inferSuffix(left, right, result)
+        val width: Width = inferWidth(left, right, result)
+        val name
+            get() = type.instruction + width.instructionSuffix
 
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
-    }
 
-    class SubtractionOperationWithResult(
-        name: String,
-        val left: Target.Input,
-        val right: Target.Input,
-        val result: Target.Output,
-    ) : Instruction() {
-        val name = name + inferSuffix(left, right, result)
-
-        override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
+        enum class Type(val instruction: String) {
+            ADD("add"),
+            SUB("sub"),
+            IMUL("imul"),
+            AND("and"),
+            OR("or"),
+            XOR("xor"),
+            SAR("sar"),
+            SHL("shl"),
+            SHR("shr");
+        }
     }
 
     class DivisionOperation(
-        name: String,
         val left: Target.Input,
         val right: Target.Input,
         val resultLeft: Target.Output,
         val resultRight: Target.Output,
     ) : Instruction() {
-        val name = name + inferSuffix(left, right, resultLeft, resultRight)
+        val width: Width = inferWidth(left, right, resultLeft, resultRight)
+        val name = "idiv" + width.instructionSuffix
 
         override fun toMolki(): String =
             "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> [ ${resultLeft.toMolki()} | ${resultRight.toMolki()} ]"
@@ -236,7 +255,7 @@ sealed class Instruction : MolkIR {
         /* ktlint-disable no-multi-spaces */
         /* @formatter:off */
 
-        fun cmp(left: Target.Input, right: Target.Input) = BinaryOperation("cmp", left, right)
+        fun cmp(left: Target.Input, right: Target.Input) = BinaryOperation(BinaryOperation.Type.CMP, left, right)
 
         /****************************************
          * Jumps
@@ -252,35 +271,34 @@ sealed class Instruction : MolkIR {
         /****************************************
          * Unary operations with result
          ****************************************/
-        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult = UnaryOperationWithResult("mov", from, to)
-        fun inc(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("inc", operand, result)
-        fun dec(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("dec", operand, result)
-        fun neg(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("neg", operand, result)
-        fun not(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult("not", operand, result)
+        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult = UnaryOperationWithResult(UnaryOperationWithResult.Type.MOV, from, to)
+        fun inc(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.INC, operand, result)
+        fun dec(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.DEC, operand, result)
+        fun neg(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.NEG, operand, result)
+        fun not(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.NOT, operand, result)
 
         /****************************************
          * Binary operations with result
          ****************************************/
         fun idiv(left: Target.Input, right: Target.Input, resultDiv: Target.Output, resultMod: Target.Output) =
-            DivisionOperation("idiv", left, right, resultDiv, resultMod)
+            DivisionOperation(left, right, resultDiv, resultMod)
 
         // basic arithmetic
-        fun add(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("add", left, right, result)
-        fun sub(left: Target.Input, right: Target.Input, result: Target.Output) = SubtractionOperationWithResult("sub", left, right, result)
-        fun imul(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("imul", left, right, result)
+        fun add(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.ADD, left, right, result)
+        fun sub(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.SUB, left, right, result)
+        fun imul(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.IMUL, left, right, result)
 
         // basic logic
-        fun and(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("and", left, right, result)
-        fun or(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("or", left, right, result)
-        fun xor(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult("xor", left, right, result)
+        fun and(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.AND, left, right, result)
+        fun or(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.OR, left, right, result)
+        fun xor(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.XOR, left, right, result)
 
         // bitwise shift (arithmetic = preserve sign)
-        fun sal(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sal", left, right, result)
-        fun sar(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("sar", left, right, result)
+        fun sar(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SAR, left, right, result)
 
         // bitwise shift (logical)
-        fun shl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shl", left, right, result)
-        fun shr(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult("shr", left, right, result)
+        fun shl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHL, left, right, result)
+        fun shr(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHR, left, right, result)
 
         /* @formatter:on */
         /* ktlint-enable no-multi-spaces */
