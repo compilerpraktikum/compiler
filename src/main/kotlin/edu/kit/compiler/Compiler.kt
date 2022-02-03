@@ -261,7 +261,7 @@ class Compiler(private val config: Config) {
         MethodGraphsAfterConstruction("graph:construction"),
         MethodGraphsAfterLowering("graph:lowering"),
         MethodGraphsAfterOptimization("graph:optimization"),
-        MethodGraphsAfterEachOptimization("graph:each-optimization");
+        MethodGraphsAfterEachOptimization("graph:each-optimization"),
         AssemblyFile("asm"),
         CodeGenIR("codegen"),
         Molki("molki");
