@@ -12,6 +12,14 @@ import firm.nodes.Store
 import java.lang.IllegalStateException
 import java.util.Stack
 
+val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
+
+fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
+    println("---------------------[ storeAfterStore($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
+    StoreAfterStore(graph).removeDeadStores()
+    return false // TODO change
+}
+
 /**
  * Collect all relevant store nodes
  */
@@ -46,11 +54,6 @@ class StoreAfterStoreNodeCollector(
             localVarLoadToAddressProjNodeMap[node] = possibleMemProj
         }
     }
-}
-
-fun doStoreAfterStoreOptimizationRIGHT(graph: Graph) {
-    println("---------------------[ storeAfterStore($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
-    StoreAfterStore(graph).removeDeadStores()
 }
 
 class StoreAfterStore(val graph: Graph) {
@@ -305,10 +308,34 @@ class StoreAfterStore(val graph: Graph) {
         /* Determine whether store nodes are dead stores (Def 0.0) and delete them. */
         print("--[ dead stores ")
         localVarStoreToAddressProjNodeMap.keys.forEach { print(", $it") }
+
+        localVarStoreToAddressProjNodeMap.keys
+            .filter { isDeadStore(it) }
+            .map { println("  - $it"); it }
+            .forEach { deleteStoreNode(it) }
         println(" ]--")
-        localVarStoreStack.forEach { if (isDeadStore(it)) println("  - $it") }
 
         // TODO implement deleting
+    }
+
+    private fun deleteStoreNode(store: Store) {
+        BackEdges.enable(graph)
+        // rewire nodes
+        val pred0 = store.getPred(0)
+
+        // pred0(Proj) <-- it(Store) <--[backEdge]-- node(Proj) <--[backEdgeOfProj]-- node(?)
+        // ===after_deletion===>
+        // pred0(Proj) <-- node(?)
+        BackEdges.getOuts(store).forEach { backEdge ->
+            BackEdges.getOuts(backEdge.node).forEach { backEdgeOfProj ->
+                backEdgeOfProj.node.setPred(backEdgeOfProj.pos, pred0)
+            }
+        }
+
+        // not sure if removeAll is necessary TODO test!
+//        it.preds.removeAll { true }
+        Graph.killNode(store)
+        BackEdges.disable(graph)
     }
 
     private fun isDeadStore(store: Store): Boolean {
