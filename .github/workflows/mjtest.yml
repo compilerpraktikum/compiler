@@ -12,6 +12,7 @@ jobs:
   basic:
     name: Basic
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/setup-java@v1
         with:
@@ -28,6 +29,7 @@ jobs:
   firm:
     name: Compile using FIRM
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/setup-java@v1
         with:
@@ -44,6 +46,7 @@ jobs:
   own-backend:
     name: Compile using own backend
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/setup-java@v1
         with:
@@ -60,6 +63,7 @@ jobs:
   firm-with-optimizations:
     name: Compile using FIRM with all optimizations
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/setup-java@v1
         with:
@@ -72,5 +76,24 @@ jobs:
       - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
       - run: "git -C mjtest/tests reset --hard origin/master"
       - run: "./mjtest/mjt.py compile-firm-only compile-firm ./run"
+        env:
+          COMPILER_OPTIMIZATION_LEVEL: 1
+
+  own-backend-with-optimizations:
+    name: Compile using own backend with all optimizations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: ./build
+      - run: "git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest mjtest"
+      - run: "git -C mjtest/tests reset --hard origin/master"
+      - run: "./mjtest/mjt.py compile-only compile ./run"
         env:
           COMPILER_OPTIMIZATION_LEVEL: 1
