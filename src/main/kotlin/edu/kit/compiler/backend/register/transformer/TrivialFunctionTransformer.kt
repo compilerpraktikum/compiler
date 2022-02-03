@@ -100,12 +100,12 @@ class TrivialFunctionTransformer(
     private fun generateSpillCode(
         virtualRegisterId: RegisterId,
         registerWidth: Width,
-        platformRegister: PlatformTarget
+        platformRegister: PlatformTarget.Register
     ) {
         val instruction = PlatformInstruction.mov(
-            platformRegister,
+            platformRegister.quadWidth(),
             stackRegisterTable.getOrCreateRegisterSlot(virtualRegisterId, registerWidth).generateMemoryAddress(),
-            registerWidth
+            Width.QUAD
         )
 
         appendInstruction(instruction)
@@ -417,11 +417,11 @@ class TrivialFunctionTransformer(
      */
     private fun spillResultIfNecessary(molkiTarget: MolkiTarget.Output, platformTarget: PlatformTarget) {
         when (molkiTarget) {
-            is MolkiRegister -> generateSpillCode(molkiTarget.id, molkiTarget.width, platformTarget)
+            is MolkiRegister -> generateSpillCode(molkiTarget.id, molkiTarget.width, platformTarget as PlatformRegister)
             is MolkiReturnRegister -> generateSpillCode(
                 RegisterId(RETURN_VALUE_SLOT),
                 molkiTarget.width,
-                platformTarget
+                platformTarget as PlatformRegister
             )
             else -> {
                 // we just assume that the instruction already wrote the result to the correct target, as we made the
