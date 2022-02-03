@@ -133,7 +133,8 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
 //            "-O0",
             "-O1",
             "--out", output.toAbsolutePath().toString(),
-            input.toAbsolutePath().toString()
+            input.toAbsolutePath().toString(),
+            "--dump=graph:each-optimization"
         ).start()
 
         process.inputStream.transferTo(System.out)

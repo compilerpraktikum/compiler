@@ -2,7 +2,11 @@ package edu.kit.compiler.optimization
 
 import firm.BackEdges
 import firm.Graph
+import firm.Mode
+import firm.nodes.Add
 import firm.nodes.Bad
+import firm.nodes.Call
+import firm.nodes.Const
 import firm.nodes.Load
 import firm.nodes.Node
 import firm.nodes.Phi
@@ -21,40 +25,74 @@ fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
 
 /**
  * Collect all relevant store nodes
+ * TODO gescheit dokumentieren...
  */
 class StoreAfterStoreNodeCollector(
     // TODO
     private val LocalVarStoreStack: Stack<Store>,
     private val localVarStoreToAddressProjNodeMap: HashMap<Store, Proj>,
+    private val localVarStoreToAddressProjOffsetMap: HashMap<Store, Int>,
     private val localVarLoadToAddressProjNodeMap: HashMap<Load, Proj>,
+    private val localVarLoadToAddressProjOffsetMap: HashMap<Load, Int>,
 ) : FirmNodeVisitorAdapter() {
 
     override fun visit(node: Store) {
-        // TODO some kind of Erkennung arrayaccess/ local var access etc? Or on-the-fly Erkennung und hier nur store nodes sammeln.
-        // TODO Grundblöcke? Worklist muss nach Kontrollfluss sortiert sein! Was leistet der topologische Iterator da?
+        println("  - VISITING $node (pred: ${node.getPred(1)})")
 
         // -- case: this.vari = ..; --
         // 1 = "memory address"
-        val possibleMemProj = node.getPred(1)
-        if (possibleMemProj is Proj) {
+        val predNode = node.getPred(1)
+        if (predNode is Proj) {
             LocalVarStoreStack.push(node)
-            localVarStoreToAddressProjNodeMap[node] = possibleMemProj
+            localVarStoreToAddressProjNodeMap[node] = predNode
+            localVarStoreToAddressProjOffsetMap[node] = 0
+        } else if (predNode is Add) {
+            // 1 is const 0x8
+            val possibleConst = predNode.getPred(1)
+            if (possibleConst is Const && possibleConst.mode == Mode.getLs()) {
+                val possibleProj = predNode.getPred(0)
+                if (possibleProj is Proj) {
+                    LocalVarStoreStack.push(node)
+                    localVarStoreToAddressProjNodeMap[node] = possibleProj
+                    localVarStoreToAddressProjOffsetMap[node] = possibleConst.tarval.asInt()
+                }
+            }
         }
+
+        println("    StoreProj=${localVarStoreToAddressProjNodeMap[node]}, Offset=${localVarStoreToAddressProjOffsetMap[node]}")
 
         // -- case: this.arr[5] = ...; TODO need to traverse much nodes, see testForwardStore.mj
     }
 
     override fun visit(node: Load) {
+        println("  - VISITING $node (pred: ${node.getPred(1)})")
 
         // -- case: this.vari = ..; --
         // 1 = "memory address"
-        val possibleMemProj = node.getPred(1)
-        if (possibleMemProj is Proj) {
-            localVarLoadToAddressProjNodeMap[node] = possibleMemProj
+        val predNode = node.getPred(1)
+        if (predNode is Proj) {
+            localVarLoadToAddressProjNodeMap[node] = predNode
+            localVarLoadToAddressProjOffsetMap[node] = 0
+        } else if (predNode is Add) {
+            // 1 is const 0x8
+            val possibleConst = predNode.getPred(1)
+            if (possibleConst is Const && possibleConst.mode == Mode.getLs()) {
+                println(" FOUND THE 8 CONST!")
+                val possibleProj = predNode.getPred(0)
+                if (possibleProj is Proj) {
+                    localVarLoadToAddressProjNodeMap[node] = possibleProj
+                    localVarLoadToAddressProjOffsetMap[node] = possibleConst.tarval.asInt()
+                }
+            }
         }
+
+        println("    LoadProj=${localVarLoadToAddressProjNodeMap[node]}, Offset=${localVarLoadToAddressProjOffsetMap[node]}")
     }
 }
 
+/**
+ * Dead store elimination for primitive typed local variables (no arrays!).
+ */
 class StoreAfterStore(val graph: Graph) {
 
     class Path<T>(val list: MutableList<T>, override val size: Int = 0) : MutableList<T>, Set<T> {
@@ -167,6 +205,22 @@ class StoreAfterStore(val graph: Graph) {
                 true
             } else false
         }
+
+        fun getAllPossibleBackedges(node: Node): List<Node> {
+            // not really edges but returning a pair of node, .. is unnecessary.
+            val backEdges = mutableListOf<Node>()
+            circles.filter { path -> path.contains(node) }.forEach { path ->
+                // Only 2 Options:
+                if (path.list.last() == node) {
+                    // 1. (node -> ... backedgeNode-> node)
+                    backEdges.add(path.list[path.list.size - 2])
+                } else {
+                    // 2. (... -> backedgeNode -> node -> ...)
+                    backEdges.add(path.list[path.list.indexOf(node) - 1])
+                }
+            }
+            return backEdges
+        }
     }
 
     val storePaths: MutableList<Path<Node>> = mutableListOf()
@@ -176,6 +230,8 @@ class StoreAfterStore(val graph: Graph) {
     val localVarStoreStack = Stack<Store>()
     val localVarStoreToAddressProjNodeMap = HashMap<Store, Proj>()
     val localVarLoadToAddressProjNodeMap = HashMap<Load, Proj>()
+    val localVarStoreToAddressProjOffsetMap = HashMap<Store, Int>()
+    val localVarLoadToAddressProjOffsetMap = HashMap<Load, Int>()
 
     var deletedAnyStoreNode = false
 
@@ -215,8 +271,6 @@ class StoreAfterStore(val graph: Graph) {
     }
 
     private fun checkCircleInNewPathAndStoreCirclePath(nextNode: Node, oldPath: Path<Node>): Boolean {
-        // TODO check if visitedSet is irrelevant!
-//        return if (visitedSet.contains(nextNode)) {
         return if (oldPath.contains(nextNode)) {
             // ( ReturnNode -> ... NodeI -> ... -> NodeI) ==> (NodeI -> ... -> NodeI)
             circlePaths.add(circlify(oldPath.cloneAndAdd(nextNode)))
@@ -227,7 +281,7 @@ class StoreAfterStore(val graph: Graph) {
     }
 
     private fun circlify(pathFromStartToCircleEnd: Path<Node>): Path<Node> {
-        return Path<Node>(
+        return Path(
             pathFromStartToCircleEnd.subList(
                 pathFromStartToCircleEnd.list.indexOfFirst {
                     it == pathFromStartToCircleEnd.list.last()
@@ -258,8 +312,6 @@ class StoreAfterStore(val graph: Graph) {
         }
 
         // 2. Unite closures
-
-        // todo while (sich in der letzten Iteration noch was an den Mengen geändert hat)
         var hasChanged = true
         while (hasChanged) {
             hasChanged = false
@@ -274,12 +326,16 @@ class StoreAfterStore(val graph: Graph) {
                 }
             }
         }
-        // TODO("implement")
     }
 
     fun removeDeadStores(): Boolean {
         // Collect all stores and populate maps from load and store to their respective proj nodes (invariant for LOCAL VAR ACCESSES, ONLY!)
-        graph.walk(StoreAfterStoreNodeCollector(localVarStoreStack, localVarStoreToAddressProjNodeMap, localVarLoadToAddressProjNodeMap))
+        graph.walk(
+            StoreAfterStoreNodeCollector(
+                localVarStoreStack, localVarStoreToAddressProjNodeMap,
+                localVarStoreToAddressProjOffsetMap, localVarLoadToAddressProjNodeMap, localVarLoadToAddressProjOffsetMap
+            )
+        )
 
         /* For each Return node, run a spanning tree algorithm (DFS) which yields
             * Each path from each return to each store node
@@ -287,34 +343,18 @@ class StoreAfterStore(val graph: Graph) {
          */
         calculateSpanningForest()
 
-//        println("--[ storePaths ]--")
-//        storePaths.forEach {
-//            println("  - $it")
-//        }
-//        println("--[ circlePaths ]--")
-//        circlePaths.forEach {
-//            println("  - $it")
-//        }
-
         /* Calculate DataRiverClosures™ (Def 1.2) which each contain all circles that are "reachability-connected".
            These Closures are disjunct!
          */
         calculateDataRiverClosures()
-//        println("--[ circleDataRiverClosures ]--")
-//        circleDataRiverClosures.forEach {
-//            println("  - $it")
-//            it.circles.forEach { itit -> println("    - $itit") }
-//        }
 
         /* Determine whether store nodes are dead stores (Def 0.0) and delete them. */
-//        print("--[ dead stores ")
-//        localVarStoreToAddressProjNodeMap.keys.forEach { print(", $it") }
+        println("--[ dead stores ]--")
 
         localVarStoreToAddressProjNodeMap.keys
             .filter { isDeadStore(it) }
             .map { println("  - $it"); it }
             .forEach { deleteStoreNode(it) }
-//        println(" ]--")
         return deletedAnyStoreNode
     }
 
@@ -332,8 +372,6 @@ class StoreAfterStore(val graph: Graph) {
             }
         }
 
-        // not sure if removeAll is necessary TODO test!
-//        it.preds.removeAll { true }
         Graph.killNode(store)
         BackEdges.disable(graph)
 
@@ -342,7 +380,6 @@ class StoreAfterStore(val graph: Graph) {
 
     private fun isDeadStore(store: Store): Boolean {
         // TODO überlegen if man nicht vielleicht  ALLE paths von return zu Start anlooken müsste... (Glaub eher net)
-
         // 1. find if there is a critical store path
         val criticalityCheck = anyStorePathIsCriticalFor(store)
         if (criticalityCheck.first) { // there exists a path where after the store comes no other similar store or a load.
@@ -351,28 +388,31 @@ class StoreAfterStore(val graph: Graph) {
             throw IllegalStateException("Uncritical paths must bear a witness.")
         }
 
-        // 2. interrogate the witnesses
-//        println("  - dirty witnesses for $store")
-        criticalityCheck.second.forEach { witness ->
-            val witnessProj = localVarStoreToAddressProjNodeMap[witness]
-            circleDataRiverClosures
-                .filter { it.nodeSet.contains(witness) }
-                .forEach { circleDataRiverClosure ->
-                    if (circleDataRiverClosure.nodeSet
-                        .filterIsInstance<Load>()
-                        .any { load -> localVarLoadToAddressProjNodeMap[load] == witnessProj }
-                    ) {
-                        // we got a hidden load within a circle, so we don't have a dead store
-//                        println("    - $witness")
-                        return@isDeadStore false
-                    }
-                }
-        }
-        // TODO rmv DEBUG
-//        println("  - clean witnesses for $store")
-//        criticalityCheck.second.forEach { println("    - $it") }
+        // 2. Walk backwards through the closure in every possible way and halt at the first load or store occurrence, ...
+        return circleDataRiverClosures
+            .filter { it.nodeSet.contains(store) }
+            .none { circleDataRiverClosure -> checkCirclesForDirectLoads(store, circleDataRiverClosure, localVarStoreToAddressProjNodeMap[store]!!, localVarStoreToAddressProjOffsetMap[store]!!) }
+    }
 
-        return true
+    /**
+     * @return true if there is a load "directly before" the store (meaning there is NO dead store)
+     */
+    private fun checkCirclesForDirectLoads(node: Node, circleDataRiverClosure: DataRiverClosure, relevantProj: Proj, relevantProjOffset: Int): Boolean {
+        // at the first occurrence of either a load, a call or a store, this recursion path's contribution to the total decision is made.
+        if (node is Load && localVarLoadToAddressProjNodeMap[node] == relevantProj && localVarLoadToAddressProjOffsetMap[node] == relevantProjOffset) {
+            return true
+        } else if (node is Call) {
+            return true
+        } else if (node is Store && localVarStoreToAddressProjNodeMap[node] == relevantProj && localVarStoreToAddressProjOffsetMap[node] == relevantProjOffset) {
+            return false
+        }
+
+        // recursion. A single load/ call found is needed.
+        var foundALoadOrACall = false
+        circleDataRiverClosure.getAllPossibleBackedges(node).forEach {
+            if (checkCirclesForDirectLoads(it, circleDataRiverClosure, relevantProj, relevantProjOffset)) foundALoadOrACall = true
+        }
+        return foundALoadOrACall
     }
 
     /**
@@ -382,26 +422,27 @@ class StoreAfterStore(val graph: Graph) {
         val witnesses = mutableSetOf<Store>()
         var critical = false
         val projNode = localVarStoreToAddressProjNodeMap[store]
+        val projOffset = localVarStoreToAddressProjOffsetMap[store]
         storePaths
             .filter { storePath -> storePath.contains(store) } // we want the exact store node!
             .forEach { storePath ->
-                val loadsAndStoresAfterOurStore = storePath.list
+                val loadsAndCallsAndStoresAfterOurStore = storePath.list
                     .subList(0, storePath.indexOf(store)) /* There can be only one occurence of the given store node,
                         since there ain't no circles, here! Further, this specifically excludes the given store node!*/
                     .reversed() // walk backwards
                     .filter { node ->
-                        node is Store && localVarStoreToAddressProjNodeMap[node] == projNode || node is Load && localVarLoadToAddressProjNodeMap[node] == projNode
-                    } /* Now we have only relevant loads and stores! If the first element is a load,
+                        node is Store && localVarStoreToAddressProjNodeMap[node] == projNode && localVarStoreToAddressProjOffsetMap[node] == projOffset ||
+                            node is Load && localVarLoadToAddressProjNodeMap[node] == projNode && localVarLoadToAddressProjOffsetMap[node] == projOffset ||
+                            node is Call
+                    } /* Now we have only relevant loads/ calls and stores! If the first element is a load,
                         we got a CRITICAL path, else (Store) we have a potential dead store.*/
                     .toList()
-                if (loadsAndStoresAfterOurStore.isEmpty()) {
-//                    println("------------------------------------------------------DEBuG $store: no store found")
+                if (loadsAndCallsAndStoresAfterOurStore.isEmpty()) {
                     critical = true // no store found!
-                } else if (loadsAndStoresAfterOurStore.first() is Store) {
-                    witnesses.add(loadsAndStoresAfterOurStore.first() as Store) // uncritical with witness.
+                } else if (loadsAndCallsAndStoresAfterOurStore.first() is Store) {
+                    witnesses.add(loadsAndCallsAndStoresAfterOurStore.first() as Store) // uncritical with witness.
                 } else {
-//                    println("------------------------------------------------------DEBuG $store: load found")
-                    critical = true // load found!
+                    critical = true // load or call found!
                 }
             }
 
