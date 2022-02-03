@@ -243,7 +243,7 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.Jump -> appendInstruction(PlatformInstruction.Jump(instr.name, instr.label))
             is MolkiInstruction.Label -> appendInstruction(PlatformInstruction.Label(instr.name))
             is MolkiInstruction.UnaryOperationWithResult -> {
-                if (instr.name.startsWith("mov")) {
+                if (instr.type == MolkiInstruction.UnaryOperationWithResult.Type.MOV) {
                     transformMoveOperation(instr)
                 } else {
                     transformUnaryOperationWithResult(instr)
