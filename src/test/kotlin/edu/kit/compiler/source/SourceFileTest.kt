@@ -1,7 +1,7 @@
 package edu.kit.compiler.source
 
-import org.junit.jupiter.api.Test
 import kotlin.io.path.toPath
+import kotlin.test.Test
 import kotlin.test.expect
 
 internal class SourceFileTest {

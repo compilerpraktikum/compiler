@@ -1,4 +1,4 @@
-package edu.kit.compiler
+package edu.kit.compiler.utils
 
 object Logger {
     enum class Level(val prefix: String, val severity: Int) {

@@ -32,7 +32,7 @@ class StringTable(
 
     /**
      * Tries to register a new identifier if not already known.
-     *  @return the internalized identifier name and associated [Symbol]
+     * @return the internalized identifier name and associated [Symbol]
      */
     fun tryRegisterIdentifier(name: String): Symbol {
         return symbols.computeIfAbsent(name) { Symbol(name, isKeyword = false) }

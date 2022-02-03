@@ -1,7 +1,7 @@
 package edu.kit.compiler.backend
 
 import edu.kit.compiler.CompilationException
-import edu.kit.compiler.Logger
+import edu.kit.compiler.utils.Logger
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

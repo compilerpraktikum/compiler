@@ -62,59 +62,61 @@ import firm.nodes.Unknown
  */
 abstract class FirmNodeVisitorAdapter : NodeVisitor {
 
-    override fun visit(node: Add) {}
-    override fun visit(node: Address) {}
-    override fun visit(node: Align) {}
-    override fun visit(node: Alloc) {}
-    override fun visit(node: Anchor) {}
-    override fun visit(node: And) {}
-    override fun visit(node: Bad) {}
-    override fun visit(node: Bitcast) {}
-    override fun visit(node: Block) {}
-    override fun visit(node: Builtin) { }
-    override fun visit(node: Call) { }
-    override fun visit(node: Cmp) { }
-    override fun visit(node: Cond) { }
-    override fun visit(node: Confirm) { }
-    override fun visit(node: Const) { }
-    override fun visit(node: Conv) { }
-    override fun visit(node: CopyB) { }
-    override fun visit(node: Deleted) { }
-    override fun visit(node: Div) { }
-    override fun visit(node: Dummy) { }
-    override fun visit(node: End) { }
-    override fun visit(node: Eor) { }
-    override fun visit(node: Free) { }
-    override fun visit(node: IJmp) { }
-    override fun visit(node: Id) { }
-    override fun visit(node: Jmp) { }
-    override fun visit(node: Load) { }
-    override fun visit(node: Member) { }
-    override fun visit(node: Minus) { }
-    override fun visit(node: Mod) { }
-    override fun visit(node: Mul) { }
-    override fun visit(node: Mulh) { }
-    override fun visit(node: Mux) { }
-    override fun visit(node: NoMem) { }
-    override fun visit(node: Not) { }
-    override fun visit(node: Offset) { }
-    override fun visit(node: Or) { }
-    override fun visit(node: Phi) { }
-    override fun visit(node: Pin) { }
-    override fun visit(node: Proj) { }
-    override fun visit(node: Raise) { }
-    override fun visit(node: Return) { }
-    override fun visit(node: Sel) { }
-    override fun visit(node: Shl) { }
-    override fun visit(node: Shr) { }
-    override fun visit(node: Shrs) { }
-    override fun visit(node: Size) { }
-    override fun visit(node: Start) { }
-    override fun visit(node: Store) { }
-    override fun visit(node: Sub) { }
-    override fun visit(node: Switch) { }
-    override fun visit(node: Sync) { }
-    override fun visit(node: Tuple) { }
-    override fun visit(node: Unknown) { }
-    override fun visitUnknown(node: Node) { }
+    open fun defaultVisit(node: Node) {}
+
+    override fun visit(node: Add) { defaultVisit(node) }
+    override fun visit(node: Address) { defaultVisit(node) }
+    override fun visit(node: Align) { defaultVisit(node) }
+    override fun visit(node: Alloc) { defaultVisit(node) }
+    override fun visit(node: Anchor) { defaultVisit(node) }
+    override fun visit(node: And) { defaultVisit(node) }
+    override fun visit(node: Bad) { defaultVisit(node) }
+    override fun visit(node: Bitcast) { defaultVisit(node) }
+    override fun visit(node: Block) { defaultVisit(node) }
+    override fun visit(node: Builtin) { defaultVisit(node) }
+    override fun visit(node: Call) { defaultVisit(node) }
+    override fun visit(node: Cmp) { defaultVisit(node) }
+    override fun visit(node: Cond) { defaultVisit(node) }
+    override fun visit(node: Confirm) { defaultVisit(node) }
+    override fun visit(node: Const) { defaultVisit(node) }
+    override fun visit(node: Conv) { defaultVisit(node) }
+    override fun visit(node: CopyB) { defaultVisit(node) }
+    override fun visit(node: Deleted) { defaultVisit(node) }
+    override fun visit(node: Div) { defaultVisit(node) }
+    override fun visit(node: Dummy) { defaultVisit(node) }
+    override fun visit(node: End) { defaultVisit(node) }
+    override fun visit(node: Eor) { defaultVisit(node) }
+    override fun visit(node: Free) { defaultVisit(node) }
+    override fun visit(node: IJmp) { defaultVisit(node) }
+    override fun visit(node: Id) { defaultVisit(node) }
+    override fun visit(node: Jmp) { defaultVisit(node) }
+    override fun visit(node: Load) { defaultVisit(node) }
+    override fun visit(node: Member) { defaultVisit(node) }
+    override fun visit(node: Minus) { defaultVisit(node) }
+    override fun visit(node: Mod) { defaultVisit(node) }
+    override fun visit(node: Mul) { defaultVisit(node) }
+    override fun visit(node: Mulh) { defaultVisit(node) }
+    override fun visit(node: Mux) { defaultVisit(node) }
+    override fun visit(node: NoMem) { defaultVisit(node) }
+    override fun visit(node: Not) { defaultVisit(node) }
+    override fun visit(node: Offset) { defaultVisit(node) }
+    override fun visit(node: Or) { defaultVisit(node) }
+    override fun visit(node: Phi) { defaultVisit(node) }
+    override fun visit(node: Pin) { defaultVisit(node) }
+    override fun visit(node: Proj) { defaultVisit(node) }
+    override fun visit(node: Raise) { defaultVisit(node) }
+    override fun visit(node: Return) { defaultVisit(node) }
+    override fun visit(node: Sel) { defaultVisit(node) }
+    override fun visit(node: Shl) { defaultVisit(node) }
+    override fun visit(node: Shr) { defaultVisit(node) }
+    override fun visit(node: Shrs) { defaultVisit(node) }
+    override fun visit(node: Size) { defaultVisit(node) }
+    override fun visit(node: Start) { defaultVisit(node) }
+    override fun visit(node: Store) { defaultVisit(node) }
+    override fun visit(node: Sub) { defaultVisit(node) }
+    override fun visit(node: Switch) { defaultVisit(node) }
+    override fun visit(node: Sync) { defaultVisit(node) }
+    override fun visit(node: Tuple) { defaultVisit(node) }
+    override fun visit(node: Unknown) { defaultVisit(node) }
+    override fun visitUnknown(node: Node) { defaultVisit(node) }
 }

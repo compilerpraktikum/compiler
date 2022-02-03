@@ -43,7 +43,7 @@ abstract class MjTestSuite(
             get() = !name.endsWith(".invalid.mj")
     }
 
-    fun provideTests(): Stream<TestCase> {
+    private fun provideTests(): Stream<TestCase> {
         val projectRoot = Paths.get("")
         val path = projectRoot.resolve("test-cases").resolve(testCaseDirectory)
         return path.listDirectoryEntries()

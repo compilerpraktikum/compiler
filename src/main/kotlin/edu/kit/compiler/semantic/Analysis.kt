@@ -9,6 +9,7 @@ import edu.kit.compiler.semantic.visitor.NameResolver
 import edu.kit.compiler.semantic.visitor.NamespacePopulator
 import edu.kit.compiler.semantic.visitor.ReturnStatementSearcher
 import edu.kit.compiler.semantic.visitor.TypeAnalysisVisitor
+import edu.kit.compiler.semantic.visitor.UnusedDeclarationVisitor
 import edu.kit.compiler.semantic.visitor.accept
 import edu.kit.compiler.source.SourceFile
 
@@ -27,6 +28,7 @@ fun doSemanticAnalysis(program: SemanticAST.Program, sourceFile: SourceFile, str
     program.accept(ReturnStatementSearcher(sourceFile))
     program.accept(AssignmentLHSChecker(sourceFile))
     program.accept(ConstantBoundariesChecker(sourceFile))
+    program.accept(UnusedDeclarationVisitor(sourceFile))
 }
 
 /**

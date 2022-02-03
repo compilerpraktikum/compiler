@@ -1,12 +1,17 @@
 package edu.kit.compiler
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.defaultLazy
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.switch
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
+import edu.kit.compiler.utils.Logger
+import edu.kit.compiler.utils.choices
+import edu.kit.compiler.utils.distinct
 import kotlin.system.exitProcess
 
 class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
@@ -21,10 +26,21 @@ class Cli : CliktCommand(name = "mjavac"), Compiler.Config {
     override val dump by option("--dump", help = "output intermediate compilation results (separate multiple values by comma)")
         .choices(Compiler.Dump.values().associateBy { it.cliFlag }).distinct()
 
-    private val verbose by option("-v", "--verbose", help = "enable verbose logging").flag(default = false)
+    override val optimizationLevel by option(help = "optimization level (higher number = more optimizations)")
+        .switch(Compiler.OptimizationLevel.values().associateBy { "-O${it.intValue}" })
+        .defaultLazy {
+            System.getenv("COMPILER_OPTIMIZATION_LEVEL")
+                ?.let {
+                    val level = it.toIntOrNull() ?: throw CliktError("invalid optimization level: $it")
+                    Compiler.OptimizationLevel.of(level) ?: throw CliktError("unknown optimization level: $level")
+                } ?: Compiler.OptimizationLevel.Base
+        }
+
+    private val verbosity by option("-v", "--verbosity", help = "set logging level (default: info)")
+        .choice(Logger.Level.values().associateBy { it.name.lowercase() }).default(Logger.Level.INFO)
 
     override fun run() {
-        Logger.level = if (verbose) Logger.Level.ALL else Logger.Level.INFO
+        Logger.level = verbosity
         val compiler = Compiler(this)
         exitProcess(compiler.compile())
     }
