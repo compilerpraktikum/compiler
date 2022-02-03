@@ -16,8 +16,7 @@ val StoreAfterStoreOptimization = Optimization("store after store elimination", 
 
 fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
     println("---------------------[ storeAfterStore($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
-    StoreAfterStore(graph).removeDeadStores()
-    return false // TODO change
+    return StoreAfterStore(graph).removeDeadStores()
 }
 
 /**
@@ -178,6 +177,8 @@ class StoreAfterStore(val graph: Graph) {
     val localVarStoreToAddressProjNodeMap = HashMap<Store, Proj>()
     val localVarLoadToAddressProjNodeMap = HashMap<Load, Proj>()
 
+    var deletedAnyStoreNode = false
+
     private fun calculateSpanningForest() = graph.end.block.preds.forEach { calculateSpanningTree(it as Return, Path(mutableListOf(it))) }
 
     /**
@@ -187,7 +188,7 @@ class StoreAfterStore(val graph: Graph) {
         if (node == graph.start) {
             return
         } else if (node is Bad) {
-            println("GOT BAD NODE $node. Abort mission.")
+            error("GOT BAD NODE $node. Abort mission.")
             return
         } else if (node is Store) {
             // 1. handle store
@@ -276,7 +277,7 @@ class StoreAfterStore(val graph: Graph) {
         // TODO("implement")
     }
 
-    fun removeDeadStores() {
+    fun removeDeadStores(): Boolean {
         // Collect all stores and populate maps from load and store to their respective proj nodes (invariant for LOCAL VAR ACCESSES, ONLY!)
         graph.walk(StoreAfterStoreNodeCollector(localVarStoreStack, localVarStoreToAddressProjNodeMap, localVarLoadToAddressProjNodeMap))
 
@@ -286,36 +287,35 @@ class StoreAfterStore(val graph: Graph) {
          */
         calculateSpanningForest()
 
-        println("--[ storePaths ]--")
-        storePaths.forEach {
-            println("  - $it")
-        }
-        println("--[ circlePaths ]--")
-        circlePaths.forEach {
-            println("  - $it")
-        }
+//        println("--[ storePaths ]--")
+//        storePaths.forEach {
+//            println("  - $it")
+//        }
+//        println("--[ circlePaths ]--")
+//        circlePaths.forEach {
+//            println("  - $it")
+//        }
 
         /* Calculate DataRiverClosures™ (Def 1.2) which each contain all circles that are "reachability-connected".
            These Closures are disjunct!
          */
         calculateDataRiverClosures()
-        println("--[ circleDataRiverClosures ]--")
-        circleDataRiverClosures.forEach {
-            println("  - $it")
-            it.circles.forEach { itit -> println("    - $itit") }
-        }
+//        println("--[ circleDataRiverClosures ]--")
+//        circleDataRiverClosures.forEach {
+//            println("  - $it")
+//            it.circles.forEach { itit -> println("    - $itit") }
+//        }
 
         /* Determine whether store nodes are dead stores (Def 0.0) and delete them. */
-        print("--[ dead stores ")
-        localVarStoreToAddressProjNodeMap.keys.forEach { print(", $it") }
+//        print("--[ dead stores ")
+//        localVarStoreToAddressProjNodeMap.keys.forEach { print(", $it") }
 
         localVarStoreToAddressProjNodeMap.keys
             .filter { isDeadStore(it) }
             .map { println("  - $it"); it }
             .forEach { deleteStoreNode(it) }
-        println(" ]--")
-
-        // TODO implement deleting
+//        println(" ]--")
+        return deletedAnyStoreNode
     }
 
     private fun deleteStoreNode(store: Store) {
@@ -336,6 +336,8 @@ class StoreAfterStore(val graph: Graph) {
 //        it.preds.removeAll { true }
         Graph.killNode(store)
         BackEdges.disable(graph)
+
+        deletedAnyStoreNode = true
     }
 
     private fun isDeadStore(store: Store): Boolean {
@@ -393,126 +395,16 @@ class StoreAfterStore(val graph: Graph) {
                         we got a CRITICAL path, else (Store) we have a potential dead store.*/
                     .toList()
                 if (loadsAndStoresAfterOurStore.isEmpty()) {
-                    println("------------------------------------------------------DEBuG $store: no store found")
+//                    println("------------------------------------------------------DEBuG $store: no store found")
                     critical = true // no store found!
                 } else if (loadsAndStoresAfterOurStore.first() is Store) {
                     witnesses.add(loadsAndStoresAfterOurStore.first() as Store) // uncritical with witness.
                 } else {
-                    println("------------------------------------------------------DEBuG $store: load found")
+//                    println("------------------------------------------------------DEBuG $store: load found")
                     critical = true // load found!
                 }
             }
 
         return Pair(critical, witnesses) // uncritical, no
     }
-}
-
-/**
- * Perform store after store optimization on the given [method graph][Graph].
- */
-fun doStoreAfterStoreOptimization(graph: Graph) {
-    val LocalVarStoreStack: Stack<Store> = Stack()
-    val localVarStoreToAddressProjNodeMap = HashMap<Store, Proj>()
-    val localVarLoadToAddressProjNodeMap = HashMap<Load, Proj>()
-
-    // firm meckert sonst.
-    BackEdges.enable(graph)
-
-    println("---------------------[ storeAfterStore($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
-    graph.walkTopological(StoreAfterStoreNodeCollector(LocalVarStoreStack, localVarStoreToAddressProjNodeMap, localVarLoadToAddressProjNodeMap))
-
-    println("--[ LocalVarStoreStack ]--")
-    LocalVarStoreStack.forEach {
-        println("  - $it ${" ".repeat(35 - it.toString().length)}")
-    }
-    println("--[ localVarStoreToAddressProjNodeMap ]--")
-    localVarStoreToAddressProjNodeMap.forEach {
-        println("  - $it ${" ".repeat(35 - it.toString().length)}")
-    }
-    println("--[ localVarLoadToAddressProjNodeMap ]--")
-    localVarLoadToAddressProjNodeMap.forEach {
-        println("  - $it ${" ".repeat(35 - it.toString().length)}")
-    }
-
-    // walk along memory edges from end to start
-    // store nodes of type store and whether they should be deleted at the end.
-    val nodesToBeDeleted = HashSet<Store>().toMutableSet()
-    val projsVisited = HashMap<Proj, Store>()
-
-    var currentNode: Node = graph.end.block
-    println("--[[ Backwardswalk on $currentNode ]]-- ")
-    while (currentNode != graph.start) {
-        println("  $currentNode")
-
-        if (currentNode is Load) {
-            val loadProj = localVarLoadToAddressProjNodeMap[currentNode]
-            projsVisited.remove(loadProj)
-        }
-
-        // contains check: e.g. array store nodes do have Conv nodes as predecessors. Only looking at basic var stores, here.
-        if (currentNode is Store && localVarStoreToAddressProjNodeMap.contains(currentNode)) {
-            val storeProj = localVarStoreToAddressProjNodeMap[currentNode]
-//            println("    - $storeProj")
-//            println("    - projsVisited:")
-//            projsVisited.forEach {
-//                println("      - $it ${it.key == storeProj}")
-//            }
-
-            if (projsVisited.contains(storeProj)) {
-                println("    - contains!")
-                localVarStoreToAddressProjNodeMap[currentNode]
-                // between the current node (store) and the next store node exists no load node. ==> current node is dead store.
-                nodesToBeDeleted += currentNode
-            }
-
-            projsVisited[localVarStoreToAddressProjNodeMap[currentNode]!!] = currentNode
-        }
-
-        // todo currently ignoring phi control flow by always taking 0 (which leads to start, presumably?)
-        // TODO problem with that: need to find possible Loads in Phi control flow
-
-        // TODO bei jedem Store -after- Store: Einzigartigkeit des Pfades prüfen.
-        // Algorithmus:
-        /*
-            1. Berechne für jedes potenzielle DeadStore s0 alle Rückwärts-Kreise (s0 -> ... -> s0) per Tiefensuche.
-               Rekursives Abbruchkriterium ==> Zweifaches Auftreten von s0 im Gesamtpfad.
-               todo einfach nen Algorithmus für Kreisdetektion googeln..
-         */
-        if (currentNode is Phi) {
-            currentNode = currentNode.getPred(0)
-        } else {
-            currentNode = currentNode.getPred(0)
-        }
-    }
-
-    println("--[[ nodesToBeDeleted ]]-- ")
-    nodesToBeDeleted.forEach {
-        println("  - $it")
-    }
-
-    nodesToBeDeleted.forEach {
-        // rewire nodes
-        val pred0 = it.getPred(0)
-
-        // pred0(Proj) <-- it(Store) <--[backEdge]-- node(Proj) <--[backEdgeOfProj]-- node(?)
-        // ===after_deletion===>
-        // pred0(Proj) <-- node(?)
-        BackEdges.getOuts(it).forEach { backEdge ->
-            BackEdges.getOuts(backEdge.node).forEach { backEdgeOfProj ->
-                backEdgeOfProj.node.setPred(backEdgeOfProj.pos, pred0)
-            }
-        }
-
-        // not sure if removeAll is necessary TODO test!
-//        it.preds.removeAll { true }
-        Graph.killNode(it)
-    }
-
-//    ConstantPropagationAndFoldingTransformationVisitor(
-//        graph,
-//        ConstantPropagationAndFoldingAnalysisVisitor(graph)
-//            .doConstantPropagationAndFoldingAnalysis()
-//    ).transform()
-
-    BackEdges.disable(graph)
 }
