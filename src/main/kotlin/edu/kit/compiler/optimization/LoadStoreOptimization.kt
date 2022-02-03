@@ -19,7 +19,6 @@ import java.util.Stack
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
 
 fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
-    println("---------------------[ storeAfterStore($graph) ${" ".repeat(80 - graph.toString().length)}]---------------------")
     return StoreAfterStore(graph).removeDeadStores()
 }
 
@@ -37,9 +36,6 @@ class StoreAfterStoreNodeCollector(
 ) : FirmNodeVisitorAdapter() {
 
     override fun visit(node: Store) {
-        println("  - VISITING $node (pred: ${node.getPred(1)})")
-
-        // -- case: this.vari = ..; --
         // 1 = "memory address"
         val predNode = node.getPred(1)
         if (predNode is Proj) {
@@ -58,16 +54,9 @@ class StoreAfterStoreNodeCollector(
                 }
             }
         }
-
-        println("    StoreProj=${localVarStoreToAddressProjNodeMap[node]}, Offset=${localVarStoreToAddressProjOffsetMap[node]}")
-
-        // -- case: this.arr[5] = ...; TODO need to traverse much nodes, see testForwardStore.mj
     }
 
     override fun visit(node: Load) {
-        println("  - VISITING $node (pred: ${node.getPred(1)})")
-
-        // -- case: this.vari = ..; --
         // 1 = "memory address"
         val predNode = node.getPred(1)
         if (predNode is Proj) {
@@ -77,7 +66,6 @@ class StoreAfterStoreNodeCollector(
             // 1 is const 0x8
             val possibleConst = predNode.getPred(1)
             if (possibleConst is Const && possibleConst.mode == Mode.getLs()) {
-                println(" FOUND THE 8 CONST!")
                 val possibleProj = predNode.getPred(0)
                 if (possibleProj is Proj) {
                     localVarLoadToAddressProjNodeMap[node] = possibleProj
@@ -85,8 +73,6 @@ class StoreAfterStoreNodeCollector(
                 }
             }
         }
-
-        println("    LoadProj=${localVarLoadToAddressProjNodeMap[node]}, Offset=${localVarLoadToAddressProjOffsetMap[node]}")
     }
 }
 
@@ -95,9 +81,9 @@ class StoreAfterStoreNodeCollector(
  */
 class StoreAfterStore(val graph: Graph) {
 
+    // todo if langeweile: die interfaces sind relativ sicher bullshit..
     class Path<T>(val list: MutableList<T>, override val size: Int = 0) : MutableList<T>, Set<T> {
         val nodeHashSet: MutableSet<T> = HashSet(size)
-        // TODO add a load-Proj-Map, populate it on each add operation!
 
         init {
             nodeHashSet.addAll(list)
@@ -349,11 +335,9 @@ class StoreAfterStore(val graph: Graph) {
         calculateDataRiverClosures()
 
         /* Determine whether store nodes are dead stores (Def 0.0) and delete them. */
-        println("--[ dead stores ]--")
-
         localVarStoreToAddressProjNodeMap.keys
             .filter { isDeadStore(it) }
-            .map { println("  - $it"); it }
+//            .map { println("  - $it"); it }
             .forEach { deleteStoreNode(it) }
         return deletedAnyStoreNode
     }
