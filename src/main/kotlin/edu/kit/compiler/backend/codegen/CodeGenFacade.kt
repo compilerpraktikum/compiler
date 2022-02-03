@@ -55,12 +55,18 @@ class CodeGenFacade(
             numberOfArguments[graph] = functionVisitor.numberOfArguments
 
             breakCriticalEdges(graph)
-            val phiVisitor = PhiAssignRegisterVisitor(registerTable, nodeMapping)
+
             BackEdges.enable(graph)
+
+            val phiVisitor = PhiAssignRegisterVisitor(registerTable, nodeMapping)
             graph.walkTopological(phiVisitor)
 
-            val generationState = FirmToCodeGenTranslator.GenerationState(nodeMap = phiVisitor.map)
+            val generationState = FirmToCodeGenTranslator.GenerationState(
+                registerTable = registerTable,
+                nodeMap = phiVisitor.map,
+            )
             graph.walkTopological(FirmToCodeGenTranslator(graph, registerTable, generationState))
+            generationState.createPhiMoves()
 
             BackEdges.disable(graph)
 

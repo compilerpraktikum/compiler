@@ -397,8 +397,7 @@ val replacementRules = run {
                 instructions = left.get().instructions
                     .append(right.get().instructions)
                     .append(
-                        debugComment()
-                    ).append(
+                        debugComment(),
                         Instruction.idiv(leftTarget.get(), rightTarget.get(), firstResult, secondResult),
                     ),
                 cost = left.get().cost + right.get().cost + (if (resRegister.width == Width.DOUBLE) 26 else 50),
@@ -452,7 +451,8 @@ val replacementRules = run {
             Replacement(
                 node = Noop(),
                 instructions = fromReplacement.get().instructions
-                    .append(toReplacement.get().instructions).append(
+                    .append(toReplacement.get().instructions)
+                    .append(
                         debugComment(),
                         Instruction.mov(
                             fromMemory.get().width(toRegister.get().width), // TODO new width needed?
@@ -479,7 +479,8 @@ val replacementRules = run {
             Replacement(
                 node = Noop(),
                 instructions = fromReplacement.get().instructions
-                    .append(toReplacement.get().instructions).append(
+                    .append(toReplacement.get().instructions)
+                    .append(
                         debugComment(),
                         Instruction.mov(
                             fromRegister.get(),

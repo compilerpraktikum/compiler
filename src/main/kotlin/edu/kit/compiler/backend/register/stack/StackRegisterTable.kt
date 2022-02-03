@@ -43,6 +43,18 @@ class StackRegisterTable {
         return stackLayout[id]
     }
 
+
+    /**
+     * Get the [StackRegister] corresponding to the given virtual register. If the register does not exist yet,
+     * it is created.
+     */
+    fun getOrCreateRegisterSlot(id: RegisterId, width: Width): StackRegister {
+        return stackLayout.computeIfAbsent(id) {
+            registerTableSize += Width.QUAD.inBytes
+            StackRegister(id, registerTableSize, width)
+        }
+    }
+
     /**
      * Create a register slot in the table
      *
