@@ -31,7 +31,7 @@ interface CallingConvention {
      *
      * @param width bit-width of return value
      */
-    fun getReturnValueTarget(width: Width): PlatformTarget
+    fun getReturnValueTarget(width: Width): PlatformTarget.Register
 
     /**
      * Get the [PlatformTarget] where a parameter is located

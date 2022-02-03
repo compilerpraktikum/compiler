@@ -51,7 +51,7 @@ object SimpleCallingConvention : CallingConvention {
         return epilogue
     }
 
-    override fun getReturnValueTarget(width: Width): PlatformTarget {
+    override fun getReturnValueTarget(width: Width): PlatformTarget.Register {
         return PlatformTarget.Register(EnumRegister.RAX).width(width)
     }
 
