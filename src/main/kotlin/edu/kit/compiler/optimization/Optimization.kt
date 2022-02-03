@@ -16,7 +16,8 @@ object Optimization {
 
     fun storeAfterStoreOptimization() {
         Program.getGraphs().forEach {
-            doStoreAfterStoreOptimization(it)
+//            doStoreAfterStoreOptimization(it)
+            doStoreAfterStoreOptimizationRIGHT(it)
         }
     }
 }
