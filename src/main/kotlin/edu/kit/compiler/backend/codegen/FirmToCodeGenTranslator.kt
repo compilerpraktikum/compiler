@@ -106,6 +106,7 @@ class FirmToCodeGenTranslator(
             phisInBlock.forEach { (block, phis) ->
                 block.preds.forEachIndexed { predIndex, predNode ->
                     val permutation = mutableListOf<Move>()
+
                     phis.forEach { phi ->
                         val phiCode = getCodeGenFor(phi) as CodeGenIR.RegisterRef
                         val phiPred = phi.getPred(predIndex)
@@ -114,15 +115,23 @@ class FirmToCodeGenTranslator(
                             permutation.add(
                                 Move(
                                     phiPredCode.register,
-                                    phiCode.register
+                                    phiCode.register,
                                 )
                             )
                         } else {
+                            // TODO add explanatory comment
+                            val tempRegister = registerTable.newRegister(phiCode.register.width)
                             emitControlFlowDependencyFor(
                                 predNode.enclosingBlock,
                                 CodeGenIR.Assign(
-                                    getCodeGenFor(phi)!!,
+                                    CodeGenIR.RegisterRef(tempRegister),
                                     phiPredCode
+                                )
+                            )
+                            permutation.add(
+                                Move(
+                                    tempRegister,
+                                    phiCode.register,
                                 )
                             )
                         }
