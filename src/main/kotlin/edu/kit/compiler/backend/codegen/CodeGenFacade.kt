@@ -186,13 +186,18 @@ class CodeGenFacade(
             return
 
         val molkiDumpFile = File("./out.molki")
-        molkiDumpFile.printWriter().use { printer ->
+        generateMolkiFile(molkiDumpFile)
+    }
+
+
+    fun generateMolkiFile(molkiFile: File) {
+        molkiFile.printWriter().use { printer ->
             blocksWithLayout.forEach { (graph, block) ->
                 printer.println(".function ${graph.entity.ldName} ${numberOfArguments[graph]!!} 1")
                 block.flatten().forEach {
                     printer.print("    ${it.toMolki()}")
                     if (it is Instruction.Call) {
-                        printer.print("   ; external ${it.external}")
+                        printer.print("   /* external ${it.external} */")
                     }
                     printer.println()
                 }

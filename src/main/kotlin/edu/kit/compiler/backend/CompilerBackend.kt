@@ -1,7 +1,9 @@
 package edu.kit.compiler.backend
 
 import edu.kit.compiler.backend.codegen.CodeGenFacade
+import edu.kit.compiler.utils.Logger
 import firm.Program
+import java.io.File
 import java.nio.file.Path
 
 class CompilerBackend(
@@ -16,9 +18,17 @@ class CompilerBackend(
         fixJavaCompatibility()
         val graphs = Program.getGraphs()
         val codeGenFacade = CodeGenFacade(graphs, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
-        val functions = codeGenFacade.generate()
-        println(assemblyFile)
-        val assembly = codeGenFacade.generateAssemblyFile(assemblyFile)
+        codeGenFacade.generate()
+        Logger.info { "Assembly file: $assemblyFile" }
+        if (useMolki) {
+            val molkiFile = File.createTempFile("out", ".molki")
+            Logger.info { "Molki file: $molkiFile" }
+            codeGenFacade.generateMolkiFile(molkiFile)
+            MolkiAssembler.assemble(molkiFile.toPath(), assemblyFile)
+        } else {
+            codeGenFacade.generateAssemblyFile(assemblyFile)
+        }
         Linker().link(assemblyFile, executableFile)
+
     }
 }

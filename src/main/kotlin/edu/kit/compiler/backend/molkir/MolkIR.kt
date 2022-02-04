@@ -136,7 +136,7 @@ sealed class Instruction : MolkIR {
     }
 
     class Comment(val content: String) : Instruction() {
-        override fun toMolki(): String = "; $content"
+        override fun toMolki(): String = "/* $content */"
     }
 
     /**
