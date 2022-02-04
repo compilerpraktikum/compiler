@@ -222,6 +222,13 @@ class TrivialFunctionTransformer(
      * values and spilling the result
      */
     private fun transformInstruction(instr: MolkiInstruction) {
+        if (instr is MolkiInstruction.Comment) {
+            appendInstruction(PlatformInstruction.comment(instr.content))
+            return
+        }
+
+        appendInstruction(PlatformInstruction.comment(instr.toMolki()))
+
         when (instr) {
             is MolkiInstruction.BinaryOperation -> transformBinaryOperation(instr)
             is MolkiInstruction.BinaryOperationWithResult -> {
@@ -242,7 +249,7 @@ class TrivialFunctionTransformer(
                     transformUnaryOperationWithResult(instr)
                 }
             }
-            is MolkiInstruction.Comment -> {}
+            is MolkiInstruction.Comment -> error("must not occur")
         }
     }
 

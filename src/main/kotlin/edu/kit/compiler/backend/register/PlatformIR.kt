@@ -182,5 +182,10 @@ sealed class PlatformInstruction : PlatformIR {
             left: PlatformTarget,
             right: PlatformTarget
         ) = BinaryOperation(name, left, right)
+
+        /**
+         * Generate a comment
+         */
+        fun comment(text: String) = op("/* $text */")
     }
 }
