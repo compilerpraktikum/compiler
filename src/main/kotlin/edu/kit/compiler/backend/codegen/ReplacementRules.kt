@@ -183,6 +183,19 @@ val replacementRules = run {
                         cost = repl.cost
                     )
                 }
+                from == Mode.getIs() && to == Mode.getLs() -> {
+                    val result = newRegister(Width.QUAD)
+
+                    Replacement(
+                        node = RegisterRef(result),
+                        instructions = repl.instructions
+                            .append(
+                                debugComment(),
+                                Instruction.movs(register.get(), result),
+                            ),
+                        cost = repl.cost
+                    )
+                }
                 else -> error("unknown conversion from $from (${from.sizeBytes} Bytes) to $to (${to.sizeBytes} Bytes)")
             }
         }

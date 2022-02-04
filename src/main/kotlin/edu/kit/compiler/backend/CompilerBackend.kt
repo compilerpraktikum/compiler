@@ -28,6 +28,5 @@ class CompilerBackend(
             codeGenFacade.generateAssemblyFile(assemblyFile)
         }
         Linker().link(assemblyFile, executableFile)
-
     }
 }

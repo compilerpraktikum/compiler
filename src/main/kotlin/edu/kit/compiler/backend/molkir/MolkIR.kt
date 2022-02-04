@@ -119,11 +119,10 @@ private constructor(
     }
 }
 
-private fun inferWidth(operand: Target, vararg others: Target): Width {
+private fun checkWidth(operand: Target, vararg others: Target) {
     others.forEachIndexed { i, other ->
         check(operand.width == other.width) { "incompatible types ($i): ${operand.width} <-> ${other.width}" }
     }
-    return operand.width
 }
 
 sealed class Instruction : MolkIR {
@@ -166,10 +165,16 @@ sealed class Instruction : MolkIR {
         val type: Type,
         val operand: Target.Input,
         val result: Target.Output,
+        private val overwriteName: String? = null,
     ) : Instruction() {
-        val width: Width = inferWidth(operand, result)
+        init {
+            if (overwriteName == null) {
+                checkWidth(operand, result)
+            }
+        }
+
         val name
-            get() = type.instruction + width.instructionSuffix
+            get() = overwriteName ?: (type.instruction + operand.width.instructionSuffix)
 
         override fun toMolki(): String = "$name ${operand.toMolki()}, ${result.toMolki()}"
 
@@ -187,9 +192,12 @@ sealed class Instruction : MolkIR {
         val left: Target.Input,
         val right: Target.Input,
     ) : Instruction() {
-        val width: Width = inferWidth(left, right)
+        init {
+            checkWidth(left, right)
+        }
+
         val name
-            get() = type.instruction + width.instructionSuffix
+            get() = type.instruction + left.width.instructionSuffix
 
         override fun toMolki(): String = "$name ${left.toMolki()}, ${right.toMolki()}"
 
@@ -204,9 +212,12 @@ sealed class Instruction : MolkIR {
         val right: Target.Input,
         val result: Target.Output,
     ) : Instruction() {
-        val width: Width = inferWidth(left, right, result)
+        init {
+            checkWidth(left, right, result)
+        }
+
         val name
-            get() = type.instruction + width.instructionSuffix
+            get() = type.instruction + left.width.instructionSuffix
 
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
 
@@ -229,8 +240,12 @@ sealed class Instruction : MolkIR {
         val resultLeft: Target.Output,
         val resultRight: Target.Output,
     ) : Instruction() {
-        val width: Width = inferWidth(left, right, resultLeft, resultRight)
-        val name = "idiv" + width.instructionSuffix
+        init {
+            checkWidth(left, right, resultLeft, resultRight)
+        }
+
+        val name
+            get() = "idiv" + left.width.instructionSuffix
 
         override fun toMolki(): String =
             "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> [ ${resultLeft.toMolki()} | ${resultRight.toMolki()} ]"
@@ -272,6 +287,8 @@ sealed class Instruction : MolkIR {
          * Unary operations with result
          ****************************************/
         fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult = UnaryOperationWithResult(UnaryOperationWithResult.Type.MOV, from, to)
+        fun movs(from: Target.Input, to: Target.Output): UnaryOperationWithResult =
+            UnaryOperationWithResult(UnaryOperationWithResult.Type.MOV, from, to, "movs" + from.width.instructionSuffix + to.width.instructionSuffix)
         fun inc(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.INC, operand, result)
         fun dec(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.DEC, operand, result)
         fun neg(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.NEG, operand, result)
