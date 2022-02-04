@@ -297,22 +297,9 @@ class FirmToCodeGenTranslator(
         val from = node.op.mode
         val to = node.mode
 
-        if(from == to) {
-            // Phi node must have same predecessor and successor
-            // -> need to generate tmp register
-            val tmpRegister = CodeGenIR.RegisterRef(registerTable.newRegister(Width.fromByteSize(node.mode.sizeBytes)!!))
-
-            setCodeFor(node) {
-                (tmpRegister)
-            }
-            emitControlDependency(node, CodeGenIR.Assign(tmpRegister, getCodeFor(node.op)))
-        } else {
-
-            setCodeFor(node) {
-                CodeGenIR.Conv(from, to, getCodeFor(node.op))
-            }
+        setCodeFor(node) {
+            CodeGenIR.Conv(from, to, getCodeFor(node.op))
         }
-
         println("visit CONV " + node.block.toString())
     }
 
@@ -440,8 +427,7 @@ class FirmToCodeGenTranslator(
 
         generationState.addPhi(node.block as Block, node)
 
-
-            println("visit PHI " + node.block.toString())
+        println("visit PHI " + node.block.toString())
     }
 
     override fun visit(node: Proj) {

@@ -6,9 +6,7 @@ import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
 import firm.BackEdges
 import firm.BlockWalker
-import firm.Dump
 import firm.Graph
-import firm.Program
 import firm.nodes.Block
 import java.io.File
 import java.io.IOException
@@ -59,15 +57,9 @@ class CodeGenFacade(
             breakCriticalEdges(graph)
 
             BackEdges.enable(graph)
-            Program.getGraphs().forEach { Dump.dumpGraph(it, "critical-edges") }
-
-            val cyclicPhiVisitor = CyclingPhiVisitor(registerTable)
-            graph.walkTopological(cyclicPhiVisitor)
 
             val phiVisitor = PhiAssignRegisterVisitor(registerTable, nodeMapping)
             graph.walkTopological(phiVisitor)
-
-            Program.getGraphs().forEach { Dump.dumpGraph(it, "phi-assign") }
 
             val generationState = FirmToCodeGenTranslator.GenerationState(
                 registerTable = registerTable,
