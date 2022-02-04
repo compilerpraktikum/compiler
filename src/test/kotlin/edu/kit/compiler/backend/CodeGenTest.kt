@@ -1,6 +1,7 @@
 package edu.kit.compiler.backend
 
 import com.tylerthrailkill.helpers.prettyprint.pp
+import edu.kit.compiler.Compiler
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinaryOpType
 import edu.kit.compiler.backend.codegen.CodeGenFacade
@@ -14,6 +15,7 @@ import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.lexer.Lexer
 import edu.kit.compiler.lexer.StringTable
 import edu.kit.compiler.lexer.initializeKeywords
+import edu.kit.compiler.optimization.doOptimization
 import edu.kit.compiler.parser.Parser
 import edu.kit.compiler.semantic.doSemanticAnalysis
 import edu.kit.compiler.source.SourceFile
@@ -36,7 +38,7 @@ class CodeGenTest {
     private fun generateGraph(
         code: String,
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
-    ): List<Graph> {
+    ): MutableIterable<Graph> {
         val sourceFile = SourceFile.from("/path/to/file", code)
         val stringTable = StringTable(StringTable::initializeKeywords)
         val lexer = Lexer(sourceFile, stringTable)
@@ -49,7 +51,8 @@ class CodeGenTest {
         dumpGraphs("after-construction")
         Util.lowerSels()
         dumpGraphs("after-lowering")
-        return Program.getGraphs()!!.toList()
+        doOptimization(Compiler.OptimizationLevel.Base, false)
+        return Program.getGraphs()!!
     }
 
     private fun setupGraph(
