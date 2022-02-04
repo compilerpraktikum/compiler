@@ -280,8 +280,8 @@ class TrivialFunctionTransformer(
     private fun transformSubtraction(instr: MolkiInstruction.BinaryOperationWithResult) {
         // transform operands
         // switch operands because Molki uses correct operand order, AT&T does not.
-        val left = transformOperand(instr.right, true)
-        val right = transformOperand(instr.left, false)
+        val left = transformOperand(instr.right, false)
+        val right = transformOperand(instr.left, true)
 
         // transform instruction
         val transformedInstr = PlatformInstruction.BinaryOperation(instr.name, left, right)
