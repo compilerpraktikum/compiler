@@ -941,15 +941,12 @@ object FirmContext {
         targetNode: Node
     ): Node {
         // FIRM does not allow calculations with pointers, so use Lu instead
-        return construction.newConv(
-            construction.newAdd(
-                construction.newConv(targetNode, Mode.getLu()),
-                construction.newMul(
-                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getLu()),
-                    construction.newConv(indexNode, Mode.getLu())
-                )
+        return construction.newAdd(
+            targetNode,
+            construction.newMul(
+                construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getLs()),
+                construction.newConv(indexNode, Mode.getLs())
             ),
-            Mode.getP()
         )
     }
 
@@ -986,7 +983,10 @@ object FirmContext {
 
                 val args = (0 until numberOfArguments).map { this.expressionStack.pop() }.asReversed()
 
-                val method = typeRegistry.getMethod(type.definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
+                val method = typeRegistry.getMethod(
+                    type.definition.node.owner.name.symbol,
+                    methodInvocationExpression.method.symbol
+                )
                 construction.newCall(
                     construction.currentMem,
                     construction.newAddress(method),
