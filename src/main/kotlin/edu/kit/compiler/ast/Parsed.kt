@@ -289,7 +289,10 @@ private fun Parsed<AST.Expression>.validate(): SemanticAST.Expression? = unwrapO
                 this.range
             )
         is AST.NewObjectExpression ->
-            SemanticAST.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
+            SemanticAST.Expression.NewObjectExpression(
+                SemanticType.Class(expression.type.name.validate() ?: return null),
+                this.range
+            )
         is AST.UnaryExpression ->
             SemanticAST.Expression.UnaryOperation(
                 expression.expression.validate() ?: return null,
