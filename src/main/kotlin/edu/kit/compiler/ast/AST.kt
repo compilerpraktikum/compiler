@@ -207,7 +207,7 @@ sealed class AST {
     }
 
     data class NewObjectExpression(
-        val clazz: Parsed<Symbol>,
+        val type: Type.Class,
     ) : Expression()
 
     data class NewArrayExpression(

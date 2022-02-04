@@ -1082,7 +1082,7 @@ object FirmContext {
      */
     fun newObjectAllocation(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         val typeSizeNode =
-            construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getLu())
+            construction.newConst(typeRegistry.getClassType(newObjectExpression.type.name.symbol).size, Mode.getLu())
         allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
     }
 

@@ -144,9 +144,9 @@ abstract class AbstractAstVisitor {
 
     open fun visitNewObjectExpression(newObjectExpression: Parsed<AST.NewObjectExpression>): Parsed<AST.NewObjectExpression> =
         newObjectExpression.map {
-            val clazz = visitIdentifier(it.clazz)
+            val clazz = visitIdentifier(it.type.name)
 
-            AST.NewObjectExpression(clazz)
+            AST.NewObjectExpression(AST.Type.Class(clazz))
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitUnaryOperation(unaryOperation: Parsed<AST.UnaryExpression>): Parsed<AST.UnaryExpression> =

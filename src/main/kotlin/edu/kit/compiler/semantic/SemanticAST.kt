@@ -241,13 +241,14 @@ sealed class SemanticAST(open val sourceRange: SourceRange) {
 
         /**
          * Object instantiation expression
-         *
-         * @param clazz instantiated class name
          */
-        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
+        class NewObjectExpression(
+            val type: SemanticType.Class,
+            sourceRange: SourceRange
+        ) : Expression(sourceRange) {
 
             override val actualType: SemanticType
-                get() = SemanticType.Class(clazz)
+                get() = type
         }
 
         class NewArrayExpression(
