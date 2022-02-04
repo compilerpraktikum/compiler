@@ -393,8 +393,8 @@ class TrivialFunctionTransformer(
         appendInstruction(PlatformInstruction.unOp("idivq", divisorRegister))
 
         // move result to correct target
-        appendInstruction(PlatformInstruction.mov(rdx.doubleWidth(), resultLeft, Width.DOUBLE))
-        appendInstruction(PlatformInstruction.mov(rax.doubleWidth(), resultRight, Width.DOUBLE))
+        appendInstruction(PlatformInstruction.mov(rax.doubleWidth(), resultLeft, Width.DOUBLE))
+        appendInstruction(PlatformInstruction.mov(rdx.doubleWidth(), resultRight, Width.DOUBLE))
 
         // generate spill code
         spillResultIfNecessary(instr.resultLeft, resultLeft)
