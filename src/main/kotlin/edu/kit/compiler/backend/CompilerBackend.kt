@@ -13,6 +13,7 @@ class CompilerBackend(
     private val dumpMolki: Boolean = false,
 ) : Backend {
     override fun generate() {
+        fixJavaCompatibility()
         val graphs = Program.getGraphs()
         val codeGenFacade = CodeGenFacade(graphs, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
         val functions = codeGenFacade.generate()
