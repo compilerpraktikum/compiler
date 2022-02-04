@@ -5,7 +5,6 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
 import firm.BackEdges
-import firm.BlockWalker
 import firm.Graph
 import firm.nodes.Block
 import java.io.File
@@ -183,7 +182,6 @@ class CodeGenFacade(
         val molkiDumpFile = File("./out.molki")
         generateMolkiFile(molkiDumpFile)
     }
-
 
     fun generateMolkiFile(molkiFile: File) {
         molkiFile.printWriter().use { printer ->

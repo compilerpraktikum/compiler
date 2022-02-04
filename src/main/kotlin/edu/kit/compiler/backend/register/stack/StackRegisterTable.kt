@@ -43,7 +43,6 @@ class StackRegisterTable {
         return stackLayout[id]
     }
 
-
     /**
      * Get the [StackRegister] corresponding to the given virtual register. If the register does not exist yet,
      * it is created.
