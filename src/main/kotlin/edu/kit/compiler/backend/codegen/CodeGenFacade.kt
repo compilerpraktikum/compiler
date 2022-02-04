@@ -89,10 +89,24 @@ class CodeGenFacade(
 
     internal fun generateBlockLayout() {
         blocksWithLayout = molkiIr.mapValues { (graph, functionGraph) ->
-            val blockLayouter = LayoutBlocks(mutableListOf(), functionGraph)
-            graph.walkBlocksPostorder(blockLayouter)
-            blockLayouter.finalize(graph)
-            blockLayouter.instructions
+            val instructions = mutableListOf<List<Instruction>>()
+            fun addBlockInstructions(block: Block) {
+                val blockInstructions = functionGraph[block] ?: error("no instructions for block $block")
+                instructions.add(
+                    listOf(Instruction.Label(NameMangling.mangleBlockName(block))) + blockInstructions
+                )
+            }
+
+            addBlockInstructions(graph.startBlock)
+            graph.walkBlocksPostorder { block ->
+                if (block != graph.startBlock && block != graph.endBlock) {
+                    addBlockInstructions(block)
+                }
+            }
+            addBlockInstructions(graph.endBlock)
+            instructions.add(listOf(Instruction.Label(NameMangling.mangleFunctionName(graph))))
+
+            instructions
         }
         dumpMolkIRIfEnabled()
     }
@@ -110,25 +124,6 @@ class CodeGenFacade(
                 // TODO: use externalCallingConvention for main
                 callingConvention
             )
-        }
-    }
-
-    /**
-     * Lays out basic blocks of one function.
-     * Usually called with walkPostorder
-     */
-    class LayoutBlocks(
-        val instructions: MutableList<List<Instruction>>,
-        val blockInstructions: Map<Block, List<Instruction>>
-    ) :
-        BlockWalker {
-        override fun visitBlock(block: Block?) {
-            val currentInstructions = blockInstructions[block] ?: error("not instructions for block $block")
-            instructions.add(listOf(Instruction.Label(NameMangling.mangleBlockName(block!!))) + currentInstructions)
-        }
-
-        fun finalize(graph: Graph) {
-            instructions.add(listOf(Instruction.Label(NameMangling.mangleFunctionName(graph))))
         }
     }
 
