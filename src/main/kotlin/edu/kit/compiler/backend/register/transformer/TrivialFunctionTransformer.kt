@@ -322,13 +322,12 @@ class TrivialFunctionTransformer(
     private fun transformUnaryOperationWithResult(instr: MolkiInstruction.UnaryOperationWithResult) {
         // transform operands
         val operand = transformOperand(instr.operand, true)
-        val result = transformResult(instr.result)
 
         // transform instruction
         appendInstruction(PlatformInstruction.UnaryOperation(instr.name, operand))
 
         // generate spill code
-        spillResultIfNecessary(instr.result, result)
+        spillResultIfNecessary(instr.result, operand)
     }
 
     private fun transformFunctionCall(instr: MolkiInstruction.Call) {
