@@ -384,9 +384,10 @@ class TrivialFunctionTransformer(
         val resultLeft = transformResult(instr.resultLeft)
         val resultRight = transformResult(instr.resultRight)
 
+        // TODO 64 bit expansion only needed, if divisor is non-const or -1
         // expand 32 bit numbers to 64 bit
-        appendInstruction(PlatformInstruction.xor(rdx, rdx, Width.QUAD))
         signedExtend(source, rax)
+        appendInstruction(PlatformInstruction.op("cqto")) // sign extend rax into rdx:rax
         signedExtend(divisorSource, divisorRegister)
 
         // perform division
