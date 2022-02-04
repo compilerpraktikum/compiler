@@ -940,7 +940,6 @@ object FirmContext {
         indexNode: Node,
         targetNode: Node
     ): Node {
-        // FIRM does not allow calculations with pointers, so use Lu instead
         return construction.newAdd(
             targetNode,
             construction.newMul(
