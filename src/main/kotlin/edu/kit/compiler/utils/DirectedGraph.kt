@@ -1,4 +1,4 @@
-package edu.kit.compiler.util
+package edu.kit.compiler.utils
 
 data class Edge<NodeId>(val start: NodeId, val end: NodeId)
 

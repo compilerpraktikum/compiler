@@ -3,8 +3,8 @@ package edu.kit.compiler.backend.codegen
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.RegisterId
 import edu.kit.compiler.backend.molkir.Width
-import edu.kit.compiler.util.DirectedGraph
-import edu.kit.compiler.util.Edge
+import edu.kit.compiler.utils.DirectedGraph
+import edu.kit.compiler.utils.Edge
 
 data class Move(
     val source: Register,

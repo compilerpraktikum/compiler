@@ -482,7 +482,7 @@ object AnyNode : CodeGenIR() {
 }
 
 /**
- * Matches a node based on the pattern returned by [childFn] and stores a reference to that node in [storage].
+ * Matches a node based on the pattern returned by `childFn()` and stores a reference to that node in [storage].
  */
 class SaveNodeTo(private val storage: ValueHolder.Variable<CodeGenIR>, childFn: () -> CodeGenIR) : CodeGenIR() {
     private val child by lazy { childFn() }
