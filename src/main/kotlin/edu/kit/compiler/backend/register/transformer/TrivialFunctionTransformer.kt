@@ -130,7 +130,7 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * Inform calling convention about the used register and setup the register width
+     * Inform calling convention about the used register and set up the register width
      */
     private fun prepareRegister(register: PlatformTarget.Register) {
         this.callingConvention.taintRegister(register)
@@ -282,7 +282,7 @@ class TrivialFunctionTransformer(
     }
 
     /**
-     * Transform a subtraction (which has inverse operand order because AT&T syntax is an unspeakable abomination.
+     * Transform a subtraction (which has inverse operand order because AT&T syntax is an unspeakable abomination).
      */
     private fun transformSubtraction(instr: MolkiInstruction.BinaryOperationWithResult) {
         // transform operands
@@ -390,7 +390,7 @@ class TrivialFunctionTransformer(
         val resultLeft = transformResult(instr.resultLeft)
         val resultRight = transformResult(instr.resultRight)
 
-        // expand 32 bit numbers to 64 bit
+        // expand 32-bit numbers to 64 bit
         signedExtend(source, rax)
         appendInstruction(PlatformInstruction.op("cqto")) // sign extend rax into rdx:rax
         signedExtend(divisorSource, divisorRegister)

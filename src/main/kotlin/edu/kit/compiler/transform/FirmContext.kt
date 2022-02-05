@@ -230,6 +230,7 @@ object FirmContext {
                 val secondNode = expressionStack.pop()
                 val firstNode = expressionStack.pop()
 
+                @Suppress("KotlinConstantConditions") // inspection false-positives here, because smart-casts of compiler don't consider context
                 when (expr.operation) {
                     AST.BinaryExpression.Operation.EQUALS -> convertBoolToByte(
                         this.construction.newCmp(firstNode, secondNode, Relation.Equal)

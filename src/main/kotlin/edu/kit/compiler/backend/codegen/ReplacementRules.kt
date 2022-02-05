@@ -225,7 +225,7 @@ private fun RuleBuilder.basicRules() {
         replaceWith {
             val newRegister = newRegister(const.get().mode)
             Replacement(
-                node = CodeGenIR.RegisterRef(newRegister),
+                node = RegisterRef(newRegister),
                 instructions = instructionListOf(
                     debugComment(),
                     Instruction.mov(const.get().toMolkIR(), newRegister),
@@ -271,7 +271,7 @@ private fun RuleBuilder.basicRules() {
         condition {
             val register = ValueHolder.Variable<Register>()
             val replacement = ValueHolder.Variable<Replacement>()
-            val pattern = CodeGenIR.RegisterRef(register, replacement)
+            val pattern = RegisterRef(register, replacement)
 
             argRegisters.clear()
             argReplacements.clear()
@@ -312,7 +312,7 @@ private fun RuleBuilder.basicRules() {
 
         match(
             CodeGenIR.Assign(
-                to = CodeGenIR.RegisterRef(resultRegister),
+                to = RegisterRef(resultRegister),
                 from = CodeGenIR.Call(address, arguments)
             )
         )

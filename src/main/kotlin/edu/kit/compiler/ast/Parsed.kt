@@ -51,7 +51,7 @@ sealed class Parsed<out A>(open val range: SourceRange) {
      * Replaces the [Error.node] and [Valid.node] values with the given [newNode]
      * If [Error.node] is null, the value is *still* replaces by [newNode]
      */
-    fun <B> replaceNode(newNode: B): Parsed<B> = when (this) {
+    private fun <B> replaceNode(newNode: B): Parsed<B> = when (this) {
         is Error -> Error(this.range, newNode)
         is Valid -> Valid(this.range, newNode)
     }

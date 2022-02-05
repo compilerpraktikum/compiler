@@ -9,7 +9,7 @@ import firm.Program
 
 private fun Graph.display(): String =
     entity?.let {
-        val parentName = it.owner?.let { (it as? ClassType)?.name } ?: "<???>"
+        val parentName = it.owner?.let { owner -> (owner as? ClassType)?.name } ?: "<???>"
         "$parentName.${it.name}"
     } ?: "<???>"
 

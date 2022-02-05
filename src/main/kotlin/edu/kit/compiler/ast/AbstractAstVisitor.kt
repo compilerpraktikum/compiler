@@ -7,13 +7,15 @@ import edu.kit.compiler.source.SourceRange
 abstract class AbstractAstVisitor {
 
     open fun visitProgram(program: Parsed<AST.Program>) =
-        program.map { it.classes.map { visitClassDeclaration(it) }.let { AST.Program(it) } }
+        program.map { program ->
+            program.classes.map { classDecl -> visitClassDeclaration(classDecl) }.let { AST.Program(it) }
+        }
             .mapPosition { visitSourceRange(it) }
 
     open fun visitClassDeclaration(classDeclaration: Parsed<AST.ClassDeclaration>) =
         classDeclaration.map {
             val name = visitIdentifier(it.name)
-            val member = it.member.map { visitClassMember(it) }
+            val member = it.member.map { member -> visitClassMember(member) }
             AST.ClassDeclaration(name, member)
         }.mapPosition { visitSourceRange(it) }
 
@@ -53,7 +55,7 @@ abstract class AbstractAstVisitor {
     open fun visitMethodDeclaration(methodDeclaration: Parsed<AST.Method>): Parsed<AST.Method> = methodDeclaration.map {
         val name = visitIdentifier(it.name)
         val returnType = visitType(it.returnType)
-        val parameters = it.parameters.map { visitParameter(it) }
+        val parameters = it.parameters.map { param -> visitParameter(param) }
         val block = visitBlock(it.block)
         val throwsException = it.throwsException?.let { exc -> visitIdentifier(exc) }
 
@@ -63,7 +65,7 @@ abstract class AbstractAstVisitor {
     open fun visitMainMethodDeclaration(mainMethodDeclaration: Parsed<AST.MainMethod>) = mainMethodDeclaration.map {
         val name = visitIdentifier(it.name)
         val returnType = visitType(it.returnType)
-        val parameters = it.parameters.map { visitParameter(it) }
+        val parameters = it.parameters.map { param -> visitParameter(param) }
         val block = visitBlock(it.block)
         val throwsException = it.throwsException?.let { exc -> visitIdentifier(exc) }
 
@@ -129,7 +131,7 @@ abstract class AbstractAstVisitor {
         methodInvocationExpression.map {
             val target = it.target?.let { it1 -> visitExpression(it1) }
             val method = visitIdentifier(it.method)
-            val arguments = it.arguments.map { visitExpression(it) }
+            val arguments = it.arguments.map { arg -> visitExpression(arg) }
 
             AST.MethodInvocationExpression(target, method, arguments)
         }.mapPosition { visitSourceRange(it) }
@@ -146,7 +148,7 @@ abstract class AbstractAstVisitor {
         newObjectExpression.map {
             val clazz = visitIdentifier(it.type.name)
 
-            AST.NewObjectExpression(AST.Type.Class(clazz))
+            AST.NewObjectExpression(Type.Class(clazz))
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitUnaryOperation(unaryOperation: Parsed<AST.UnaryExpression>): Parsed<AST.UnaryExpression> =
@@ -156,12 +158,12 @@ abstract class AbstractAstVisitor {
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitBlock(block: Parsed<AST.Block>): Parsed<AST.Block> = block.map {
-        val statements = it.statements.map { visitBlockStatement(it) }
+        val statements = it.statements.map { stmt -> visitBlockStatement(stmt) }
 
         AST.Block(
             statements,
-            it.openingBraceRange.mapPosition { visitSourceRange(it) },
-            it.closingBraceRange.mapPosition { visitSourceRange(it) }
+            it.openingBraceRange.mapPosition { range -> visitSourceRange(range) },
+            it.closingBraceRange.mapPosition { range -> visitSourceRange(range) }
         )
     }.mapPosition { visitSourceRange(it) }
 
@@ -192,7 +194,7 @@ abstract class AbstractAstVisitor {
     open fun visitIfStatement(ifStatement: Parsed<AST.IfStatement>): Parsed<AST.IfStatement> = ifStatement.map {
         val cond = visitExpression(it.condition)
         val thenStmt = visitStatement(it.trueStatement)
-        val elseStmt = it.falseStatement?.let { visitStatement(it) }
+        val elseStmt = it.falseStatement?.let { stmt -> visitStatement(stmt) }
 
         AST.IfStatement(cond, thenStmt, elseStmt)
     }.mapPosition { visitSourceRange(it) }
@@ -201,14 +203,14 @@ abstract class AbstractAstVisitor {
         localVariableDeclaration.map {
             val name = visitIdentifier(it.name)
             val type = visitType(it.type)
-            val initializer = it.initializer?.let { visitExpression(it) }
+            val initializer = it.initializer?.let { init -> visitExpression(init) }
 
             AST.LocalVariableDeclarationStatement(name, type, initializer)
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitReturnStatement(returnStatement: Parsed<AST.ReturnStatement>): Parsed<AST.ReturnStatement> =
         returnStatement.map {
-            AST.ReturnStatement(it.expression?.let { visitExpression(it) })
+            AST.ReturnStatement(it.expression?.let { expr -> visitExpression(expr) })
         }.mapPosition { visitSourceRange(it) }
 
     open fun visitWhileStatement(whileStatement: Parsed<AST.WhileStatement>): Parsed<AST.WhileStatement> =

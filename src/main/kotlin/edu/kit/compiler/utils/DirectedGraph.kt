@@ -24,7 +24,7 @@ class DirectedGraph<NodeId> {
 
     fun edgeSequence(): Sequence<Edge<NodeId>> = edges.asSequence()
 
-    fun outEdges(node: NodeId) = edges.asSequence().filter { it.start == node }
+    private fun outEdges(node: NodeId) = edges.asSequence().filter { it.start == node }
     fun outDegree(node: NodeId) = outEdges(node).count()
 
     fun inEdges(node: NodeId) = edges.asSequence().filter { it.end == node }

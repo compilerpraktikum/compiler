@@ -105,7 +105,7 @@ sealed class PlatformInstruction : PlatformIR {
         }
     }
 
-    class Jump(val name: String, val label: String) : PlatformInstruction() {
+    class Jump(val name: String, private val label: String) : PlatformInstruction() {
         override fun toAssembler(): String = "$name L$label"
     }
 

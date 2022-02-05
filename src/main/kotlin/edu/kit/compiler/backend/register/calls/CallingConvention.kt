@@ -49,7 +49,7 @@ interface CallingConvention {
 
     /**
      * Prepare a function call by creating a [FunctionCallBuilder] and adding all parameters to the call, preparing
-     * the stack, generating the call, and generating the call epilgoue.
+     * the stack, generating the call, and generating the call epilogue.
      *
      * @param allocator the [RegisterAllocator] utilized by the [edu.kit.compiler.backend.register.FunctionTransformer]
      * @param arguments how many argument the called function takes

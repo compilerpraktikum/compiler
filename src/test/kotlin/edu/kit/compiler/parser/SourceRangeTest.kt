@@ -84,7 +84,7 @@ class SourceRangeTest {
         sourceRangeCollector.runVisitor(parsed)
         val actualRanges = sourceRangeCollector.ranges
 
-        val lastLine = actualRanges.map { it.last.line }.maxOrNull()
+        val lastLine = actualRanges.maxOfOrNull { it.last.line }
         val rangesByLines = (0..(lastLine ?: 0)).associateWith { currentLine ->
             actualRanges.filter { it.start.line <= currentLine && it.last.line >= currentLine }
                 .sortedBy { it.length }

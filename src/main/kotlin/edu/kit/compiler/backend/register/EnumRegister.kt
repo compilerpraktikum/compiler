@@ -7,7 +7,7 @@ import edu.kit.compiler.backend.molkir.Width
  * 64 bit for x86_64 extension)
  * @param extension whether the register is part of the 64 bit extended register set
  */
-enum class EnumRegister(val registerBaseName: String, val extension: Boolean = false) {
+enum class EnumRegister(private val registerBaseName: String, private val extension: Boolean = false) {
     RAX("ax"),
     RBX("bx"),
     RCX("cx"),

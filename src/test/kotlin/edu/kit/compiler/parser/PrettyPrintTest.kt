@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 private fun String.normalizeIndent() = replace("\t", " ".repeat(4))
 
 /**
- * Idempotenz- und Gleichheitstests
+ * Test for idempotency.
  * Beware!
  * Beim Schreiben von expected-Prints die getabbten Codefragmente einfügen, sonst macht IntelliJ Spaces daraus!!!
  */

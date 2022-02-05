@@ -152,7 +152,7 @@ private class InternalUnaryOp<C : FirmNode>(
         return when (target) {
             is Minus -> operand.matches(target.op)
             is Not -> operand.matches(target.op)
-            else -> error("unkown unary op: ${target::class.simpleName}")
+            else -> error("unknown unary op: ${target::class.simpleName}")
         }
     }
 }

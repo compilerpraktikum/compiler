@@ -55,7 +55,7 @@ class FirmToCodeGenTranslator(
 
     class GenerationState(
         val registerTable: VirtualRegisterTable,
-        private val controlflowDependencies: MutableMap<Block, MutableList<CodeGenIR>> = mutableMapOf(),
+        private val controlFlowDependencies: MutableMap<Block, MutableList<CodeGenIR>> = mutableMapOf(),
         private val exitNodes: MutableMap<Block, CodeGenIR> = mutableMapOf(),
         var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     ) {
@@ -63,7 +63,7 @@ class FirmToCodeGenTranslator(
         private val phisInBlock = mutableMapOf<Block, MutableSet<Phi>>()
 
         private fun getOrCreateControlFlowDependencyFor(block: Block) =
-            controlflowDependencies.getOrPut(block) { mutableListOf() }
+            controlFlowDependencies.getOrPut(block) { mutableListOf() }
 
         fun getCurrentIrForBlock(block: Block): MutableList<CodeGenIR> {
             return getOrCreateControlFlowDependencyFor(block)
@@ -90,11 +90,11 @@ class FirmToCodeGenTranslator(
             nodeMap[node] = codeGenIR
         }
 
-        fun isFinalized() = controlflowDependencies.entries.all { finalizedBlocks.contains(it.key) }
+        fun isFinalized() = controlFlowDependencies.entries.all { finalizedBlocks.contains(it.key) }
 
         fun getCodeGenIRs(): Map<Block, List<CodeGenIR>> {
 //            check(isFinalized()) { "inconsistent state of blockMap $blockMap" }
-            return controlflowDependencies.mapValues { (block, irs) ->
+            return controlFlowDependencies.mapValues { (block, irs) ->
                 val exitNode = exitNodes[block] ?: error("no exit node for block $block")
                 irs + exitNode
             }
@@ -535,20 +535,4 @@ class FirmToCodeGenTranslator(
         }
         println("visit NODE " + node.block.toString())
     }
-
-    /*
-        * Grundblockweise. Verweise auf andere Grundblöcke müssen aufgelöst werden.
-        * Phis?
-        *
-        * 1. Firm-Graph ==> Code-Gen-Tree
-        * 2. Phi-Abbau: f.A. Phis
-        *   1. jedes Phi kriegt neues Register r.
-        *   2. Für jede Phi-Kante [PhiY->(a,b)] wird in den entsprechenden Grundblöcken ein Assignment y = ... gesetzt.
-        *   4. Kritische Kanten: Betrachte [PhiY->(a,b)]. Falls (zB) b in noch einem anderen [PhiZ->(b,c)] verwendet wird,
-        *   füge zwischen Block(y) und Block(b), sowie zwischen  Block(z) und Block(b) je einen Block ein, in welchem y bzw. z auf b gesetzt wird.
-        * 3. Bottom-Up Pattern Matching auf CodeGenTree. ==> Molki-Code
-        * 4. Swap-Problem: Falls [PhiY->(a,PhiZ)] und PhiZ im selben Grundblock liegt, benötigt PhiY den Wert von "vorher"
-        *
-        *
-     */
 }

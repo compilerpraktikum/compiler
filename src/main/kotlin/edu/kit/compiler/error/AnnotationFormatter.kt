@@ -19,10 +19,10 @@ private val String.indentLength
 
 private fun String.highlight(start: Int, end: Int, formatter: (String) -> String): String {
     require(start <= end)
-    if (start == end) {
-        return this
+    return if (start == end) {
+        this
     } else {
-        return substring(0, start) + formatter(substring(start, end)) + substring(end)
+        substring(0, start) + formatter(substring(start, end)) + substring(end)
     }
 }
 private fun String.highlight(start: Int, end: Int, style: TextStyle) = highlight(start, end) { style(it) }

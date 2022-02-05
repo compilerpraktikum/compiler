@@ -332,7 +332,7 @@ class Reader {
 
     @Test
     fun testReplacementSystemAdd() {
-        val res = transformToMolki() {
+        val res = transformToMolki {
             CodeGenIR.BinaryOp(BinaryOpType.ADD, CodeGenIR.Const("2", Width.QUAD), CodeGenIR.Const("3", Width.QUAD))
         }
         assertMolkiEquals(
@@ -348,11 +348,15 @@ class Reader {
     @Test
     fun testNestedAdd() {
 
-        val res = transformToMolki() {
+        val res = transformToMolki {
             CodeGenIR.BinaryOp(
                 BinaryOpType.ADD,
                 CodeGenIR.Const("22", Width.QUAD),
-                CodeGenIR.BinaryOp(BinaryOpType.ADD, CodeGenIR.Const("33", Width.QUAD), CodeGenIR.Const("44", Width.QUAD))
+                CodeGenIR.BinaryOp(
+                    BinaryOpType.ADD,
+                    CodeGenIR.Const("33", Width.QUAD),
+                    CodeGenIR.Const("44", Width.QUAD)
+                )
             )
         }
         assertMolkiEquals(
@@ -456,7 +460,7 @@ class Reader {
 
     @Test
     fun testReplacementSystem() {
-        val res = transformToMolki() {
+        val res = transformToMolki {
             CodeGenIR.BinaryOp(
                 BinaryOpType.ADD,
                 CodeGenIR.Const("2", Width.QUAD),
