@@ -159,8 +159,14 @@ class FirmToCodeGenTranslator(
         fun getCodeGenFor(node: Node) = nodeMap[node]
     }
 
+    override fun defaultVisit(node: Node) {
+        error("unhandled node type: ${node::class.simpleName}")
+    }
+    override fun visit(node: Block) {}
+    override fun visit(node: Address) {}
+    override fun visit(node: Store) {} // handled in Proj
+
     override fun visit(node: End) {
-        super.visit(node)
         setExitNodeFor(node, CodeGenIR.Jmp(NameMangling.functionReturnLabel(node.graph)))
     }
 
@@ -188,24 +194,20 @@ class FirmToCodeGenTranslator(
         CodeGenIR.Const("0", Width.BYTE)
 
     override fun visit(node: Start) {
-        super.visit(node)
         setCodeFor(node) {
             noop()
         }
     }
 
     override fun visit(node: Add) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.ADD)
     }
 
     override fun visit(node: And) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.AND)
     }
 
     override fun visit(node: Call) {
-        super.visit(node)
         val outNodes = BackEdges.getOuts(node).map { it.node }
         val controlFlowProjection = outNodes.firstNotNullOf {
             if (it is Proj && it.mode == Mode.getM()) {
@@ -261,16 +263,12 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Cmp) {
-        super.visit(node)
-
         setCodeFor(node) {
             CodeGenIR.Compare(node.relation, getCodeFor(node.left), getCodeFor(node.right))
         }
     }
 
     override fun visit(node: Cond) {
-        super.visit(node)
-
         val projs = BackEdges.getOuts(node).map { it.node as Proj }
         val trueProj = projs.find { it.num == Cond.pnTrue }
         val falseProj = projs.find { it.num == Cond.pnFalse }
@@ -286,15 +284,12 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Const) {
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.Const(node.tarval.asLong().toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
         }
     }
 
     override fun visit(node: Conv) {
-        super.visit(node)
-
         val from = node.op.mode
         val to = node.mode
 
@@ -305,19 +300,16 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Div) {
         // Div isn't from type BinOP
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.Div(getCodeFor(node.left), getCodeFor(node.right))
         }
     }
 
     override fun visit(node: Eor) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.EOR)
     }
 
     override fun visit(node: Jmp) {
-        super.visit(node)
         val jumpTarget = BackEdges.getOuts(node).first().node!! as Block
         setExitNodeFor(
             node,
@@ -326,8 +318,6 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Load) {
-        super.visit(node)
-
         val outNodes = BackEdges.getOuts(node).map { it.node }
         val controlFlowProjection = outNodes.firstNotNullOf {
             if (it is Proj && it.mode == Mode.getM()) {
@@ -367,43 +357,36 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Minus) {
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.UnaryOp(op = UnaryOpType.MINUS, value = getCodeFor(node.op))
         }
     }
 
     override fun visit(node: Mod) {
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.Mod(left = getCodeFor(node.left), right = getCodeFor(node.right))
         }
     }
 
     override fun visit(node: Mul) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.MUL)
     }
 
     override fun visit(node: Mulh) {
-        super.visit(node)
         error("mulh not implemented")
     }
 
     override fun visit(node: Not) {
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.UnaryOp(op = UnaryOpType.NOT, value = getCodeFor(node.op))
         }
     }
 
     override fun visit(node: Or) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.OR)
     }
 
     override fun visit(node: Phi) {
-        super.visit(node)
         if (node.mode == Mode.getM()) {
             // control dependencies, that span block boundaries don't need to be handled explicitly
             return
@@ -412,7 +395,6 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Proj) {
-        super.visit(node)
         when (val pred = node.pred) {
             is Div -> setCodeFor(node) { getCodeFor(pred) }
             is Mod -> setCodeFor(node) { getCodeFor(pred) }
@@ -449,8 +431,6 @@ class FirmToCodeGenTranslator(
     }
 
     override fun visit(node: Return) {
-        super.visit(node)
-
         val nodePreds = node.preds.toList()
         val value = nodePreds.getOrNull(1)
 
@@ -464,33 +444,23 @@ class FirmToCodeGenTranslator(
         setExitNodeFor(node, CodeGenIR.Seq(code, CodeGenIR.Jmp(NameMangling.blockLabel(endBlock))))
     }
 
-    override fun visit(node: Store) {
-        super.visit(node)
-
-    }
-
     override fun visit(node: Sub) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.SUB)
     }
 
     override fun visit(node: Shl) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHL)
     }
 
     override fun visit(node: Shr) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHR)
     }
 
     override fun visit(node: Shrs) {
-        super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHRS)
     }
 
     override fun visit(node: Unknown) {
-        super.visit(node)
         setCodeFor(node) {
             CodeGenIR.Const("0", Width.fromByteSize(node.mode.sizeBytes)!!)
         }
