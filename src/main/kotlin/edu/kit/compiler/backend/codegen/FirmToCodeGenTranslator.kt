@@ -536,7 +536,6 @@ class FirmToCodeGenTranslator(
         println("visit NODE " + node.block.toString())
     }
 
-
     /*
         * Grundblockweise. Verweise auf andere Grundblöcke müssen aufgelöst werden.
         * Phis?
