@@ -27,7 +27,6 @@ object MolkiAssembler {
             val actualAssemblyFile = assemblyFile.absolutePathString() + ".s"
             Files.move(Path.of(actualAssemblyFile), assemblyFile, StandardCopyOption.REPLACE_EXISTING)
         } catch (e: IOException) {
-            println(e)
             throw CompilationException("failed generate assembly file: ${e.message}. Is molki.py not in \$PATH?")
         }
     }

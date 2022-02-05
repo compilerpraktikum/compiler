@@ -4,6 +4,7 @@ import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.Width
+import edu.kit.compiler.utils.Logger
 import edu.kit.compiler.utils.ReplacementBuilderScope
 import edu.kit.compiler.utils.Rule
 import edu.kit.compiler.utils.RuleBuilderScope
@@ -75,7 +76,7 @@ class InstructionSelector(
 
     fun transform(root: CodeGenIR, registerTable: VirtualRegisterTable): List<Instruction> {
         root.walkDepthFirst { node ->
-            println("VISIT: ${node.display()}")
+            Logger.trace { "Calculating replacement for ${node.display()}:" }
             /*
              * The code below assumes that all rules matching the node have the same result type (most likely register).
              * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
@@ -94,7 +95,7 @@ class InstructionSelector(
                 check(optimalReplacements.size <= 1) { "more than one replacement possible for node ${node.display()}:\n${optimalReplacements.joinToString(separator = "\n") { "  - ${it.second}" }}" }
                 node.replacement = optimalReplacements.firstOrNull()?.first
             }
-            println("-> REPLACEMENT: ${node.replacement}")
+            Logger.trace { "-> ${node.replacement}" }
         }
 
         return root.replacement?.instructions?.build() ?: error("no matching replacement found for root node ${root.display()}")

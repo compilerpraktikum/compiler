@@ -42,7 +42,6 @@ class FunctionParameterVisitor(
             is Proj -> {
                 when (val origin = pred.pred) {
                     is Start -> {
-                        println("node: $node, pred: $pred, predpred: $origin")
                         parameters[node.num] = node
                     }
                 }
@@ -54,6 +53,5 @@ class FunctionParameterVisitor(
         val reg = registerTable.getOrCreateRegisterFor(node)
         val registerRef = CodeGenIR.RegisterRef(reg)
         argumentMapping[node] = registerRef
-        println("setting nodeMap for $node to $registerRef")
     }
 }

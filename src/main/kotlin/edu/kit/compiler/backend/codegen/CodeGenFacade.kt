@@ -5,6 +5,7 @@ import edu.kit.compiler.backend.assembly.AssemblyGenerator
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
+import edu.kit.compiler.utils.Logger
 import firm.BackEdges
 import firm.Graph
 import firm.nodes.Block
@@ -45,8 +46,6 @@ class CodeGenFacade(
 
     internal fun generateCodeGenIR() {
         codeGenIRs = graphs.associateWith { graph ->
-            println(graph.entity.ldName)
-
             val registerTable = VirtualRegisterTable()
             registerTables[graph] = registerTable
 
@@ -133,16 +132,13 @@ class CodeGenFacade(
         private fun renderDotFile(filePrefix: String, dot: String) {
             val file = Files.createTempFile("graph-$filePrefix", ".dot").toFile()
             file.writeText(dot)
-            println("Dot-File: $file")
             try {
                 val dotProcess = ProcessBuilder("dot", file.absolutePath, "-T", "svg").start()
                 val svgText = dotProcess.inputStream.bufferedReader().readText()
                 val output = File("./graph-$filePrefix.svg")
                 output.writeText(svgText)
-                println("write graph-file to file://${output.absolutePath}")
-                println("                    http://vps.csicar.de:8000/${output.name}")
             } catch (ex: IOException) {
-                println("rendering graph with dot failed: $ex")
+                Logger.error { "Failed to render graph using `dot`: ${ex.message}" }
             }
         }
 

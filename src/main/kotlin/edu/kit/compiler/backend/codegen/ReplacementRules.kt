@@ -382,7 +382,6 @@ private fun RuleBuilder.basicRules() {
             check(leftTarget.get().width == rightTarget.get().width) {
                 "Widths of `l` and `r` need to be the same in `BinOp(${binOp.get()}, ${leftTarget.get().width}, ${rightTarget.get().width})`"
             }
-            println("binop $binOp")
             val resRegister = newRegister(leftTarget.get().width)
             Replacement(
                 node = RegisterRef(resRegister),
@@ -414,7 +413,6 @@ private fun RuleBuilder.basicRules() {
             check(leftTarget.get().width == rightTarget.get().width) {
                 "Widths of `l` and `r` need to be the same in `Div(${leftTarget.get().width}, ${rightTarget.get().width})`"
             }
-            println(name)
             val resRegister = newRegister(leftTarget.get().width)
             val (firstResult, secondResult) = when (resultIsFirst) {
                 true -> Pair(resRegister, newRegister(resRegister.width))

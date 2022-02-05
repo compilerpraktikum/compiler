@@ -11,7 +11,6 @@ class PhiAssignRegisterVisitor(
 ) : FirmNodeVisitorAdapter() {
 
     override fun visit(node: Phi) {
-        println("phi test ${node.mode}")
         super.visit(node)
         if (node.mode == Mode.getM()) {
             return
