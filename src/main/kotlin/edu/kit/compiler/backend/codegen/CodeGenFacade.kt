@@ -6,6 +6,7 @@ import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.PlatformInstruction
 import edu.kit.compiler.backend.register.PlatformTransformation
 import edu.kit.compiler.utils.Logger
+import edu.kit.compiler.utils.display
 import firm.BackEdges
 import firm.Graph
 import firm.nodes.Block
@@ -80,6 +81,7 @@ class CodeGenFacade(
     internal fun generateMolkiIr() {
         val selector = InstructionSelector(optimizationLevel)
         molkiIr = codeGenIRs.mapValues { (graph, functionGraph) ->
+            Logger.trace { "Instruction selection for ${graph.display()}:" }
             val registerTable = registerTables[graph]!!
 
             functionGraph.mapValues { (_, block) ->

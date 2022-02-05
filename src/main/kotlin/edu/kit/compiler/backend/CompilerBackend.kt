@@ -20,11 +20,9 @@ class CompilerBackend(
         val graphs = Program.getGraphs()
         val codeGenFacade = CodeGenFacade(graphs, optimizationLevel = optimizationLevel, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
         codeGenFacade.generate()
-        Logger.debug { "Assembly file: $assemblyFile" }
         if (useMolki) {
             Logger.warning { "The generated molki code is not entirely compatible with molki.py. Expect errors." }
             val molkiFile = File.createTempFile("out", ".molki")
-            Logger.debug { "Molki file: $molkiFile" }
             codeGenFacade.generateMolkiFile(molkiFile)
             MolkiAssembler.assemble(molkiFile.toPath(), assemblyFile)
         } else {

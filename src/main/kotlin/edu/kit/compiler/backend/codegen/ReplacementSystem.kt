@@ -75,8 +75,9 @@ class InstructionSelector(
     private val rules = createReplacementRulesFor(optimizationLevel)
 
     fun transform(root: CodeGenIR, registerTable: VirtualRegisterTable): List<Instruction> {
+        Logger.trace { "  Transforming ${root.display()}" }
         root.walkDepthFirst { node ->
-            Logger.trace { "Calculating replacement for ${node.display()}:" }
+            Logger.trace { "    Calculating replacement for ${node.display()}" }
             /*
              * The code below assumes that all rules matching the node have the same result type (most likely register).
              * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
@@ -95,7 +96,7 @@ class InstructionSelector(
                 check(optimalReplacements.size <= 1) { "more than one replacement possible for node ${node.display()}:\n${optimalReplacements.joinToString(separator = "\n") { "  - ${it.second}" }}" }
                 node.replacement = optimalReplacements.firstOrNull()?.first
             }
-            Logger.trace { "-> ${node.replacement}" }
+            Logger.trace { "      -> ${node.replacement?.let { "${it.node::class.simpleName} (Cost: ${it.cost})" }}" }
         }
 
         return root.replacement?.instructions?.build() ?: error("no matching replacement found for root node ${root.display()}")
