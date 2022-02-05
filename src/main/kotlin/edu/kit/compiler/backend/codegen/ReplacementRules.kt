@@ -521,6 +521,7 @@ private fun RuleBuilder.basicRules() {
     }
 }
 
+@Suppress("unused")
 private fun RuleBuilder.advancedAddressModes() {
     /*****************************
      ** Advanced address modes
@@ -530,6 +531,7 @@ private fun RuleBuilder.advancedAddressModes() {
     // TODO
 }
 
+@Suppress("unused")
 private fun RuleBuilder.advancedRules() {
     // TODO
 }
