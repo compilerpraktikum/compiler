@@ -183,7 +183,6 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
         }
     }
 
-    // TODO maybe commutative? is this needed?
     data class Compare(
         private val relationHolder: ValueHolder<Relation>,
         private val leftHolder: ValueHolder<CodeGenIR>,

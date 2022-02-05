@@ -117,7 +117,6 @@ class FirmToCodeGenTranslator(
                                 )
                             )
                         } else {
-                            // TODO add explanatory comment
                             val tempRegister = registerTable.newRegister(phiCode.register.width)
                             emitControlFlowDependencyFor(
                                 predNode.enclosingBlock,
@@ -325,7 +324,6 @@ class FirmToCodeGenTranslator(
         println("visit EOR " + node.block.toString())
     }
 
-    // TODO
     override fun visit(node: Jmp) {
         super.visit(node)
         val jumpTarget = BackEdges.getOuts(node).first().node!! as Block
@@ -441,7 +439,6 @@ class FirmToCodeGenTranslator(
         when (val pred = node.pred) {
             is Div -> setCodeFor(node) { getCodeFor(pred) }
             is Mod -> setCodeFor(node) { getCodeFor(pred) }
-            // TODO
             is Load -> {
                 // handled by load itself
             }
@@ -470,7 +467,7 @@ class FirmToCodeGenTranslator(
             is Cond -> {
                 println(pred.toString())
             }
-            else -> TODO("missing handling for case $pred")
+            else -> error("illegal state for pred: $pred")
         }
         println("visit PROJ $node " + node.block.toString())
     }
@@ -531,7 +528,7 @@ class FirmToCodeGenTranslator(
         println("visit NODE " + node.block.toString())
     }
 
-// TODO Vorgehensweise:
+
     /*
         * Grundblockweise. Verweise auf andere Grundblöcke müssen aufgelöst werden.
         * Phis?
