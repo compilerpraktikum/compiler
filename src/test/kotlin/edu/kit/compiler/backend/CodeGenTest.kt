@@ -29,7 +29,6 @@ import java.io.File
 import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
-@Ignore
 class CodeGenTest {
 
     private fun dumpGraphs(phase: String) {
@@ -67,112 +66,17 @@ class CodeGenTest {
     }
 
     @Test
-    fun testBasic() {
-        setupGraph(
-            """
-            class Test {
-                public int i;
-                public static void main(String[] args) {}
-
-                public int test() { return System.in.read() +1 ;}
-            }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testPhi() {
-        setupGraph(
-            """
-                class Test {
-                    public static void main(String [] args) {
-                        int i = System.in.read();
-                        int j = 0;
-                        while(j < 10) {
-                            j = j + i;
-                        }
-                        System.out.println(j);
-                    }
-                }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testStore() {
-        setupGraph(
-            """
-                class Test {
-                    public int field;
-                    public void test() {
-                        int j = 9;
-                        if(field > 2) {
-                            j = 2;
-                        } else {
-                            j = 5;
-                        }
-                    }
-                    public static void main(String [] args) {}
-                }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testStatementSeq() {
-        setupGraph(
-            """
-            class Test {
-                public int i;
-
-                public static void main(String[] args) {
-                    int a = System.in.read();
-                    System.out.println(a);
-                    System.out.println(8);
-                }
-
-                public void inc() {
-                    i=i+1;
-                }
-
-
-            }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testStatementReuse() {
-        setupGraph(
-            """
-            class Test {
-                public int i;
-
-                public static void main(String[] args) {
-                    Test test = new Test();
-                    test.i =   System.in.read() +  System.in.read();
-                    int a = System.in.read();
-                    System.out.println(a);
-                    System.out.println(a);
-                }
-
-
-            }
-            """.trimIndent()
-        )
-    }
-
-    @Test
+    @Ignore
     fun integrationTest() {
         val facade = setupGraph(
             """
-class Reader {
-    public static void main(String[] args) {
-        int[] numbers = new int[1];
-        numbers[0] = 2;
-        System.out.println(numbers[0]);
-    }
-}
+                class Reader {
+                    public static void main(String[] args) {
+                        int[] numbers = new int[1];
+                        numbers[0] = 2;
+                        System.out.println(numbers[0]);
+                    }
+                }
             """.trimIndent()
         )
         facade.generateMolkiIr()
@@ -181,63 +85,7 @@ class Reader {
         val assemblyFile = File.createTempFile("out", ".asm").toPath()
         val executableFile = File.createTempFile("executable", ".out").toPath()
         facade.generateAssemblyFile(assemblyFile)
-//        println(assemblyFile.readText())
         Linker().link(assemblyFile, executableFile)
-    }
-
-    @Test
-    fun testDiv() {
-        setupGraph(
-            """
-                class Test {
-                    public static void main(String[] args) {
-                        int i = 10 / 2;
-                    }
-                }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testMod() {
-        setupGraph(
-            """
-                class Test {
-                    public static void main(String[] args) {
-                        int i = 10 % 2;
-                    }
-                }
-            """.trimIndent()
-        )
-    }
-
-    @Test
-    fun testCond() {
-        setupGraph(
-            """
-                class Test {
-                    public int i;
-                    public static void main(String[] args) {
-                        Test tester = new Test();
-                        tester.i = tester.test();
-                        while (true) {
-                            System.out.println(tester.i);
-                        }
-                    }
-
-                    public int test() {
-                        System.out.println(1);
-                        System.out.println(2);
-                        if (3 == 2) {
-                            System.out.println(1);
-                            return 2;
-                        } else {
-                            return 3;
-                        }
-                    }
-                }
-            """.trimIndent()
-        )
     }
 
     private fun transformToMolki(
@@ -251,83 +99,7 @@ class Reader {
     }
 
     private fun assertMolkiEquals(actual: List<MolkIR>, expected: List<String>) {
-        assertEquals(expected, actual.map { it.toMolki() })
-    }
-
-    @Test
-    fun testFull() {
-        val facade = setupGraph(
-            """
-            class Bait {
-
-                public static void main(String[] args) {
-                }
-
-                public int[] base64;
-
-                public void init() {
-                    this.base64 = new int[64];
-                    base64[0] = 65;
-                    base64[1] = 66;
-                    base64[2] = 67;
-                    base64[3] = 68;
-                    base64[4] = 69;
-                }
-            }
-            """.trimIndent()
-        )
-        facade.generateMolkiIr()
-        facade.generateBlockLayout()
-    }
-
-    @Test
-    fun testAlloc() {
-        val facade = setupGraph(
-            """
-            class Test {
-                public static void main(String[] args) {new Test();}
-            }
-            """.trimIndent()
-        )
-
-        facade.generateMolkiIr()
-        facade.generateBlockLayout()
-    }
-    @Test
-    fun testBothRead() {
-        val registerTable = VirtualRegisterTable()
-        val facade = setupGraph(
-            """
-            class Test {
-                public int i;
-                public static void main(String[] args) {}
-
-                public int t() { return i; }
-                public int inc() { return t()+1; }
-
-                public int test() {
-                    System.out.println(1);
-                    System.out.println(2);
-                    if (3 == 2) {
-                        System.out.println(1);
-                        return 2;
-                    } else {
-                        return 3;
-                    }
-                }
-            }
-            """.trimIndent(),
-            registerTable
-        )
-
-        facade.generateMolkiIr()
-        facade.generateBlockLayout()
-        facade.blocksWithLayout.forEach { (graph, block) ->
-            println("## ${graph.entity.ldName}")
-            block.flatten().forEach {
-                println("   ${it.toMolki()}")
-            }
-        }
+        assertEquals(expected, actual.filter { it !is Instruction.Comment }.map { it.toMolki() })
     }
 
     @Test
@@ -338,9 +110,7 @@ class Reader {
         assertMolkiEquals(
             res,
             listOf(
-                "movq $2, %@0",
-                "movq $3, %@1",
-                "addq [ %@0 | %@1 ] -> %@2"
+                "addq [ $2 | $3 ] -> %@2"
             )
         )
     }
@@ -356,17 +126,14 @@ class Reader {
                     BinaryOpType.ADD,
                     CodeGenIR.Const("33", Width.QUAD),
                     CodeGenIR.Const("44", Width.QUAD)
-                )
+                )s
             )
         }
         assertMolkiEquals(
             res,
             listOf(
-                "movq $22, %@0",
-                "movq $33, %@1",
-                "movq $44, %@2",
-                "addq [ %@1 | %@2 ] -> %@3",
-                "addq [ %@0 | %@3 ] -> %@4",
+                "addq [ $33 | $44 ] -> %@3",
+                "addq [ $22 | %@3 ] -> %@4",
             )
         )
     }
@@ -382,8 +149,8 @@ class Reader {
         assertMolkiEquals(
             res,
             listOf(
-                "movq $0, %@0w",
-                // "jmp functionReturn" //TODO test this
+                "movl $0, %@1d",
+                "movw $0, %@0w"
             )
         )
     }
@@ -400,7 +167,7 @@ class Reader {
             res,
             listOf(
                 "movq %@0, %@r0",
-                // "jmp functionReturn" //TODO test this
+                "movw $0, %@1w"
             )
         )
     }
@@ -413,7 +180,7 @@ class Reader {
         assertMolkiEquals(
             res,
             listOf(
-                "movq $0, %@r0w",
+                "movw $0, %@r0w",
             )
         )
     }
@@ -432,28 +199,8 @@ class Reader {
         assertMolkiEquals(
             res,
             listOf(
-                "movq $7, %@1w",
-                "addq [ %@1w | %@0w ] -> %@2w",
-                "movq %@2w, %@r0w"
-            )
-        )
-    }
-
-    @Test
-    fun testReplacementReturnNoop() {
-        val res = transformToMolki {
-            CodeGenIR.Return(
-                CodeGenIR.Seq(
-                    first = CodeGenIR.Const("0", Width.DOUBLE),
-                    second = CodeGenIR.Const("0", Width.WORD)
-                )
-            )
-        }
-        assertMolkiEquals(
-            res,
-            listOf(
-                "movq $0 %@r0",
-                "jmp functionReturn"
+                "addw [ $7 | %@0w ] -> %@2w",
+                "movw %@2w, %@r0w"
             )
         )
     }
@@ -475,13 +222,13 @@ class Reader {
         assertMolkiEquals(
             res,
             listOf(
-                "movq $2, %@1",
-                "addq [ %@1 | %@0 ] -> %@2",
+                "addq [ $2 | %@0 ] -> %@2",
             )
         )
     }
 
     @Test
+    @Ignore
     fun testWithPlatform() {
         val graph = generateGraph("class Test { public static void main(String[] args) {} }")
         val codeGenFacade = CodeGenFacade(graph, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
