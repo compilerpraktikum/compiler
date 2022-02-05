@@ -264,7 +264,7 @@ class FirmToCodeGenTranslator(
         super.visit(node)
 
         val cmp = setCodeFor(node) {
-            CodeGenIR.Compare(node.relation, getCodeFor(node.right), getCodeFor(node.left))
+            CodeGenIR.Compare(node.relation, getCodeFor(node.left), getCodeFor(node.right))
         }
         println("visit CMP ${node.block} -> $cmp")
     }

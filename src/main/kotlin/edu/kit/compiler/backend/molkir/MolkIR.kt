@@ -270,7 +270,7 @@ sealed class Instruction : MolkIR {
         /* ktlint-disable no-multi-spaces */
         /* @formatter:off */
 
-        fun cmp(left: Target.Input, right: Target.Input) = BinaryOperation(BinaryOperation.Type.CMP, left, right)
+        fun cmp(left: Target.Input, right: Target.Input) = BinaryOperation(BinaryOperation.Type.CMP, right, left) // x86 / molki syntax for cmp is: `cmp right, left`
 
         /****************************************
          * Jumps
