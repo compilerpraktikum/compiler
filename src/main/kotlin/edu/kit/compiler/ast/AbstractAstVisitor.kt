@@ -6,11 +6,10 @@ import edu.kit.compiler.source.SourceRange
 
 abstract class AbstractAstVisitor {
 
-    open fun visitProgram(program: Parsed<AST.Program>) =
-        program.map { program ->
+    open fun visitProgram(parsedProgram: Parsed<AST.Program>) =
+        parsedProgram.map { program ->
             program.classes.map { classDecl -> visitClassDeclaration(classDecl) }.let { AST.Program(it) }
-        }
-            .mapPosition { visitSourceRange(it) }
+        }.mapPosition { visitSourceRange(it) }
 
     open fun visitClassDeclaration(classDeclaration: Parsed<AST.ClassDeclaration>) =
         classDeclaration.map {

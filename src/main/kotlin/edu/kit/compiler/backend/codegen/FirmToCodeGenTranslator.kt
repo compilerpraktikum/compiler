@@ -22,7 +22,6 @@ import firm.nodes.Load
 import firm.nodes.Minus
 import firm.nodes.Mod
 import firm.nodes.Mul
-import firm.nodes.Mulh
 import firm.nodes.Node
 import firm.nodes.Not
 import firm.nodes.Or
@@ -59,15 +58,10 @@ class FirmToCodeGenTranslator(
         private val exitNodes: MutableMap<Block, CodeGenIR> = mutableMapOf(),
         var nodeMap: MutableMap<Node, CodeGenIR> = mutableMapOf()
     ) {
-        private val finalizedBlocks: MutableSet<Block> = mutableSetOf()
         private val phisInBlock = mutableMapOf<Block, MutableSet<Phi>>()
 
         private fun getOrCreateControlFlowDependencyFor(block: Block) =
             controlFlowDependencies.getOrPut(block) { mutableListOf() }
-
-        fun getCurrentIrForBlock(block: Block): MutableList<CodeGenIR> {
-            return getOrCreateControlFlowDependencyFor(block)
-        }
 
         fun emitControlFlowDependencyFor(block: Block, codeGenIR: CodeGenIR) {
             getOrCreateControlFlowDependencyFor(block).add(codeGenIR)
@@ -79,16 +73,9 @@ class FirmToCodeGenTranslator(
             exitNodes[block] = codeGenIR
         }
 
-        fun setFinalCodeGenIrForBlock(block: Block, codeGenIR: CodeGenIR) {
-            emitControlFlowDependencyFor(block, codeGenIR)
-            finalizedBlocks.add(block)
-        }
-
         fun setCodeGenIrForNode(node: Node, codeGenIR: CodeGenIR) {
             nodeMap[node] = codeGenIR
         }
-
-        fun isFinalized() = controlFlowDependencies.entries.all { finalizedBlocks.contains(it.key) }
 
         fun getCodeGenIRs(): Map<Block, List<CodeGenIR>> {
 //            check(isFinalized()) { "inconsistent state of blockMap $blockMap" }
@@ -230,7 +217,7 @@ class FirmToCodeGenTranslator(
             .filter { it !is Address }
             .map { getCodeFor(it) }
 
-        val addr = node.preds.firstNotNullOf {
+        val address = node.preds.firstNotNullOf {
             if (it is Address) {
                 it
             } else {
@@ -249,7 +236,7 @@ class FirmToCodeGenTranslator(
             }
             emitControlDependency(
                 node,
-                CodeGenIR.Assign(codegenRef, CodeGenIR.Call(addr, arguments))
+                CodeGenIR.Assign(codegenRef, CodeGenIR.Call(address, arguments))
             )
         } else {
             setCodeFor(controlFlowProjection) {
@@ -257,7 +244,7 @@ class FirmToCodeGenTranslator(
             }
             emitControlDependency(
                 node,
-                CodeGenIR.Call(addr, arguments)
+                CodeGenIR.Call(address, arguments)
             )
         }
     }
@@ -319,14 +306,6 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Load) {
         val outNodes = BackEdges.getOuts(node).map { it.node }
-        val controlFlowProjection = outNodes.firstNotNullOf {
-            if (it is Proj && it.mode == Mode.getM()) {
-                it
-            } else {
-                null
-            }
-        }
-
         val resultProjection = outNodes.firstNotNullOfOrNull {
             if (it is Proj && it.mode != Mode.getM()) {
                 it
@@ -370,10 +349,6 @@ class FirmToCodeGenTranslator(
 
     override fun visit(node: Mul) {
         buildBinOpTree(node, BinaryOpType.MUL)
-    }
-
-    override fun visit(node: Mulh) {
-        error("mulh not implemented")
     }
 
     override fun visit(node: Not) {
