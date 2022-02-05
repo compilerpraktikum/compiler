@@ -10,6 +10,6 @@ internal class ParserMjTestSuite : MjTestSuite("syntax", "parser") {
         val (parser) = createParser(source)
 
         val program = parser.parse().validate()
-        checkResult(successful = program != null)
+        checkResult(successful = !source.hasError && program != null)
     }
 }
