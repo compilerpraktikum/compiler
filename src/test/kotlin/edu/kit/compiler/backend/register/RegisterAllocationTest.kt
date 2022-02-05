@@ -9,6 +9,7 @@ import edu.kit.compiler.backend.molkir.Width
 import edu.kit.compiler.backend.register.calls.SimpleCallingConvention
 import edu.kit.compiler.backend.register.transformer.TrivialFunctionTransformer
 import org.junit.jupiter.api.Test
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
 
@@ -19,6 +20,7 @@ import edu.kit.compiler.backend.molkir.Instruction as MolkiInstruction
  * test for correctness. But we want to have at least somewhat of a fail-safe against accidental regression and doing it
  * correctly would require extensive mocking, which requires disproportional effort compared to the benefit.
  */
+@Ignore
 internal class RegisterAllocationTest {
 
     @Test

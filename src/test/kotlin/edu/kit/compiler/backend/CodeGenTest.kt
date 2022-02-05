@@ -26,9 +26,10 @@ import firm.Program
 import firm.Util
 import org.junit.jupiter.api.Test
 import java.io.File
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
-import kotlin.test.fail
 
+@Ignore
 class CodeGenTest {
 
     private fun dumpGraphs(phase: String) {
@@ -47,7 +48,6 @@ class CodeGenTest {
             sourceFile.printAnnotations()
         }.validate()!!
         doSemanticAnalysis(program, sourceFile, stringTable)
-        fail("firm can't be run multiple times")
         Transformation.transform(program, stringTable)
         dumpGraphs("after-construction")
         Util.lowerSels()
