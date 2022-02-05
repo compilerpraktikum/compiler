@@ -111,9 +111,9 @@ private fun RuleBuilder.basicRules() {
     }
     rule("conditions") {
         val relation = variable<Relation>()
-        val left = variable<Register>()
+        val left = variable<Target.Input>()
         val leftReplacement = variable<Replacement>()
-        val right = variable<Register>()
+        val right = variable<Target.Input>()
         val rightReplacement = variable<Replacement>()
         val trueLabel = variable<String>()
         val falseLabel = variable<String>()
@@ -122,8 +122,8 @@ private fun RuleBuilder.basicRules() {
             CodeGenIR.Cond(
                 CodeGenIR.Compare(
                     relation,
-                    RegisterRef(left, leftReplacement),
-                    RegisterRef(right, rightReplacement)
+                    ConstOrRegisterRef(left, leftReplacement),
+                    ConstOrRegisterRef(right, rightReplacement)
                 ),
                 trueLabel,
                 falseLabel
@@ -162,14 +162,14 @@ private fun RuleBuilder.basicRules() {
         val fromMode = variable<Mode>()
         val toMode = variable<Mode>()
 
-        val register = variable<Register>()
+        val register = variable<Target.Input>()
         val operandReplacement = variable<Replacement>()
 
         match(
             CodeGenIR.Conv(
                 fromMode,
                 toMode,
-                RegisterRef(register, operandReplacement)
+                ConstOrRegisterRef(register, operandReplacement)
             )
         )
 
