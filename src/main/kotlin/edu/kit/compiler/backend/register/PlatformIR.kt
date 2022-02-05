@@ -20,7 +20,7 @@ sealed class PlatformTarget : PlatformIR {
      */
     data class Register(val register: EnumRegister, val width: Width = Width.QUAD) : PlatformTarget() {
         fun width(width: Width): Register {
-            return this.copy(register = this.register, width = width)
+            return copy(width = width)
         }
 
         fun halfWordWidth() = width(Width.BYTE)

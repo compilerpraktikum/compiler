@@ -18,10 +18,10 @@ class CompilerBackend(
         val graphs = Program.getGraphs()
         val codeGenFacade = CodeGenFacade(graphs, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
         codeGenFacade.generate()
-        Logger.info { "Assembly file: $assemblyFile" }
+        Logger.debug { "Assembly file: $assemblyFile" }
         if (useMolki) {
             val molkiFile = File.createTempFile("out", ".molki")
-            Logger.info { "Molki file: $molkiFile" }
+            Logger.debug { "Molki file: $molkiFile" }
             codeGenFacade.generateMolkiFile(molkiFile)
             MolkiAssembler.assemble(molkiFile.toPath(), assemblyFile)
         } else {

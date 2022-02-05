@@ -16,14 +16,6 @@ class VirtualRegisterTable {
         return map[node] ?: newRegisterFor(node)
     }
 
-    fun setRegisterFor(node: Node, register: MolkiRegister) {
-        if (map[node] == null) {
-            map[node] = register
-        } else {
-            error("invalid call to setRegisterFor: node $node already has a register")
-        }
-    }
-
     private fun newRegisterFor(node: Node): MolkiRegister {
         if (map[node] != null) error("invalid call to newRegisterFor node $node. The node already has a register")
         val registerId = nextRegisterId++
@@ -38,6 +30,4 @@ class VirtualRegisterTable {
         val registerId = nextRegisterId++
         return MolkiRegister(RegisterId(registerId), width)
     }
-
-    fun getRegisterFor(node: Node): MolkiRegister? = map[node]
 }

@@ -13,16 +13,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class CodeGenFacade(
-    val graphs: Iterable<Graph>,
-    val dumpCodeGenIR: Boolean,
-    val dumpMolkIR: Boolean,
+    private val graphs: Iterable<Graph>,
+    private val dumpCodeGenIR: Boolean,
+    private val dumpMolkIR: Boolean,
 ) {
-    lateinit var blocksWithLayout: Map<Graph, List<List<Instruction>>>
-    internal lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
-    lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
-    lateinit var platformCode: Map<Graph, List<PlatformInstruction>>
-    var registerTables: MutableMap<Graph, VirtualRegisterTable> = mutableMapOf()
-    var numberOfArguments: MutableMap<Graph, Int> = mutableMapOf()
+    internal lateinit var blocksWithLayout: Map<Graph, List<List<Instruction>>>
+    private lateinit var codeGenIRs: Map<Graph, Map<Block, CodeGenIR>>
+    private lateinit var molkiIr: Map<Graph, Map<Block, List<Instruction>>>
+    private lateinit var platformCode: Map<Graph, List<PlatformInstruction>>
+    private var registerTables: MutableMap<Graph, VirtualRegisterTable> = mutableMapOf()
+    private var numberOfArguments: MutableMap<Graph, Int> = mutableMapOf()
 
     fun generate(): Map<Graph, List<PlatformInstruction>> {
         generateCodeGenIR()
@@ -45,7 +45,7 @@ class CodeGenFacade(
         codeGenIRs = graphs.associateWith { graph ->
             println(graph.entity.ldName)
 
-            val registerTable: VirtualRegisterTable = VirtualRegisterTable()
+            val registerTable = VirtualRegisterTable()
             registerTables[graph] = registerTable
 
             val functionVisitor = FunctionParameterVisitor(registerTable)
@@ -64,7 +64,7 @@ class CodeGenFacade(
                 registerTable = registerTable,
                 nodeMap = phiVisitor.map,
             )
-            graph.walkTopological(FirmToCodeGenTranslator(graph, registerTable, generationState))
+            graph.walkTopological(FirmToCodeGenTranslator(registerTable, generationState))
             generationState.createPhiMoves()
 
             BackEdges.disable(graph)
@@ -80,7 +80,7 @@ class CodeGenFacade(
         molkiIr = codeGenIRs.mapValues { (graph, functionGraph) ->
             val registerTable = registerTables[graph]!!
 
-            functionGraph.mapValues { (firmBlock, block) ->
+            functionGraph.mapValues { (_, block) ->
                 block.transform(registerTable).instructions.build()
             }
         }
@@ -92,7 +92,7 @@ class CodeGenFacade(
             fun addBlockInstructions(block: Block) {
                 val blockInstructions = functionGraph[block] ?: error("no instructions for block $block")
                 instructions.add(
-                    listOf(Instruction.Label(NameMangling.mangleBlockName(block))) + blockInstructions
+                    listOf(Instruction.label(NameMangling.blockLabel(block))) + blockInstructions
                 )
             }
 
@@ -103,7 +103,7 @@ class CodeGenFacade(
                 }
             }
             addBlockInstructions(graph.endBlock)
-            instructions.add(listOf(Instruction.Label(NameMangling.mangleFunctionName(graph))))
+            instructions.add(listOf(Instruction.label(NameMangling.functionReturnLabel(graph))))
 
             instructions
         }
@@ -170,7 +170,7 @@ class CodeGenFacade(
         codeGenIRs.forEach { (graph, blocks) ->
             GraphvizPrinter.renderCodeGenIrsToFile(
                 "graph-${graph.entity.ldName}",
-                blocks.mapKeys { NameMangling.mangleBlockName(it.key) }
+                blocks.mapKeys { NameMangling.blockLabel(it.key) }
             )
         }
     }

@@ -6,7 +6,7 @@ import firm.nodes.Node
 import firm.nodes.Phi
 
 class PhiAssignRegisterVisitor(
-    val registerTable: VirtualRegisterTable = VirtualRegisterTable(),
+    private val registerTable: VirtualRegisterTable = VirtualRegisterTable(),
     val map: MutableMap<Node, CodeGenIR> = mutableMapOf()
 ) : FirmNodeVisitorAdapter() {
 

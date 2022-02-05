@@ -150,7 +150,7 @@ object X64ABICallingConvention : CallingConvention {
         instructionAppenderCallback: (PlatformInstruction) -> Unit
     ) :
         CallingConvention.FunctionCallBuilder(allocator, arguments, instructionAppenderCallback) {
-        var argumentNumber = arguments
+        private var argumentNumber = arguments
 
         private val allocatedRegisters = mutableMapOf<Int, PlatformTarget.Register>()
 
