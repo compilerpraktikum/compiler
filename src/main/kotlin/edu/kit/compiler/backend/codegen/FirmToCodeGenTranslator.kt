@@ -117,6 +117,14 @@ class FirmToCodeGenTranslator(
                                 )
                             )
                         } else {
+                            /**
+                             * The source is not a register, so might be a complex expression that uses multiple registers,
+                             * which is not supported by [generateMoveSequence]. We also cannot store the result of that expression
+                             * into the phi-register right now, because that register's old value may still be needed
+                             * (for another calculation or phi-move). To solve this, we assign the calculation result to a temp
+                             * register now and later move the value from the temp register to the phi-register as part of the
+                             * generated move sequence.
+                             */
                             val tempRegister = registerTable.newRegister(phiCode.register.width)
                             emitControlFlowDependencyFor(
                                 predNode.enclosingBlock,
