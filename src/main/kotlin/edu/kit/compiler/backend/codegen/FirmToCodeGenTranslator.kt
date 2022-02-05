@@ -70,9 +70,7 @@ class FirmToCodeGenTranslator(
         }
 
         fun emitControlFlowDependencyFor(block: Block, codeGenIR: CodeGenIR) {
-            getOrCreateControlFlowDependencyFor(block).also {
-                println("deps: $it")
-            }.add(codeGenIR)
+            getOrCreateControlFlowDependencyFor(block).add(codeGenIR)
         }
 
         fun setExitNode(block: Block, codeGenIR: CodeGenIR) {
@@ -173,7 +171,6 @@ class FirmToCodeGenTranslator(
         buildCodeGen().also { generationState.setCodeGenIrForNode(node, it.withOrigin(node)) }
 
     private fun emitControlDependency(node: Node, codeGenIR: CodeGenIR) {
-        println("set control dependency for ${node.enclosingBlock} to $codeGenIR ($node)")
         generationState.emitControlFlowDependencyFor(node.enclosingBlock, codeGenIR.withOrigin(node))
     }
 
@@ -200,13 +197,11 @@ class FirmToCodeGenTranslator(
     override fun visit(node: Add) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.ADD)
-        println("visit ADD " + node.block.toString())
     }
 
     override fun visit(node: And) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.AND)
-        println("visit AND " + node.block.toString())
     }
 
     override fun visit(node: Call) {
@@ -242,7 +237,6 @@ class FirmToCodeGenTranslator(
         }
 
         if (resultProjection != null) {
-            println("resultproject $resultProjection")
             val valueProjection = BackEdges.getOuts(resultProjection).first().node
             val reg = registerTable.getOrCreateRegisterFor(valueProjection)
 
@@ -264,17 +258,14 @@ class FirmToCodeGenTranslator(
                 CodeGenIR.Call(addr, arguments)
             )
         }
-
-        println("visit CALL " + node.block.toString())
     }
 
     override fun visit(node: Cmp) {
         super.visit(node)
 
-        val cmp = setCodeFor(node) {
+        setCodeFor(node) {
             CodeGenIR.Compare(node.relation, getCodeFor(node.left), getCodeFor(node.right))
         }
-        println("visit CMP ${node.block} -> $cmp")
     }
 
     override fun visit(node: Cond) {
@@ -292,8 +283,6 @@ class FirmToCodeGenTranslator(
             falseLabel = NameMangling.blockLabel(falseBlock)
         )
         setExitNodeFor(node, cond)
-
-        println("visit COND ${node.block}")
     }
 
     override fun visit(node: Const) {
@@ -301,8 +290,6 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.Const(node.tarval.asLong().toString(), Width.fromByteSize(node.mode.sizeBytes)!!)
         }
-        println("visit CONST " + node.block.toString())
-        println(node.tarval.asLong().toString())
     }
 
     override fun visit(node: Conv) {
@@ -314,7 +301,6 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.Conv(from, to, getCodeFor(node.op))
         }
-        println("visit CONV " + node.block.toString())
     }
 
     override fun visit(node: Div) {
@@ -323,13 +309,11 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.Div(getCodeFor(node.left), getCodeFor(node.right))
         }
-        println("visit DIV " + node.block.toString())
     }
 
     override fun visit(node: Eor) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.EOR)
-        println("visit EOR " + node.block.toString())
     }
 
     override fun visit(node: Jmp) {
@@ -339,14 +323,10 @@ class FirmToCodeGenTranslator(
             node,
             CodeGenIR.Jmp(NameMangling.blockLabel(jumpTarget))
         )
-
-        println("visit JMP " + node.block.toString())
     }
 
     override fun visit(node: Load) {
         super.visit(node)
-
-        println("node: $node")
 
         val outNodes = BackEdges.getOuts(node).map { it.node }
         val controlFlowProjection = outNodes.firstNotNullOf {
@@ -384,8 +364,6 @@ class FirmToCodeGenTranslator(
             // -> no need to generate control dependency
             // -> no data dependency needs to be generated, because it is not needed
         }
-
-        println("visit LOAD " + node.block.toString())
     }
 
     override fun visit(node: Minus) {
@@ -393,7 +371,6 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.UnaryOp(op = UnaryOpType.MINUS, value = getCodeFor(node.op))
         }
-        println("visit MINUS " + node.block.toString())
     }
 
     override fun visit(node: Mod) {
@@ -401,18 +378,15 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.Mod(left = getCodeFor(node.left), right = getCodeFor(node.right))
         }
-        println("visit MOD " + node.block.toString())
     }
 
     override fun visit(node: Mul) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.MUL)
-        println("visit MUL " + node.block.toString())
     }
 
     override fun visit(node: Mulh) {
         super.visit(node)
-        println("visit MULH " + node.block.toString())
         error("mulh not implemented")
     }
 
@@ -421,13 +395,11 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.UnaryOp(op = UnaryOpType.NOT, value = getCodeFor(node.op))
         }
-        println("visit NOT " + node.block.toString())
     }
 
     override fun visit(node: Or) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.OR)
-        println("visit OR " + node.block.toString())
     }
 
     override fun visit(node: Phi) {
@@ -437,18 +409,15 @@ class FirmToCodeGenTranslator(
             return
         }
         generationState.addPhi(node.block as Block, node)
-
-        println("visit PHI " + node.block.toString())
     }
 
     override fun visit(node: Proj) {
         super.visit(node)
-        println(node.pred.toString())
         when (val pred = node.pred) {
             is Div -> setCodeFor(node) { getCodeFor(pred) }
             is Mod -> setCodeFor(node) { getCodeFor(pred) }
             is Load -> {
-                // handled by load itself
+                // handled by Load
             }
             is Store -> {
                 // pred = Store | node = Proj M
@@ -467,22 +436,20 @@ class FirmToCodeGenTranslator(
             }
             is Start -> setCodeFor(node) { getCodeFor(pred) }
             is Call -> {
-                // handled by call
+                // handled by Call
             }
             is Proj -> {
-                // skip -> this is handled by next proj
+                // handled by next Proj
             }
             is Cond -> {
-                println(pred.toString())
+                // handled by Proj
             }
             else -> error("illegal state for pred: $pred")
         }
-        println("visit PROJ $node " + node.block.toString())
     }
 
     override fun visit(node: Return) {
         super.visit(node)
-        println("visit RETURN $node ${node.preds}")
 
         val nodePreds = node.preds.toList()
         val value = nodePreds.getOrNull(1)
@@ -495,37 +462,31 @@ class FirmToCodeGenTranslator(
         val endBlock = BackEdges.getOuts(node).first().node!! as Block
 
         setExitNodeFor(node, CodeGenIR.Seq(code, CodeGenIR.Jmp(NameMangling.blockLabel(endBlock))))
-        println("visit RETURN " + node.block.toString())
     }
 
     override fun visit(node: Store) {
         super.visit(node)
 
-        println("visit STORE " + node.block.toString())
     }
 
     override fun visit(node: Sub) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SUB)
-        println("visit SUB " + node.block.toString())
     }
 
     override fun visit(node: Shl) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHL)
-        println("visit SHL " + node.block.toString())
     }
 
     override fun visit(node: Shr) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHR)
-        println("visit SHR " + node.block.toString())
     }
 
     override fun visit(node: Shrs) {
         super.visit(node)
         buildBinOpTree(node, BinaryOpType.SHRS)
-        println("visit SHRS " + node.block.toString())
     }
 
     override fun visit(node: Unknown) {
@@ -533,6 +494,5 @@ class FirmToCodeGenTranslator(
         setCodeFor(node) {
             CodeGenIR.Const("0", Width.fromByteSize(node.mode.sizeBytes)!!)
         }
-        println("visit NODE " + node.block.toString())
     }
 }
