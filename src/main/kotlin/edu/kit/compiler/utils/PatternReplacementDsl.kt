@@ -41,7 +41,7 @@ class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
     private val condition: (() -> Boolean)?,
     private val replacementFactory: Scope.() -> Replacement,
 ) {
-    // TODO replace with `context(Scope)` when Kotlin 1.6.20 is released
+    // Note: replace with `context(Scope)` when Kotlin 1.6.20 is released
     fun match(node: Target, scope: Scope): Replacement? {
         variables.forEach { it.reset() }
 
