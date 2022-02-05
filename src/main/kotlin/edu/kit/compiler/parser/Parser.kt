@@ -15,8 +15,7 @@ import edu.kit.compiler.source.SourceRange
 
 private val Token.isRelevantForSyntax
     get() = when (this) {
-        // TODO should maybe also contain Token.ErrorToken. That case was removed because óf Issue #85.
-        is Token.Whitespace, is Token.Comment -> false
+        is Token.Whitespace, is Token.Comment, is Token.ErrorToken -> false
         else -> true
     }
 
