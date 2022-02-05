@@ -73,7 +73,7 @@ class Compiler(private val config: Config) {
             // open the input file
             val sourceFile = openCompilationUnit().unwrap {
                 reportError()
-                return ExitCode.ERROR_FILE_SYSTEM
+                return@compile ExitCode.ERROR_FILE_SYSTEM
             }
 
             @Suppress("KotlinConstantConditions")
@@ -150,6 +150,7 @@ class Compiler(private val config: Config) {
                                 assemblyFile,
                                 executableFile,
                                 useMolki = useMolki,
+                                optimizationLevel = config.optimizationLevel,
                                 dumpCodeGenIR = config.dump.contains(Dump.CodeGenIR),
                                 dumpMolki = config.dump.contains(Dump.Molki),
                             )

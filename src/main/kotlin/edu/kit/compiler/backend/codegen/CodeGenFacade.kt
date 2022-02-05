@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.assembly.AssemblyGenerator
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.register.PlatformInstruction
@@ -14,6 +15,7 @@ import java.nio.file.Path
 
 class CodeGenFacade(
     private val graphs: Iterable<Graph>,
+    private val optimizationLevel: Compiler.OptimizationLevel,
     private val dumpCodeGenIR: Boolean,
     private val dumpMolkIR: Boolean,
 ) {
@@ -77,11 +79,12 @@ class CodeGenFacade(
     }
 
     internal fun generateMolkiIr() {
+        val selector = InstructionSelector(optimizationLevel)
         molkiIr = codeGenIRs.mapValues { (graph, functionGraph) ->
             val registerTable = registerTables[graph]!!
 
             functionGraph.mapValues { (_, block) ->
-                block.transform(registerTable).instructions.build()
+                selector.transform(block, registerTable)
             }
         }
     }

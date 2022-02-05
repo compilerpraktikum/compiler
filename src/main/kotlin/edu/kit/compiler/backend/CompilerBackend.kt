@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend
 
+import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.utils.Logger
 import firm.Program
@@ -11,12 +12,13 @@ class CompilerBackend(
     private val assemblyFile: Path,
     private val executableFile: Path,
     private val useMolki: Boolean,
+    private val optimizationLevel: Compiler.OptimizationLevel,
     private val dumpCodeGenIR: Boolean = false,
     private val dumpMolki: Boolean = false,
 ) : Backend {
     override fun generate() {
         val graphs = Program.getGraphs()
-        val codeGenFacade = CodeGenFacade(graphs, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
+        val codeGenFacade = CodeGenFacade(graphs, optimizationLevel = optimizationLevel, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
         codeGenFacade.generate()
         Logger.debug { "Assembly file: $assemblyFile" }
         if (useMolki) {

@@ -6,8 +6,8 @@ import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.codegen.BinaryOpType
 import edu.kit.compiler.backend.codegen.CodeGenFacade
 import edu.kit.compiler.backend.codegen.CodeGenIR
+import edu.kit.compiler.backend.codegen.InstructionSelector
 import edu.kit.compiler.backend.codegen.VirtualRegisterTable
-import edu.kit.compiler.backend.codegen.transform
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.MolkIR
 import edu.kit.compiler.backend.molkir.Register
@@ -27,7 +27,6 @@ import firm.Util
 import org.junit.jupiter.api.Test
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 class CodeGenTest {
@@ -62,7 +61,7 @@ class CodeGenTest {
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
     ): CodeGenFacade {
         val graphs = generateGraph(code, registerTable)
-        val codegen = CodeGenFacade(graphs, dumpCodeGenIR = true, dumpMolkIR = true)
+        val codegen = CodeGenFacade(graphs, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
         codegen.generateCodeGenIR()
         return codegen
     }
@@ -245,13 +244,9 @@ class Reader {
         registerTable: VirtualRegisterTable = VirtualRegisterTable(),
         block: (VirtualRegisterTable) -> CodeGenIR
     ): List<Instruction> {
-        val res = block(registerTable).transform(registerTable)
-        println("codegen tree:")
-        res.node.pp()
+        val instructions = InstructionSelector(Compiler.OptimizationLevel.Base).transform(block(registerTable), registerTable)
         println("molki output:")
-        val instructions = res.instructions.build()
         instructions.forEach { it.toMolki().pp() }
-        assertNotNull(res, "expect global MatchResult not be non-null")
         return instructions
     }
 
@@ -485,7 +480,7 @@ class Reader {
     @Test
     fun testWithPlatform() {
         val graph = generateGraph("class Test { public static void main(String[] args) {} }")
-        val codeGenFacade = CodeGenFacade(graph, dumpCodeGenIR = true, dumpMolkIR = true)
+        val codeGenFacade = CodeGenFacade(graph, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
         val platformCodes = codeGenFacade.generate()
         platformCodes.forEach { (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")

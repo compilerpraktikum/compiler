@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
@@ -13,15 +14,29 @@ import firm.Relation
 import firm.nodes.Address
 import edu.kit.compiler.utils.rule as buildRule
 
-val replacementRules = run {
-    val rulesBuilder = mutableListOf<ReplacementRule>()
+fun createReplacementRulesFor(optimizationLevel: Compiler.OptimizationLevel): List<ReplacementRule> {
+    val builder = RuleBuilder()
+    builder.basicRules()
+    if (optimizationLevel == Compiler.OptimizationLevel.Full) {
+        builder.advancedAddressModes()
+        builder.advancedRules()
+    }
+    return builder.build()
+}
+
+private class RuleBuilder {
+    private val rules = mutableListOf<ReplacementRule>()
 
     fun rule(name: String, block: ReplacementRuleBuilderScope.() -> Unit): Boolean {
-        return rulesBuilder.add(
+        return rules.add(
             buildRule(name, block)
         )
     }
 
+    fun build() = rules.toList()
+}
+
+private fun RuleBuilder.basicRules() {
     /*****************************
      ** Misc
      *****************************/
@@ -504,13 +519,17 @@ val replacementRules = run {
             )
         }
     }
+}
 
+private fun RuleBuilder.advancedAddressModes() {
     /*****************************
      ** Advanced address modes
      *****************************
      * Basic address modes are handled by add and mul binary ops.
      *****************************/
     // TODO
+}
 
-    return@run rulesBuilder.toList()
+private fun RuleBuilder.advancedRules() {
+
 }

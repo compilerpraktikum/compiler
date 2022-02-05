@@ -1,5 +1,6 @@
 package edu.kit.compiler.backend.codegen
 
+import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Register
 import edu.kit.compiler.backend.molkir.Width
@@ -67,28 +68,35 @@ operator fun LazyInstructionList.plus(other: LazyInstructionList) = append(other
 
 fun instructionListOf(vararg instructions: Instruction) = LazyInstructionList().append(instructions)
 
-fun CodeGenIR.transform(registerTable: VirtualRegisterTable): Replacement {
-    walkDepthFirst { node ->
-        println("VISIT: ${node.display()}")
-        /*
-         * The code below assumes that all rules matching the node have the same result type (most likely register).
-         * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
-         * Otherwise, we would need to store the best replacement for each possible result type.
-         */
-        val possibleReplacements = replacementRules.mapNotNull { rule ->
-            with(ReplacementScope(registerTable, node, rule.name)) {
-                rule.match(node)?.let { it to rule.name }
+class InstructionSelector(
+    optimizationLevel: Compiler.OptimizationLevel
+) {
+    private val rules = createReplacementRulesFor(optimizationLevel)
+
+    fun transform(root: CodeGenIR, registerTable: VirtualRegisterTable): List<Instruction> {
+        root.walkDepthFirst { node ->
+            println("VISIT: ${node.display()}")
+            /*
+             * The code below assumes that all rules matching the node have the same result type (most likely register).
+             * In this case, we can simply select the rule with the minimal cost and use this as the replacement.
+             * Otherwise, we would need to store the best replacement for each possible result type.
+             */
+            val possibleReplacements = rules.mapNotNull { rule ->
+                with(ReplacementScope(registerTable, node, rule.name)) {
+                    rule.match(node)?.let { it to rule.name }
+                }
             }
+            if (possibleReplacements.isEmpty()) {
+                node.replacement = null
+            } else {
+                val minCost = possibleReplacements.minOf { it.first.cost }
+                val optimalReplacements = possibleReplacements.filter { it.first.cost == minCost }
+                check(optimalReplacements.size <= 1) { "more than one replacement possible for node ${node.display()}:\n${optimalReplacements.joinToString(separator = "\n") { "  - ${it.second}" }}" }
+                node.replacement = optimalReplacements.firstOrNull()?.first
+            }
+            println("-> REPLACEMENT: ${node.replacement}")
         }
-        if (possibleReplacements.isEmpty()) {
-            node.replacement = null
-        } else {
-            val minCost = possibleReplacements.minOf { it.first.cost }
-            val optimalReplacements = possibleReplacements.filter { it.first.cost == minCost }
-            check(optimalReplacements.size <= 1) { "more than one replacement possible for node ${node.display()}:\n${optimalReplacements.joinToString(separator = "\n") { "  - ${it.second}" }}" }
-            node.replacement = optimalReplacements.firstOrNull()?.first
-        }
-        println("-> REPLACEMENT: ${node.replacement}")
+
+        return root.replacement?.instructions?.build() ?: error("no matching replacement found for root node ${root.display()}")
     }
-    return replacement ?: error("no matching replacement found for root node ${this.display()}")
 }
