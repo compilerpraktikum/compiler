@@ -203,12 +203,12 @@ class Compiler(private val config: Config) {
             )
         } catch (e: SecurityException) {
             return CompilerResult.failure("error: access to source file denied: ${e.message}")
+        } catch (e: MalformedInputException) {
+            return CompilerResult.failure("error: invalid source file encoding: ${e.message}")
         } catch (e: IOException) {
             return CompilerResult.failure("error: failed to read source file: ${e.message}")
         } catch (e: OutOfMemoryError) {
             return CompilerResult.failure("error: files larger than 2GB are not supported")
-        } catch (e: MalformedInputException) {
-            return CompilerResult.failure("error: invalid source file encoding: ${e.message}")
         }
     }
 
