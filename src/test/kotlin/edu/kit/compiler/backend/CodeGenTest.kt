@@ -126,7 +126,7 @@ class CodeGenTest {
                     BinaryOpType.ADD,
                     CodeGenIR.Const("33", Width.QUAD),
                     CodeGenIR.Const("44", Width.QUAD)
-                )s
+                )
             )
         }
         assertMolkiEquals(
