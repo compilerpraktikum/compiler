@@ -123,7 +123,6 @@ class CodeGenFacade(
             PlatformTransformation.transformFunction(
                 function,
                 numberOfArguments[graph]!!,
-                // TODO: use externalCallingConvention for main
                 callingConvention
             )
         }
