@@ -13,8 +13,11 @@ import firm.nodes.Phi
 import firm.nodes.Proj
 import firm.nodes.Return
 import firm.nodes.Store
-import java.lang.IllegalStateException
+import java.util.NoSuchElementException
 import java.util.Stack
+import java.util.Vector
+import kotlin.IllegalStateException
+import kotlin.system.measureTimeMillis
 
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
 
@@ -81,8 +84,205 @@ class StoreAfterStoreNodeCollector(
  */
 class StoreAfterStore(val graph: Graph) {
 
-    // todo if langeweile: die interfaces sind relativ sicher bullshit..
-    class Path<T>(val list: MutableList<T>, override val size: Int = 0) : MutableList<T>, Set<T> {
+    class PathTree(rootFirmNode: Return) {
+        val root: PathTreeNode
+        val construction_visited: MutableSet<Node> = HashSet()
+        val construction_currentPath: Path<Node> = Path(mutableListOf())
+        val circles: MutableList<Path<Node>> = mutableListOf()
+
+        init {
+            this.root = PathTreeNode(rootFirmNode, this, null)
+        }
+
+        private fun addCircleFromCurrentPath(firmNode: Node) {
+//            println()
+//            println("DEBUG in addCircleFromCurrentPath with $construction_currentPath")
+//            println()
+            if (construction_currentPath.contains(firmNode)) {
+                circles.add(construction_currentPath.newCircleIncluding(firmNode))
+            }
+        }
+
+        class PathTreeNode(val node: Node, pathTree: PathTree, val parent: PathTreeNode? = null) {
+            val children: MutableList<PathTreeNode> = ArrayList(if (node is Phi) node.predCount else 1)
+
+            init {
+                // visit the node first because of construction recursion!
+                if (node != node.graph.start) {
+                    pathTree.construction_visited.add(this.node)
+                    pathTree.construction_currentPath.add(this.node)
+                }
+
+                if (node == node.graph.start) {
+                    // "return"
+                } else if (node is Bad) {
+                    error("GOT BAD NODE $node. Abort mission.")
+                    // "return"
+                } else if (node is Phi) {
+                    node.preds.forEach { firmChild ->
+                        if (!pathTree.construction_visited.contains(firmChild)) {
+                            children.add(PathTreeNode(firmChild, pathTree, this))
+                        } else {
+                            // Circle construction: store current path while constructing and copy&store it in this case!
+                            pathTree.addCircleFromCurrentPath(firmChild)
+                        }
+                    }
+                } else {
+                    val nextNode = node.getPred(0)
+                    if (!pathTree.construction_visited.contains(nextNode)) {
+                        children.add(PathTreeNode(nextNode, pathTree, this))
+                    } else {
+                        // Circle construction: store current path while constructing and copy&store it in this case!
+                        pathTree.addCircleFromCurrentPath(nextNode)
+                    }
+                }
+
+                if (node != node.graph.start) {
+                    pathTree.construction_currentPath.removeLast()
+                }
+            }
+
+            fun childCount(): Int {
+                return node.predCount
+            }
+        }
+
+        /**
+         * This iterator walks through all
+         */
+        class PathTreeIterator(val pathTree: PathTree, val desiredDestinations: Set<Node>) : Iterator<Iterator<Node>> {
+            // TODO this iterator executes a simple DFS through the pathTree!
+            var currentPathTreeNode = pathTree.root
+            var currentPathTreeNodeIterator = PathTreeNodeIterator(this, currentPathTreeNode.node)
+            var nextWasAlreadyCalled = true
+            var nextPathTreeNodeIterator: PathTreeNodeIterator? = currentPathTreeNodeIterator
+
+            val iteratedDestinations: MutableSet<Node> = HashSet()
+
+            // nodes
+            val visited: MutableSet<PathTreeNode> = HashSet()
+
+            override fun hasNext(): Boolean {
+                setNextIfNotAlreadyDone()
+//                return !visited.contains(currentPathTreeNode)
+                return !visited.contains(pathTree.root) && !iteratedDestinations.containsAll(desiredDestinations)
+                // the next Iterator
+//                return nextPathTreeNodeIterator!!.hasNext()
+            }
+
+            private fun setNextIfNotAlreadyDone() {
+                if (! nextWasAlreadyCalled) {
+                    if (currentPathTreeNodeIterator.hasNext()) throw IllegalStateException("Called hasNext while underlying iterator still has elements!")
+                    // we know that the underlying iterator is done.
+                    nextPathTreeNodeIterator = PathTreeNodeIterator(this, pathTree.root.node)
+                }
+                nextWasAlreadyCalled = true
+            }
+
+            // todo this currently invalidates the last iterator!
+            override fun next(): Iterator<Node> {
+                // reset currentPathTreeNode
+                this.currentPathTreeNode = pathTree.root
+                setNextIfNotAlreadyDone()
+                currentPathTreeNodeIterator = nextPathTreeNodeIterator ?: throw NoSuchElementException("Iterator has no next element!")
+                nextWasAlreadyCalled = false
+                return currentPathTreeNodeIterator
+            }
+
+            fun dfsNext(): Node? {
+                val maybeNextNode = currentPathTreeNode.children.indexOfFirst { !visited.contains(it) }
+                return if (maybeNextNode != -1) {
+                    // it's a child, visit it
+                    visitNode(currentPathTreeNode.children[maybeNextNode])
+                    currentPathTreeNode = currentPathTreeNode.children[maybeNextNode]
+                    currentPathTreeNode.node
+                } else {
+                    // all children must have been visited, go back to parent and mark this node as visited
+                    visitNode(currentPathTreeNode)
+
+                    // iteratively go back until some node has children
+                    var nextFirmNode: Node? = null
+
+                    /* if no children, recursion will give the next that has children until there is none with a parent,
+                       which is when nextFirmNode will be null. */
+                    while (currentPathTreeNode.children.all { visited.contains(it) } && currentPathTreeNode!!.parent != null) {
+                        currentPathTreeNode = currentPathTreeNode.parent!!
+                        nextFirmNode = dfsNext()
+                    }
+//                    if (currentPathTreeNode!!.parent == null) visitNode(currentPathTreeNode)
+                    nextFirmNode
+                }
+            }
+
+            /**
+             * Tree nodes are marked as visited, if all their children were visited.
+             * A leaf is visited once this method is called on it.
+             */
+            private fun visitNode(pathTreeNode: PathTreeNode): PathTreeNode {
+                if (pathTreeNode.children.all { visited.contains(it) }) {
+                    visited.add(pathTreeNode)
+                }
+                return pathTreeNode
+            }
+        }
+
+        /**
+         * Iterates over paths until not-already-visited T occurs.
+         */
+        class PathTreeNodeIterator(val pathTreeIterator: PathTreeIterator, rootNode: Node) : Iterator<Node> {
+            var currentNode = rootNode
+            var nextNode: Node? = currentNode
+            var nextWasAlreadyCalled = true
+
+            var overAndOut = false
+
+//            init {
+//                if (pathTreeIterator.visited.contains(pathTreeIterator.currentPathTreeNode)) {
+//                    nextNode = null
+//                    nextWasAlreadyCalled = false
+//                }
+//            }
+
+            override fun hasNext(): Boolean {
+                // TODO abbruchbedingung!
+//                println("PTNI hasNext")
+                if (overAndOut) return false
+                setNextIfNotAlreadyDone()
+                return nextNode != null
+            }
+
+            override fun next(): Node {
+                if (!hasNext()) throw NoSuchElementException("Iterator has no next element!")
+
+                if (nextNode != null &&
+                    pathTreeIterator.desiredDestinations.contains(nextNode) &&
+                    !pathTreeIterator.iteratedDestinations.contains(nextNode)
+                ) {
+                    // we found the next path to a T typed node.
+                    overAndOut = true
+                    pathTreeIterator.iteratedDestinations.add(nextNode!!)
+                }
+
+                currentNode = nextNode ?: throw NoSuchElementException("Iterator has no next element!")
+                nextWasAlreadyCalled = false
+                return currentNode
+            }
+
+            private fun setNextIfNotAlreadyDone() {
+                if (! nextWasAlreadyCalled) {
+                    nextNode = pathTreeIterator.dfsNext()
+                }
+                nextWasAlreadyCalled = true
+            }
+        }
+
+        fun getIterableFor(nodeSet: Set<Node>): Iterable<Iterator<Node>> {
+            return Iterable { PathTreeIterator(this, nodeSet) }
+        }
+    }
+
+// todo if langeweile: die interfaces sind relativ sicher bullshit..
+    class Path<T>(var list: MutableList<T>, override val size: Int = 0) : MutableList<T>, Set<T> {
         val nodeHashSet: MutableSet<T> = HashSet(size)
 
         init {
@@ -104,14 +304,27 @@ class StoreAfterStore(val graph: Graph) {
         override fun subList(fromIndex: Int, toIndex: Int) = list.subList(fromIndex, toIndex)
 
         fun cloneAndAdd(element: T): Path<T> {
-            val newPath = Path(list.toMutableList())
+            val newPath = Path(Vector(list))
+            newPath.add(element)
+            return newPath
+        }
+
+        fun newCircleIncluding(element: T): Path<T> {
+            val newPath = Path(
+                Vector(
+                    list.subList(
+                        list.indexOfFirst { it == element },
+                        list.size
+                    )
+                )
+            )
             newPath.add(element)
             return newPath
         }
 
         override fun toString(): String {
             return "Path[" + list.fold("") { acc, t ->
-                "$acc${ if (acc.isEmpty()) "$t" else " --> $t" }"
+                "$acc${ if (acc.isEmpty()) "$t" else " -> $t" }"
             } + "]"
         }
 
@@ -139,6 +352,14 @@ class StoreAfterStore(val graph: Graph) {
             while (list.remove(element)) list.remove(element)
             return nodeHashSet.remove(element)
         }
+
+        fun removeLast(): T {
+            val element = list.removeLast()
+            // TODO if performance schlecht ==> in einer Hashmap mitzählen, wie oft das element im pfad...
+            if (!list.contains(element)) nodeHashSet.remove(element)
+            return element
+        }
+
         override fun removeAll(elements: Collection<T>): Boolean {
             nodeHashSet.removeAll(elements.toSet())
             return list.removeAll(elements)
@@ -221,7 +442,27 @@ class StoreAfterStore(val graph: Graph) {
 
     var deletedAnyStoreNode = false
 
-    private fun calculateSpanningForest() = graph.end.block.preds.forEach { calculateSpanningTree(it as Return, Path(mutableListOf(it))) }
+    private fun calculateSpanningForest() = graph.end.block.preds.forEach { returnNode ->
+        debug("  - calculate spanning tree for $returnNode")
+        calculateSpanningTree(returnNode as Return, Path(mutableListOf(returnNode)))
+
+        // TODO this a test!
+        println("  - PathTree[")
+        val pathTree = PathTree(returnNode)
+        println("    - [constructed]")
+        pathTree.circles.forEach { println("    - Circle$it") }
+        pathTree.getIterableFor(localVarStoreStack.toSet()).forEach { path ->
+            print("    - Path[")
+            path.forEach { print(" -> $it") }
+            println("]")
+        }
+        println("    ]")
+        println("  - Paths from OLD[")
+        storePaths.forEach { println("    - $it") }
+        println("  - Circles from OLD[")
+        circlePaths.forEach { println("    - $it") }
+        println("    ]")
+    }
 
     /**
      * @param path includes param node!
@@ -314,7 +555,10 @@ class StoreAfterStore(val graph: Graph) {
         }
     }
 
+    private fun debug(string: String) = println("[DEBUG - $graph]: $string")
+
     fun removeDeadStores(): Boolean {
+        debug("before collect")
         // Collect all stores and populate maps from load and store to their respective proj nodes (invariant for LOCAL VAR ACCESSES, ONLY!)
         graph.walk(
             StoreAfterStoreNodeCollector(
@@ -323,22 +567,31 @@ class StoreAfterStore(val graph: Graph) {
             )
         )
 
+        debug("before calc span forest")
+
         /* For each Return node, run a spanning tree algorithm (DFS) which yields
             * Each path from each return to each store node
             * all circles in the graph
          */
-        calculateSpanningForest()
+        val elapsed = measureTimeMillis {
+            calculateSpanningForest()
+        }
+        debug("  - it took $elapsed ms.")
+        debug("before calc data river closures")
 
         /* Calculate DataRiverClosures™ (Def 1.2) which each contain all circles that are "reachability-connected".
            These Closures are disjunct!
          */
         calculateDataRiverClosures()
 
+        debug("before dead store check & deleting")
         /* Determine whether store nodes are dead stores (Def 0.0) and delete them. */
         localVarStoreToAddressProjNodeMap.keys
             .filter { isDeadStore(it) }
 //            .map { println("  - $it"); it }
             .forEach { deleteStoreNode(it) }
+
+        debug("before return")
         return deletedAnyStoreNode
     }
 
