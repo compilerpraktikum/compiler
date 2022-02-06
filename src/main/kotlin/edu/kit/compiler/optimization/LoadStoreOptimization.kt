@@ -425,9 +425,11 @@ class StoreAfterStore(val graph: Graph) {
         }
     }
 
-    val storePaths: MutableList<Path<Node>> = mutableListOf()
-    val circlePaths: MutableList<Path<Node>> = mutableListOf()
+//    val storePaths: MutableList<Path<Node>> = mutableListOf()
+    var circlePaths: MutableList<Path<Node>> = mutableListOf()
     val circleDataRiverClosures: MutableList<DataRiverClosure> = mutableListOf()
+
+    val storePathIterables: MutableList<Iterable<Iterator<Node>>> = mutableListOf()
 
     val localVarStoreStack = Stack<Store>()
     val localVarStoreToAddressProjNodeMap = HashMap<Store, Proj>()
@@ -438,80 +440,85 @@ class StoreAfterStore(val graph: Graph) {
     var deletedAnyStoreNode = false
 
     private fun calculateSpanningForest() = graph.end.block.preds.forEach { returnNode ->
-        debug("  - calculate spanning tree for $returnNode")
-        calculateSpanningTree(returnNode as Return, Path(mutableListOf(returnNode)))
+//        debug("  - calculate spanning tree for $returnNode")
+//        calculateSpanningTree(returnNode as Return, Path(mutableListOf(returnNode)))
 
         // TODO this a test!
-        println("  - PathTree[")
-        val pathTree = PathTree(returnNode)
-        println("    - [constructed]")
-        pathTree.circles.forEach { println("    - Circle$it") }
-        pathTree.getIterableFor(localVarStoreStack.toSet()).forEach { path ->
-            print("    - Path[")
-            path.forEach { print(" -> $it") }
-            println("]")
-        }
-        println("    ]")
-        println("  - Paths from OLD[")
-        storePaths.forEach { println("    - $it") }
-        println("  - Circles from OLD[")
-        circlePaths.forEach { println("    - $it") }
-        println("    ]")
+//        println("  - PathTree[")
+        val pathTree = PathTree(returnNode as Return)
+//        println("    - [constructed]")
+//        pathTree.circles.forEach { println("    - Circle$it") }
+//        pathTree.getIterableFor(localVarStoreStack.toSet()).forEach { path ->
+//            print("    - Path[")
+//            path.forEach { print(" -> $it") }
+//            println("]")
+//        }
+        // 1. set circlepaths
+        circlePaths = pathTree.circles
+        // 2. set storepaths
+        storePathIterables.add(pathTree.getIterableFor(localVarStoreStack.toSet()))
+
+//        println("    ]")
+//        println("  - Paths from OLD[")
+//        storePaths.forEach { println("    - $it") }
+//        println("  - Circles from OLD[")
+//        circlePaths.forEach { println("    - $it") }
+//        println("    ]")
     }
 
     /**
      * @param path includes param node!
      */
-    private fun calculateSpanningTree(node: Node, path: Path<Node>) {
-        if (node == graph.start) {
-            return
-        } else if (node is Bad) {
-            error("GOT BAD NODE $node. Abort mission.")
-            return
-        } else if (node is Store) {
-            // 1. handle store
-            storePaths.add(path)
+//    private fun calculateSpanningTree(node: Node, path: Path<Node>) {
+//        if (node == graph.start) {
+//            return
+//        } else if (node is Bad) {
+//            error("GOT BAD NODE $node. Abort mission.")
+//            return
+//        } else if (node is Store) {
+//            // 1. handle store
+//            storePaths.add(path)
+//
+//            // 2. handle children
+//            val next0Pred = node.getPred(0)
+//            if (!checkCircleInNewPathAndStoreCirclePath(next0Pred, path)) {
+//                calculateSpanningTree(next0Pred, path.cloneAndAdd(next0Pred))
+//            }
+//        } else if (node is Phi) {
+//            node.preds.forEach {
+//                // continue only if not visited (circle)
+//                if (!checkCircleInNewPathAndStoreCirclePath(it, path)) {
+//                    calculateSpanningTree(it, path.cloneAndAdd(it))
+//                }
+//            }
+//        } else {
+//            val nextNode = node.getPred(0)
+//            if (!checkCircleInNewPathAndStoreCirclePath(nextNode, path)) {
+//                calculateSpanningTree(nextNode, path.cloneAndAdd(nextNode))
+//            }
+//        }
+//    }
 
-            // 2. handle children
-            val next0Pred = node.getPred(0)
-            if (!checkCircleInNewPathAndStoreCirclePath(next0Pred, path)) {
-                calculateSpanningTree(next0Pred, path.cloneAndAdd(next0Pred))
-            }
-        } else if (node is Phi) {
-            node.preds.forEach {
-                // continue only if not visited (circle)
-                if (!checkCircleInNewPathAndStoreCirclePath(it, path)) {
-                    calculateSpanningTree(it, path.cloneAndAdd(it))
-                }
-            }
-        } else {
-            val nextNode = node.getPred(0)
-            if (!checkCircleInNewPathAndStoreCirclePath(nextNode, path)) {
-                calculateSpanningTree(nextNode, path.cloneAndAdd(nextNode))
-            }
-        }
-    }
+//    private fun checkCircleInNewPathAndStoreCirclePath(nextNode: Node, oldPath: Path<Node>): Boolean {
+//        return if (oldPath.contains(nextNode)) {
+//            // ( ReturnNode -> ... NodeI -> ... -> NodeI) ==> (NodeI -> ... -> NodeI)
+//            circlePaths.add(circlify(oldPath.cloneAndAdd(nextNode)))
+//            true
+//        } else {
+//            false
+//        }
+//    }
 
-    private fun checkCircleInNewPathAndStoreCirclePath(nextNode: Node, oldPath: Path<Node>): Boolean {
-        return if (oldPath.contains(nextNode)) {
-            // ( ReturnNode -> ... NodeI -> ... -> NodeI) ==> (NodeI -> ... -> NodeI)
-            circlePaths.add(circlify(oldPath.cloneAndAdd(nextNode)))
-            true
-        } else {
-            false
-        }
-    }
-
-    private fun circlify(pathFromStartToCircleEnd: Path<Node>): Path<Node> {
-        return Path(
-            pathFromStartToCircleEnd.subList(
-                pathFromStartToCircleEnd.list.indexOfFirst {
-                    it == pathFromStartToCircleEnd.list.last()
-                },
-                pathFromStartToCircleEnd.list.size
-            )
-        )
-    }
+//    private fun circlify(pathFromStartToCircleEnd: Path<Node>): Path<Node> {
+//        return Path(
+//            pathFromStartToCircleEnd.subList(
+//                pathFromStartToCircleEnd.list.indexOfFirst {
+//                    it == pathFromStartToCircleEnd.list.last()
+//                },
+//                pathFromStartToCircleEnd.list.size
+//            )
+//        )
+//    }
 
     private fun calculateDataRiverClosures() {
 
@@ -550,7 +557,9 @@ class StoreAfterStore(val graph: Graph) {
         }
     }
 
-    private fun debug(string: String) = println("[DEBUG - $graph]: $string")
+    private fun debug(string: String) {
+//        println("[DEBUG - $graph]: $string")
+    }
 
     fun removeDeadStores(): Boolean {
         debug("before collect")
@@ -648,35 +657,107 @@ class StoreAfterStore(val graph: Graph) {
     }
 
     /**
+     * TODO delete this before merging!
+     */
+    private fun println(str: String) {
+//        kotlin.io.println(str)
+    }
+    /**
+     * TODO delete this before merging!
+     */
+    private fun println() {
+//        kotlin.io.println()
+    }
+    /**
+     * TODO delete this before merging!
+     */
+    private fun print(str: String) {
+//        kotlin.io.print(str)
+    }
+    /**
+     * TODO delete this before merging!
+     */
+    private fun print() {
+//        kotlin.io.print()
+    }
+
+    /**
      * Test whether a path is critical for a given store node and maybe return a witness for uncritical
      */
     private fun anyStorePathIsCriticalFor(store: Store): Pair<Boolean, Set<Store>> {
+        debug("In anyStorePathIsCriticalFor for $store")
         val witnesses = mutableSetOf<Store>()
-        var critical = false
+        var critical = true
         val projNode = localVarStoreToAddressProjNodeMap[store]
         val projOffset = localVarStoreToAddressProjOffsetMap[store]
-        storePaths
-            .filter { storePath -> storePath.contains(store) } // we want the exact store node!
-            .forEach { storePath ->
-                val loadsAndCallsAndStoresAfterOurStore = storePath.list
-                    .subList(0, storePath.indexOf(store)) /* There can be only one occurence of the given store node,
-                        since there ain't no circles, here! Further, this specifically excludes the given store node!*/
-                    .reversed() // walk backwards
-                    .filter { node ->
-                        node is Store && localVarStoreToAddressProjNodeMap[node] == projNode && localVarStoreToAddressProjOffsetMap[node] == projOffset ||
+
+        storePathIterables.forEach { treeIterable ->
+            var lastLoadOrCallOrStoreBeforeOurStore: Node? = null
+            var storeFound = false // also used as a soft break because the iterator implementation is unbreakable.
+            debug("  - TREE_ITERABLE")
+            treeIterable.forEach { storePathIterator ->
+                debug("    - storePathIterator")
+                print("                                            [")
+                for (node in storePathIterator) {
+                    if (!storeFound) {
+                        print("$node ->")
+                        // loop until reaching store
+                        if (node == store) {
+                            storeFound = true
+                        } else if (node is Store && localVarStoreToAddressProjNodeMap[node] == projNode && localVarStoreToAddressProjOffsetMap[node] == projOffset ||
                             node is Load && localVarLoadToAddressProjNodeMap[node] == projNode && localVarLoadToAddressProjOffsetMap[node] == projOffset ||
                             node is Call
-                    } /* Now we have only relevant loads/ calls and stores! If the first element is a load,
-                        we got a CRITICAL path, else (Store) we have a potential dead store.*/
-                    .toList()
-                if (loadsAndCallsAndStoresAfterOurStore.isEmpty()) {
-                    critical = true // no store found!
-                } else if (loadsAndCallsAndStoresAfterOurStore.first() is Store) {
-                    witnesses.add(loadsAndCallsAndStoresAfterOurStore.first() as Store) // uncritical with witness.
-                } else {
-                    critical = true // load or call found!
+                        ) {
+                            lastLoadOrCallOrStoreBeforeOurStore = node
+                        }
+                    }
                 }
+                println("]")
             }
+            if (storeFound) {
+                debug("STOR FOUND. last relevant node: $lastLoadOrCallOrStoreBeforeOurStore")
+                if (lastLoadOrCallOrStoreBeforeOurStore == null) {
+                    critical = true // no store found
+                } else if (lastLoadOrCallOrStoreBeforeOurStore is Store) {
+                    witnesses.add(lastLoadOrCallOrStoreBeforeOurStore as Store) // uncritical with witness.
+                    critical = false
+                } else {
+                    critical = true // Load or Call found
+                }
+//                when (lastLoadOrCallOrStoreBeforeOurStore) {
+//                    null -> critical = true // no store found
+//                    is Store -> {
+//                        witnesses.add(lastLoadOrCallOrStoreBeforeOurStore as Store) // uncritical with witness.
+////                        critical = false
+//                    }
+//                    else -> critical = true // Load or Call found
+//                }
+            } else {
+                debug("NO STOR FOUND")
+            }
+        }
+//        storePaths
+//            .filter { storePath -> storePath.contains(store) } // we want the exact store node!
+//            .forEach { storePath ->
+//                val loadsAndCallsAndStoresAfterOurStore = storePath.list
+//                    .subList(0, storePath.indexOf(store)) /* There can be only one occurence of the given store node,
+//                        since there ain't no circles, here! Further, this specifically excludes the given store node!*/
+//                    .reversed() // walk backwards
+//                    .filter { node ->
+//                        node is Store && localVarStoreToAddressProjNodeMap[node] == projNode && localVarStoreToAddressProjOffsetMap[node] == projOffset ||
+//                            node is Load && localVarLoadToAddressProjNodeMap[node] == projNode && localVarLoadToAddressProjOffsetMap[node] == projOffset ||
+//                            node is Call
+//                    } /* Now we have only relevant loads/ calls and stores! If the first element is a load,
+//                        we got a CRITICAL path, else (Store) we have a potential dead store.*/
+//                    .toList()
+//                if (loadsAndCallsAndStoresAfterOurStore.isEmpty()) {
+//                    critical = true // no store found!
+//                } else if (loadsAndCallsAndStoresAfterOurStore.first() is Store) {
+//                    witnesses.add(loadsAndCallsAndStoresAfterOurStore.first() as Store) // uncritical with witness.
+//                } else {
+//                    critical = true // load or call found!
+//                }
+//            }
 
         return Pair(critical, witnesses) // uncritical, no
     }
