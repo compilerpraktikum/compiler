@@ -94,13 +94,14 @@ class StoreAfterStore(val graph: Graph) {
             this.root = PathTreeNode(rootFirmNode, this, null)
         }
 
-        private fun addCircleFromCurrentPath(firmNode: Node) {
+        private fun addCircleFromCurrentPath(firmNode: Node): Boolean {
 //            println()
 //            println("DEBUG in addCircleFromCurrentPath with $construction_currentPath")
 //            println()
-            if (construction_currentPath.contains(firmNode)) {
+            return if (construction_currentPath.contains(firmNode)) {
                 circles.add(construction_currentPath.newCircleIncluding(firmNode))
-            }
+                true
+            } else false
         }
 
         class PathTreeNode(val node: Node, pathTree: PathTree, val parent: PathTreeNode? = null) {
@@ -120,20 +121,14 @@ class StoreAfterStore(val graph: Graph) {
                     // "return"
                 } else if (node is Phi) {
                     node.preds.forEach { firmChild ->
-                        if (!pathTree.construction_visited.contains(firmChild)) {
+                        if (!pathTree.addCircleFromCurrentPath(firmChild)) {
                             children.add(PathTreeNode(firmChild, pathTree, this))
-                        } else {
-                            // Circle construction: store current path while constructing and copy&store it in this case!
-                            pathTree.addCircleFromCurrentPath(firmChild)
                         }
                     }
                 } else {
                     val nextNode = node.getPred(0)
-                    if (!pathTree.construction_visited.contains(nextNode)) {
+                    if (!pathTree.addCircleFromCurrentPath(nextNode)) {
                         children.add(PathTreeNode(nextNode, pathTree, this))
-                    } else {
-                        // Circle construction: store current path while constructing and copy&store it in this case!
-                        pathTree.addCircleFromCurrentPath(nextNode)
                     }
                 }
 
