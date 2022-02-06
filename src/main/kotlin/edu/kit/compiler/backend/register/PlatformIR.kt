@@ -46,32 +46,32 @@ sealed class PlatformTarget : PlatformIR {
         val const: String?,
         val base: Register?,
         val index: Register?,
-        val scale: Int?,
+        val scale: String?,
     ) : PlatformTarget() {
         companion object {
             fun of(
                 const: String,
                 base: Register,
                 index: Register? = null,
-                scale: Int? = null
+                scale: String? = null
             ) = Memory(const, base, index, scale)
 
             fun of(
                 base: Register,
                 index: Register? = null,
-                scale: Int? = null
+                scale: String? = null
             ) = Memory(null, base, index, scale)
 
             fun of(
                 const: String,
                 index: Register? = null,
-                scale: Int? = null
+                scale: String? = null
             ) = Memory(const, null, index, scale)
         }
 
         init {
             if (scale != null) {
-                check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
+                check(scale in listOf("1", "2", "4", "8")) { "scale must be 1, 2, 4 or 8" }
                 check(index != null) { "cannot provide scale without index" }
             }
         }

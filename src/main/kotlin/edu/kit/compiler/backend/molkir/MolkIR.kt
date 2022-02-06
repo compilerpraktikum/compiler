@@ -66,7 +66,7 @@ private constructor(
     val const: String?,
     val base: Register?,
     val index: Register?,
-    val scale: Int?,
+    val scale: String?,
     override val width: Width,
 ) : Target.InputOutput {
     companion object {
@@ -74,28 +74,28 @@ private constructor(
             const: String,
             base: Register,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(const, base, index, scale, width)
 
         fun of(
             base: Register,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(null, base, index, scale, width)
 
         fun of(
             const: String,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(const, null, index, scale, width)
     }
 
     init {
         if (scale != null) {
-            check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
+            check(scale in listOf("1", "2", "4", "8")) { "scale must be 1, 2, 4 or 8" }
             check(index != null) { "cannot provide scale without index" }
         }
     }

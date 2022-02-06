@@ -526,7 +526,76 @@ private fun RuleBuilder.advancedAddressModes() {
      *****************************
      * Basic address modes are handled by add and mul binary ops.
      *****************************/
-    // TODO
+    rule("offset(%register)") { // field access
+        val offset = variable<CodeGenIR.Const.Value>()
+        val register = variable<Register>()
+        val replacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.Indirection(
+                CodeGenIR.BinaryOp(
+                    BinaryOpType.ADD,
+                    CodeGenIR.Const(offset),
+                    CodeGenIR.RegisterRef(register, replacement)
+                )
+            )
+        )
+
+        condition {
+            offset.get().value.toLong() <= Int.MAX_VALUE.toLong()
+        }
+
+        replaceWith {
+            Replacement(
+                node = CodeGenIR.MemoryAddress(
+                    Memory.of(
+                        const = offset.get().value,
+                        base = register.get(),
+                        width = register.get().width,
+                    )
+                ),
+                instructions = replacement.get().instructions,
+                cost = replacement.get().cost
+            )
+        }
+    }
+    rule("(%register, %index, \$scale)") { // array access
+        val base = variable<Register>()
+        val baseReplacement = variable<Replacement>()
+        val scale = variable<CodeGenIR.Const.Value>()
+        val index = variable<Register>()
+        val indexReplacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.Indirection(
+                CodeGenIR.BinaryOp(
+                    BinaryOpType.ADD,
+                    CodeGenIR.RegisterRef(base, baseReplacement),
+                    CodeGenIR.BinaryOp(
+                        BinaryOpType.MUL,
+                        CodeGenIR.Const(scale),
+                        CodeGenIR.RegisterRef(index, indexReplacement),
+                    ),
+                )
+            )
+        )
+
+        replaceWith {
+            Replacement(
+                node = CodeGenIR.MemoryAddress(
+                    Memory.of(
+                        base = base.get(),
+                        index = index.get(),
+                        scale = scale.get().value,
+                        width = base.get().width,
+                    )
+                ),
+                instructions = baseReplacement.get().instructions
+                    .append(indexReplacement.get().instructions),
+                cost = baseReplacement.get().cost + indexReplacement.get().cost
+            )
+        }
+    }
 }
 
 @Suppress("unused")
