@@ -13,6 +13,8 @@ sealed interface Target : MolkIR {
 }
 
 class Constant(val value: String, override val width: Width) : Target.Input {
+    constructor(value: Int, width: Width) : this(value.toString(), width)
+
     override fun toMolki(): String = "$$value"
 }
 
@@ -66,7 +68,7 @@ private constructor(
     val const: String?,
     val base: Register?,
     val index: Register?,
-    val scale: Int?,
+    val scale: String?,
     override val width: Width,
 ) : Target.InputOutput {
     companion object {
@@ -74,28 +76,28 @@ private constructor(
             const: String,
             base: Register,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(const, base, index, scale, width)
 
         fun of(
             base: Register,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(null, base, index, scale, width)
 
         fun of(
             const: String,
             index: Register? = null,
-            scale: Int? = null,
+            scale: String? = null,
             width: Width
         ) = Memory(const, null, index, scale, width)
     }
 
     init {
         if (scale != null) {
-            check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
+            check(scale in listOf("1", "2", "4", "8")) { "scale must be 1, 2, 4 or 8" }
             check(index != null) { "cannot provide scale without index" }
         }
     }
@@ -211,13 +213,22 @@ sealed class Instruction : MolkIR {
         val left: Target.Input,
         val right: Target.Input,
         val result: Target.Output,
+        checkWidth: Boolean = true
     ) : Instruction() {
         init {
-            checkWidth(left, right, result)
+            if (checkWidth) {
+                checkWidth(left, right, result)
+            }
         }
 
         val name
             get() = type.instruction + left.width.instructionSuffix
+
+        val isShift
+            get() = when (type) {
+                Type.SAR, Type.SHL, Type.SHR -> true
+                else -> false
+            }
 
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
 
@@ -311,11 +322,11 @@ sealed class Instruction : MolkIR {
         fun xor(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.XOR, left, right, result)
 
         // bitwise shift (arithmetic = preserve sign)
-        fun sar(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SAR, left, right, result)
+        fun sar(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SAR, left, right, result, false)
 
         // bitwise shift (logical)
-        fun shl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHL, left, right, result)
-        fun shr(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHR, left, right, result)
+        fun shl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHL, left, right, result, false)
+        fun shr(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHR, left, right, result, false)
 
         /* @formatter:on */
         /* ktlint-enable no-multi-spaces */

@@ -46,7 +46,7 @@ private constructor(private val instructions: () -> MutableList<Instruction>) {
     }
 
     @JvmName("appendAll")
-    fun append(vararg instructions: Instruction) = append(instructions)
+    fun append(vararg instructions: Instruction?) = append(instructions.filterNotNull())
 
     fun append(list: LazyInstructionList) = append(list.buildList())
 

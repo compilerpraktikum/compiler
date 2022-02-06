@@ -52,6 +52,19 @@ private fun <T> ValueHolder<T>.matchValue(target: ValueHolder<T>): Boolean {
     }
 }
 
+private fun <T, E> ValueHolder<T>.matchValueBy(target: ValueHolder<T>, extractor: (T) -> E): Boolean {
+    val targetValue = target.getAndAssertConstant()
+    return when (this) {
+        is ValueHolder.Variable -> {
+            set(targetValue)
+            true
+        }
+        is ValueHolder.Constant -> {
+            extractor(get()) == extractor(targetValue)
+        }
+    }
+}
+
 private fun ValueHolder<CodeGenIR>.matchIR(target: ValueHolder<CodeGenIR>): Boolean {
     val targetValue = target.getAndAssertConstant()
     return when (this) {
@@ -148,7 +161,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
             if (target !is Const)
                 return false
 
-            return valueHolder.matchValue(target.valueHolder)
+            return valueHolder.matchValueBy(target.valueHolder) { it.value }
         }
     }
 
