@@ -234,6 +234,8 @@ class TrivialFunctionTransformer(
             is MolkiInstruction.BinaryOperationWithResult -> {
                 if (instr.type == MolkiInstruction.BinaryOperationWithResult.Type.SUB) {
                     transformSubtraction(instr)
+                } else if (instr.isShift) {
+                    transformShift(instr)
                 } else {
                     transformBinaryOperationWithResult(instr)
                 }
@@ -296,6 +298,22 @@ class TrivialFunctionTransformer(
 
         // generate spill code
         spillResultIfNecessary(instr.result, right)
+    }
+
+    /**
+     * Transform a shift operation (which requires the left operand to be writable).
+     */
+    private fun transformShift(instr: MolkiInstruction.BinaryOperationWithResult) {
+        // transform operands
+        val target = transformOperand(instr.left, true)
+        val amount = transformOperand(instr.right, false)
+
+        // transform instruction
+        check(amount !is PlatformTarget.Register) { "shift by register not supported" }
+        appendInstruction(PlatformInstruction.BinaryOperation(instr.name, amount, target))
+
+        // generate spill code
+        spillResultIfNecessary(instr.result, target)
     }
 
     /**

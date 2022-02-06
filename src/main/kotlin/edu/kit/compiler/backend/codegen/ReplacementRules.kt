@@ -2,6 +2,7 @@ package edu.kit.compiler.backend.codegen
 
 import edu.kit.compiler.Compiler
 import edu.kit.compiler.backend.codegen.CodeGenIR.RegisterRef
+import edu.kit.compiler.backend.molkir.Constant
 import edu.kit.compiler.backend.molkir.Instruction
 import edu.kit.compiler.backend.molkir.Memory
 import edu.kit.compiler.backend.molkir.Register
@@ -12,6 +13,7 @@ import edu.kit.compiler.utils.ValueHolder
 import firm.Mode
 import firm.Relation
 import firm.nodes.Address
+import kotlin.math.absoluteValue
 import edu.kit.compiler.utils.rule as buildRule
 
 fun createReplacementRulesFor(optimizationLevel: Compiler.OptimizationLevel): List<ReplacementRule> {
@@ -391,7 +393,7 @@ private fun RuleBuilder.basicRules() {
                         debugComment(),
                         binOp.get().molkiOp(leftTarget.get(), rightTarget.get(), resRegister),
                     ),
-                cost = left.get().cost + right.get().cost + 1,
+                cost = left.get().cost + right.get().cost + 2,
             )
         }
     }
@@ -600,5 +602,156 @@ private fun RuleBuilder.advancedAddressModes() {
 
 @Suppress("unused")
 private fun RuleBuilder.advancedRules() {
-    // TODO
+    rule("inc") {
+        val operand = variable<Register>()
+        val operandReplacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.BinaryOp(
+                BinaryOpType.ADD,
+                RegisterRef(operand, operandReplacement),
+                CodeGenIR.Const(constant(CodeGenIR.Const.Value("1", Width.DOUBLE)))
+            )
+        )
+
+        replaceWith {
+            val result = newRegister(operand.get().width)
+            Replacement(
+                node = RegisterRef(result),
+                instructions = operandReplacement.get().instructions
+                    .append(
+                        debugComment(),
+                        Instruction.inc(operand.get(), result)
+                    ),
+                cost = operandReplacement.get().cost + 1
+            )
+        }
+    }
+    rule("dec") {
+        val operand = variable<Register>()
+        val operandReplacement = variable<Replacement>()
+
+        match(
+            CodeGenIR.BinaryOp(
+                BinaryOpType.SUB,
+                RegisterRef(operand, operandReplacement),
+                CodeGenIR.Const(constant(CodeGenIR.Const.Value("1", Width.DOUBLE)))
+            )
+        )
+
+        replaceWith {
+            val result = newRegister(operand.get().width)
+            Replacement(
+                node = RegisterRef(result),
+                instructions = operandReplacement.get().instructions
+                    .append(
+                        debugComment(),
+                        Instruction.dec(operand.get(), result)
+                    ),
+                cost = operandReplacement.get().cost + 1
+            )
+        }
+    }
+
+    fun Int.positiveIsPowerOf2(): Boolean {
+        check(this >= 0 || this == Int.MIN_VALUE) { "only works for positive numbers and Int.MIN_VALUE" }
+        return countOneBits() == 1
+    }
+    fun Int.positiveLog2(): Int {
+        check(this >= 0 || this == Int.MIN_VALUE) { "only works for positive numbers and Int.MIN_VALUE" }
+        return 32 - countLeadingZeroBits() - 1
+    }
+    rule("multiplication with power of 2") {
+        val left = variable<Register>()
+        val leftReplacement = variable<Replacement>()
+        val factor = variable<CodeGenIR.Const.Value>()
+
+        match(
+            CodeGenIR.BinaryOp(
+                BinaryOpType.MUL,
+                RegisterRef(left, leftReplacement),
+                CodeGenIR.Const(factor)
+            )
+        )
+
+        var factorInt: Int? = null
+        condition {
+            factorInt = factor.get().value.toInt()
+            factorInt!!.absoluteValue.positiveIsPowerOf2()
+        }
+
+        replaceWith {
+            val log2 = factorInt!!.absoluteValue.positiveLog2()
+            val result = newRegister(left.get().width)
+            Replacement(
+                node = RegisterRef(result),
+                instructions = leftReplacement.get().instructions
+                    .append(
+                        debugComment(),
+                        Instruction.shl(left.get(), Constant(log2.toString(), Width.BYTE), result),
+                        if (factorInt!! < 0) {
+                            Instruction.neg(result, result)
+                        } else {
+                            null
+                        }
+                    ),
+                cost = leftReplacement.get().cost + 1
+            )
+        }
+    }
+    rule("division by power of 2") {
+        val left = variable<Register>()
+        val leftReplacement = variable<Replacement>()
+        val divisor = variable<CodeGenIR.Const.Value>()
+
+        match(
+            CodeGenIR.Div(
+                RegisterRef(left, leftReplacement),
+                CodeGenIR.Const(divisor)
+            )
+        )
+
+        var divisorInt: Int? = null
+        condition {
+            divisorInt = divisor.get().value.toInt()
+            divisorInt!!.absoluteValue.positiveIsPowerOf2()
+        }
+
+        replaceWith {
+            /*
+             * (any >> log2) does not work for negative numbers as it leads to rounding errors if the number is not
+             * exactly dividable by [divisor]. Example:
+             *   -5 /  2 == -2
+             * but
+             *   -5 >> 1 == -3
+             * The following construction works around this problem by adding 1 to the result exactly when the number
+             * is negative and not dividable by [divisor].
+             */
+            val width = left.get().width
+            val log2 = divisorInt!!.absoluteValue.positiveLog2()
+            val result = newRegister(width)
+
+            Replacement(
+                node = RegisterRef(result),
+                instructions = leftReplacement.get().instructions
+                    .append(
+                        debugComment(),
+                        if (log2 > 1) {
+                            Instruction.sar(left.get(), Constant(log2 - 1, Width.BYTE), result)
+                        } else {
+                            Instruction.mov(left.get(), result)
+                        },
+                        Instruction.shr(result, Constant(32 - log2, Width.BYTE), result),
+                        Instruction.add(left.get(), result, result),
+                        Instruction.sar(result, Constant(log2, Width.BYTE), result),
+                        if (divisorInt!! < 0) {
+                            Instruction.neg(result, result)
+                        } else {
+                            null
+                        }
+                    ),
+                cost = leftReplacement.get().cost + 1
+            )
+        }
+    }
 }
