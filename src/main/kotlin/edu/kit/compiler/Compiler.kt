@@ -213,22 +213,22 @@ class Compiler(private val config: Config) {
     }
 
     private fun runBackEnd(factory: (String, Path, Path) -> Backend) {
-        val sourceFileName = config.sourceFile.fileName
+        val compilationUnit = config.sourceFile.nameWithoutExtension
 
         val assemblyFile = if (config.dump.contains(Dump.AssemblyFile)) {
-            Paths.get(sourceFileName.replaceExtension(".asm"))
+            Paths.get("$compilationUnit.asm")
         } else {
-            Files.createTempFile("$sourceFileName-", ".asm").apply {
+            Files.createTempFile("$compilationUnit-", ".asm").apply {
                 toFile().deleteOnExit()
             }
         }
 
-        val executableFile = config.outputFile ?: Paths.get(sourceFileName.replaceExtension(""))
+        val executableFile = config.outputFile ?: Paths.get(compilationUnit)
         if (executableFile.toAbsolutePath().normalize() == config.sourceFile.toAbsolutePath().normalize()) {
             throw CompilationException("output file would overwrite source file. please specify a different output file using `--out`.")
         }
 
-        val backend = factory(sourceFileName.toString(), assemblyFile, executableFile)
+        val backend = factory(compilationUnit, assemblyFile, executableFile)
         backend.generate()
     }
 

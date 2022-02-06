@@ -18,7 +18,7 @@ class CompilerBackend(
 ) : Backend {
     override fun generate() {
         val graphs = Program.getGraphs()
-        val codeGenFacade = CodeGenFacade(graphs, optimizationLevel = optimizationLevel, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
+        val codeGenFacade = CodeGenFacade(compilationUnit, graphs, optimizationLevel = optimizationLevel, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
         codeGenFacade.generate()
         if (useMolki) {
             Logger.warning { "The generated molki code is not entirely compatible with molki.py. Expect errors." }

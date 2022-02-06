@@ -60,7 +60,7 @@ class CodeGenTest {
         registerTable: VirtualRegisterTable = VirtualRegisterTable()
     ): CodeGenFacade {
         val graphs = generateGraph(code, registerTable)
-        val codegen = CodeGenFacade(graphs, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
+        val codegen = CodeGenFacade("Test", graphs, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
         codegen.generateCodeGenIR()
         return codegen
     }
@@ -231,7 +231,7 @@ class CodeGenTest {
     @Ignore
     fun testWithPlatform() {
         val graph = generateGraph("class Test { public static void main(String[] args) {} }")
-        val codeGenFacade = CodeGenFacade(graph, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
+        val codeGenFacade = CodeGenFacade("Test", graph, Compiler.OptimizationLevel.Base, dumpCodeGenIR = true, dumpMolkIR = true)
         val platformCodes = codeGenFacade.generate()
         platformCodes.forEach { (graph, instructions) ->
             println("graph: ${graph.entity.ldName}")

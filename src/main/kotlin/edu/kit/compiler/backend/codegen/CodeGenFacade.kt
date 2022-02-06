@@ -16,6 +16,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class CodeGenFacade(
+    private val compilationUnit: String,
     private val graphs: Iterable<Graph>,
     private val optimizationLevel: Compiler.OptimizationLevel,
     private val dumpCodeGenIR: Boolean,
@@ -179,7 +180,7 @@ class CodeGenFacade(
         if (!dumpMolkIR)
             return
 
-        val molkiDumpFile = File("./out.molki")
+        val molkiDumpFile = File("./$compilationUnit.molki")
         generateMolkiFile(molkiDumpFile)
     }
 
