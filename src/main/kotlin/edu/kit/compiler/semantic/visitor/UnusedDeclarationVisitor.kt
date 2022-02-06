@@ -117,15 +117,16 @@ class UnusedDeclarationVisitor(val sourceFile: SourceFile) : AbstractVisitor() {
             }
         }
 
-        // only warn for methods / fields if the class itself is used, otherwise they are inherently unused
+        // only warn for methods / fields if the class itself is used (-> otherwise they are inherently unused)
+        // note: the main class is never unused
         methodDeclarations.forEach { (decl, used) ->
-            sourceFile.warningIf(!used && classDeclarations[decl.owner]!!) {
+            sourceFile.warningIf(!used && (classDeclarations[decl.owner]!! || decl.owner == mainClassDeclaration)) {
                 "method ${decl.display()} is never used" at decl.name.sourceRange
             }
         }
 
         fieldDeclarations.forEach { (decl, used) ->
-            sourceFile.warningIf(!used && classDeclarations[decl.owner]!!) {
+            sourceFile.warningIf(!used && (classDeclarations[decl.owner]!! || decl.owner == mainClassDeclaration)) {
                 "field ${decl.display()} is never used" at decl.name.sourceRange
             }
         }

@@ -85,4 +85,22 @@ internal class UnusedDeclarationVisitorTest {
             """.trimIndent()
         }
     }
+
+    @Test
+    fun testUnusedFieldInMainClass() {
+        check(
+            listOf(
+                "field `Test.a` is never used",
+                "field `Test.b` is never used",
+            )
+        ) {
+            """
+                class Test {
+                    public int a;
+                    public int b;
+                    public static void main(String[] args) {}
+                }
+            """.trimIndent()
+        }
+    }
 }
