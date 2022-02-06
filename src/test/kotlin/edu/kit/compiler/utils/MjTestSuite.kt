@@ -91,7 +91,7 @@ abstract class MjTestSuite(
 
     @ParameterizedTest
     @MethodSource("provideTests")
-    @Timeout(30, unit = TimeUnit.SECONDS)
+    @Timeout(90, unit = TimeUnit.SECONDS)
     fun test(testCase: TestCase) {
         println("[test:$phase] ${testCase.path}")
 
