@@ -490,7 +490,7 @@ private fun RuleBuilder.basicRules() {
         }
     }
     rule("store") {
-        val fromRegister = variable<Register>()
+        val from = variable<Target.Input>()
         val fromReplacement = variable<Replacement>()
         val toMemory = variable<Memory>()
         val toReplacement = variable<Replacement>()
@@ -498,7 +498,7 @@ private fun RuleBuilder.basicRules() {
         match(
             CodeGenIR.Assign(
                 to = CodeGenIR.MemoryAddress(toMemory, toReplacement),
-                from = RegisterRef(fromRegister, fromReplacement),
+                from = ConstOrRegisterRef(from, fromReplacement),
             )
         )
         replaceWith {
@@ -509,8 +509,8 @@ private fun RuleBuilder.basicRules() {
                     .append(
                         debugComment(),
                         Instruction.mov(
-                            fromRegister.get(),
-                            toMemory.get().width(fromRegister.get().width), // TODO new width needed?
+                            from.get(),
+                            toMemory.get().width(from.get().width), // TODO new width needed?
                         ),
                     ),
                 cost = fromReplacement.get().cost + toReplacement.get().cost + 1,
