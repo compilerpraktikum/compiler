@@ -97,7 +97,10 @@ private fun applyConstantPropagationAndFolding(graph: Graph): Boolean {
 
     val hasChanged = replaceConstants(graph, analysis.nodeValues)
 
-    // cleanup graph
+    // remove Bads introduced in replaceCondition
+    firm.bindings.binding_irgopt.remove_bads(graph.ptr)
+
+    // remove unreachable code
     firm.bindings.binding_irgopt.remove_unreachable_code(graph.ptr)
     firm.bindings.binding_irgopt.remove_bads(graph.ptr)
 
@@ -289,6 +292,9 @@ private class ConstantAnalysis(graph: Graph) : WorkListVisitor(graph) {
     }
 
     override fun visit(node: Phi) {
+        if (node.mode == Mode.getM())
+            return // has no value
+
         val value = node.preds.asSequence().map(::getValueOf).supremum()
         update(node, value)
     }
