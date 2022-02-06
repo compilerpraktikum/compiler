@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package edu.kit.compiler.utils
 
 object Logger {

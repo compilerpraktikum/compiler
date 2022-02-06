@@ -2,9 +2,8 @@ package edu.kit.compiler
 
 import edu.kit.compiler.ast.validate
 import edu.kit.compiler.backend.Backend
+import edu.kit.compiler.backend.CompilerBackend
 import edu.kit.compiler.backend.FirmBackend
-import edu.kit.compiler.backend.createCompilerBackend
-import edu.kit.compiler.backend.createCompilerBackendWithMolki
 import edu.kit.compiler.error.CompilerResult
 import edu.kit.compiler.error.ExitCode
 import edu.kit.compiler.lexer.Lexer
@@ -74,7 +73,7 @@ class Compiler(private val config: Config) {
             // open the input file
             val sourceFile = openCompilationUnit().unwrap {
                 reportError()
-                return ExitCode.ERROR_FILE_SYSTEM
+                return@compile ExitCode.ERROR_FILE_SYSTEM
             }
 
             @Suppress("KotlinConstantConditions")
@@ -145,11 +144,23 @@ class Compiler(private val config: Config) {
                         doOptimization(config.optimizationLevel, config.dump.contains(Dump.MethodGraphsAfterEachOptimization))
                         dumpGraphsIfEnabled(Dump.MethodGraphsAfterOptimization, "after-optimization")
 
+                        fun createBackendFactory(useMolki: Boolean) = { compilationUnit: String, assemblyFile: Path, executableFile: Path ->
+                            CompilerBackend(
+                                compilationUnit,
+                                assemblyFile,
+                                executableFile,
+                                useMolki = useMolki,
+                                optimizationLevel = config.optimizationLevel,
+                                dumpCodeGenIR = config.dump.contains(Dump.CodeGenIR),
+                                dumpMolki = config.dump.contains(Dump.Molki),
+                            )
+                        }
+
                         runBackEnd(
                             when (mode) {
                                 Mode.CompileFirm -> ::FirmBackend
-                                Mode.CompileMolki -> ::createCompilerBackendWithMolki
-                                Mode.Compile -> ::createCompilerBackend
+                                Mode.CompileMolki -> createBackendFactory(true)
+                                Mode.Compile -> createBackendFactory(false)
                                 else -> { throw IllegalStateException("unknown mode") }
                             }
                         )
@@ -192,12 +203,12 @@ class Compiler(private val config: Config) {
             )
         } catch (e: SecurityException) {
             return CompilerResult.failure("error: access to source file denied: ${e.message}")
+        } catch (e: MalformedInputException) {
+            return CompilerResult.failure("error: invalid source file encoding: ${e.message}")
         } catch (e: IOException) {
             return CompilerResult.failure("error: failed to read source file: ${e.message}")
         } catch (e: OutOfMemoryError) {
             return CompilerResult.failure("error: files larger than 2GB are not supported")
-        } catch (e: MalformedInputException) {
-            return CompilerResult.failure("error: invalid source file encoding: ${e.message}")
         }
     }
 
@@ -248,11 +259,13 @@ class Compiler(private val config: Config) {
     }
 
     enum class Dump(val cliFlag: String) {
-        AssemblyFile("asm"),
         MethodGraphsAfterConstruction("graph:construction"),
         MethodGraphsAfterLowering("graph:lowering"),
         MethodGraphsAfterOptimization("graph:optimization"),
-        MethodGraphsAfterEachOptimization("graph:each-optimization");
+        MethodGraphsAfterEachOptimization("graph:each-optimization"),
+        AssemblyFile("asm"),
+        CodeGenIR("codegen"),
+        Molki("molki");
 
         override fun toString(): String = cliFlag
     }

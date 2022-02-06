@@ -2,16 +2,10 @@ package edu.kit.compiler.optimization
 
 import edu.kit.compiler.Compiler
 import edu.kit.compiler.utils.Logger
-import firm.ClassType
+import edu.kit.compiler.utils.display
 import firm.Dump
 import firm.Graph
 import firm.Program
-
-private fun Graph.display(): String =
-    entity?.let {
-        val parentName = it.owner?.let { (it as? ClassType)?.name } ?: "<???>"
-        "$parentName.${it.name}"
-    } ?: "<???>"
 
 /**
  * Optimizes the given [Graph]. Returns whether any changes have been made.

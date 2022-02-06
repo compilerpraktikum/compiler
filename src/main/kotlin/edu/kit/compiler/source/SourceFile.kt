@@ -103,12 +103,12 @@ private constructor(
     fun calculateLineAndColumn(offset: Int): Pair<Int, Int> {
         require(offset >= 0) { "offset must be >= 0" }
         val index = lineStarts.binarySearch(offset)
-        if (index >= 0) {
-            return Pair(index + 1, 1)
+        return if (index >= 0) {
+            Pair(index + 1, 1)
         } else {
             // reconstruct the insertion index (-index - 1), start of line offset is smaller than [offset] so take the element before insertion index
             val startIndex = -index - 2
-            return Pair(startIndex + 1, offset - lineStarts[startIndex] + 1)
+            Pair(startIndex + 1, offset - lineStarts[startIndex] + 1)
         }
     }
 

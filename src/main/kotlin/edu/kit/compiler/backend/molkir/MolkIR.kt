@@ -1,32 +1,32 @@
 package edu.kit.compiler.backend.molkir
 
-import java.io.PrintStream
-
 interface MolkIR {
     fun toMolki(): String
 }
 
-sealed class Target : MolkIR {
-    override fun toString(): String = toMolki()
+sealed interface Target : MolkIR {
+    sealed interface Input : Target
+    sealed interface Output : Target
+    sealed interface InputOutput : Input, Output
 
-    sealed class Output : Target()
-    sealed class InputOutput : Output()
+    val width: Width
 }
 
-class Constant(val value: Int) : Target.InputOutput() {
+class Constant(val value: String, override val width: Width) : Target.Input {
     override fun toMolki(): String = "$$value"
 }
 
 @JvmInline
 value class RegisterId(val value: Int) : MolkIR {
     override fun toMolki(): String = value.toString()
+    override fun toString(): String = value.toString()
 }
 
-enum class Width(val inBytes: Int, val suffix: String) {
-    BYTE(1, "l"),
-    WORD(2, "w"),
-    DOUBLE(4, "d"),
-    QUAD(8, "");
+enum class Width(val inBytes: Int, val registerSuffix: String, val instructionSuffix: String) {
+    BYTE(1, "b", "b"),
+    WORD(2, "w", "w"),
+    DOUBLE(4, "d", "l"),
+    QUAD(8, "", "q");
 
     companion object {
         fun fromByteSize(size: Int): Width? = when (size) {
@@ -39,8 +39,8 @@ enum class Width(val inBytes: Int, val suffix: String) {
     }
 }
 
-class Register(val id: RegisterId, val width: Width) : Target.InputOutput() {
-    override fun toMolki(): String = "%@" + id.toMolki() + width.suffix
+data class Register(val id: RegisterId, override val width: Width) : Target.InputOutput {
+    override fun toMolki(): String = "%@" + id.toMolki() + width.registerSuffix
 
     companion object {
         fun byte(id: RegisterId) = Register(id, Width.BYTE)
@@ -50,8 +50,8 @@ class Register(val id: RegisterId, val width: Width) : Target.InputOutput() {
     }
 }
 
-class ReturnRegister(val width: Width) : Target.Output() {
-    override fun toMolki(): String = "%@r0" + width.suffix
+class ReturnRegister(override val width: Width) : Target.Output {
+    override fun toMolki(): String = "%@r0" + width.registerSuffix
 
     companion object {
         fun byte() = ReturnRegister(Width.BYTE)
@@ -63,11 +63,36 @@ class ReturnRegister(val width: Width) : Target.Output() {
 
 class Memory
 private constructor(
-    val const: Int?,
-    val base: Target.InputOutput?,
-    val index: Target.InputOutput?,
+    val const: String?,
+    val base: Register?,
+    val index: Register?,
     val scale: Int?,
-) : Target.InputOutput() {
+    override val width: Width,
+) : Target.InputOutput {
+    companion object {
+        fun of(
+            const: String,
+            base: Register,
+            index: Register? = null,
+            scale: Int? = null,
+            width: Width
+        ) = Memory(const, base, index, scale, width)
+
+        fun of(
+            base: Register,
+            index: Register? = null,
+            scale: Int? = null,
+            width: Width
+        ) = Memory(null, base, index, scale, width)
+
+        fun of(
+            const: String,
+            index: Register? = null,
+            scale: Int? = null,
+            width: Width
+        ) = Memory(const, null, index, scale, width)
+    }
+
     init {
         if (scale != null) {
             check(scale in listOf(1, 2, 4, 8)) { "scale must be 1, 2, 4 or 8" }
@@ -75,24 +100,10 @@ private constructor(
         }
     }
 
-    constructor(
-        const: Int,
-        base: Target.InputOutput,
-        index: Target.InputOutput? = null,
-        scale: Int? = null
-    ) : this(const as Int?, base, index, scale)
-
-    constructor(base: Target.InputOutput, index: Target.InputOutput? = null, scale: Int? = null) : this(
-        null,
-        base,
-        index,
-        scale
-    )
-
-    constructor(const: Int, index: Target.InputOutput? = null, scale: Int? = null) : this(const, null, index, scale)
+    fun width(newWidth: Width) = Memory(const, base, index, scale, newWidth)
 
     override fun toMolki(): String {
-        val constStr = const?.toString() ?: ""
+        val constStr = const ?: ""
         val baseStr = base?.toMolki() ?: ""
         val extStr = if (index != null) {
             val indexStr = index.toMolki()
@@ -108,12 +119,37 @@ private constructor(
     }
 }
 
+private fun checkWidth(operand: Target, vararg others: Target) {
+    others.forEachIndexed { i, other ->
+        check(operand.width == other.width) { "incompatible types ($i): ${operand.width} <-> ${other.width}" }
+    }
+}
+
 sealed class Instruction : MolkIR {
+    open val hasIndent: Boolean = true
+
     class Label(val name: String) : Instruction() {
+        override val hasIndent: Boolean = false
+
         override fun toMolki(): String = "$name:"
     }
 
-    class Call(val name: String, val arguments: List<Target.InputOutput>, val result: Target?) : Instruction() {
+    class Comment(val content: String) : Instruction() {
+        override fun toMolki(): String = "/* $content */"
+    }
+
+    /**
+     * @param name function name
+     * @param arguments [Target.Input]s for arguments
+     * @param result where to store the function's result value
+     * @param external whether this is an external function linked at a later point
+     */
+    class Call(
+        val name: String,
+        val arguments: List<Target.Input>,
+        val result: Target.Output?,
+        val external: Boolean
+    ) : Instruction() {
         override fun toMolki(): String {
             val args = arguments.joinToString(" | ") { it.toMolki() }
             val resultStr = result?.let { " -> ${it.toMolki()}" } ?: ""
@@ -125,147 +161,163 @@ sealed class Instruction : MolkIR {
         override fun toMolki(): String = "$name $label"
     }
 
-    class BinaryOperation(val name: String, val left: Target, val right: Target) : Instruction() {
+    class UnaryOperationWithResult(
+        val type: Type,
+        val operand: Target.Input,
+        val result: Target.Output,
+        private val overwriteName: String? = null,
+    ) : Instruction() {
+        init {
+            if (overwriteName == null) {
+                checkWidth(operand, result)
+            }
+        }
+
+        val name
+            get() = overwriteName ?: (type.instruction + operand.width.instructionSuffix)
+
+        override fun toMolki(): String = "$name ${operand.toMolki()}, ${result.toMolki()}"
+
+        enum class Type(val instruction: String) {
+            MOV("mov"),
+            INC("inc"),
+            DEC("dec"),
+            NEG("neg"),
+            NOT("not");
+        }
+    }
+
+    class BinaryOperation(
+        val type: Type,
+        val left: Target.Input,
+        val right: Target.Input,
+    ) : Instruction() {
+        init {
+            checkWidth(left, right)
+        }
+
+        val name
+            get() = type.instruction + left.width.instructionSuffix
+
         override fun toMolki(): String = "$name ${left.toMolki()}, ${right.toMolki()}"
+
+        enum class Type(val instruction: String) {
+            CMP("cmp");
+        }
     }
 
     class BinaryOperationWithResult(
-        val name: String,
-        val left: Target.InputOutput,
-        val right: Target.InputOutput,
-        val result: Target
+        val type: Type,
+        val left: Target.Input,
+        val right: Target.Input,
+        val result: Target.Output,
     ) : Instruction() {
+        init {
+            checkWidth(left, right, result)
+        }
+
+        val name
+            get() = type.instruction + left.width.instructionSuffix
+
         override fun toMolki(): String = "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> ${result.toMolki()}"
+
+        enum class Type(val instruction: String) {
+            ADD("add"),
+            SUB("sub"),
+            IMUL("imul"),
+            AND("and"),
+            OR("or"),
+            XOR("xor"),
+            SAR("sar"),
+            SHL("shl"),
+            SHR("shr");
+        }
     }
 
-    class BinaryOperationWithTwoPartResult(
-        val name: String,
-        val left: Target.InputOutput,
-        val right: Target.InputOutput,
-        val resultLeft: Target,
-        val resultRight: Target
+    class DivisionOperation(
+        val left: Target.Input,
+        val right: Target.Input,
+        val resultLeft: Target.Output,
+        val resultRight: Target.Output,
     ) : Instruction() {
+        init {
+            checkWidth(left, right, resultLeft, resultRight)
+        }
+
+        val name
+            get() = "idiv" + left.width.instructionSuffix
+
         override fun toMolki(): String =
             "$name [ ${left.toMolki()} | ${right.toMolki()} ] -> [ ${resultLeft.toMolki()} | ${resultRight.toMolki()} ]"
     }
-}
 
-/**
- * Builder to construct the assembler code for a function.
- *
- * Instruction suffixes:
- *   - b - byte (1 byte)
- *   - w - word (2 bytes)
- *   - l - double (4 bytes)
- *   - q - quad (8 bytes)
- */
-class FunctionBuilder(val name: String, val numArgs: Int, val numResults: Int) {
-    init {
-        check(numArgs >= 0)
-        check(numResults in 0..1) { "multi return not supported" }
+    /**
+     * Instruction suffixes:
+     *   - b - byte (1 byte)
+     *   - w - word (2 bytes)
+     *   - l - double (4 bytes)
+     *   - q - quad (8 bytes)
+     */
+    companion object {
+
+        fun comment(content: String) = Comment(content)
+
+        fun label(name: String) = Label(name)
+
+        fun call(name: String, arguments: List<Target.Input>, result: Target.Output?, external: Boolean) =
+            Call(name, arguments, result, external)
+
+        /* ktlint-disable no-multi-spaces */
+        /* @formatter:off */
+
+        fun cmp(left: Target.Input, right: Target.Input) = BinaryOperation(BinaryOperation.Type.CMP, right, left) // x86 / molki syntax for cmp is: `cmp right, left`
+
+        /****************************************
+         * Jumps
+         ****************************************/
+        fun jmp(label: String) = Jump("jmp", label)
+        fun jl(label: String)  = Jump("jl",  label)
+        fun jle(label: String) = Jump("jle", label)
+        fun je(label: String)  = Jump("je",  label)
+        fun jne(label: String) = Jump("jne", label)
+        fun jg(label: String)  = Jump("jg",  label)
+        fun jge(label: String) = Jump("jge", label)
+
+        /****************************************
+         * Unary operations with result
+         ****************************************/
+        fun mov(from: Target.Input, to: Target.Output): UnaryOperationWithResult = UnaryOperationWithResult(UnaryOperationWithResult.Type.MOV, from, to)
+        fun movs(from: Target.Input, to: Target.Output): UnaryOperationWithResult =
+            UnaryOperationWithResult(UnaryOperationWithResult.Type.MOV, from, to, "movs" + from.width.instructionSuffix + to.width.instructionSuffix)
+        fun inc(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.INC, operand, result)
+        fun dec(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.DEC, operand, result)
+        fun neg(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.NEG, operand, result)
+        fun not(operand: Target.Input, result: Target.Output) = UnaryOperationWithResult(UnaryOperationWithResult.Type.NOT, operand, result)
+
+        /****************************************
+         * Binary operations with result
+         ****************************************/
+        fun idiv(left: Target.Input, right: Target.Input, resultDiv: Target.Output, resultMod: Target.Output) =
+            DivisionOperation(left, right, resultDiv, resultMod)
+
+        // basic arithmetic
+        fun add(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.ADD, left, right, result)
+        fun sub(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.SUB, left, right, result)
+        fun imul(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.IMUL, left, right, result)
+
+        // basic logic
+        fun and(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.AND, left, right, result)
+        fun or(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.OR, left, right, result)
+        fun xor(left: Target.Input, right: Target.Input, result: Target.Output) = BinaryOperationWithResult(BinaryOperationWithResult.Type.XOR, left, right, result)
+
+        // bitwise shift (arithmetic = preserve sign)
+        fun sar(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SAR, left, right, result)
+
+        // bitwise shift (logical)
+        fun shl(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHL, left, right, result)
+        fun shr(left: Target.Input, right: Target.Input, result: Target.Output)  = BinaryOperationWithResult(BinaryOperationWithResult.Type.SHR, left, right, result)
+
+        /* @formatter:on */
+        /* ktlint-enable no-multi-spaces */
     }
-
-    private val instructions = mutableListOf<Instruction>()
-
-    fun build(out: PrintStream) {
-        out.appendLine(".function $name $numArgs $numResults")
-        instructions.forEach {
-            val indent = if (it is Instruction.Label) 0 else 4
-            out.append(" ".repeat(indent))
-            out.appendLine(it.toMolki())
-        }
-        out.appendLine(".endfunction")
-    }
-
-    private fun add(instruction: Instruction) {
-        instructions.add(instruction)
-    }
-
-    fun label(name: String) {
-        add(Instruction.Label(name))
-    }
-
-    fun call(name: String, arguments: List<Target.InputOutput>, result: Target?) {
-        add(Instruction.Call(name, arguments, result))
-    }
-
-    /* @formatter:off */
-    fun movl(from: Target.InputOutput, to: Target) { add(Instruction.BinaryOperation("movl", from, to)) }
-    fun movq(from: Target.InputOutput, to: Target) { add(Instruction.BinaryOperation("movq", from, to)) }
-
-    fun cmpl(left: Target.InputOutput, right: Target.InputOutput) { add(Instruction.BinaryOperation("cmpl", left, right)) }
-    fun cmpq(left: Target.InputOutput, right: Target.InputOutput) { add(Instruction.BinaryOperation("cmpq", left, right)) }
-    /* @formatter:on */
-
-    /****************************************
-     * Jumps
-     ****************************************/
-    private fun jump(name: String, label: String) {
-        add(Instruction.Jump(name, label))
-    }
-
-    /* ktlint-disable no-multi-spaces */
-    /* @formatter:off */
-    fun jmp(label: String) { jump("jmp", label) }
-    fun jl(label: String)  { jump("jl",  label) }
-    fun jle(label: String) { jump("jle", label) }
-    fun je(label: String)  { jump("je",  label) }
-    fun jne(label: String) { jump("jne", label) }
-    fun jg(label: String)  { jump("jg",  label) }
-    fun jge(label: String) { jump("jge", label) }
-    /* @formatter:on */
-    /* ktlint-enable no-multi-spaces */
-
-    /****************************************
-     * Binary operations with result
-     ****************************************/
-    fun idivq(left: Target.InputOutput, right: Target.InputOutput, resultDiv: Target, resultMod: Target) {
-        add(Instruction.BinaryOperationWithTwoPartResult("idivq", left, right, resultDiv, resultMod))
-    }
-
-    private fun binOp(name: String, left: Target.InputOutput, right: Target.InputOutput, result: Target) {
-        add(Instruction.BinaryOperationWithResult(name, left, right, result))
-    }
-
-    /* ktlint-disable no-multi-spaces */
-    /* @formatter:off */
-    // basic arithmetic
-    fun addl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("addl",  left, right, result) }
-    fun addq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("addq",  left, right, result) }
-    fun subl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("subl",  left, right, result) }
-    fun subq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("subq",  left, right, result) }
-    fun imull(left: Target.InputOutput, right: Target.InputOutput, result: Target) { binOp("imull", left, right, result) }
-    fun imulq(left: Target.InputOutput, right: Target.InputOutput, result: Target) { binOp("imulq", left, right, result) }
-
-    // increment / decrement
-    fun incl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("incl", left, right, result) }
-    fun incq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("incq", left, right, result) }
-    fun decl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("decl", left, right, result) }
-    fun decq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("decq", left, right, result) }
-
-    // negate (2 complement)
-    fun negl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("negl", left, right, result) }
-    fun negq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("negq", left, right, result) }
-    fun notl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("notl", left, right, result) }
-    fun notq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("notq", left, right, result) }
-    fun andl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("andl", left, right, result) }
-    fun andq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("andq", left, right, result) }
-    fun orl(left: Target.InputOutput, right: Target.InputOutput, result: Target)   { binOp("orl",  left, right, result) }
-    fun orq(left: Target.InputOutput, right: Target.InputOutput, result: Target)   { binOp("orq",  left, right, result) }
-    fun xorl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("xorl", left, right, result) }
-    fun xorq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("xorq", left, right, result) }
-
-    // bitwise shift (arithmetic = preserve sign)
-    fun sall(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("sall", left, right, result) }
-    fun salq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("salq", left, right, result) }
-    fun sarl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("sarl", left, right, result) }
-    fun sarq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("sarq", left, right, result) }
-
-    // bitwise shift (logical)
-    fun shll(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("shll", left, right, result) }
-    fun shlq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("shlq", left, right, result) }
-    fun shrl(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("shrl", left, right, result) }
-    fun shrq(left: Target.InputOutput, right: Target.InputOutput, result: Target)  { binOp("shrq", left, right, result) }
-    /* @formatter:on */
-    /* ktlint-enable no-multi-spaces */
 }

@@ -15,8 +15,7 @@ import edu.kit.compiler.source.SourceRange
 
 private val Token.isRelevantForSyntax
     get() = when (this) {
-        // TODO should maybe also contain Token.ErrorToken. That case was removed because óf Issue #85.
-        is Token.Whitespace, is Token.Comment -> false
+        is Token.Whitespace, is Token.Comment, is Token.ErrorToken -> false
         else -> true
     }
 
@@ -1205,7 +1204,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         return basicType
     }
 
-    private fun parseTypeArrayRecurse(
+    private tailrec fun parseTypeArrayRecurse(
         basicType: Parsed<AST.Type>,
         anc: AnchorUnion
     ): Parsed<AST.Type.Array> {
@@ -1219,7 +1218,7 @@ class Parser(sourceFile: SourceFile, tokens: Sequence<Token>) :
         val maybeAnotherLBracket = peek(0)
         val range = basicType.range.extendUntilFirstValid(rightBracket.getAsValid()?.range, leftBracket.range)
         return if (maybeAnotherLBracket is Token.Operator && maybeAnotherLBracket.type == Token.Operator.Type.LeftBracket) {
-            AST.Type.Array(parseTypeArrayRecurse(basicType, anc)).wrapConditionally(rightBracket.isValid, range)
+            parseTypeArrayRecurse(AST.Type.Array(basicType).wrapConditionally(rightBracket.isValid, range), anc)
         } else {
             AST.Type.Array(basicType).wrapConditionally(rightBracket.isValid, range)
         }

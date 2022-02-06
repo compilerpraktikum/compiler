@@ -146,18 +146,18 @@ internal class LexerTest {
     @Test
     @Ignore
     fun testVeryLongIdentifiers() {
-        val NUM_IDENTIFIERS = 1000
-        val IDENTIFIER_LENGTH = 100000
+        val numIdentifiers = 1000
+        val identifierLength = 100000
         val input = buildString {
-            repeat(NUM_IDENTIFIERS) {
-                append("a".repeat(IDENTIFIER_LENGTH))
+            repeat(numIdentifiers) {
+                append("a".repeat(identifierLength))
                 append(" ")
             }
         }
-        val IDENTIFIER = Token.Identifier("a".repeat(IDENTIFIER_LENGTH).toSymbol())
+        val identifier = Token.Identifier("a".repeat(identifierLength).toSymbol())
         val expectedTokens = mutableListOf<Token>().apply {
-            repeat(NUM_IDENTIFIERS) {
-                add(IDENTIFIER)
+            repeat(numIdentifiers) {
+                add(identifier)
                 add(Token.Whitespace(" "))
             }
             add(Token.Eof())

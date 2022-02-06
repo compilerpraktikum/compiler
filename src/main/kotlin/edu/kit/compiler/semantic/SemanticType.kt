@@ -27,7 +27,7 @@ sealed class SemanticType {
     data class Array(val elementType: SemanticType, val sourceRange: SourceRange) : SemanticType()
 
     /**
-     * If this type is assigned as the semantic type of an [SemanticAST], the defined type is invalid and type checks should
+     * If this type is assigned as the semantic type of [SemanticAST], the defined type is invalid and type checks should
      * silently fail (because an error message has already been generated)
      */
     object Error : SemanticType()
@@ -49,7 +49,7 @@ fun SemanticType.display(withBackTicks: Boolean = true) = when (withBackTicks) {
 }
 
 /**
- * Recursively retrieves the base type of an array
+ * Recursively retrieves the base type of the array
  */
 val SemanticType.Array.baseType: SemanticType
     get() {

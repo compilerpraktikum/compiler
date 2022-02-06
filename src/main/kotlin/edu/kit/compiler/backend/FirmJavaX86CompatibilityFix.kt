@@ -25,7 +25,7 @@ private fun Node.getResultProj(): Proj? {
         val node = it.node
         check(node is Proj) { "invalid division" }
         if (node.num == Div.pnRes) {
-            return node
+            return@getResultProj node
         }
     }
     return null

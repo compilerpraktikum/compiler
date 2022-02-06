@@ -76,7 +76,7 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
             }
             result as ExecutionResult.Success
 
-            val expectedOutputFile = testCaseDir.resolve(outputFileBase + ".out")
+            val expectedOutputFile = testCaseDir.resolve("$outputFileBase.out")
             if (!expectedOutputFile.exists()) {
                 return
             }
