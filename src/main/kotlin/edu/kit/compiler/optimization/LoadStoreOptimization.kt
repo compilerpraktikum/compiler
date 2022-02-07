@@ -29,7 +29,7 @@ const val StoreAfterStoreOptimizationMaxMPhisInGraph = 14 /* number of phis for 
 val StoreAfterStoreOptimizationHasTimedOutBefore = mutableMapOf<Graph, Boolean>()
 
 fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
-    return false // todo this is only a test..
+    return false // todo this is only a test...
 //    StoreAfterStoreOptimizationHasTimedOutBefore.putIfAbsent(graph, false)
 //    return if (!StoreAfterStoreOptimizationHasTimedOutBefore[graph]!! &&
 //        PhiCounter(graph).walk().phiCount <= StoreAfterStoreOptimizationMaxMPhisInGraph
