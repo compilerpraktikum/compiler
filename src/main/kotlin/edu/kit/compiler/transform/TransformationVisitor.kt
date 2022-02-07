@@ -52,12 +52,15 @@ class TransformationMethodVisitor(private val surroundingClass: SemanticAST.Clas
     override fun visitBlock(block: SemanticAST.Statement.Block) {
         block.statements.forEach {
             it.accept(this)
-
-            // skip dead code to prevent generating multiple returns
-            if (it is SemanticAST.Statement.ReturnStatement) {
-                return
-            }
         }
+    }
+
+    override fun visitStatement(statement: SemanticAST.Statement) {
+        if (FirmContext.doesCurrentBlockExit()) {
+            // everything past the return node is dead code and must not be executed
+            return
+        }
+        super.visitStatement(statement)
     }
 
     override fun visitMethodDeclaration(methodDeclaration: MethodDeclaration) {
