@@ -39,6 +39,8 @@ dependencies {
     implementation 'com.github.Firmwehr:jFirm:5b0164832e'
     implementation 'net.java.dev.jna:jna:4.5.2'
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0") /* For timeout in store optimization */
+
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
