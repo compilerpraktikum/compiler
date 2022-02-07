@@ -116,6 +116,22 @@ class TypeAnalysisTest {
     }
 
     @Test
+    fun testThisInBinopInCondition() {
+        check(false) {
+            """
+                class Test {
+                    public static void main(String[] args) {}
+                    public void a(int someVal) {
+                        if (this*2 == 10) {
+                        }
+                    }
+                }
+
+            """.trimIndent()
+        }
+    }
+
+    @Test
     fun debugFib() {
         check(true) {
             """
