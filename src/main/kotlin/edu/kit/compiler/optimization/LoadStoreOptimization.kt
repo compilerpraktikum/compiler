@@ -23,8 +23,8 @@ import kotlin.IllegalStateException
 import kotlin.system.measureTimeMillis
 
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
-// const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
-const val StoreAfterStoreOptimizationTimeoutMilliseconds = 1000L /* 1 seconds */
+const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
+// const val StoreAfterStoreOptimizationTimeoutMilliseconds = 1000L /* 1 seconds */
 const val StoreAfterStoreOptimizationMaxMPhisInGraph = 14 /* number of phis for the optimization to handle in reasonable time (">14" ==(ca.)==> ">4000ms") */
 val StoreAfterStoreOptimizationHasTimedOutBefore = mutableMapOf<Graph, Boolean>()
 
@@ -224,20 +224,19 @@ class StoreAfterStore(val graph: Graph) {
                     currentPathTreeNode = currentPathTreeNode.children[maybeNextNode]
                     currentPathTreeNode.node
                 } else {
+                    // TODO the old stuff succz, do sth else:  go back to the root and be done with it.
+
                     // all children must have been visited, go back to parent and mark this node as visited
                     visitNode(currentPathTreeNode)
 
-                    // iteratively go back until some node has children
-                    var nextFirmNode: Node? = null
-
                     /* if no children, recursion will give the next that has children until there is none with a parent,
                        which is when nextFirmNode will be null. */
-                    while (currentPathTreeNode.children.all { visited.contains(it) } && currentPathTreeNode!!.parent != null) {
+                    while (currentPathTreeNode.parent != null) {
                         currentPathTreeNode = currentPathTreeNode.parent!!
-                        nextFirmNode = dfsNext()
+                        visitNode(currentPathTreeNode)
+//                        nextFirmNode = dfsNext()
                     }
-//                    if (currentPathTreeNode!!.parent == null) visitNode(currentPathTreeNode)
-                    nextFirmNode
+                    null
                 }
             }
 
@@ -589,13 +588,16 @@ class StoreAfterStore(val graph: Graph) {
     }
 
     private fun isDeadStore(store: Store): Boolean {
+        print("$graph: In isDeadStore for $store: ")
         // 1. find if there is a critical store path
         val criticalityCheck = anyStorePathIsCriticalFor(store)
         if (criticalityCheck.first) { // there exists a path where after the store comes no other similar store or a load.
+            println("criticalityCheck FAILED")
             return false
         } else if (criticalityCheck.second.isEmpty()) {
             throw IllegalStateException("Uncritical paths must bear a witness.")
         }
+        println("criticalityCheck SUCCEEDED")
 
         // 2. Walk backwards through the closure in every possible way and halt at the first load or store occurrence, ...
         return circleDataRiverClosures
@@ -630,17 +632,18 @@ class StoreAfterStore(val graph: Graph) {
     private fun anyStorePathIsCriticalFor(store: Store): Pair<Boolean, Set<Store>> {
         debug("In anyStorePathIsCriticalFor for $store")
         val witnesses = mutableSetOf<Store>()
-        var critical = true
         val projNode = localVarStoreToAddressProjNodeMap[store]
         val projOffset = localVarStoreToAddressProjOffsetMap[store]
 
         storePathIterables.forEach { treeIterable ->
             var lastLoadOrCallOrStoreBeforeOurStore: Node? = null
-            var storeFound = false // also used as a soft break because the iterator implementation is unbreakable.
             debug("  - TREE_ITERABLE")
             treeIterable.forEach { storePathIterator ->
                 debug("    - storePathIterator")
+                print("(PATH[")
+                var storeFound = false // also used as a soft break because the iterator implementation is unbreakable.
                 for (node in storePathIterator) {
+                    print("$node->")
                     if (!storeFound) {
                         // loop until reaching store
                         if (node == store) {
@@ -653,18 +656,21 @@ class StoreAfterStore(val graph: Graph) {
                         }
                     }
                 }
-            }
-            if (storeFound) {
-                critical = when (lastLoadOrCallOrStoreBeforeOurStore) {
-                    null -> true // no store found
-                    is Store -> {
-                        witnesses.add(lastLoadOrCallOrStoreBeforeOurStore as Store)
-                        false // uncritical with witness.
+                print("], sf=$storeFound, ")
+                if (storeFound) {
+                    print("($lastLoadOrCallOrStoreBeforeOurStore")
+                    when (lastLoadOrCallOrStoreBeforeOurStore) {
+
+                        null -> return Pair(true, witnesses) // no store found
+                        is Store -> {
+                            witnesses.add(lastLoadOrCallOrStoreBeforeOurStore as Store) // uncritical with witness.
+                        }
+                        else -> return Pair(true, witnesses) // Load or Call found
                     }
-                    else -> true // Load or Call found
                 }
+                print(") ")
             }
         }
-        return Pair(critical, witnesses) // uncritical, no
+        return Pair(false, witnesses) // uncritical, no
     }
 }
