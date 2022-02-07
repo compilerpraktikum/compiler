@@ -194,10 +194,8 @@ class StoreAfterStore(val graph: Graph) {
 
             override fun hasNext(): Boolean {
                 setNextIfNotAlreadyDone()
-//                return !visited.contains(currentPathTreeNode)
                 return !visited.contains(pathTree.root) && !iteratedDestinations.containsAll(desiredDestinations)
                 // the next Iterator
-//                return nextPathTreeNodeIterator!!.hasNext()
             }
 
             private fun setNextIfNotAlreadyDone() {
