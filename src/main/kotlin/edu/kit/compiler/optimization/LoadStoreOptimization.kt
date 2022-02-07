@@ -24,20 +24,20 @@ import kotlin.IllegalStateException
 import kotlin.system.measureTimeMillis
 
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
-// const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
-const val StoreAfterStoreOptimizationTimeoutMilliseconds = 12000L /* 12 seconds */
+const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
 const val StoreAfterStoreOptimizationMaxMPhisInGraph = 14 /* number of phis for the optimization to handle in reasonable time (">14" ==(ca.)==> ">4000ms") */
 val StoreAfterStoreOptimizationHasTimedOutBefore = mutableMapOf<Graph, Boolean>()
 
 fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
-    StoreAfterStoreOptimizationHasTimedOutBefore.putIfAbsent(graph, false)
-    return if (!StoreAfterStoreOptimizationHasTimedOutBefore[graph]!! &&
-        PhiCounter(graph).walk().phiCount <= StoreAfterStoreOptimizationMaxMPhisInGraph
-    ) {
-        val hasChangedHasTimedOutPair = StoreAfterStore(graph).removeDeadStores(StoreAfterStoreOptimizationTimeoutMilliseconds)
-        StoreAfterStoreOptimizationHasTimedOutBefore[graph] = hasChangedHasTimedOutPair.second
-        hasChangedHasTimedOutPair.first
-    } else false
+    return false // todo this is only a test..
+//    StoreAfterStoreOptimizationHasTimedOutBefore.putIfAbsent(graph, false)
+//    return if (!StoreAfterStoreOptimizationHasTimedOutBefore[graph]!! &&
+//        PhiCounter(graph).walk().phiCount <= StoreAfterStoreOptimizationMaxMPhisInGraph
+//    ) {
+//        val hasChangedHasTimedOutPair = StoreAfterStore(graph).removeDeadStores(StoreAfterStoreOptimizationTimeoutMilliseconds)
+//        StoreAfterStoreOptimizationHasTimedOutBefore[graph] = hasChangedHasTimedOutPair.second
+//        hasChangedHasTimedOutPair.first
+//    } else false
 }
 
 class PhiCounter(val graph: Graph, val mode: Mode = Mode.getM()) : FirmNodeVisitorAdapter() {
