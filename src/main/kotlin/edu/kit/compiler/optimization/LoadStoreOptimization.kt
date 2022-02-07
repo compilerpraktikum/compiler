@@ -13,9 +13,8 @@ import firm.nodes.Phi
 import firm.nodes.Proj
 import firm.nodes.Return
 import firm.nodes.Store
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import java.util.NoSuchElementException
 import java.util.Stack
@@ -537,26 +536,26 @@ class StoreAfterStore(val graph: Graph) {
             )
         )
 
-        try {
-            runBlocking {
-                withTimeout(timeout) {
+        if (runBlocking<Boolean?> {
+            withTimeoutOrNull<Boolean?>(timeout) {
 
                     /* 2. For each Return node, run a spanning tree algorithm (DFS) which yields
-                    * Each path from each return to each store node
-                    * all circles in the graph
-                 */
-                    val elapsed = measureTimeMillis {
-                        calculateSpanningForest()
-                    }
-                    debug("  - spanning forest calc took $elapsed ms.")
+                        * Each path from each return to each store node
+                        * all circles in the graph
+                     */
+                val elapsed = measureTimeMillis {
+                    calculateSpanningForest()
+                }
+                debug("  - spanning forest calc took $elapsed ms.")
 
                     /* 3. Calculate DataRiverClosures™ (Def 1.2) which each contain all circles that are "reachability-connected".
-                      These Closures are disjunct!
-                 */
-                    calculateDataRiverClosures()
-                }
+                          These Closures are disjunct!
+                     */
+                calculateDataRiverClosures()
+                false
             }
-        } catch (e: TimeoutCancellationException) {
+        } == null
+        ) {
             return Pair(false, true)
         }
 
