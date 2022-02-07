@@ -450,6 +450,7 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
                 left.walkDepthFirst(walker)
                 right.walkDepthFirst(walker)
             }
+            is Noop -> {}
             is RegisterRef -> {}
             is Return -> {
                 returnValue.walkDepthFirst(walker)
@@ -464,7 +465,6 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
 
             AnyNode,
             is ConstOrRegisterRef,
-            is Noop,
             is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
 
@@ -479,8 +479,9 @@ sealed class CodeGenIR : MatchPattern<CodeGenIR> {
  */
 class Noop : CodeGenIR() {
     override fun matches(target: CodeGenIR): Boolean {
-        // target cannot be Noop (because Noop is only a utility node)
-        return target.replacement.let { it != null && it.node is Noop }
+        return target.alternatives.any {
+            it.node is Noop
+        }
     }
 }
 
@@ -615,6 +616,9 @@ class GraphVizBuilder {
                 left.internalToGraphViz().edge("left")
                 right.internalToGraphViz().edge("right")
             }
+            is Noop -> {
+                node("Noop")
+            }
             is CodeGenIR.RegisterRef -> {
                 node("Ref @${register.id}\n${register.width}")
             }
@@ -634,7 +638,6 @@ class GraphVizBuilder {
 
             AnyNode,
             is ConstOrRegisterRef,
-            is Noop,
             is SaveNodeTo -> error("invalid CodeGenIR graph: graph must not contain utility nodes")
         }
         return id
