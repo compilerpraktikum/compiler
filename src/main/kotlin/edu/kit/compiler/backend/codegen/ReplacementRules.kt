@@ -521,7 +521,6 @@ private fun RuleBuilder.basicRules() {
     }
 }
 
-@Suppress("unused")
 private fun RuleBuilder.advancedAddressModes() {
     /*****************************
      ** Advanced address modes
@@ -600,7 +599,6 @@ private fun RuleBuilder.advancedAddressModes() {
     }
 }
 
-@Suppress("unused")
 private fun RuleBuilder.advancedRules() {
     rule("inc") {
         val operand = variable<Register>()
@@ -674,6 +672,7 @@ private fun RuleBuilder.advancedRules() {
             )
         )
 
+        // even though this is not explicitly handled, the below code does also work for `factor == Int.MIN_VALUE`
         var factorInt: Int? = null
         condition {
             factorInt = factor.get().value.toInt()
@@ -711,6 +710,7 @@ private fun RuleBuilder.advancedRules() {
             )
         )
 
+        // even though this is not explicitly handled, the below code does also work for `factor == Int.MIN_VALUE`
         var divisorInt: Int? = null
         condition {
             divisorInt = divisor.get().value.toInt()
@@ -736,13 +736,49 @@ private fun RuleBuilder.advancedRules() {
                 instructions = leftReplacement.get().instructions
                     .append(
                         debugComment(),
+                        /*
+                         * First, we create a node that is (2^log2 - 1) if the number is negative and 0 if it is positive. To
+                         * do so, we shift right (signed) by (log2 - 1). This extends the sign bit to a sequence of (log2) bits.
+                         * We then shift (unsigned) the result by (32 - log2) bits to the right to move that sequence to the right
+                         * end of the number. Example: For log2 = 3 -> 2^log1 = 8 = 1000 in binary and dividend = -1_879_048_197
+                         *   -1_879_048_197                         -> 10001111111111111111111111111011
+                         *   signed right shift by (3 - 1) == 2     -> 11100011111111111111111111111110 // note that it starts with 3 ones
+                         *   unsigned right shift by (32 - 3) == 29 -> 00000000000000000000000000000111
+                         * If the number is positive, the above sequence of operations creates the number 0.
+                         */
                         if (log2 > 1) {
                             Instruction.sar(left.get(), Constant(log2 - 1, Width.BYTE), result)
                         } else {
                             Instruction.mov(left.get(), result)
                         },
                         Instruction.shr(result, Constant(32 - log2, Width.BYTE), result),
+                        /*
+                         * We now add the generated number to the dividend.
+                         * If the dividend is positive
+                         *   -> the generated number is 0 and this is a no-op
+                         * If the dividend is dividable by divisor
+                         *   -> it ends in (log2) zeros and thereby adding (roundingAddend) does NOT create a carry and only the last log2 bits change
+                         *      Example:
+                         *        divisor  = -4 -> positive log2 = 2
+                         *        dividend = -12 = ..110100
+                         *        roundingAddend = ..000011
+                         *        rounded        = ..110111 // note: number does not change past the first (log2) bits from the right
+                         * If the dividend is NOT dividable by divisor
+                         *   -> the right-most (log2) bits are NOT all zero and thereby adding (roundingAddend) creates a carry which
+                         *      increments the (log2 + 1)th bit from the right end
+                         *      Example:
+                         *        divisor  = -4 -> positive log2 = 2
+                         *        dividend = -7  = ..111001
+                         *        roundingAddend = ..000011
+                         *        rounded        = ..111100 // note: (log2 + 1) = 3rd bit from the right is incremented
+                         */
                         Instruction.add(left.get(), result, result),
+                        /*
+                         * Now we can finally do the real division by (signed) shifting (log2) bits to the right. Normally, this would
+                         * create the rounding problem mentioned above, but in all cases where the rounding error arises (negative dividend
+                         * that is not dividable by divisor) we have already incremented the (log2 + 1)th bit which is now (after shifting)
+                         * the 1st bit from the right. Thereby the rounding error is corrected.
+                         */
                         Instruction.sar(result, Constant(log2, Width.BYTE), result),
                         if (divisorInt!! < 0) {
                             Instruction.neg(result, result)
