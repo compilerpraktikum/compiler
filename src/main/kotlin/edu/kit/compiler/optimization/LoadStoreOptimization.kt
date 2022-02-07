@@ -189,7 +189,7 @@ class StoreAfterStore(val graph: Graph) {
 
             val iteratedDestinations: MutableSet<Node> = HashSet()
 
-            // nodes
+            // nodess
             val visited: MutableSet<PathTreeNode> = HashSet()
 
             override fun hasNext(): Boolean {
