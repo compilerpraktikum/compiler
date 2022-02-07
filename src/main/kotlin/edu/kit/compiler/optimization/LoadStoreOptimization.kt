@@ -112,8 +112,8 @@ class StoreAfterStore(val graph: Graph) {
 
     class PathTree(val rootFirmNode: Return) {
         lateinit var root: PathTreeNode
-        val construction_visited: MutableSet<Node> = HashSet()
-        val construction_currentPath: Path<Node> = Path(mutableListOf())
+        val constructionVisited: MutableSet<Node> = HashSet()
+        val constructionCurrentPath: Path<Node> = Path(mutableListOf())
         val circles: MutableList<Path<Node>> = mutableListOf()
 
         suspend fun initialize() {
@@ -122,8 +122,8 @@ class StoreAfterStore(val graph: Graph) {
         }
 
         private fun addCircleFromCurrentPath(firmNode: Node): Boolean {
-            return if (construction_currentPath.contains(firmNode)) {
-                circles.add(construction_currentPath.newCircleIncluding(firmNode))
+            return if (constructionCurrentPath.contains(firmNode)) {
+                circles.add(constructionCurrentPath.newCircleIncluding(firmNode))
                 true
             } else false
         }
@@ -134,8 +134,8 @@ class StoreAfterStore(val graph: Graph) {
             suspend fun initialize() {
                 // visit the node first because of construction recursion!
                 if (node != node.graph.start) {
-                    pathTree.construction_visited.add(this.node)
-                    pathTree.construction_currentPath.add(this.node)
+                    pathTree.constructionVisited.add(this.node)
+                    pathTree.constructionCurrentPath.add(this.node)
                 }
                 yield()
 
@@ -167,7 +167,7 @@ class StoreAfterStore(val graph: Graph) {
 
                 if (node != node.graph.start) {
                     yield()
-                    pathTree.construction_currentPath.removeLast()
+                    pathTree.constructionCurrentPath.removeLast()
                     yield()
                 }
                 yield()
@@ -322,7 +322,7 @@ class StoreAfterStore(val graph: Graph) {
         override fun contains(element: T) = nodeHashSet.contains(element)
         override fun containsAll(elements: Collection<T>) = nodeHashSet.containsAll(elements)
         override fun isEmpty() = nodeHashSet.isEmpty()
-        override fun get(index: Int): T = list.get(index)
+        override fun get(index: Int): T = list[index]
 
         override fun indexOf(element: T) = list.indexOf(element)
         override fun lastIndexOf(element: T) = list.lastIndexOf(element)
