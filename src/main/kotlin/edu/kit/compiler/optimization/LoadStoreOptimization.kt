@@ -24,7 +24,7 @@ import kotlin.system.measureTimeMillis
 
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
 // const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
-const val StoreAfterStoreOptimizationTimeoutMilliseconds = 2000L /* 3 seconds */
+const val StoreAfterStoreOptimizationTimeoutMilliseconds = 20000L /* 3 seconds */
 const val StoreAfterStoreOptimizationMaxMPhisInGraph = 14 /* number of phis for the optimization to handle in reasonable time (">14" ==(ca.)==> ">4000ms") */
 val StoreAfterStoreOptimizationHasTimedOutBefore = mutableMapOf<Graph, Boolean>()
 
