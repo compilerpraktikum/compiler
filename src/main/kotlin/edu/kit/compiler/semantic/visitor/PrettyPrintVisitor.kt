@@ -288,7 +288,7 @@ class PrettyPrintVisitor(private val printStream: PrintStream) : AbstractVisitor
     override fun visitNewObjectExpression(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         printParenthesisMaybe {
             print("new ")
-            print(newObjectExpression.clazz.symbol.text)
+            print(newObjectExpression.type.name.symbol.text)
             print("()")
         }
     }

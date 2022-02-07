@@ -29,7 +29,7 @@ abstract class AbstractLexer(
     protected fun peek(offset: Int = 0): Char = sourceFile.peek(offset)
 
     /**
-     * Lexes the given input.
+     * Tokenize the given input.
      * @return [Sequence] of [Tokens][Token]
      */
     fun tokens(): Sequence<Token> = sequence {

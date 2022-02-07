@@ -24,7 +24,7 @@ class Linker {
             val process = processBuilder.start()
             val exitCode = process.waitFor()
             if (exitCode != 0) {
-                throw CompilationException("c compiler returned non-zero exit code")
+                throw CompilationException("c compiler returned non-zero exit code $exitCode")
             }
         } catch (e: IOException) {
             throw CompilationException("failed to generate executable: ${e.message}")
@@ -39,7 +39,7 @@ class Linker {
                     toFile().deleteOnExit()
                 }
                 Files.copy(runtime, tempFile, StandardCopyOption.REPLACE_EXISTING)
-                return tempFile
+                return@extractRuntimeLibraryFile tempFile
             }
         } catch (e: IOException) {
             throw CompilationException("failed to extract runtime library")

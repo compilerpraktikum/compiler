@@ -16,7 +16,7 @@ import edu.kit.compiler.source.SourceFile
 /**
  * Semantic analysis pipeline
  *
- * @param program the semantic [AST][SemanticAST] from a parser instance
+ * @param program the [semantic AST][SemanticAST] from a parser instance
  * @param sourceFile input abstraction where errors can be reported
  * @param stringTable [StringTable] for name analysis
  */

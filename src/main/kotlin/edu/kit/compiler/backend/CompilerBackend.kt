@@ -1,5 +1,10 @@
 package edu.kit.compiler.backend
 
+import edu.kit.compiler.Compiler
+import edu.kit.compiler.backend.codegen.CodeGenFacade
+import edu.kit.compiler.utils.Logger
+import firm.Program
+import java.io.File
 import java.nio.file.Path
 
 class CompilerBackend(
@@ -7,21 +12,22 @@ class CompilerBackend(
     private val assemblyFile: Path,
     private val executableFile: Path,
     private val useMolki: Boolean,
+    private val optimizationLevel: Compiler.OptimizationLevel,
+    private val dumpCodeGenIR: Boolean = false,
+    private val dumpMolki: Boolean = false,
 ) : Backend {
     override fun generate() {
-        TODO("code generation")
+        val graphs = Program.getGraphs()
+        val codeGenFacade = CodeGenFacade(compilationUnit, graphs, optimizationLevel = optimizationLevel, dumpCodeGenIR = dumpCodeGenIR, dumpMolkIR = dumpMolki)
+        codeGenFacade.generate()
+        if (useMolki) {
+            Logger.warning { "The generated molki code is not entirely compatible with molki.py. Expect errors." }
+            val molkiFile = File.createTempFile("out", ".molki")
+            codeGenFacade.generateMolkiFile(molkiFile)
+            MolkiAssembler.assemble(molkiFile.toPath(), assemblyFile)
+        } else {
+            codeGenFacade.generateAssemblyFile(assemblyFile)
+        }
         Linker().link(assemblyFile, executableFile)
     }
 }
-
-fun createCompilerBackend(
-    compilationUnit: String,
-    assemblyFile: Path,
-    executableFile: Path,
-) = CompilerBackend(compilationUnit, assemblyFile, executableFile, useMolki = false)
-
-fun createCompilerBackendWithMolki(
-    compilationUnit: String,
-    assemblyFile: Path,
-    executableFile: Path,
-) = CompilerBackend(compilationUnit, assemblyFile, executableFile, useMolki = true)

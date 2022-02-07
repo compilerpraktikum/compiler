@@ -230,6 +230,7 @@ object FirmContext {
                 val secondNode = expressionStack.pop()
                 val firstNode = expressionStack.pop()
 
+                @Suppress("KotlinConstantConditions") // inspection false-positives here, because smart-casts of compiler don't consider context
                 when (expr.operation) {
                     AST.BinaryExpression.Operation.EQUALS -> convertBoolToByte(
                         this.construction.newCmp(firstNode, secondNode, Relation.Equal)
@@ -896,7 +897,7 @@ object FirmContext {
 
         val loadNode = construction.newLoad(
             this.construction.currentMem,
-            construction.newConv(addressNode, Mode.getP()),
+            addressNode,
             arrayAccess.actualType.mode
         )
 
@@ -922,7 +923,7 @@ object FirmContext {
 
         val storeNode = construction.newStore(
             this.construction.currentMem,
-            construction.newConv(addressNode, Mode.getP()),
+            addressNode,
             value
         )
 
@@ -940,22 +941,12 @@ object FirmContext {
         indexNode: Node,
         targetNode: Node
     ): Node {
-        // multiply index by type size and add to base address. Use Ls as the type to fit all
         return construction.newAdd(
-            construction.newConv(
-                targetNode,
-                Mode.getLs()
-            ),
+            targetNode,
             construction.newMul(
-                construction.newConv(
-                    construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getBu()),
-                    Mode.getLs()
-                ),
-                construction.newConv(
-                    indexNode,
-                    Mode.getLs()
-                )
-            )
+                construction.newConst(arrayAccess.actualType.mode.sizeBytes, Mode.getLs()),
+                construction.newConv(indexNode, Mode.getLs())
+            ),
         )
     }
 
@@ -992,7 +983,10 @@ object FirmContext {
 
                 val args = (0 until numberOfArguments).map { this.expressionStack.pop() }.asReversed()
 
-                val method = typeRegistry.getMethod(type.definition.node.owner.name.symbol, methodInvocationExpression.method.symbol)
+                val method = typeRegistry.getMethod(
+                    type.definition.node.owner.name.symbol,
+                    methodInvocationExpression.method.symbol
+                )
                 construction.newCall(
                     construction.currentMem,
                     construction.newAddress(method),
@@ -1068,7 +1062,7 @@ object FirmContext {
      * @param newArrayExpression the new-array expression
      */
     fun newArrayAllocation(newArrayExpression: SemanticAST.Expression.NewArrayExpression) {
-        val typeSizeNode = construction.newConst(newArrayExpression.type.mode.sizeBytes, Mode.getLu())
+        val typeSizeNode = construction.newConst(newArrayExpression.type.elementType.mode.sizeBytes, Mode.getLu())
         val arrayLengthNode = construction.newConv(expressionStack.pop(), Mode.getLu())
         val arraySizeNode = construction.newMul(typeSizeNode, arrayLengthNode)
         allocateMemory(construction.newConv(arraySizeNode, Mode.getLu()))
@@ -1082,7 +1076,7 @@ object FirmContext {
      */
     fun newObjectAllocation(newObjectExpression: SemanticAST.Expression.NewObjectExpression) {
         val typeSizeNode =
-            construction.newConst(typeRegistry.getClassType(newObjectExpression.clazz.symbol).size, Mode.getLu())
+            construction.newConst(typeRegistry.getClassType(newObjectExpression.type.name.symbol).size, Mode.getLu())
         allocateMemory(construction.newConv(typeSizeNode, Mode.getLu()))
     }
 

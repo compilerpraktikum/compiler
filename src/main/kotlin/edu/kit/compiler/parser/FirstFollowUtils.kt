@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package edu.kit.compiler.parser
 
 import edu.kit.compiler.lexer.Token

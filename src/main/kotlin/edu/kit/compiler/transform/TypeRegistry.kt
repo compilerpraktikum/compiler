@@ -109,7 +109,7 @@ class TypeRegistry {
         val entity = createMethod(clazz.type, name.text, returnType, parameterTypes, thisParam).apply {
             // set mangled name (-> linker) for non-static methods (static methods don't need this, because by default: linker name == entity name (== "main"))
             if (!isStatic) {
-                setLdIdent("${inClass.text}.${name.text}")
+                setLdIdent("${inClass.text}$${name.text}")
             }
         }
 

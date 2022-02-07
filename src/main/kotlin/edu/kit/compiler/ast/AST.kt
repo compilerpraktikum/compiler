@@ -58,7 +58,7 @@ sealed class AST {
     ) : ClassMember()
 
     data class MainMethod(
-        // we need not only block but the rest too, for in semantical analysis we need to check exact match on
+        // we need not only block but the rest too, for in semantic analysis we need to check exact match on
         // "public static void main(String[] $SOMEIDENTIFIER)"
         val name: Parsed<Symbol>,
         val returnType: Parsed<Type>,
@@ -207,7 +207,7 @@ sealed class AST {
     }
 
     data class NewObjectExpression(
-        val clazz: Parsed<Symbol>,
+        val type: Type.Class,
     ) : Expression()
 
     data class NewArrayExpression(

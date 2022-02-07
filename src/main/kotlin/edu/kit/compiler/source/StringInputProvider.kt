@@ -24,18 +24,18 @@ class StringInputProvider(
 
     fun get(position: Int): Char {
         require(position in (0..limit))
-        if (position < limit) {
-            return content[position]
+        return if (position < limit) {
+            content[position]
         } else {
-            return InputProvider.END_OF_FILE
+            InputProvider.END_OF_FILE
         }
     }
 
     override fun next(): Char {
-        if (nextIndex <= limit) {
-            return get(nextIndex++)
+        return if (nextIndex <= limit) {
+            get(nextIndex++)
         } else {
-            return InputProvider.END_OF_FILE
+            InputProvider.END_OF_FILE
         }
     }
 

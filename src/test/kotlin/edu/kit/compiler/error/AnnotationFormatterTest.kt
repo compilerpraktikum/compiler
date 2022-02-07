@@ -12,9 +12,13 @@ internal class AnnotationFormatterTest {
 
     private fun SourceFile.range(start: Int, length: Int) = SourceRange(SourcePosition(this, start), length)
 
-    fun annotateSource(input: String, block: SourceFile.() -> Unit) {
+    private fun annotateSource(input: String, block: SourceFile.() -> Unit) {
         val source = SourceFile.from("/path/to/file", input)
-        while (source.next() != InputProvider.END_OF_FILE) {}
+
+        @Suppress("ControlFlowWithEmptyBody")
+        while (source.next() != InputProvider.END_OF_FILE) {
+        }
+
         source.block()
         source.printAnnotations()
     }

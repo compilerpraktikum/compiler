@@ -28,9 +28,9 @@ abstract class MjTestSuite(
         @JvmStatic
         private fun assertCompilationResult(testCase: TestCase, successful: Boolean) {
             if (testCase.shouldSucceed) {
-                assertTrue("expected failure, but got success for ${testCase.name}") { successful }
+                assertTrue("expected success, but got failure for ${testCase.name}") { successful }
             } else {
-                assertFalse("expected success, but got failure for ${testCase.name}") { successful }
+                assertFalse("expected failure, but got success for ${testCase.name}") { successful }
             }
         }
     }

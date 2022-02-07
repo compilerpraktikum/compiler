@@ -52,7 +52,7 @@ sealed class SemanticAST(open val sourceRange: SourceRange) {
         /**
          * @param returnType semantic return type of the method
          * @param name method name identifier with source range
-         * @param throwsException an identifier of the exception type of a throws declaration. Optional
+         * @param throwsException identifier of the exception-type of a throws-declaration. Optional
          * @param parameters method parameter list
          * @param sourceRange source range spanning the entire method
          * @param block the method's code
@@ -168,7 +168,7 @@ sealed class SemanticAST(open val sourceRange: SourceRange) {
         lateinit var expectedType: SemanticType
 
         /**
-         * flag if a expression is on the left side of '=', will be set during semantic phase and is aviable in transformation phase
+         * flag if an expression is on the left side of '=', will be set during semantic phase and is aviable in transformation phase
          */
         open var isLeftHandAssignment = false
 
@@ -241,13 +241,14 @@ sealed class SemanticAST(open val sourceRange: SourceRange) {
 
         /**
          * Object instantiation expression
-         *
-         * @param clazz instantiated class name
          */
-        class NewObjectExpression(val clazz: Identifier, sourceRange: SourceRange) : Expression(sourceRange) {
+        class NewObjectExpression(
+            val type: SemanticType.Class,
+            sourceRange: SourceRange
+        ) : Expression(sourceRange) {
 
             override val actualType: SemanticType
-                get() = SemanticType.Class(clazz)
+                get() = type
         }
 
         class NewArrayExpression(

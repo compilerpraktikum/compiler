@@ -19,10 +19,14 @@ sealed class ValueHolder<T> {
         fun reset() {
             value = null
         }
+
+        override fun toString(): String = "Variable($value)"
     }
 
-    data class Constant<T>(private var value: T? = null) : ValueHolder<T>() {
-        override fun get(): T = value ?: error("value not initialized")
+    data class Constant<T>(private var value: T) : ValueHolder<T>() {
+        override fun get(): T = value
+
+        override fun toString(): String = "Constant($value)"
     }
 }
 
@@ -31,13 +35,13 @@ interface MatchPattern<Target> {
 }
 
 class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
-    private val name: String,
+    val name: String,
     private val variables: List<ValueHolder.Variable<*>>,
     private val pattern: MatchPattern<Target>,
     private val condition: (() -> Boolean)?,
     private val replacementFactory: Scope.() -> Replacement,
 ) {
-    // TODO replace with `context(Scope)` when Kotlin 1.6.20 is released
+    // Note: replace with `context(Scope)` when Kotlin 1.6.20 is released
     fun match(node: Target, scope: Scope): Replacement? {
         variables.forEach { it.reset() }
 
@@ -71,14 +75,17 @@ class RuleBuilderScope<Target, Replacement, Scope : ReplacementBuilderScope>(pri
     fun <T> constant(value: T) = ValueHolder.Constant(value)
 
     fun match(pattern: MatchPattern<Target>) {
+        check(matchPattern == null) { "only 1 call to match() allowed" }
         matchPattern = pattern
     }
 
     fun condition(condition: () -> Boolean) {
+        check(conditionFn == null) { "only 1 call to condition() allowed" }
         conditionFn = condition
     }
 
     fun replaceWith(replacement: Scope.() -> Replacement) {
+        check(replacementFactory == null) { "only 1 call to replaceWith() allowed" }
         replacementFactory = replacement
     }
 

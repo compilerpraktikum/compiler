@@ -51,7 +51,7 @@ sealed class Parsed<out A>(open val range: SourceRange) {
      * Replaces the [Error.node] and [Valid.node] values with the given [newNode]
      * If [Error.node] is null, the value is *still* replaces by [newNode]
      */
-    fun <B> replaceNode(newNode: B): Parsed<B> = when (this) {
+    private fun <B> replaceNode(newNode: B): Parsed<B> = when (this) {
         is Error -> Error(this.range, newNode)
         is Valid -> Valid(this.range, newNode)
     }
@@ -289,7 +289,10 @@ private fun Parsed<AST.Expression>.validate(): SemanticAST.Expression? = unwrapO
                 this.range
             )
         is AST.NewObjectExpression ->
-            SemanticAST.Expression.NewObjectExpression(expression.clazz.validate() ?: return null, this.range)
+            SemanticAST.Expression.NewObjectExpression(
+                SemanticType.Class(expression.type.name.validate() ?: return null),
+                this.range
+            )
         is AST.UnaryExpression ->
             SemanticAST.Expression.UnaryOperation(
                 expression.expression.validate() ?: return null,

@@ -57,7 +57,7 @@ private fun AST.toChildString(): String = when (this) {
         is AST.LiteralExpression.Null -> "value = null"
         is AST.LiteralExpression.This -> "value = this"
     }
-    is AST.NewObjectExpression -> "class = ${clazz.debug()}"
+    is AST.NewObjectExpression -> "class = ${type.name.debug()}"
     is AST.NewArrayExpression -> "type = ${type.debug()}, length = ${length.debug()}"
 
     AST.Type.Void -> ""
