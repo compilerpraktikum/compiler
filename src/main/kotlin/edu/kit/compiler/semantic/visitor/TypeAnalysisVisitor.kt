@@ -283,6 +283,10 @@ class TypeAnalysisVisitor(private val sourceFile: SourceFile) : AbstractVisitor(
         checkTypesCompatible(literalNullExpression)
     }
 
+    override fun visitLiteralThisExpression(literalThisExpression: SemanticAST.Expression.LiteralExpression.LiteralThisExpression) {
+        checkTypesCompatible(literalThisExpression)
+    }
+
     private fun checkTypesCompatible(expression: SemanticAST.Expression) {
         if (!suppressTypeErrors && expression.actualType != SemanticType.Error && expression.expectedType != SemanticType.Error) {
             errorIfNot(areTypesCompatible(expression.expectedType, expression.actualType)) {
