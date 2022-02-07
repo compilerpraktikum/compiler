@@ -54,7 +54,7 @@ class PhiCounter(val graph: Graph, val mode: Mode = Mode.getM()) : FirmNodeVisit
 }
 
 /**
- * Collect all relevant store nodes
+ * Collect all relevant store nodes.
  */
 class StoreAfterStoreNodeCollector(
     private val LocalVarStoreStack: Stack<Store>,
