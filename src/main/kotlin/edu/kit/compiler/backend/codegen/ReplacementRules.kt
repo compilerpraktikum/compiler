@@ -68,7 +68,22 @@ private fun RuleBuilder.basicRules() {
             )
         }
     }
-    rule("return") {
+    rule("return without value") {
+        match(
+            CodeGenIR.Return(
+                Noop()
+            )
+        )
+
+        replaceWith {
+            Replacement(
+                node = Noop(),
+                instructions = instructionListOf(debugComment()),
+                cost = 0,
+            )
+        }
+    }
+    rule("return with value") {
         val target = variable<Target.Input>()
         val replacement = variable<Replacement>()
 

@@ -177,12 +177,9 @@ class FirmToCodeGenTranslator(
         }
     }
 
-    private fun noop() =
-        CodeGenIR.Const("0", Width.BYTE)
-
     override fun visit(node: Start) {
         setCodeFor(node) {
-            noop()
+            Noop()
         }
     }
 
@@ -240,7 +237,7 @@ class FirmToCodeGenTranslator(
             )
         } else {
             setCodeFor(controlFlowProjection) {
-                noop()
+                Noop()
             }
             emitControlDependency(
                 node,
@@ -386,7 +383,7 @@ class FirmToCodeGenTranslator(
                         node,
                         CodeGenIR.Assign(to = CodeGenIR.Indirection(address), from = value)
                     )
-                    setCodeFor(node) { noop() }
+                    setCodeFor(node) { Noop() }
                 } else {
                     error("unexpected node: $node")
                 }
@@ -410,7 +407,7 @@ class FirmToCodeGenTranslator(
         val value = nodePreds.getOrNull(1)
 
         val code = if (value == null) {
-            CodeGenIR.Return(noop())
+            CodeGenIR.Return(Noop())
         } else {
             CodeGenIR.Return(getCodeFor(value))
         }
