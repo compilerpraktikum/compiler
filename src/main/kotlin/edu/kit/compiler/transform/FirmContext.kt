@@ -66,6 +66,8 @@ object FirmContext {
      */
     private val exitBlocks = mutableListOf<Block>()
 
+    fun doesCurrentBlockExit() = exitBlocks.contains(construction.currentBlock)
+
     /**
      * A stack for constructing expressions using a visitor. Each constructed expression is added onto the stack,
      * each expression that needs arguments just takes them from the stack. Since the AST is guaranteed to be valid,
