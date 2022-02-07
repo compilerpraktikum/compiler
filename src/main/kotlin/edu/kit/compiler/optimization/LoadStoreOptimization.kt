@@ -182,7 +182,6 @@ class StoreAfterStore(val graph: Graph) {
          * This iterator walks through all
          */
         class PathTreeIterator(val pathTree: PathTree, val desiredDestinations: Set<Node>) : Iterator<Iterator<Node>> {
-            // TODO this iterator executes a simple DFS through the pathTree!
             var currentPathTreeNode = pathTree.root
             var currentPathTreeNodeIterator = PathTreeNodeIterator(this, currentPathTreeNode.node)
             var nextWasAlreadyCalled = true
@@ -210,7 +209,6 @@ class StoreAfterStore(val graph: Graph) {
                 nextWasAlreadyCalled = true
             }
 
-            // todo this currently invalidates the last iterator!
             override fun next(): Iterator<Node> {
                 // reset currentPathTreeNode
                 this.currentPathTreeNode = pathTree.root
@@ -384,7 +382,6 @@ class StoreAfterStore(val graph: Graph) {
 
         fun removeLast(): T {
             val element = list.removeLast()
-            // TODO if performance schlecht ==> in einer Hashmap mitzählen, wie oft das element im pfad...
             if (!list.contains(element)) nodeHashSet.remove(element)
             return element
         }
@@ -474,8 +471,6 @@ class StoreAfterStore(val graph: Graph) {
     var deletedAnyStoreNode = false
 
     private suspend fun calculateSpanningForest() = graph.end.block.preds.forEach { returnNode ->
-
-        // TODO this a test!
         val pathTree = PathTree(returnNode as Return)
         pathTree.initialize()
         yield()
@@ -596,7 +591,6 @@ class StoreAfterStore(val graph: Graph) {
     }
 
     private fun isDeadStore(store: Store): Boolean {
-        // TODO überlegen if man nicht vielleicht  ALLE paths von return zu Start anlooken müsste... (Glaub eher net)
         // 1. find if there is a critical store path
         val criticalityCheck = anyStorePathIsCriticalFor(store)
         if (criticalityCheck.first) { // there exists a path where after the store comes no other similar store or a load.
