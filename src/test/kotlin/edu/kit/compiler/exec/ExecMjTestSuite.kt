@@ -130,11 +130,8 @@ internal class ExecMjTestSuite : MjTestSuite("exec") {
             "java",
             "-jar", jarFile.toAbsolutePath().toString(),
             "--" + Compiler.Mode.CompileFirm.cliFlag,
-//            "-O0",
-            "-O1",
             "--out", output.toAbsolutePath().toString(),
-            input.toAbsolutePath().toString(),
-            "--dump=graph:each-optimization"
+            input.toAbsolutePath().toString()
         ).start()
 
         process.inputStream.transferTo(System.out)
