@@ -12,10 +12,18 @@ buildscript {
         }
     }
 
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+
     dependencies {
         classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
         classpath group: 'gradle.plugin.com.github.johnrengelman', name: 'shadow', version: '7.1.2'
     }
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 apply plugin: 'kotlin'
