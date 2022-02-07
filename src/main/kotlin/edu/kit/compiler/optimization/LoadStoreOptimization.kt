@@ -25,28 +25,37 @@ import kotlin.system.measureTimeMillis
 
 val StoreAfterStoreOptimization = Optimization("store after store elimination", ::applyStoreAfterStoreOptimization)
 const val StoreAfterStoreOptimizationTimeoutMilliseconds = 4000L /* 4 seconds */
+const val StoreAfterStoreOptimizationMaxMPhisInGraph = 14 /* number of phis for the optimization to handle in reasonable time (">14" ==(ca.)==> ">4000ms") */
 val StoreAfterStoreOptimizationHasTimedOutBefore = mutableMapOf<Graph, Boolean>()
 
 fun applyStoreAfterStoreOptimization(graph: Graph): Boolean {
     StoreAfterStoreOptimizationHasTimedOutBefore.putIfAbsent(graph, false)
-    return if (!StoreAfterStoreOptimizationHasTimedOutBefore[graph]!!) {
+    return if (!StoreAfterStoreOptimizationHasTimedOutBefore[graph]!! &&
+        PhiCounter(graph).walk().phiCount <= StoreAfterStoreOptimizationMaxMPhisInGraph
+    ) {
         val hasChangedHasTimedOutPair = StoreAfterStore(graph).removeDeadStores(StoreAfterStoreOptimizationTimeoutMilliseconds)
-
         StoreAfterStoreOptimizationHasTimedOutBefore[graph] = hasChangedHasTimedOutPair.second
-        if (StoreAfterStoreOptimizationHasTimedOutBefore[graph]!!) {
-            println("               Cancelled!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        } else println("not cancelled")
-
         hasChangedHasTimedOutPair.first
     } else false
 }
 
+class PhiCounter(val graph: Graph, val mode: Mode = Mode.getM()) : FirmNodeVisitorAdapter() {
+    var phiCount: Int = 0
+
+    override fun visit(node: Phi) {
+        if (node.mode == mode) phiCount++
+    }
+
+    fun walk(): PhiCounter {
+        graph.walk(this)
+        return this
+    }
+}
+
 /**
  * Collect all relevant store nodes
- * TODO gescheit dokumentieren...
  */
 class StoreAfterStoreNodeCollector(
-    // TODO
     private val LocalVarStoreStack: Stack<Store>,
     private val localVarStoreToAddressProjNodeMap: HashMap<Store, Proj>,
     private val localVarStoreToAddressProjOffsetMap: HashMap<Store, Int>,
