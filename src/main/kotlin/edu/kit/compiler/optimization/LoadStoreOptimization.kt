@@ -661,11 +661,11 @@ class StoreAfterStore(val graph: Graph) {
                     print("($lastLoadOrCallOrStoreBeforeOurStore")
                     when (lastLoadOrCallOrStoreBeforeOurStore) {
 
-                        null -> return Pair(true, witnesses) // no store found
+                        null -> return@anyStorePathIsCriticalFor Pair(true, witnesses) // no store found
                         is Store -> {
                             witnesses.add(lastLoadOrCallOrStoreBeforeOurStore as Store) // uncritical with witness.
                         }
-                        else -> return Pair(true, witnesses) // Load or Call found
+                        else -> return@anyStorePathIsCriticalFor Pair(true, witnesses) // Load or Call found
                     }
                 }
                 print(") ")
