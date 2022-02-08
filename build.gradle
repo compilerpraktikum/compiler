@@ -49,6 +49,8 @@ dependencies {
     implementation "com.tylerthrailkill.helpers:pretty-print:2.0.2"
 
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0") /* For timeout in store optimization */
+
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
