@@ -98,7 +98,7 @@ sealed class Parsed<out A>(open val range: SourceRange) {
 }
 
 inline fun <A> Parsed<A>.unwrapOr(handle: () -> A): A = when (this) {
-    is Parsed.Error -> handle()
+    is Parsed.Error -> this.node ?: handle()
     is Parsed.Valid -> this.node
 }
 
