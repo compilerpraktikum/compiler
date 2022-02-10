@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        kotlin_version = '1.6.+'
+        kotlin_version = '1.6.20'
     }
 
     repositories {
@@ -58,6 +58,7 @@ dependencies {
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+        freeCompilerArgs += "-Xcontext-receivers"
         jvmTarget = "17"
     }
 }
