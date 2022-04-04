@@ -41,8 +41,8 @@ class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
     private val condition: (() -> Boolean)?,
     private val replacementFactory: Scope.() -> Replacement,
 ) {
-    // Note: replace with `context(Scope)` when Kotlin 1.6.20 is released
-    fun match(node: Target, scope: Scope): Replacement? {
+    context(Scope)
+    fun match(node: Target): Replacement? {
         variables.forEach { it.reset() }
 
         val matches = try {
@@ -58,7 +58,7 @@ class Rule<Target, Replacement, Scope : ReplacementBuilderScope>(
             return null
         }
 
-        return scope.replacementFactory()
+        return this@Scope.replacementFactory()
     }
 }
 
@@ -92,13 +92,7 @@ class RuleBuilderScope<Target, Replacement, Scope : ReplacementBuilderScope>(pri
     fun build(): Rule<Target, Replacement, Scope> = Rule(name, variables, matchPattern!!, conditionFn, replacementFactory!!)
 }
 
-interface ReplacementBuilderScope {
-    fun <Target, Replacement, Scope : ReplacementBuilderScope> Rule<Target, Replacement, Scope>.match(node: Target) =
-        with(this@match) {
-            @Suppress("UNCHECKED_CAST")
-            match(node, this@ReplacementBuilderScope as Scope)
-        }
-}
+interface ReplacementBuilderScope
 
 fun <Target, Replacement, Scope : ReplacementBuilderScope> rule(name: String = "anonymous rule", block: RuleBuilderScope<Target, Replacement, Scope>.() -> Unit): Rule<Target, Replacement, Scope> =
     RuleBuilderScope<Target, Replacement, Scope>(name).apply(block).build()
